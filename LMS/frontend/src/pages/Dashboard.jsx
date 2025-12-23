@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import CreateSchoolModal from './Schools';
 
 
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
@@ -17,20 +18,19 @@ const Dashboard = () => {
     assignments: 0
   });
   const [recentClassrooms, setRecentClassrooms] = useState([]);
-
-
+  const [showWelcome, setShowWelcome] = useState(true);
   const [schoolModalOpen, setSchoolModalOpen] = useState(false);
-
-  // return (
-
-  // );
-
-
-
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (showWelcome) {
+      const timer = setTimeout(() => setShowWelcome(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcome]);
 
   const fetchData = async () => {
     try {
@@ -78,6 +78,11 @@ const Dashboard = () => {
 
   return (
     <Layout>
+      {showWelcome && user && (
+        <div style={{ background: '#e0f7fa', padding: '10px', borderRadius: '6px', marginBottom: '16px', textAlign: 'center' }}>
+          Welcome, <b>{user.name}</b>!
+        </div>
+      )}
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
 

@@ -85,62 +85,56 @@ export const AuthProvider = ({ children }) => {
     console.log('AuthContext setAuthData: User data and token set.', finalUser);
   };
 
+
   const login = async (email, password) => {
     console.log('AuthContext login: Attempting to log in user:', email);
     try {
       const response = await api.post('/auth/login', { email, password });
       console.log('AuthContext login: Raw response data from /auth/login:', response.data);
-      const { token, user, redirectToVerify, trialExpired } = response.data; // Extract trialExpired
+      const { token, user, redirectToVerify, trialExpired } = response.data;
       console.log('AuthContext login: Extracted data - token present:', !!token, 'user present:', !!user, 'redirectToVerify:', redirectToVerify, 'trialExpired:', trialExpired);
 
       if (redirectToVerify) {
         console.log('AuthContext login: Redirecting to verify email.');
         return { success: false, redirectToVerify: true, email: email, message: response.data.message };
       }
-      
-      // Ensure schoolId and tutorialId are stored as plain IDs
+
       const cleanedUser = {
         ...user,
         schoolId: user.schoolId?._id || user.schoolId || null,
         tutorialId: user.tutorialId?._id || user.tutorialId || null,
       };
 
-      setAuthData(token, cleanedUser, trialExpired); // Use setAuthData with cleanedUser and trialExpired
+      setAuthData(token, cleanedUser, trialExpired);
       console.log('AuthContext login: User logged in and state updated. User:', cleanedUser);
-      
-      return { success: true, trialExpired: trialExpired || false }; // Return trialExpired
+
+      return { success: true, trialExpired: trialExpired || false };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Login failed';
       const redirectToVerify = error.response?.data?.redirectToVerify || false;
       const unverifiedEmail = error.response?.data?.email || null;
-      const trialExpired = error.response?.data?.trialExpired || false; // Extract trialExpired from error
+      const trialExpired = error.response?.data?.trialExpired || false;
       console.error('AuthContext login: Login failed:', errorMessage, { redirectToVerify, unverifiedEmail, trialExpired });
 
       if (redirectToVerify && unverifiedEmail) {
         return { success: false, redirectToVerify: true, email: unverifiedEmail, message: errorMessage, trialExpired: trialExpired };
       }
 
-      return {
-        success: false,
-        message: errorMessage,
-        trialExpired: trialExpired, // Return trialExpired
-      };
+      return { success: false, message: errorMessage };
     }
   };
 
   const logout = () => {
     console.log('AuthContext logout: Clearing user session.');
-    debugger; // <--- Add this line HERE
-    setAuthData(null, null); // Clear token and user using setAuthData
+    setAuthData(null, null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
+}
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

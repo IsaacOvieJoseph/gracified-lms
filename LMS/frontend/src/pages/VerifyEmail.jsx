@@ -28,14 +28,23 @@ const VerifyEmail = () => {
     try {
       const response = await api.post('/auth/verify-otp', { email, otp });
       console.log('VerifyEmail: API Response on OTP verification:', response.data);
-
+      // Debug: Log all relevant response fields
+      console.log('VerifyEmail: token:', response.data.token);
+      console.log('VerifyEmail: user:', response.data.user);
+      console.log('VerifyEmail: user.isVerified:', response.data.user?.isVerified);
+      console.log('VerifyEmail: message:', response.data.message);
       if (response.data.token && response.data.user) {
-        console.log('VerifyEmail: Token and user present in response. Proceeding with setAuthData.');
+        console.log('VerifyEmail: Logging in and navigating to dashboard (token and user present)');
         setAuthData(response.data.token, response.data.user, response.data.trialExpired);
         setMessage(response.data.message || 'Email verified successfully!');
         navigate('/dashboard');
+      } else if (response.data.user && response.data.user.isVerified) {
+        console.log('VerifyEmail: Logging in and navigating to dashboard (user already verified)');
+        setAuthData(response.data.token, response.data.user, response.data.trialExpired);
+        setMessage('Email already verified. Logging you in...');
+        navigate('/dashboard');
       } else {
-        console.log('VerifyEmail: Response missing token or user. Setting error.', { tokenPresent: !!response.data.token, userPresent: !!response.data.user });
+        console.log('VerifyEmail: OTP verification failed or incomplete data.');
         setError(response.data.message || 'OTP verification failed: Incomplete data from server.');
       }
     } catch (err) {

@@ -76,7 +76,8 @@ const generateAndSendOTP = async (user) => {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, schoolName, tutorialName } = req.body;
+    let { name, email, password, role, schoolName, tutorialName } = req.body;
+    email = email.toLowerCase();
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -138,7 +139,8 @@ router.post('/register', async (req, res) => {
 // Verify OTP
 router.post('/verify-otp', async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    let { email, otp } = req.body;
+    email = email.toLowerCase();
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -181,7 +183,8 @@ router.post('/verify-otp', async (req, res) => {
 // Resend OTP
 router.post('/resend-otp', async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email } = req.body;
+    email = email.toLowerCase();
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -206,7 +209,8 @@ router.post('/resend-otp', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    email = email.toLowerCase();
 
     const user = await User.findOne({ email });
     if (!user) {
