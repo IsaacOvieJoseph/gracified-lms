@@ -1,6 +1,12 @@
 import React from 'react';
 
-const SubscriptionBlockBanner = ({ onViewPlans }) => (
+const SubscriptionBlockBanner = ({ onViewPlans, user }) => {
+   // Don't show banner for students or teachers
+  if (user?.role === 'student' || user?.role === 'teacher') {
+    return null;
+  }
+
+  return (
   <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-40">
     <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
       <h2 className="text-2xl font-bold mb-4 text-red-600">Subscription Required</h2>
@@ -16,5 +22,5 @@ const SubscriptionBlockBanner = ({ onViewPlans }) => (
     </div>
   </div>
 );
-
+};
 export default SubscriptionBlockBanner;

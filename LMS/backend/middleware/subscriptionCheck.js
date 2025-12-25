@@ -7,7 +7,7 @@ const subscriptionCheck = async (req, res, next) => {
 
   try {
     // Root admin has full access
-    if (user.role === 'root_admin') {
+    if (user.role === 'root_admin' ) {
       return next();
     }
 
@@ -27,7 +27,7 @@ const subscriptionCheck = async (req, res, next) => {
     }
 
     // For Teachers - no subscription blocking (removed subscription checks)
-    if (user.role === 'teacher') {
+    if (user.role === 'teacher' || user.role === 'student' ) {
       return next();
     }
 

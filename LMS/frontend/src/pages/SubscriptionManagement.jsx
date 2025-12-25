@@ -114,13 +114,15 @@ const SubscriptionManagement = () => {
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-6">Choose Your Subscription Plan</h2>
         
-        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
+        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && 
+ !['student', 'teacher'].includes(user.role) && (
           <p className="text-center text-sm text-gray-600 mb-4">
             Your free trial ends on {new Date(user.trialEndDate).toLocaleDateString()}. Please select a plan before it expires.
           </p>
         )}
 
-        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) <= Date.now() && (
+        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) <= Date.now() && 
+ !['student', 'teacher'].includes(user.role) && (
           <p className="text-center text-red-500 text-lg font-semibold mb-4">
             Your free trial has expired! Please choose a plan to continue.
           </p>
