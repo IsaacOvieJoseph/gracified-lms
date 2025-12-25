@@ -127,6 +127,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     console.log('AuthContext logout: Clearing user session.');
     setAuthData(null, null);
+<<<<<<< HEAD
   };
 
   // Refresh user data from backend (for subscription changes, etc)
@@ -149,6 +150,12 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, setAuthData, logout, refreshUser }}>
+=======
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout }}>
+>>>>>>> eceb7819e4bc22c80ca171cfb3ad5028f7d16f90
       {children}
     </AuthContext.Provider>
   );
