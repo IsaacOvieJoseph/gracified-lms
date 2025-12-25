@@ -29,8 +29,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Classroom',
   }],
-  otp: String, // Field for storing OTP
-  otpExpires: Date, // Field for OTP expiry time
+  otp: String, // Field for storing OTP (email verification)
+  otpExpires: Date, // Field for OTP expiry time (email verification)
+  passwordResetOTP: String, // Field for storing password reset OTP
+  passwordResetOTPExpires: Date, // Field for password reset OTP expiry time
   isVerified: {
     type: Boolean,
     default: false, // Default to false, user needs to verify email

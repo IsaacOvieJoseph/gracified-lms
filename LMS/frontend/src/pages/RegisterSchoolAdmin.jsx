@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,13 @@ const RegisterSchoolAdmin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+  useEffect(() => {
+    // ...existing code...
+    // Listen for school selection changes
+    const handler = () => {/* reload any school-dependent data here if needed */};
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -37,6 +44,7 @@ const RegisterSchoolAdmin = () => {
       const response = await api.post('/auth/register', { ...formData, role: 'school_admin' });
       setMessage(response.data.message);
       if (response.data.redirectToVerify) {
+        sessionStorage.setItem('verifyEmail', formData.email);
         navigate('/verify-email', { state: { email: formData.email } });
       } else if (response.data.token) {
         login(response.data.token, response.data.user);

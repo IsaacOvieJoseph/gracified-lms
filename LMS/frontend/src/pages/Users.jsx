@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Select from 'react-select';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -9,6 +10,22 @@ const Users = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  // School filter state for school admin
+  const [selectedSchools, setSelectedSchools] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('selectedSchools')) || [];
+    } catch {
+      return [];
+    }
+  });
+  const [schools, setSchools] = useState([]);
+  useEffect(() => {
+    if (user?.role === 'school_admin') {
+      api.get('/schools?adminId=' + user._id)
+        .then(res => setSchools(res.data.schools || []))
+        .catch(() => setSchools([]));
+    }
+  }, [user]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,7 +37,14 @@ const Users = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+    // Listen for school selection changes from SchoolSwitcher
+    const handler = (e) => {
+      // Optionally update selectedSchools if needed
+      fetchUsers();
+    };
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
+  }, [selectedSchools]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -46,8 +70,17 @@ const Users = () => {
       } else {
         // Root admin and school admin see users based on their permissions
         const response = await api.get('/users');
-        setUsers(response.data.users);
-        setFilteredUsers(response.data.users);
+        let filtered = response.data.users;
+        if (user?.role === 'school_admin' && selectedSchools.length > 0) {
+          filtered = filtered.filter(u => {
+            if (Array.isArray(u.schoolId)) {
+              return u.schoolId.some(sid => selectedSchools.includes(sid?._id || sid));
+            }
+            return selectedSchools.includes(u.schoolId?._id || u.schoolId);
+          });
+        }
+        setUsers(filtered);
+        setFilteredUsers(filtered);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -59,7 +92,14 @@ const Users = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/users', formData);
+      const submitData = { ...formData };
+      if (user?.role === 'school_admin') {
+        // If 'All' is selected, assign all school IDs
+        if (submitData.schoolIds && submitData.schoolIds.includes('ALL')) {
+          submitData.schoolIds = schools.map(s => s._id);
+        }
+      }
+      await api.post('/users', submitData);
       setShowCreateModal(false);
       setFormData({ name: '', email: '', password: '', role: 'student' });
       fetchUsers();
@@ -138,6 +178,9 @@ const Users = () => {
                 {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                 )}
+                {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">School</th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 {user?.role === 'root_admin' && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -154,6 +197,13 @@ const Users = () => {
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getRoleColor(u.role)}`}>
                         {u.role.replace('_', ' ')}
                       </span>
+                    </td>
+                  )}
+                  {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {Array.isArray(u.schoolId)
+                        ? u.schoolId.map(s => s?.name || (schools.find(sch => sch._id === s)?.name || s)).join(', ')
+                        : (u.schoolId?.name || schools.find(sch => sch._id === u.schoolId)?.name || u.schoolName || u.schoolId || '')}
                     </td>
                   )}
                   <td className="px-6 py-4 text-sm text-green-600">
@@ -189,7 +239,7 @@ const Users = () => {
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto" style={{ maxHeight: '90vh' }}>
             <h3 className="text-xl font-bold mb-4">Create User</h3>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
@@ -242,6 +292,33 @@ const Users = () => {
                   )}
                 </select>
               </div>
+              {user?.role === 'school_admin' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">School(s)</label>
+                  <Select
+                    isMulti
+                    options={[{ value: 'ALL', label: 'All' }, ...schools.map(s => ({ value: s._id, label: s.name }))]}
+                    value={formData.schoolIds && formData.schoolIds.length === schools.length
+                      ? [{ value: 'ALL', label: 'All' }]
+                      : (formData.schoolIds || []).map(id => {
+                          if (id === 'ALL') return { value: 'ALL', label: 'All' };
+                          const school = schools.find(s => s._id === id);
+                          return school ? { value: school._id, label: school.name } : null;
+                        }).filter(Boolean)
+                    }
+                    onChange={selected => {
+                      if (selected.some(opt => opt.value === 'ALL')) {
+                        setFormData({ ...formData, schoolIds: schools.map(s => s._id) });
+                      } else {
+                        setFormData({ ...formData, schoolIds: selected.map(opt => opt.value) });
+                      }
+                    }}
+                    classNamePrefix="react-select"
+                    placeholder="Select school(s)..."
+                  />
+                  <small className="text-gray-500">Select multiple schools or 'All'.</small>
+                </div>
+              )}
               <div className="flex space-x-3">
                 <button
                   type="button"

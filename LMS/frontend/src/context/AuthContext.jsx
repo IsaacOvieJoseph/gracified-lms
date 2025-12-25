@@ -129,8 +129,26 @@ export const AuthProvider = ({ children }) => {
     setAuthData(null, null);
   };
 
+  // Refresh user data from backend (for subscription changes, etc)
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      const { user: fetchedUser, trialExpired } = response.data;
+      const cleanedUser = {
+        ...fetchedUser,
+        schoolId: fetchedUser.schoolId?._id || fetchedUser.schoolId || null,
+        tutorialId: fetchedUser.tutorialId?._id || fetchedUser.tutorialId || null,
+      };
+      setAuthData(null, cleanedUser, trialExpired);
+      return true;
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

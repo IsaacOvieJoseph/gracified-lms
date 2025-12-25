@@ -27,6 +27,15 @@ const Assignments = () => {
     if (['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role)) {
       fetchClassroomsForCreation();
     }
+    // Listen for school selection changes
+    const handler = () => {
+      fetchAssignments();
+      if (['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role)) {
+        fetchClassroomsForCreation();
+      }
+    };
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, [user]);
 
   useEffect(() => {

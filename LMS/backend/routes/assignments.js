@@ -5,18 +5,87 @@ const Notification = require('../models/Notification'); // Import Notification m
 const axios = require('axios'); // Ensure axios is imported here
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
+const { filterAssignmentsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
 const router = express.Router();
 
 // Get assignments for a classroom
 router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) => {
   try {
-    const assignments = await Assignment.find({ classroomId: req.params.classroomId })
+    // First check if classroom exists and owner's subscription is valid
+    const classroom = await Classroom.findById(req.params.classroomId)
+      .populate('teacherId', 'role subscriptionStatus trialEndDate')
+      .populate({
+        path: 'schoolId',
+        select: 'adminId',
+        populate: {
+          path: 'adminId',
+          select: 'subscriptionStatus trialEndDate'
+        }
+      });
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    // Check subscription only if user is not a teacher or student
+    if (req.user.role !== 'teacher' && req.user.role !== 'student') {
+      const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+      if (!isOwnerSubscriptionValid) {
+        return res.json({ assignments: [] }); // Return empty array if subscription expired
+      }
+    }
+    
+    // For teachers, allow access to their own class assignments regardless of subscription
+    if (req.user.role === 'teacher') {
+      const teacherId = classroom.teacherId._id || classroom.teacherId;
+      if (teacherId.toString() !== req.user._id.toString()) {
+        // Teacher trying to access someone else's class - check subscription
+        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+        if (!isOwnerSubscriptionValid) {
+          return res.json({ assignments: [] });
+        }
+      }
+    }
+    
+    // For students, allow access to enrolled class assignments regardless of subscription
+    if (req.user.role === 'student') {
+      const isEnrolled = classroom.students.some(
+        studentId => (studentId._id || studentId).toString() === req.user._id.toString()
+      ) || req.user.enrolledClasses.some(
+        classId => classId.toString() === classroom._id.toString()
+      );
+      if (!isEnrolled) {
+        return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
+      }
+    }
+
+    let assignments = await Assignment.find({ classroomId: req.params.classroomId })
       .populate('topicId', 'name')
+      .populate({
+        path: 'classroomId',
+        populate: [
+          {
+            path: 'teacherId',
+            select: 'role subscriptionStatus trialEndDate'
+          },
+          {
+            path: 'schoolId',
+            select: 'adminId',
+            populate: {
+              path: 'adminId',
+              select: 'subscriptionStatus trialEndDate'
+            }
+          }
+        ]
+      })
       .populate({
         path: 'submissions.studentId',
         select: 'name email'
       })
       .sort({ dueDate: 1 });
+
+    // Filter assignments to ensure classroom owner subscription is still valid (except for teachers and students)
+    assignments = await filterAssignmentsBySubscription(assignments, req.user);
 
     res.json({ assignments });
   } catch (error) {
@@ -28,12 +97,64 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
 router.get('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
-      .populate('classroomId', 'name teacherId')
+      .populate({
+        path: 'classroomId',
+        select: 'name teacherId schoolId',
+        populate: [
+          {
+            path: 'teacherId',
+            select: 'role subscriptionStatus trialEndDate'
+          },
+          {
+            path: 'schoolId',
+            select: 'adminId',
+            populate: {
+              path: 'adminId',
+              select: 'subscriptionStatus trialEndDate'
+            }
+          }
+        ]
+      })
       .populate('topicId', 'name')
       .populate('submissions.studentId', 'name email');
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    // Check if classroom owner's subscription is valid (skip check for teachers and students)
+    if (assignment.classroomId) {
+      // For teachers, allow access to their own class assignments
+      if (req.user.role === 'teacher') {
+        const teacherId = assignment.classroomId.teacherId?._id || assignment.classroomId.teacherId;
+        if (teacherId && teacherId.toString() === req.user._id.toString()) {
+          // Teacher's own class - allow access
+        } else if (req.user.role !== 'student') {
+          // Teacher accessing someone else's class - check subscription
+          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(assignment.classroomId);
+          if (!isOwnerSubscriptionValid) {
+            return res.status(403).json({ message: 'This assignment is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+          }
+        }
+      }
+      // For students, allow access to enrolled class assignments
+      else if (req.user.role === 'student') {
+        const isEnrolled = assignment.classroomId.students?.some(
+          studentId => (studentId._id || studentId).toString() === req.user._id.toString()
+        ) || req.user.enrolledClasses?.some(
+          classId => classId.toString() === assignment.classroomId._id.toString()
+        );
+        if (!isEnrolled) {
+          return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
+        }
+      }
+      // For other users, check subscription
+      else {
+        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(assignment.classroomId);
+        if (!isOwnerSubscriptionValid) {
+          return res.status(403).json({ message: 'This assignment is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+        }
+      }
     }
 
     res.json({ assignment });

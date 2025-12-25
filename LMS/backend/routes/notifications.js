@@ -1,21 +1,57 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
+const brevo = require('@getbrevo/brevo');
+const defaultClient = brevo.ApiClient.instance;
+const apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
+const brevoEmailApi = new brevo.TransactionalEmailsApi();
+
+// Helper to send transactional email via Brevo
+async function sendEmail({ to, subject, html }) {
+  const sender = { name: 'Gracified LMS', email: process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL || 'no-reply@yourdomain.com' };
+  const receivers = Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }];
+  const sendSmtpEmail = new brevo.SendSmtpEmail();
+  sendSmtpEmail.sender = sender;
+  sendSmtpEmail.to = receivers;
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+  try {
+    await brevoEmailApi.sendTransacEmail(sendSmtpEmail);
+  } catch (err) {
+    console.error('Brevo sendEmail error:', err);
+    throw err;
+  }
+}
+
+// ========== OLD SIB-API-V3-SDK CODE (COMMENTED OUT) ==========
+// const SibApiV3Sdk = require('sib-api-v3-sdk');
+// const defaultClient = SibApiV3Sdk.ApiClient.instance;
+// const apiKey = defaultClient.authentications['api-key'];
+// apiKey.apiKey = process.env.BREVO_API_KEY;
+// const brevoEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
+//
+// // Helper to send transactional email via Brevo (old version)
+// async function sendEmail({ to, subject, html }) {
+//   const sender = { name: 'LMS Platform', email: process.env.BREVO_SENDER_EMAIL || 'no-reply@yourdomain.com' };
+//   const receivers = Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }];
+//   const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+//   sendSmtpEmail.sender = sender;
+//   sendSmtpEmail.to = receivers;
+//   sendSmtpEmail.subject = subject;
+//   sendSmtpEmail.htmlContent = html;
+//   try {
+//     await brevoEmailApi.sendTransacEmail(sendSmtpEmail);
+//   } catch (err) {
+//     console.error('Brevo sendEmail error:', err);
+//     throw err;
+//   }
+// }
+// ==========================================================
 const Classroom = require('../models/Classroom');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const internalAuth = require('../middleware/internalAuth'); // Import internalAuth middleware
 const router = express.Router();
 
-// Email transporter configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
 
 // Send class reminder
 router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
@@ -37,26 +73,21 @@ router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
       return res.status(400).json({ message: 'No recipients defined' });
     }
 
-    const emailPromises = recipients.map(recipient => {
-      return transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: recipient.email,
-        subject: `Class Reminder: ${classroom.name}`,
-        html: `
-          <h2>Class Reminder</h2>
-          <p>Hello ${recipient.name},</p>
-          <p>This is a reminder that you have a class scheduled:</p>
-          <ul>
-            <li><strong>Class:</strong> ${classroom.name}</li>
-            <li><strong>Schedule:</strong> ${classroom.schedule}</li>
-            <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
-          </ul>
-          <p>Please be prepared and join on time.</p>
-        `
-      });
-    });
-
-    await Promise.all(emailPromises);
+    await Promise.all(recipients.map(recipient => sendEmail({
+      to: recipient.email,
+      subject: `Class Reminder: ${classroom.name}`,
+      html: `
+        <h2>Class Reminder</h2>
+        <p>Hello ${recipient.name},</p>
+        <p>This is a reminder that you have a class scheduled:</p>
+        <ul>
+          <li><strong>Class:</strong> ${classroom.name}</li>
+          <li><strong>Schedule:</strong> ${classroom.schedule}</li>
+          <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
+        </ul>
+        <p>Please be prepared and join on time.</p>
+      `
+    })));
 
     res.json({ message: 'Class reminders sent successfully' });
   } catch (error) {
@@ -97,26 +128,21 @@ router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res)
       return res.status(400).json({ message: 'No recipients defined' });
     }
 
-    const emailPromises = recipients.map(recipient => {
-      return transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: recipient.email,
-        subject: `Assignment Reminder: ${assignment.title}`,
-        html: `
-          <h2>Assignment Reminder</h2>
-          <p>Hello ${recipient.name},</p>
-          <p>This is a reminder about an assignment:</p>
-          <ul>
-            <li><strong>Assignment:</strong> ${assignment.title}</li>
-            <li><strong>Class:</strong> ${classroom.name}</li>
-            <li><strong>Due Date:</strong> ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}</li>
-          </ul>
-          <p>Please make sure to submit before the due date.</p>
-        `
-      });
-    });
-
-    await Promise.all(emailPromises);
+    await Promise.all(recipients.map(recipient => sendEmail({
+      to: recipient.email,
+      subject: `Assignment Reminder: ${assignment.title}`,
+      html: `
+        <h2>Assignment Reminder</h2>
+        <p>Hello ${recipient.name},</p>
+        <p>This is a reminder about an assignment:</p>
+        <ul>
+          <li><strong>Assignment:</strong> ${assignment.title}</li>
+          <li><strong>Class:</strong> ${classroom.name}</li>
+          <li><strong>Due Date:</strong> ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}</li>
+        </ul>
+        <p>Please make sure to submit before the due date.</p>
+      `
+    })));
 
     res.json({ message: 'Assignment reminders sent successfully' });
   } catch (error) {
@@ -159,8 +185,7 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
     }
 
     // Send to student
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    await sendEmail({
       to: student.email,
       subject: `Assignment Result: ${assignment.title}`,
       html: `
@@ -176,8 +201,7 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
     });
 
     // Send to teacher
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    await sendEmail({
       to: teacher.email,
       subject: `Assignment Graded: ${assignment.title}`,
       html: `
@@ -213,8 +237,7 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
       return res.status(400).json({ message: 'Missing required user data for notification.' });
     }
 
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    await sendEmail({
       to: user.email,
       subject: `Payment ${status}: ${type}`,
       html: `

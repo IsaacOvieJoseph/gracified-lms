@@ -7,6 +7,10 @@ yarn.lock
 .env
 .env.local
 .env.production
+.env.test
+.env.*
+env.*
+
 
 # Build outputs
 dist/

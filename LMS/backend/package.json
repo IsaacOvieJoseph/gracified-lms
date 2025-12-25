@@ -8,6 +8,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^1.0.0",
     "@sendgrid/mail": "^8.1.6",
     "axios": "^1.5.1",
     "bcryptjs": "^2.4.3",

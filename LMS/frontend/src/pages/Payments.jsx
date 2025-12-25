@@ -18,6 +18,10 @@ const Payments = () => {
     if (classroomId) {
       fetchClassroomForPayment();
     }
+    // Listen for school selection changes
+    const handler = () => fetchPayments();
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, [classroomId]);
 
   const fetchPayments = async () => {
