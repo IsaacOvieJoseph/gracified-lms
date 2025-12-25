@@ -25,36 +25,9 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
-    // Check subscription only if user is not a teacher or student
-    if (req.user.role !== 'teacher' && req.user.role !== 'student') {
-      const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
-      if (!isOwnerSubscriptionValid) {
-        return res.json({ topics: [] }); // Return empty array if subscription expired
-      }
-    }
-    
-    // For teachers, allow access to their own class topics regardless of subscription
-    if (req.user.role === 'teacher') {
-      const teacherId = classroom.teacherId._id || classroom.teacherId;
-      if (teacherId.toString() !== req.user._id.toString()) {
-        // Teacher trying to access someone else's class - check subscription
-        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
-        if (!isOwnerSubscriptionValid) {
-          return res.json({ topics: [] });
-        }
-      }
-    }
-    
-    // For students, allow access to enrolled class topics regardless of subscription
-    if (req.user.role === 'student') {
-      const isEnrolled = classroom.students.some(
-        studentId => (studentId._id || studentId).toString() === req.user._id.toString()
-      ) || req.user.enrolledClasses.some(
-        classId => classId.toString() === classroom._id.toString()
-      );
-      if (!isEnrolled) {
-        return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
-      }
+    const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+    if (!isOwnerSubscriptionValid) {
+      return res.json({ topics: [] }); // Return empty array if subscription expired
     }
 
     const topics = await Topic.find({ classroomId: req.params.classroomId })
@@ -93,38 +66,11 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(404).json({ message: 'Topic not found' });
     }
 
-    // Check if classroom owner's subscription is valid (skip check for teachers and students)
+    // Check if classroom owner's subscription is valid
     if (topic.classroomId) {
-      // For teachers, allow access to their own class topics
-      if (req.user.role === 'teacher') {
-        const teacherId = topic.classroomId.teacherId?._id || topic.classroomId.teacherId;
-        if (teacherId && teacherId.toString() === req.user._id.toString()) {
-          // Teacher's own class - allow access
-        } else if (req.user.role !== 'student') {
-          // Teacher accessing someone else's class - check subscription
-          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
-          if (!isOwnerSubscriptionValid) {
-            return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
-          }
-        }
-      }
-      // For students, allow access to enrolled class topics
-      else if (req.user.role === 'student') {
-        const isEnrolled = topic.classroomId.students?.some(
-          studentId => (studentId._id || studentId).toString() === req.user._id.toString()
-        ) || req.user.enrolledClasses?.some(
-          classId => classId.toString() === topic.classroomId._id.toString()
-        );
-        if (!isEnrolled) {
-          return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
-        }
-      }
-      // For other users, check subscription
-      else {
-        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
-        if (!isOwnerSubscriptionValid) {
-          return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
-        }
+      const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
+      if (!isOwnerSubscriptionValid) {
+        return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
       }
     }
 
