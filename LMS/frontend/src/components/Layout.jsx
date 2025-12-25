@@ -3,11 +3,28 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Book, LogOut, Users, DollarSign, FileText, LayoutDashboard, Landmark, Bell } from 'lucide-react'; // Added Bell icon
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api'; // Ensure api is imported
+import SubscriptionBlockBanner from './SubscriptionBlockBanner';
+import SchoolSwitcher from './SchoolSwitcher';
 
 const Layout = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
+  // School switcher state for school admins
+  const [selectedSchools, setSelectedSchools] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('selectedSchools')) || [];
+    } catch {
+      return [];
+    }
+  });
   const location = useLocation();
   const navigate = useNavigate();
+    // Real-time: Refresh user subscription status on every route change
+    useEffect(() => {
+      if (user && refreshUser) {
+        refreshUser();
+      }
+      // eslint-disable-next-line
+    }, [location.pathname]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -83,8 +100,22 @@ const Layout = ({ children }) => {
     ...(['root_admin', 'school_admin'].includes(user?.role) ? [{ path: '/schools', icon: Landmark, label: 'Schools' }] : []),
   ];
 
+  // Block all activity except dashboard if subscription is expired or never active
+  // Allow if user is on a valid free trial (trial not expired and never used before)
+  const isDashboard = location.pathname === '/dashboard';
+  let shouldBlock = false;
+  if (user) {
+    // Block if subscription is not active and not on a valid trial
+    const isTrial = user.subscriptionStatus === 'trial';
+    const trialValid = isTrial && user.trialEndDate && new Date(user.trialEndDate) > new Date() && !user.trialExpired;
+    shouldBlock = user.subscriptionStatus !== 'active' && !trialValid;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {shouldBlock && !isDashboard && (
+        <SubscriptionBlockBanner onViewPlans={() => navigate('/subscription-management')} />
+      )}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -98,6 +129,8 @@ const Layout = ({ children }) => {
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* School Switcher for school admins */}
+            <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
             {user && (
               <div className="relative" ref={notificationsRef}>
                 <button

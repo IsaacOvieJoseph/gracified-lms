@@ -5,6 +5,7 @@ const School = require('../models/School');
 const Notification = require('../models/Notification'); // New import
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
+const { filterClassroomsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
 const router = express.Router();
 
 // Get all classrooms
@@ -31,11 +32,22 @@ router.get('/', auth, subscriptionCheck, async (req, res) => {
       query = { schoolId: req.user.schoolId };
     }
 
-    const classrooms = await Classroom.find(query)
-      .populate('teacherId', 'name email')
+    let classrooms = await Classroom.find(query)
+      .populate('teacherId', 'name email role subscriptionStatus trialEndDate')
       .populate('students', 'name email')
       .populate('topics', 'name description')
+      .populate({
+        path: 'schoolId',
+        select: 'name adminId',
+        populate: {
+          path: 'adminId',
+          select: 'subscriptionStatus trialEndDate'
+        }
+      })
       .sort({ createdAt: -1 });
+
+    // Filter out classrooms where owner's subscription has expired (except for teachers and students)
+    classrooms = await filterClassroomsBySubscription(classrooms, req.user);
 
     res.json({ classrooms });
   } catch (error) {
@@ -47,7 +59,7 @@ router.get('/', auth, subscriptionCheck, async (req, res) => {
 router.get('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id)
-      .populate('teacherId', 'name email role')
+      .populate('teacherId', 'name email role subscriptionStatus trialEndDate')
       .populate('students', 'name email')
       .populate('topics', 'name description materials')
       .populate({
@@ -65,12 +77,44 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
         select: 'name adminId',
         populate: {
           path: 'adminId',
-          select: 'name email'
+          select: 'name email subscriptionStatus trialEndDate'
         }
       });
 
     if (!classroom) {
       return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    // Check if classroom owner's subscription is valid (skip check for teachers and students)
+    if (req.user.role !== 'teacher' && req.user.role !== 'student') {
+      const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+      if (!isOwnerSubscriptionValid) {
+        return res.status(403).json({ message: 'This class is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+      }
+    }
+    
+    // For teachers, allow access to their own classes regardless of subscription
+    if (req.user.role === 'teacher') {
+      const teacherId = classroom.teacherId._id || classroom.teacherId;
+      if (teacherId.toString() !== req.user._id.toString()) {
+        // Teacher trying to access someone else's class - check subscription
+        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+        if (!isOwnerSubscriptionValid) {
+          return res.status(403).json({ message: 'This class is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+        }
+      }
+    }
+    
+    // For students, allow access to enrolled classes regardless of subscription
+    if (req.user.role === 'student') {
+      const isEnrolled = classroom.students.some(
+        studentId => (studentId._id || studentId).toString() === req.user._id.toString()
+      ) || req.user.enrolledClasses.some(
+        classId => classId.toString() === classroom._id.toString()
+      );
+      if (!isEnrolled) {
+        return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
+      }
     }
 
     // Teachers can see their own classrooms even if unpublished

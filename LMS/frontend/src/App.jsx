@@ -16,6 +16,7 @@ import RegisterSchoolAdmin from './pages/RegisterSchoolAdmin';
 import RegisterPersonalTeacher from './pages/RegisterPersonalTeacher';
 import VerifyEmail from './pages/VerifyEmail';
 import SubscriptionManagement from './pages/SubscriptionManagement'; // Import new SubscriptionManagement component
+import ForgotPassword from './pages/ForgotPassword';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -80,6 +81,7 @@ const AppRoutes = () => {
       <Route path="/register/school-admin" element={<RegisterSchoolAdmin />} />
       <Route path="/register/personal-teacher" element={<RegisterPersonalTeacher />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/subscription-management" element={<SubscriptionManagement />} /> {/* New subscription management route */}
 
       <Route

@@ -10,7 +10,7 @@ const SubscriptionManagement = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
 
   const userEmail = location.state?.email || user?.email;
 
@@ -27,6 +27,10 @@ const SubscriptionManagement = () => {
     };
 
     fetchPlans();
+    // Listen for school selection changes
+    const handler = () => fetchPlans();
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, []);
 
   const handleSelectPlan = (plan) => {
@@ -65,6 +69,7 @@ const SubscriptionManagement = () => {
         });
 
         alert(`Successfully subscribed to ${selectedPlan.name}!`);
+        await refreshUser();
         navigate('/dashboard'); // Redirect to dashboard after successful subscription
       } else {
         // For paid plans (monthly, yearly), integrate with Stripe Checkout
@@ -72,6 +77,7 @@ const SubscriptionManagement = () => {
         // TODO: Implement actual Stripe checkout for recurring payments
         // After successful Stripe payment, you would then call your backend to update user-subscriptions
         // Example: await axios.post('/api/payments/subscribe', { planId: selectedPlan._id });
+        await refreshUser();
         navigate('/dashboard'); // Temporary redirect
       }
     } catch (err) {

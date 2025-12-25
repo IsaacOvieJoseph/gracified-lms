@@ -16,6 +16,8 @@
     "full-stack"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "react-select": "^5.10.2"
+  }
 }
-

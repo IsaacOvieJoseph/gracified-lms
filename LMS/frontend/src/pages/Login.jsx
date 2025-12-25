@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Book } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,12 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  useEffect(() => {
+    // Listen for school selection changes
+    const handler = () => {/* reload any school-dependent data here if needed */};
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
+  }, []);
 
   const handleSubmit = async (e) => {
     // e.preventDefault(); // No longer needed as button type is 'button'
@@ -94,6 +100,9 @@ const Login = () => {
         </form>
         
         <p className="mt-4 text-center text-gray-600">
+          <Link to="/forgot-password" className="text-blue-600 hover:underline block mb-2">
+            Forgot Password?
+          </Link>
           Don't have an account? <Link to="/register" className="text-blue-600 hover:underline">Sign Up</Link>
         </p>
       </div>

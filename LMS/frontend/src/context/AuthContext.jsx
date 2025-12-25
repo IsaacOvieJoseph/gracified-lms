@@ -85,7 +85,6 @@ export const AuthProvider = ({ children }) => {
     console.log('AuthContext setAuthData: User data and token set.', finalUser);
   };
 
-
   const login = async (email, password) => {
     console.log('AuthContext login: Attempting to log in user:', email);
     try {
@@ -98,7 +97,8 @@ export const AuthProvider = ({ children }) => {
         console.log('AuthContext login: Redirecting to verify email.');
         return { success: false, redirectToVerify: true, email: email, message: response.data.message };
       }
-
+      
+      // Ensure schoolId and tutorialId are stored as plain IDs
       const cleanedUser = {
         ...user,
         schoolId: user.schoolId?._id || user.schoolId || null,
@@ -129,8 +129,26 @@ export const AuthProvider = ({ children }) => {
     setAuthData(null, null);
   };
 
+  // Refresh user data from backend (for subscription changes, etc)
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      const { user: fetchedUser, trialExpired } = response.data;
+      const cleanedUser = {
+        ...fetchedUser,
+        schoolId: fetchedUser.schoolId?._id || fetchedUser.schoolId || null,
+        tutorialId: fetchedUser.tutorialId?._id || fetchedUser.tutorialId || null,
+      };
+      setAuthData(null, cleanedUser, trialExpired);
+      return true;
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

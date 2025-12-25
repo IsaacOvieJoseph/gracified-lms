@@ -24,13 +24,30 @@ const Classrooms = () => {
     published: false
   });
 
+  // Get selectedSchools from localStorage
+  const [selectedSchools, setSelectedSchools] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('selectedSchools')) || [];
+    } catch {
+      return [];
+    }
+  });
+
   useEffect(() => {
     fetchClassrooms();
     if (['root_admin', 'school_admin'].includes(user?.role)) {
-      console.log('Classrooms.jsx: User role for fetching teachers:', user?.role, 'School ID:', user?.schoolId);
       fetchTeachers();
     }
-  }, [user]);
+    // Listen for school selection changes from SchoolSwitcher
+    const handler = (e) => {
+      fetchClassrooms();
+      if (['root_admin', 'school_admin'].includes(user?.role)) {
+        fetchTeachers();
+      }
+    };
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
+  }, [user, selectedSchools]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -47,17 +64,20 @@ const Classrooms = () => {
   }, [searchQuery, classrooms]);
 
   const fetchClassrooms = async () => {
+    setLoading(true);
     try {
       const response = await api.get('/classrooms');
       let filteredClassrooms = response.data.classrooms;
-      
       // Students and teachers see only published classrooms in the list
       if (user?.role === 'student' || user?.role === 'teacher') {
-        filteredClassrooms = response.data.classrooms.filter(c => c.published);
+        filteredClassrooms = filteredClassrooms.filter(c => c.published);
       }
-      
-      setClassrooms(filteredClassrooms);
-      setFilteredClassrooms(filteredClassrooms);
+      // School admin: filter by selected school unless 'All' (empty array)
+      if (user?.role === 'school_admin' && selectedSchools.length > 0) {
+        filteredClassrooms = filteredClassrooms.filter(c => selectedSchools.includes(c.schoolId?._id || c.schoolId));
+      }
+      setClassrooms([...filteredClassrooms]);
+      setFilteredClassrooms([...filteredClassrooms]);
     } catch (error) {
       console.error('Error fetching classrooms:', error);
     } finally {
@@ -93,10 +113,31 @@ const Classrooms = () => {
     }
   };
 
+  // School selection state for school admin
+  const [selectedSchool, setSelectedSchool] = useState(() => {
+    try {
+      const arr = JSON.parse(localStorage.getItem('selectedSchools'));
+      return arr && arr.length ? arr[0] : '';
+    } catch {
+      return '';
+    }
+  });
+  const [schools, setSchools] = useState([]);
+  useEffect(() => {
+    if (user?.role === 'school_admin') {
+      api.get('/schools?adminId=' + user._id)
+        .then(res => setSchools(res.data.schools || []))
+        .catch(() => setSchools([]));
+    }
+  }, [user]);
+
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
       const submitData = { ...formData };
+      if (user?.role === 'school_admin') {
+        submitData.schoolId = selectedSchool;
+      }
       // Teachers don't need to provide teacherId (it's auto-assigned)
       if (user?.role === 'teacher' || user?.role === 'personal_teacher') {
         delete submitData.teacherId;
@@ -106,7 +147,7 @@ const Classrooms = () => {
       setFormData({
         name: '',
         description: '',
-        schedule: [],  // Changed from '' to []
+        schedule: [],
         capacity: 30,
         pricing: { type: 'per_class', amount: 0 },
         isPaid: false,
@@ -263,7 +304,7 @@ const Classrooms = () => {
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto" style={{ maxHeight: '90vh' }}>
             <h3 className="text-xl font-bold mb-4">Create Classroom</h3>
             { (['root_admin', 'school_admin'].includes(user?.role) && teachers.length === 0) && (
                 <p className="text-red-500 text-sm mb-4 text-center">
@@ -271,6 +312,22 @@ const Classrooms = () => {
                 </p>
               )}
             <form onSubmit={handleCreate} className="space-y-4">
+              {user?.role === 'school_admin' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
+                  <select
+                    value={selectedSchool}
+                    onChange={e => setSelectedSchool(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  >
+                    <option value="">Select School</option>
+                    {schools.map(s => (
+                      <option key={s._id} value={s._id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input

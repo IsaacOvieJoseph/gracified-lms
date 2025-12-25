@@ -4,9 +4,11 @@ import { Video, Edit, Plus, Calendar, Users, Book, DollarSign, X, UserPlus, File
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import CreateAssignmentModal from '../components/CreateAssignmentModal'; // Import the new modal component
-import GradeAssignmentModal from '../components/GradeAssignmentModal'; // Import the new modal component
-import SubmitAssignmentModal from '../components/SubmitAssignmentModal'; // Import the new modal component
+import CreateAssignmentModal from '../components/CreateAssignmentModal';
+import GradeAssignmentModal from '../components/GradeAssignmentModal';
+import SubmitAssignmentModal from '../components/SubmitAssignmentModal';
+// import SubscriptionBlockModal from '../components/SubscriptionBlockModal';
+  // Subscription block modal state (REMOVED)
 
 const ClassroomDetail = () => {
   const { id } = useParams();
@@ -15,6 +17,45 @@ const ClassroomDetail = () => {
   const [classroom, setClassroom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', description: '', capacity: 30, pricingType: 'per_class', pricingAmount: 0 });
+    // Open edit modal and prefill form
+    const handleOpenEdit = () => {
+      setEditForm({
+        name: classroom.name || '',
+        description: classroom.description || '',
+        capacity: classroom.capacity || 30,
+        pricingType: classroom.pricing?.type || 'per_class',
+        pricingAmount: classroom.pricing?.amount || 0,
+        teacherId: classroom.teacherId?._id || ''
+      });
+      if ((user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher') {
+        fetchAvailableTeachers();
+      }
+      setShowEditModal(true);
+    };
+
+    // Handle edit form submit
+    const handleEditClassroom = async (e) => {
+      e.preventDefault();
+      try {
+        const updateData = {
+          name: editForm.name,
+          description: editForm.description,
+          capacity: editForm.capacity,
+          pricing: { type: editForm.pricingType, amount: editForm.pricingAmount }
+        };
+        // Only allow teacher change if permitted
+        if ((user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher' && editForm.teacherId && editForm.teacherId !== classroom.teacherId?._id) {
+          updateData.teacherId = editForm.teacherId;
+        }
+        await api.put(`/classrooms/${id}`, updateData);
+        setShowEditModal(false);
+        fetchClassroom();
+      } catch (error) {
+        alert(error.response?.data?.message || 'Error updating classroom');
+      }
+    };
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showChangeTeacherModal, setShowChangeTeacherModal] = useState(false);
   const [availableStudents, setAvailableStudents] = useState([]);
@@ -35,6 +76,10 @@ const ClassroomDetail = () => {
 
   useEffect(() => {
     fetchClassroom();
+    // Listen for school selection changes
+    const handler = () => fetchClassroom();
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, [id]);
 
   useEffect(() => {
@@ -105,10 +150,8 @@ const ClassroomDetail = () => {
   };
 
   const handleCreateAssignment = async () => {
-    // This function will now simply close the modal and refresh assignments,
-    // as the API call is handled within CreateAssignmentModal
     setShowCreateAssignmentModal(false);
-    fetchClassroom(); // Refresh classroom to get new assignments
+    fetchClassroom();
   };
 
   const handleSubmitAssignment = async (assignmentId, answers) => {
@@ -152,20 +195,31 @@ const ClassroomDetail = () => {
       const response = await api.get('/users');
       // Filter to get only students
       let students = response.data.users.filter(u => u.role === 'student');
-      
+      console.log('Fetched students:', students);
       // School admin can only add students from their school
       if (user?.role === 'school_admin' && classroom?.schoolId) {
-        students = students.filter(s => s.schoolId?.toString() === user?.schoolId?.toString());
+        console.log('Raw user.schoolId:', user?.schoolId);
+        const adminSchoolId = user?.schoolId?._id || user?.schoolId?.toString();
+        students = students.filter(s => {
+          const studentSchoolIdArr = Array.isArray(s.schoolId) ? s.schoolId.map(id => id.toString()) : [s.schoolId?._id || s.schoolId?.toString()];
+          const match = studentSchoolIdArr.includes(adminSchoolId);
+          console.log('Comparing adminSchoolId', adminSchoolId, 'with student', s.name, 'schoolId(s):', studentSchoolIdArr, '=>', match);
+          return match;
+        });
+        console.log('Admin schoolId:', adminSchoolId);
+        console.log('Filtered by schoolId:', students);
       }
-      
       // Filter out already enrolled students
       if (classroom) {
-        const enrolledIds = classroom.students?.map(s => s._id || s) || [];
-        const available = students.filter(s => !enrolledIds.includes(s._id));
+        const enrolledIds = classroom.students?.map(s => (typeof s === 'object' ? s._id?.toString() : s?.toString())) || [];
+        const available = students.filter(s => !enrolledIds.includes(s._id?.toString()));
+        console.log('Enrolled student IDs:', enrolledIds);
+        console.log('Filtered out already enrolled:', available);
         setAvailableStudents(available);
       } else {
         setAvailableStudents(students);
       }
+      console.log('Final availableStudents:', students);
     } catch (error) {
       console.error('Error fetching students:', error);
     }
@@ -279,6 +333,111 @@ const ClassroomDetail = () => {
               <h2 className="text-3xl font-bold text-gray-800">{classroom.name}</h2>
               <p className="text-gray-600 mt-2">{classroom.description}</p>
             </div>
+            {canEdit && (
+              <button
+                onClick={handleOpenEdit}
+                className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition ml-2"
+                title="Edit Classroom"
+              >
+                <Edit className="w-5 h-5" />
+                <span>Edit</span>
+              </button>
+            )}
+                  {/* Edit Classroom Modal */}
+                  {showEditModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+                        <h3 className="text-xl font-bold mb-4">Edit Classroom</h3>
+                        <form onSubmit={handleEditClassroom} className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input
+                              type="text"
+                              value={editForm.name}
+                              onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                              className="w-full px-4 py-2 border rounded-lg"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea
+                              value={editForm.description}
+                              onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                              className="w-full px-4 py-2 border rounded-lg"
+                              rows="3"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                            <input
+                              type="number"
+                              value={editForm.capacity}
+                              onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) })}
+                              className="w-full px-4 py-2 border rounded-lg"
+                              min="1"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Type</label>
+                            <select
+                              value={editForm.pricingType}
+                              onChange={e => setEditForm({ ...editForm, pricingType: e.target.value })}
+                              className="w-full px-4 py-2 border rounded-lg"
+                            >
+                              <option value="per_class">Per Class</option>
+                              <option value="per_topic">Per Topic</option>
+                              <option value="per_subject">Per Subject</option>
+                              <option value="free">Free</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Amount</label>
+                            <input
+                              type="number"
+                              value={editForm.pricingAmount}
+                              onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) })}
+                              className="w-full px-4 py-2 border rounded-lg"
+                              min="0"
+                              step="0.01"
+                              disabled={editForm.pricingType === 'free'}
+                            />
+                          </div>
+                          {/* Only show teacher select for admins if allowed */}
+                          {(user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher' && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                              <select
+                                value={editForm.teacherId}
+                                onChange={e => setEditForm({ ...editForm, teacherId: e.target.value })}
+                                className="w-full px-4 py-2 border rounded-lg"
+                              >
+                                <option value="">Select a teacher</option>
+                                {availableTeachers.map(teacher => (
+                                  <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          <div className="flex space-x-3">
+                            <button
+                              type="button"
+                              onClick={() => setShowEditModal(false)}
+                              className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+                            >
+                              Save Changes
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
             {classroom.isPaid && classroom.pricing?.amount > 0 ? (
               <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full font-semibold">
                 ${classroom.pricing?.amount || 0}
