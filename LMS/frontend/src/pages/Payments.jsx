@@ -63,31 +63,54 @@ const Payments = () => {
           await loadPaystackScript();
           const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
           const payAmount = (import.meta.env.VITE_PAYSTACK_CURRENCY || 'NGN').toLowerCase() === 'ngn' ? Math.round(amount * 100) : Math.round(amount * 100);
-          const handler = window.PaystackPop.setup({
-            key: pubKey,
-            email: (window.__user && window.__user.email) || '',
-            amount: payAmount,
-            ref: resp.data.reference,
-            onClose: function() {
+          try {
+            // ensure callback is a plain function (Paystack expects a function reference)
+            function handleCallback(response) {
+              // call async verify but keep this function synchronous for Paystack
+              (async () => {
+                try {
+                  await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
+                  alert('Payment successful! You are now enrolled.');
+                  setShowPaymentModal(false);
+                  fetchPayments();
+                  window.location.href = `/classrooms/${classroomId}`;
+                } catch (err) {
+                  setPayError(err.response?.data?.message || err.message || 'Verification failed');
+                } finally {
+                  setIsPaying(false);
+                }
+              })();
+            }
+
+            function handleOnClose() {
               setIsPaying(false);
               setPayError('Payment window closed');
-            },
-            callback: async function(response) {
-              // verify with backend
-              try {
-                await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
-                alert('Payment successful! You are now enrolled.');
-                setShowPaymentModal(false);
-                fetchPayments();
-                window.location.href = `/classrooms/${classroomId}`;
-              } catch (err) {
-                setPayError(err.response?.data?.message || err.message || 'Verification failed');
-              } finally {
-                setIsPaying(false);
-              }
             }
-          });
-          handler.openIframe();
+
+            if (typeof handleCallback !== 'function') throw new Error('Invalid callback');
+
+            const handler = window.PaystackPop.setup({
+              key: pubKey,
+              email: (window.__user && window.__user.email) || '',
+              amount: payAmount,
+              ref: resp.data.reference,
+              onClose: handleOnClose,
+              callback: handleCallback
+            });
+
+            if (handler && typeof handler.openIframe === 'function') {
+              handler.openIframe();
+            } else if (handler && typeof handler.open === 'function') {
+              // older/newer API variation
+              handler.open();
+            } else {
+              throw new Error('Paystack handler not available');
+            }
+          } catch (setupErr) {
+            console.error('Paystack setup error', setupErr);
+            setPayError(setupErr.message || 'Failed to launch Paystack payment window');
+            setIsPaying(false);
+          }
           return;
         }
         throw new Error('Failed to initialize Paystack payment');
