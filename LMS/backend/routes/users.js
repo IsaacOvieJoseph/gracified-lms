@@ -29,7 +29,13 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'personal_teacher'
     // School Admin can only see teachers and students from their school (and only their schoolId if not provided in query)
     else if (req.user.role === 'school_admin') {
       // Ensure school admin can only view users within their school, overriding query if present
-      query.schoolId = req.user.schoolId;
+      // Use $in to match users whose schoolId array contains any of the admin's schoolIds
+      if (Array.isArray(req.user.schoolId) && req.user.schoolId.length > 0) {
+        query.schoolId = { $in: req.user.schoolId };
+      } else if (req.user.schoolId) {
+        // Handle case where schoolId might be a single value
+        query.schoolId = req.user.schoolId;
+      }
       if (!query.role) { // If role not specified in query, default to teachers/students
         query.role = { $in: ['teacher', 'student'] };
       }

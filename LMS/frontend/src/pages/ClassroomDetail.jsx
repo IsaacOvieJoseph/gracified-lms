@@ -194,34 +194,19 @@ const ClassroomDetail = () => {
 
   const fetchAvailableStudents = async () => {
     try {
+      // Backend already filters students by schoolId for school admins
       const response = await api.get('/users');
-      // Filter to get only students
+      // Filter to get only students (backend may have already filtered by schoolId for school admins)
       let students = response.data.users.filter(u => u.role === 'student');
-      console.log('Fetched students:', students);
-      // School admin can only add students from their school
-      if (user?.role === 'school_admin' && classroom?.schoolId) {
-        console.log('Raw user.schoolId:', user?.schoolId);
-        const adminSchoolId = user?.schoolId?._id || user?.schoolId?.toString();
-        students = students.filter(s => {
-          const studentSchoolIdArr = Array.isArray(s.schoolId) ? s.schoolId.map(id => id.toString()) : [s.schoolId?._id || s.schoolId?.toString()];
-          const match = studentSchoolIdArr.includes(adminSchoolId);
-          console.log('Comparing adminSchoolId', adminSchoolId, 'with student', s.name, 'schoolId(s):', studentSchoolIdArr, '=>', match);
-          return match;
-        });
-        console.log('Admin schoolId:', adminSchoolId);
-        console.log('Filtered by schoolId:', students);
-      }
+      
       // Filter out already enrolled students
       if (classroom) {
         const enrolledIds = classroom.students?.map(s => (typeof s === 'object' ? s._id?.toString() : s?.toString())) || [];
         const available = students.filter(s => !enrolledIds.includes(s._id?.toString()));
-        console.log('Enrolled student IDs:', enrolledIds);
-        console.log('Filtered out already enrolled:', available);
         setAvailableStudents(available);
       } else {
         setAvailableStudents(students);
       }
-      console.log('Final availableStudents:', students);
     } catch (error) {
       console.error('Error fetching students:', error);
     }
