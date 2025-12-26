@@ -184,8 +184,10 @@ const ClassroomDetail = () => {
   };
 
   const handleOpenWhiteboard = async () => {
-    // navigate to the built-in whiteboard route for this class
-    navigate(`/classrooms/${id}/whiteboard`);
+    // open the built-in whiteboard route for this class in a new tab
+    const url = `${window.location.origin}/classrooms/${id}/whiteboard`;
+    const w = window.open(url, '_blank');
+    if (w) w.opener = null; // security: prevent access to opener
   };
 
   const fetchAvailableStudents = async () => {

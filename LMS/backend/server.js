@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const whiteboardSessions = require('./whiteboardSessions');
 const User = require('./models/User');
 const Classroom = require('./models/Classroom');
+const Whiteboard = require('./models/Whiteboard');
 
 dotenv.config();
 
@@ -114,6 +115,15 @@ io.on('connection', (socket) => {
       io.to(sessionId).emit('wb:user-joined', { socketId: socket.id, active: whiteboardSessions.getActiveCount(classId) });
       const locked = whiteboardSessions.isLocked(classId);
       socket.emit('wb:lock-state', { locked });
+      // send persisted history to the newly joined socket
+      try {
+        const wb = await Whiteboard.findOne({ classId });
+        if (wb && wb.strokes && wb.strokes.length > 0) {
+          socket.emit('wb:history', wb.strokes);
+        }
+      } catch (err) {
+        console.error('Error fetching whiteboard history', err.message);
+      }
     } catch (err) {
       console.error('wb:join error', err);
     }
@@ -134,6 +144,26 @@ io.on('connection', (socket) => {
     if (!classId || !sessionId) return;
     if (whiteboardSessions.isLocked(classId) && !socket.data.isTeacher) return;
     socket.to(sessionId).emit('wb:draw', data);
+    // persist stroke (data expected to be normalized coordinates: fractions)
+    (async () => {
+      try {
+        const stroke = {
+          prev: data.prev,
+          curr: data.curr,
+          color: data.color || '#000',
+          width: data.width || 2,
+          userId: socket.data.user ? socket.data.user._id : null,
+          ts: new Date()
+        };
+        await Whiteboard.findOneAndUpdate(
+          { classId },
+          { $push: { strokes: stroke } },
+          { upsert: true }
+        );
+      } catch (err) {
+        console.error('Error persisting stroke', err.message);
+      }
+    })();
   });
 
   socket.on('wb:clear', () => {
@@ -142,6 +172,14 @@ io.on('connection', (socket) => {
     if (!socket.data.isTeacher) return;
     const s = whiteboardSessions.getSession(classId);
     if (s) io.to(s.sessionId).emit('wb:clear');
+    // clear persisted strokes
+    (async () => {
+      try {
+        await Whiteboard.findOneAndUpdate({ classId }, { $set: { strokes: [] } }, { upsert: true });
+      } catch (err) {
+        console.error('Error clearing persisted strokes', err.message);
+      }
+    })();
   });
 
   socket.on('wb:lock', ({ locked }) => {
