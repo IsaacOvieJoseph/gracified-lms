@@ -1,9 +1,11 @@
 const express = require('express');
 const Classroom = require('../models/Classroom');
 const { auth } = require('../middleware/auth');
+const whiteboardSessions = require('../whiteboardSessions');
 const router = express.Router();
 
-// Get or create whiteboard URL
+// Return the active session info for a classroom.
+// If a session exists and has active users, return sessionId; otherwise, return saved whiteboardUrl if present.
 router.get('/:classroomId', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId);
@@ -12,62 +14,51 @@ router.get('/:classroomId', auth, async (req, res) => {
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
-    // Check if user is enrolled or is teacher/admin
-    const isEnrolled = classroom.students.some(
+    // Check permissions: enrolled, teacher, or admins
+    const isEnrolled = Array.isArray(classroom.students) && classroom.students.some(
       student => student.toString() === req.user._id.toString()
     );
-    const isTeacher = classroom.teacherId.toString() === req.user._id.toString();
+    const isTeacher = classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString();
 
     if (!isEnrolled && !isTeacher && req.user.role !== 'root_admin' && req.user.role !== 'school_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Generate or return existing whiteboard URL
-    if (!classroom.whiteboardUrl) {
-      // In production, integrate with a whiteboard service like Excalidraw, Miro, or custom solution
-      const boardId = `board-${classroom._id}-${Date.now()}`;
-      classroom.whiteboardUrl = `https://whiteboard.lms.com/${boardId}`;
-      await classroom.save();
+    const session = whiteboardSessions.getSession(classroom._id.toString());
+    if (session) {
+      return res.json({ sessionId: session.sessionId, active: session.clients.size, locked: session.locked });
     }
 
-    res.json({
-      whiteboardUrl: classroom.whiteboardUrl,
-      classroomId: classroom._id,
-      classroomName: classroom.name
-    });
+    // fallback to stored whiteboardUrl if any
+    if (classroom.whiteboardUrl) {
+      return res.json({ whiteboardUrl: classroom.whiteboardUrl, active: 0, locked: false });
+    }
+
+    // no active session and no stored url
+    return res.json({ sessionId: null, whiteboardUrl: null, active: 0, locked: false });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Create new whiteboard session
-router.post('/:classroomId/create', auth, async (req, res) => {
+// Allow teacher/admin to create/publish a persistent whiteboard URL (stored in DB)
+router.post('/:classroomId/publish', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId);
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
 
-    if (!classroom) {
-      return res.status(404).json({ message: 'Classroom not found' });
-    }
-
-    // Check permissions
     const canCreate = 
       req.user.role === 'root_admin' ||
       (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
 
-    if (!canCreate) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
+    if (!canCreate) return res.status(403).json({ message: 'Access denied' });
 
-    // Generate new whiteboard URL
     const boardId = `board-${classroom._id}-${Date.now()}`;
     classroom.whiteboardUrl = `https://whiteboard.lms.com/${boardId}`;
     await classroom.save();
 
-    res.json({
-      whiteboardUrl: classroom.whiteboardUrl,
-      message: 'Whiteboard created successfully'
-    });
+    return res.json({ whiteboardUrl: classroom.whiteboardUrl, message: 'Whiteboard published' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

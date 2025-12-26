@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Classrooms from './pages/Classrooms';
 import ClassroomDetail from './pages/ClassroomDetail';
+import Whiteboard from './components/Whiteboard';
 import SchoolDetails from './pages/SchoolDetail';
 import Assignments from './pages/Assignments';
 import Payments from './pages/Payments';
@@ -128,6 +129,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <ClassroomDetail />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/classrooms/:classId/whiteboard"
+        element={
+          <PrivateRoute>
+            <Whiteboard />
           </PrivateRoute>
         }
       />

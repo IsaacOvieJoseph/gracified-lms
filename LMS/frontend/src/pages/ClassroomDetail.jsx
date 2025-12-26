@@ -184,12 +184,8 @@ const ClassroomDetail = () => {
   };
 
   const handleOpenWhiteboard = async () => {
-    try {
-      const response = await api.get(`/whiteboard/${id}`);
-      window.open(response.data.whiteboardUrl, '_blank');
-    } catch (error) {
-      alert(error.response?.data?.message || 'Error opening whiteboard');
-    }
+    // navigate to the built-in whiteboard route for this class
+    navigate(`/classrooms/${id}/whiteboard`);
   };
 
   const fetchAvailableStudents = async () => {
