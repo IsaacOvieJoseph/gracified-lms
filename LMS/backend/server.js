@@ -177,32 +177,29 @@ io.on('connection', (socket) => {
     socket.leave(sessionId || socket.id);
   });
 
-  socket.on('wb:draw', (data) => {
-    const { classId, sessionId } = socket.data || {};
-    if (!classId || !sessionId) return;
-    if (whiteboardSessions.isLocked(classId) && !socket.data.isTeacher) return;
-    socket.to(sessionId).emit('wb:draw', data);
-    // persist stroke (data expected to be normalized coordinates: fractions)
-    (async () => {
-      try {
-        const stroke = {
-          prev: data.prev,
-          curr: data.curr,
-          color: data.color || '#000',
-          width: data.width || 2,
-          userId: socket.data.user ? socket.data.user._id : null,
-          ts: new Date()
-        };
-        await Whiteboard.findOneAndUpdate(
-          { classId },
-          { $push: { strokes: stroke } },
-          { upsert: true }
-        );
-      } catch (err) {
-        console.error('Error persisting stroke', err.message);
-      }
-    })();
-  });
+    socket.on('wb:draw', (data) => {
+      const { classId, sessionId } = socket.data || {};
+      if (!classId || !sessionId) return;
+      if (whiteboardSessions.isLocked(classId) && !socket.data.isTeacher) return;
+      socket.to(sessionId).emit('wb:draw', data);
+      // persist stroke (store the whole data object, attach user and ts)
+      (async () => {
+        try {
+          const stroke = {
+            ...data,
+            userId: socket.data.user ? socket.data.user._id : null,
+            ts: new Date(),
+          };
+          await Whiteboard.findOneAndUpdate(
+            { classId },
+            { $push: { strokes: stroke } },
+            { upsert: true }
+          );
+        } catch (err) {
+          console.error('Error persisting stroke', err.message);
+        }
+      })();
+    });
 
   socket.on('wb:clear', () => {
     const { classId } = socket.data || {};
