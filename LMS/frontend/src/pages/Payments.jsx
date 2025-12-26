@@ -12,6 +12,7 @@ const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(!!classroomId);
+  const [classroomForPayment, setClassroomForPayment] = useState(null);
 
   useEffect(() => {
     fetchPayments();
@@ -38,7 +39,9 @@ const Payments = () => {
   const fetchClassroomForPayment = async () => {
     try {
       const response = await api.get(`/classrooms/${classroomId}`);
-      // Handle payment flow here
+      setClassroomForPayment(response.data.classroom || null);
+      // show modal if classroom exists
+      if (response.data.classroom) setShowPaymentModal(true);
     } catch (error) {
       console.error('Error fetching classroom:', error);
     }
@@ -46,15 +49,26 @@ const Payments = () => {
 
   const handlePayment = async (classroomId, amount) => {
     try {
-      // Create payment intent
+      // If Paystack is configured on the server, use it
+      const usePaystack = !!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || false;
+      if (usePaystack) {
+        // Request server to initialize Paystack transaction
+        const returnUrl = `${window.location.origin}/payments?classroomId=${classroomId}`;
+        const resp = await api.post('/payments/paystack/initiate', { amount, classroomId, type: 'class_enrollment', returnUrl });
+        if (resp.data && resp.data.authorization_url) {
+          // redirect user to Paystack payment page
+          window.location.href = resp.data.authorization_url;
+          return;
+        }
+        throw new Error('Failed to initialize Paystack payment');
+      }
+
+      // Fallback: existing Stripe flow
       const intentRes = await api.post('/payments/create-intent', {
         type: 'class_enrollment',
         classroomId,
         amount
       });
-
-      // In a real app, you would integrate Stripe Elements here
-      // For demo purposes, we'll simulate payment
       const confirmRes = await api.post('/payments/confirm', {
         paymentIntentId: intentRes.data.paymentIntentId,
         type: 'class_enrollment',
@@ -67,9 +81,33 @@ const Payments = () => {
       fetchPayments();
       window.location.href = `/classrooms/${classroomId}`;
     } catch (error) {
-      alert(error.response?.data?.message || 'Payment failed');
+      alert(error.response?.data?.message || error.message || 'Payment failed');
     }
   };
+
+  // After returning from Paystack, Paystack may attach `reference` in the query string.
+  // If present, verify the transaction with the backend.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference');
+    const cbClassroomId = params.get('classroomId') || classroomId;
+    if (reference) {
+      (async () => {
+        try {
+          const verifyRes = await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(reference)}`);
+          alert('Payment successful! You are now enrolled.');
+          // clear reference from URL
+          params.delete('reference');
+          window.history.replaceState({}, document.title, window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+          fetchPayments();
+          if (cbClassroomId) window.location.href = `/classrooms/${cbClassroomId}`;
+        } catch (err) {
+          alert(err.response?.data?.message || 'Payment verification failed');
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -90,6 +128,24 @@ const Payments = () => {
 
   return (
     <Layout>
+      {/* Payment modal shown when navigating to payments?classroomId=... */}
+      {showPaymentModal && classroomForPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-bold mb-2">Pay to Enroll</h3>
+            <p className="text-sm text-gray-600 mb-4">You're about to enroll in <strong>{classroomForPayment.name}</strong>.</p>
+            <div className="mb-4">
+              <div className="text-sm text-gray-500">Amount</div>
+              <div className="text-2xl font-semibold">${classroomForPayment.pricing?.amount || 0}</div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button className="px-4 py-2 border rounded" onClick={() => { setShowPaymentModal(false); setClassroomForPayment(null); window.history.replaceState({}, document.title, '/payments'); }}>Cancel</button>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => handlePayment(classroomForPayment._id, classroomForPayment.pricing?.amount || 0)}>Pay Now</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-800">Payment History</h2>
 

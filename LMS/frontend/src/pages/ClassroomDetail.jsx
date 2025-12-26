@@ -15,6 +15,7 @@ const ClassroomDetail = () => {
   const navigate = useNavigate();
   const { user, loading: userLoading } = useAuth();
   const [classroom, setClassroom] = useState(null);
+  const [whiteboardInfo, setWhiteboardInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -78,11 +79,25 @@ const ClassroomDetail = () => {
 
   useEffect(() => {
     fetchClassroom();
+    fetchWhiteboardState();
     // Listen for school selection changes
     const handler = () => fetchClassroom();
     window.addEventListener('schoolSelectionChanged', handler);
-    return () => window.removeEventListener('schoolSelectionChanged', handler);
+    const wbInterval = setInterval(() => fetchWhiteboardState(), 5000);
+    return () => { window.removeEventListener('schoolSelectionChanged', handler); clearInterval(wbInterval); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // fetch whiteboard availability/session info
+  const fetchWhiteboardState = async () => {
+    try {
+      const resp = await api.get(`/whiteboard/${id}`);
+      setWhiteboardInfo(resp.data || null);
+    } catch (err) {
+      // ignore errors silently
+      setWhiteboardInfo(null);
+    }
+  };
 
   useEffect(() => {
     if (classroom) {
@@ -184,10 +199,20 @@ const ClassroomDetail = () => {
   };
 
   const handleOpenWhiteboard = async () => {
-    // open the built-in whiteboard route for this class in a new tab
-    const url = `${window.location.origin}/classrooms/${id}/whiteboard`;
-    const w = window.open(url, '_blank');
-    if (w) w.opener = null; // security: prevent access to opener
+    try {
+      // if server provided a published whiteboard URL, open that first
+      if (whiteboardInfo && whiteboardInfo.whiteboardUrl) {
+        const w = window.open(whiteboardInfo.whiteboardUrl, '_blank');
+        if (w) w.opener = null;
+        return;
+      }
+      // otherwise open the built-in whiteboard route for this class in a new tab
+      const url = `${window.location.origin}/classrooms/${id}/whiteboard`;
+      const w = window.open(url, '_blank');
+      if (w) w.opener = null; // security: prevent access to opener
+    } catch (err) {
+      console.error('Error opening whiteboard', err);
+    }
   };
 
   const fetchAvailableStudents = async () => {
@@ -489,13 +514,25 @@ const ClassroomDetail = () => {
                   <Video className="w-5 h-5" />
                   <span>Start Zoom</span>
                 </button>
-                <button
-                  onClick={handleOpenWhiteboard}
-                  className="flex items-center space-x-2 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-                >
-                  <Edit className="w-5 h-5" />
-                  <span>Whiteboard</span>
-                </button>
+                {
+                  (() => {
+                    const isTeacherUser = (user?.role === 'teacher' || user?.role === 'personal_teacher') && classroom?.teacherId?._id === user?._id;
+                    const isAdmin = user?.role === 'root_admin' || user?.role === 'school_admin';
+                    const wbAvailable = whiteboardInfo && (whiteboardInfo.sessionId || whiteboardInfo.whiteboardUrl);
+                    const enabled = isTeacherUser || isAdmin || !!wbAvailable;
+                    return (
+                      <button
+                        onClick={handleOpenWhiteboard}
+                        disabled={!enabled}
+                        title={!enabled ? 'Whiteboard not launched yet by the teacher' : 'Open whiteboard'}
+                        className={`flex items-center space-x-2 px-6 py-2 rounded-lg transition ${enabled ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                      >
+                        <Edit className="w-5 h-5" />
+                        <span>{isTeacherUser || isAdmin ? 'Whiteboard' : 'Whiteboard'}</span>
+                      </button>
+                    );
+                  })()
+                }
               </>
             )}
           </div>
