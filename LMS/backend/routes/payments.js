@@ -68,7 +68,7 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
 // Initiate a Paystack transaction and return authorization URL
 router.post('/paystack/initiate', auth, async (req, res) => {
   try {
-    const { amount, classroomId, topicId, type, returnUrl } = req.body;
+    const { amount, classroomId, topicId, planId, type, returnUrl } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ message: 'Invalid amount' });
     const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
     if (!PAYSTACK_SECRET) return res.status(500).json({ message: 'Paystack not configured' });
@@ -85,7 +85,8 @@ router.post('/paystack/initiate', auth, async (req, res) => {
         userId: req.user._id.toString(),
         type: type || 'class_enrollment',
         classroomId: classroomId || null,
-        topicId: topicId || null
+        topicId: topicId || null,
+        planId: planId || null
       },
       // optional return URL
       ...(returnUrl ? { callback_url: returnUrl } : {})
@@ -140,7 +141,9 @@ router.get('/paystack/verify', auth, async (req, res) => {
       type: metadata.type || 'class_enrollment',
       classroomId: metadata.classroomId || null,
       topicId: metadata.topicId || null,
+      planId: metadata.planId || null,
       amount: normalizedAmount || 0,
+      currency: currency,
       paystackReference: reference,
       status: 'completed'
     });
@@ -162,6 +165,42 @@ router.get('/paystack/verify', auth, async (req, res) => {
         await notifyRecipients({ payerUser, payment, classroom });
       } catch (notifyErr) {
         console.error('Error notifying recipients after Paystack verify:', notifyErr.message);
+      }
+    } else if (payment.type === 'subscription' && payment.planId) {
+      const UserSubscription = require('../models/UserSubscription');
+      const SubscriptionPlan = require('../models/SubscriptionPlan');
+      const plan = await SubscriptionPlan.findById(payment.planId);
+      if (plan) {
+        const startDate = new Date();
+        let endDate = null;
+        if (plan.planType === 'monthly') {
+          endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 1);
+        } else if (plan.planType === 'yearly') {
+          endDate = new Date();
+          endDate.setFullYear(endDate.getFullYear() + 1);
+        }
+
+        await UserSubscription.findOneAndUpdate(
+          { userId: req.user._id },
+          { planId: plan._id, status: 'active', startDate, endDate, paymentId: payment._id },
+          { upsert: true, new: true }
+        );
+
+        await User.findByIdAndUpdate(req.user._id, {
+          subscriptionPlan: plan._id,
+          subscriptionStatus: 'active',
+          subscriptionStartDate: startDate,
+          subscriptionEndDate: endDate
+        });
+      }
+
+      // notify admins
+      try {
+        const payerUser = await User.findById(req.user._id).select('email name _id');
+        await notifyRecipients({ payerUser, payment, classroom: null });
+      } catch (notifyErr) {
+        console.error('Error notifying recipients after subscription verify:', notifyErr.message);
       }
     } else {
       // Non-class payments: still notify root admins
@@ -253,6 +292,42 @@ router.post('/paystack/webhook', express.raw({ type: 'application/json' }), asyn
         } catch (notifyErr) {
           console.error('Error notifying recipients from webhook:', notifyErr.message);
         }
+      } else if (payment.type === 'subscription' && metadata.planId && metadata.userId) {
+        const userId = metadata.userId;
+        const UserSubscription = require('../models/UserSubscription');
+        const SubscriptionPlan = require('../models/SubscriptionPlan');
+        const plan = await SubscriptionPlan.findById(metadata.planId);
+        if (plan) {
+          const startDate = new Date();
+          let endDate = null;
+          if (plan.planType === 'monthly') {
+            endDate = new Date();
+            endDate.setMonth(endDate.getMonth() + 1);
+          } else if (plan.planType === 'yearly') {
+            endDate = new Date();
+            endDate.setFullYear(endDate.getFullYear() + 1);
+          }
+
+          await UserSubscription.findOneAndUpdate(
+            { userId: userId },
+            { planId: plan._id, status: 'active', startDate, endDate, paymentId: payment._id },
+            { upsert: true, new: true }
+          );
+
+          await User.findByIdAndUpdate(userId, {
+            subscriptionPlan: plan._id,
+            subscriptionStatus: 'active',
+            subscriptionStartDate: startDate,
+            subscriptionEndDate: endDate
+          });
+        }
+        // notify admins
+        try {
+          const payerUser = await User.findById(userId).select('email name _id');
+          await notifyRecipients({ payerUser, payment, classroom: null });
+        } catch (notifyErr) {
+          console.error('Error notifying recipients after subscription verify (webhook):', notifyErr.message);
+        }
       } else {
         // Non-class or missing metadata: still notify root admins
         try {
@@ -293,7 +368,7 @@ router.post('/create-intent', auth, async (req, res) => {
       }
     });
 
-    res.json({ 
+    res.json({
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id
     });
@@ -375,6 +450,7 @@ router.get('/history', auth, async (req, res) => {
     const payments = await Payment.find(query)
       .populate('classroomId', 'name')
       .populate('topicId', 'name')
+      .populate('planId', 'name')
       .populate('userId', 'name email')
       .sort({ paymentDate: -1 });
 
@@ -397,9 +473,9 @@ router.get('/:id', auth, async (req, res) => {
     }
 
     // Check permissions
-    if (payment.userId._id.toString() !== req.user._id.toString() && 
-        req.user.role !== 'root_admin' && 
-        req.user.role !== 'school_admin') {
+    if (payment.userId._id.toString() !== req.user._id.toString() &&
+      req.user.role !== 'root_admin' &&
+      req.user.role !== 'school_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
 

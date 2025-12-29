@@ -250,7 +250,7 @@ const Payments = () => {
                       {payment.type.replace('_', ' ')}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                      {payment.classroomId?.name || payment.topicId?.name || 'N/A'}
+                      {payment.classroomId?.name || payment.topicId?.name || payment.planId?.name || 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {formatAmount(payment.amount, payment.currency || 'NGN')}

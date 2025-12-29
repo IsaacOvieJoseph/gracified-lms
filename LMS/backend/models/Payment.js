@@ -27,9 +27,18 @@ const paymentSchema = new mongoose.Schema({
   },
   currency: {
     type: String,
-    default: 'USD'
+    default: 'NGN'
+  },
+  planId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubscriptionPlan',
+    default: null
   },
   stripePaymentId: {
+    type: String,
+    default: null
+  },
+  paystackReference: {
     type: String,
     default: null
   },

@@ -40,6 +40,18 @@ const SubscriptionManagement = () => {
     // For now, we'll simulate subscription update
   };
 
+  const loadPaystackScript = () => {
+    return new Promise((resolve, reject) => {
+      if (window.PaystackPop) return resolve();
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Paystack script'));
+      document.body.appendChild(script);
+    });
+  };
+
   const handleSubscribe = async () => {
     if (!selectedPlan) {
       setError('Please select a plan.');
@@ -58,33 +70,68 @@ const SubscriptionManagement = () => {
     try {
       // For trial/pay-as-you-go, no immediate payment, just update user subscription
       if (selectedPlan.planType === 'trial' || selectedPlan.planType === 'pay_as_you_go') {
-        // Simulate backend call to update user's subscription status
-        // In a real app, this would be an API call to user-subscriptions endpoint
         await api.post('/user-subscriptions', {
           userId: user._id,
           planId: selectedPlan._id,
           status: selectedPlan.planType === 'trial' ? 'trial' : 'pay_as_you_go',
           startDate: new Date(),
-          // For trial, endDate is already handled in user creation. For pay-as-you-go, no fixed end.
-          // For simplicity, we're not setting endDate here for PAYG
         });
 
         toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
         await refreshUser();
-        navigate('/dashboard'); // Redirect to dashboard after successful subscription
+        navigate('/dashboard');
       } else {
-        // For paid plans (monthly, yearly), integrate with Stripe Checkout
-        toast.success(`Proceeding to payment for ${selectedPlan.name}. (Stripe integration needed here)`);
-        // TODO: Implement actual Stripe checkout for recurring payments
-        // After successful Stripe payment, you would then call your backend to update user-subscriptions
-        // Example: await axios.post('/api/payments/subscribe', { planId: selectedPlan._id });
-        await refreshUser();
-        navigate('/dashboard'); // Temporary redirect
+        // For paid plans (monthly, yearly), integrate with Paystack
+        const usePaystack = !!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || false;
+        if (usePaystack) {
+          const resp = await api.post('/payments/paystack/initiate', {
+            amount: selectedPlan.price,
+            planId: selectedPlan._id,
+            type: 'subscription'
+          });
+
+          if (resp.data && resp.data.reference) {
+            await loadPaystackScript();
+            const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+            // standard multiplier for kobo/cents
+            const payAmount = Math.round(selectedPlan.price * 100);
+
+            const handler = window.PaystackPop.setup({
+              key: pubKey,
+              email: user.email,
+              amount: payAmount,
+              ref: resp.data.reference,
+              onClose: () => {
+                setLoading(false);
+                toast.error('Payment window closed');
+              },
+              callback: async (response) => {
+                try {
+                  await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
+                  toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
+                  await refreshUser();
+                  navigate('/dashboard');
+                } catch (err) {
+                  setError(err.response?.data?.message || 'Verification failed');
+                } finally {
+                  setLoading(false);
+                }
+              }
+            });
+            handler.openIframe();
+            return;
+          }
+        }
+
+        // Fallback or if Paystack not configured
+        toast.error('Payment configuration missing or failed to initialize');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Subscription failed');
     } finally {
-      setLoading(false);
+      if (!selectedPlan || (selectedPlan.planType === 'trial' || selectedPlan.planType === 'pay_as_you_go')) {
+        setLoading(false);
+      }
     }
   };
 
