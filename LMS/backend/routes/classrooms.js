@@ -635,38 +635,66 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
 
     if (!latest) {
       // create a real Google Meet if configured, otherwise fallback to pseudo link
+      let eventId = null;
+      let htmlLink = null;
       try {
         const { createGoogleMeet } = require('../utils/googleMeet');
         const meet = await createGoogleMeet({ summary: `Class: ${classroom.name}`, attendees: [] });
         link = meet.meetUrl || generateGoogleMeetLink();
+        eventId = meet.eventId || null;
+        htmlLink = meet.htmlLink || null;
       } catch (err) {
         console.warn('Google Meet creation failed, falling back to pseudo link:', err.message);
         link = generateGoogleMeetLink();
       }
-      const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now });
+      const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now, eventId, htmlLink });
       await session.save();
       created = true;
     } else {
       const diffMs = now - new Date(latest.startedAt);
       const fortyFiveMin = 45 * 60 * 1000;
       if (diffMs > fortyFiveMin) {
+        let eventId = null;
+        let htmlLink = null;
         try {
           const { createGoogleMeet } = require('../utils/googleMeet');
           const meet = await createGoogleMeet({ summary: `Class: ${classroom.name}`, attendees: [] });
           link = meet.meetUrl || generateGoogleMeetLink();
+          eventId = meet.eventId || null;
+          htmlLink = meet.htmlLink || null;
         } catch (err) {
           console.warn('Google Meet creation failed, falling back to pseudo link:', err.message);
           link = generateGoogleMeetLink();
         }
-        const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now });
+        const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now, eventId, htmlLink });
         await session.save();
         created = true;
       } else {
         link = latest.link;
+        // carry over any metadata from latest
+        if (latest.eventId) {
+          // prefer latest's event metadata
+          res.locals._callEventId = latest.eventId;
+          res.locals._callHtmlLink = latest.htmlLink;
+        }
       }
     }
 
-    res.json({ link, created, startedAt: now });
+    // prepare response metadata
+    const resp = { link, created, startedAt: now };
+    if (res.locals._callEventId) {
+      resp.eventId = res.locals._callEventId;
+      resp.htmlLink = res.locals._callHtmlLink || null;
+    } else if (created) {
+      // load the just-created session to return event metadata if present
+      const justCreated = await CallSession.findOne({ classroomId: classroom._id }).sort({ createdAt: -1 });
+      if (justCreated) {
+        resp.eventId = justCreated.eventId || null;
+        resp.htmlLink = justCreated.htmlLink || null;
+      }
+    }
+
+    res.json(resp);
   } catch (error) {
     console.error('Error starting class call:', error);
     res.status(500).json({ message: error.message });

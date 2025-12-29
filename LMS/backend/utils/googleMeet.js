@@ -1,11 +1,25 @@
 const { google } = require('googleapis');
 const { v4: uuidv4 } = require('uuid');
 
-// Expects environment variables:
-// - GOOGLE_SERVICE_ACCOUNT_JSON  : JSON string of service account key (client_email, private_key, project_id)
-// - GOOGLE_IMPERSONATED_USER     : email of a GSuite user to impersonate (must have Calendar privileges and domain-wide delegation enabled)
+// googleMeet util
+// Supports two modes (prefer OAuth2 refresh token):
+// 1) OAuth2 refresh token flow: set GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN
+// 2) Service account + domain-wide delegation: set GOOGLE_SERVICE_ACCOUNT_JSON and GOOGLE_IMPERSONATED_USER
+// OAuth2 refresh token is attempted first; if neither is available the caller should handle the error.
 
-function getJwtClient() {
+function createOAuth2ClientFromEnv() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob';
+  if (!clientId || !clientSecret || !refreshToken) return null;
+
+  const oAuth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  oAuth2Client.setCredentials({ refresh_token: refreshToken });
+  return oAuth2Client;
+}
+
+function createJwtClientFromEnv() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   const subject = process.env.GOOGLE_IMPERSONATED_USER;
   if (!raw || !subject) return null;
@@ -32,15 +46,35 @@ function getJwtClient() {
   return jwtClient;
 }
 
+/**
+ * Create a Google Meet (Calendar event with conferenceData) and return metadata.
+ * Options:
+ *  - summary: event title
+ *  - description
+ *  - startTime: Date or ISO string
+ *  - endTime: Date or ISO string
+ *  - attendees: array of email strings
+ */
 async function createGoogleMeet({ summary = 'Class Meeting', description = '', startTime = new Date(), endTime = null, attendees = [] } = {}) {
-  // startTime and endTime should be Date objects or ISO strings
-  const jwtClient = getJwtClient();
-  if (!jwtClient) {
-    throw new Error('Google service account credentials or impersonated user not configured. Set GOOGLE_SERVICE_ACCOUNT_JSON and GOOGLE_IMPERSONATED_USER.');
+  const oAuth2Client = createOAuth2ClientFromEnv();
+  let authClient = null;
+
+  if (oAuth2Client) {
+    authClient = oAuth2Client;
+  } else {
+    const jwtClient = createJwtClientFromEnv();
+    if (!jwtClient) {
+      throw new Error('No Google credentials configured. Set GOOGLE_OAUTH_* env vars or GOOGLE_SERVICE_ACCOUNT_JSON & GOOGLE_IMPERSONATED_USER.');
+    }
+    authClient = jwtClient;
   }
 
-  await jwtClient.authorize();
-  const calendar = google.calendar({ version: 'v3', auth: jwtClient });
+  // jwtClient has authorize(); OAuth2 client will refresh token automatically on request
+  if (typeof authClient.authorize === 'function') {
+    await authClient.authorize();
+  }
+
+  const calendar = google.calendar({ version: 'v3', auth: authClient });
 
   const start = (startTime instanceof Date) ? startTime.toISOString() : new Date(startTime).toISOString();
   const end = endTime ? ((endTime instanceof Date) ? endTime.toISOString() : new Date(endTime).toISOString()) : new Date(new Date(start).getTime() + 60 * 60 * 1000).toISOString();
@@ -50,7 +84,7 @@ async function createGoogleMeet({ summary = 'Class Meeting', description = '', s
     description,
     start: { dateTime: start },
     end: { dateTime: end },
-    attendees: attendees.map(email => ({ email })),
+    attendees: Array.isArray(attendees) ? attendees.map(email => ({ email })) : [],
     conferenceData: {
       createRequest: {
         requestId: uuidv4(),
@@ -65,7 +99,6 @@ async function createGoogleMeet({ summary = 'Class Meeting', description = '', s
     conferenceDataVersion: 1,
   });
 
-  // conferenceData.entryPoints contains the meet URL
   const conf = res.data.conferenceData;
   let meetUrl = null;
   if (conf && conf.entryPoints && conf.entryPoints.length > 0) {
@@ -83,6 +116,4 @@ async function createGoogleMeet({ summary = 'Class Meeting', description = '', s
   };
 }
 
-module.exports = {
-  createGoogleMeet,
-};
+module.exports = { createGoogleMeet };
