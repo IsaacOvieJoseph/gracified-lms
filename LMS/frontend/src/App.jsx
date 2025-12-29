@@ -33,8 +33,8 @@ const PrivateRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  // If user is logged in but not verified, redirect to verify email page
-  if (!user.isVerified) {
+  // If user is logged in but not verified, redirect to verify email page (except for root_admin)
+  if (!user.isVerified && user.role !== 'root_admin') {
     // Pass the user's email to the verify-email page for convenience
     return <Navigate to="/verify-email" state={{ email: user.email }} />;
   }

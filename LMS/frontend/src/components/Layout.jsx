@@ -18,13 +18,13 @@ const Layout = ({ children }) => {
   });
   const location = useLocation();
   const navigate = useNavigate();
-    // Real-time: Refresh user subscription status on every route change
-    useEffect(() => {
-      if (user && refreshUser) {
-        refreshUser();
-      }
-      // eslint-disable-next-line
-    }, [location.pathname]);
+  // Real-time: Refresh user subscription status on every route change
+  useEffect(() => {
+    if (user && refreshUser) {
+      refreshUser();
+    }
+    // eslint-disable-next-line
+  }, [location.pathname]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -95,17 +95,18 @@ const Layout = ({ children }) => {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/classrooms', icon: Book, label: 'Classrooms' },
     // Payments tab: visible to students and to administrative/teaching roles so they can view payment logs
-    ...( ['student','root_admin','school_admin','teacher','personal_teacher'].includes(user?.role) ? [{ path: '/payments', icon: DollarSign, label: 'Payments' }] : [] ),
+    ...(['student', 'root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/payments', icon: DollarSign, label: 'Payments' }] : []),
     ...(user?.role === 'student' ? [{ path: '/assignments', icon: FileText, label: 'Assignments' }] : []),
     ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
     ...(['root_admin', 'school_admin'].includes(user?.role) ? [{ path: '/schools', icon: Landmark, label: 'Schools' }] : []),
   ];
 
   // Block all activity except dashboard if subscription is expired or never active
-  // Allow if user is on a valid free trial (trial not expired and never used before)
+  // Only applies to school_admin and personal_teacher
   const isDashboard = location.pathname === '/dashboard';
   let shouldBlock = false;
-  if (user) {
+
+  if (user && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
     // Block if subscription is not active and not on a valid trial
     const isTrial = user.subscriptionStatus === 'trial';
     const trialValid = isTrial && user.trialEndDate && new Date(user.trialEndDate) > new Date() && !user.trialExpired;
@@ -115,9 +116,9 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {shouldBlock && !isDashboard && (
-        <SubscriptionBlockBanner 
-          onViewPlans={() => navigate('/subscription-management')} 
-          user={user} 
+        <SubscriptionBlockBanner
+          onViewPlans={() => navigate('/subscription-management')}
+          user={user}
         />
       )}
       <header className="bg-white shadow-sm border-b">
@@ -131,7 +132,7 @@ const Layout = ({ children }) => {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             {/* School Switcher for school admins */}
             <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
@@ -211,11 +212,10 @@ const Layout = ({ children }) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition ${
-                  isActive(item.path)
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition ${isActive(item.path)
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>

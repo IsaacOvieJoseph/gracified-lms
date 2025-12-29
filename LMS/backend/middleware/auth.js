@@ -23,7 +23,8 @@ const auth = async (req, res, next) => {
     }
 
     // Check if user is verified (if email verification is enabled)
-    if (!user.isVerified) {
+    // Root admin bypasses verification check
+    if (!user.isVerified && user.role !== 'root_admin') {
       console.log('Auth middleware: User is not verified. Returning 401.');
       return res.status(401).json({ message: 'Email not verified, please verify your email' });
     }
@@ -40,6 +41,11 @@ const auth = async (req, res, next) => {
 
 const authorize = (...roles) => {
   return (req, res, next) => {
+    // Root admin has access to everything
+    if (req.user.role === 'root_admin') {
+      return next();
+    }
+
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden: You do not have permission to access this resource' });
     }
