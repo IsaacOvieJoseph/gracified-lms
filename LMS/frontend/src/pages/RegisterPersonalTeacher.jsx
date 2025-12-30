@@ -10,6 +10,10 @@ const RegisterPersonalTeacher = () => {
     password: '',
     confirmPassword: '',
     tutorialName: '',
+    bankName: '',
+    accountNumber: '',
+    accountName: '',
+    payoutFrequency: 'weekly',
   });
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
@@ -18,7 +22,7 @@ const RegisterPersonalTeacher = () => {
   const { login } = useAuth();
   useEffect(() => {
     // Listen for school selection changes
-    const handler = () => {/* reload any school-dependent data here if needed */};
+    const handler = () => {/* reload any school-dependent data here if needed */ };
     window.addEventListener('schoolSelectionChanged', handler);
     return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, []);
@@ -116,17 +120,58 @@ const RegisterPersonalTeacher = () => {
               className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="bankName" className="block text-sm font-medium text-gray-700">Bank Name</label>
+              <input
+                type="text"
+                id="bankName"
+                name="bankName"
+                value={formData.bankName}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700">Account Number</label>
+              <input
+                type="text"
+                id="accountNumber"
+                name="accountNumber"
+                value={formData.accountNumber}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
           <div>
-            <label htmlFor="tutorialName" className="block text-sm font-medium text-gray-700">Tutorial Name</label>
+            <label htmlFor="accountName" className="block text-sm font-medium text-gray-700">Account Name</label>
             <input
               type="text"
-              id="tutorialName"
-              name="tutorialName"
-              value={formData.tutorialName}
+              id="accountName"
+              name="accountName"
+              value={formData.accountName}
               onChange={handleChange}
               required
+              placeholder="As it appears on your bank account"
               className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
+          </div>
+          <div>
+            <label htmlFor="payoutFrequency" className="block text-sm font-medium text-gray-700">Payout Frequency</label>
+            <select
+              id="payoutFrequency"
+              name="payoutFrequency"
+              value={formData.payoutFrequency}
+              onChange={handleChange}
+              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           {message && <p className="text-green-500 text-sm">{message}</p>}

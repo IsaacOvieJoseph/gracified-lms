@@ -158,6 +158,25 @@ router.get('/paystack/verify', auth, async (req, res) => {
 
         await User.findByIdAndUpdate(req.user._id, { $addToSet: { enrolledClasses: payment.classroomId } });
       }
+
+      // Set payout owner for disbursement
+      if (classroom) {
+        let payoutOwnerId = classroom.teacherId;
+        const teacher = await User.findById(classroom.teacherId);
+
+        // If teacher is part of a school, payout goes to school admin
+        if (teacher && teacher.role === 'teacher' && classroom.schoolId && classroom.schoolId.length > 0) {
+          const School = require('../models/School');
+          const school = await School.findById(classroom.schoolId[0]);
+          if (school && school.adminId) {
+            payoutOwnerId = school.adminId;
+          }
+        }
+
+        payment.payoutOwnerId = payoutOwnerId;
+        payment.payoutStatus = 'pending';
+        await payment.save();
+      }
       // notify classroom stakeholders (teacher, school admin, root admins)
       try {
         const payerUser = await User.findById(req.user._id).select('email name _id');
@@ -283,6 +302,24 @@ router.post('/paystack/webhook', express.raw({ type: 'application/json' }), asyn
           await classroom.save();
 
           await User.findByIdAndUpdate(userId, { $addToSet: { enrolledClasses: payment.classroomId } });
+        }
+
+        // Set payout owner for disbursement
+        if (classroom) {
+          let payoutOwnerId = classroom.teacherId;
+          const teacher = await User.findById(classroom.teacherId);
+
+          if (teacher && teacher.role === 'teacher' && classroom.schoolId && classroom.schoolId.length > 0) {
+            const School = require('../models/School');
+            const school = await School.findById(classroom.schoolId[0]);
+            if (school && school.adminId) {
+              payoutOwnerId = school.adminId;
+            }
+          }
+
+          payment.payoutOwnerId = payoutOwnerId;
+          payment.payoutStatus = 'pending';
+          await payment.save();
         }
 
         // Notify stakeholders about this enrollment/payment

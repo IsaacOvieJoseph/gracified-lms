@@ -18,6 +18,7 @@ import RegisterSchoolAdmin from './pages/RegisterSchoolAdmin';
 import RegisterPersonalTeacher from './pages/RegisterPersonalTeacher';
 import VerifyEmail from './pages/VerifyEmail';
 import SubscriptionManagement from './pages/SubscriptionManagement'; // Import new SubscriptionManagement component
+import Disbursements from './pages/Disbursements'; // Import new Disbursements component
 import ForgotPassword from './pages/ForgotPassword';
 import { Toaster } from 'react-hot-toast';
 import Loader from './components/Loader';
@@ -172,6 +173,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Users />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/disbursements"
+        element={
+          <PrivateRoute>
+            <Disbursements />
           </PrivateRoute>
         }
       />

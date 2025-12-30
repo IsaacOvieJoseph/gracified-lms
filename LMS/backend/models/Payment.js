@@ -54,7 +54,20 @@ const paymentSchema = new mongoose.Schema({
   metadata: {
     type: Map,
     of: String
-  }
+  },
+  payoutStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'paid', 'none'],
+    default: 'none'
+  },
+  payoutOwnerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  payoutApprovedAt: Date,
+  payoutPaidAt: Date,
+  payoutReference: String
 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

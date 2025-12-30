@@ -258,5 +258,38 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+// Send payout notification
+router.post('/payout-notification', internalAuth, async (req, res) => {
+  try {
+    const { userId, amount, status, classroomId } = req.body;
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const classroomName = classroomId ? (await Classroom.findById(classroomId))?.name : 'class enrollment';
+
+    await sendEmail({
+      to: user.email,
+      subject: `Payout Approved: ${classroomName}`,
+      html: `
+        <h2>Disbursement Notification</h2>
+        <p>Hello ${user.name},</p>
+        <p>Great news! Your disbursement has been approved and paid:</p>
+        <ul>
+          <li><strong>Amount:</strong> ₦${amount}</li>
+          <li><strong>Class:</strong> ${classroomName}</li>
+          <li><strong>Status:</strong> ${status}</li>
+        </ul>
+        <p>The funds should reflect in your registered bank account soon.</p>
+      `
+    });
+
+    res.json({ message: 'Payout notification sent successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+module.exports = router;

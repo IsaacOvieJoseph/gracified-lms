@@ -99,6 +99,7 @@ const Layout = ({ children }) => {
     ...(user?.role === 'student' ? [{ path: '/assignments', icon: FileText, label: 'Assignments' }] : []),
     ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
     ...(['root_admin', 'school_admin'].includes(user?.role) ? [{ path: '/schools', icon: Landmark, label: 'Schools' }] : []),
+    ...(user?.role === 'root_admin' ? [{ path: '/disbursements', icon: Landmark, label: 'Disbursements' }] : []),
   ];
 
   // Block all activity except dashboard if subscription is expired or never active
@@ -213,8 +214,8 @@ const Layout = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition ${isActive(item.path)
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
                   }`}
               >
                 <Icon className="w-4 h-4" />

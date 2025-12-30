@@ -18,16 +18,16 @@ const brevoApiInstance = new brevo.TransactionalEmailsApi();
 // Helper function to send email via Brevo
 const sendEmailViaBrevo = async ({ to, subject, html, name }) => {
   const sendSmtpEmail = new brevo.SendSmtpEmail();
-  
+
   sendSmtpEmail.sender = {
     name: 'Gracified LMS',
     email: process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL
   };
-  
+
   sendSmtpEmail.to = [{ email: to, name: name || to }];
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.htmlContent = html;
-  
+
   try {
     const result = await brevoApiInstance.sendTransacEmail(sendSmtpEmail);
     return result;
@@ -79,7 +79,7 @@ const generateAndSendOTP = async (user) => {
     await user.save();
 
     console.log(`Attempting to send OTP email to ${user.email} via Brevo...`);
-    
+
     const result = await sendEmailViaBrevo({
       to: user.email,
       name: user.name,
@@ -102,7 +102,7 @@ const generateAndSendOTP = async (user) => {
       response: error.response?.body,
       message: error.message
     });
-    
+
     // Log OTP in console for development/debugging
     console.log(`OTP for ${user.email} (email failed): ${user.otp || 'not generated'}`);
     throw error; // Re-throw so caller can handle it
@@ -162,7 +162,7 @@ const generateAndSendOTP = async (user) => {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    let { name, email, password, role, schoolName, tutorialName } = req.body;
+    let { name, email, password, role, schoolName, tutorialName, bankName, bankCode, accountNumber, accountName, payoutFrequency } = req.body;
     email = email.toLowerCase();
 
     // Check if user exists
@@ -178,7 +178,22 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists and is verified' });
     }
 
-    const user = new User({ name, email, password, role, isVerified: false });
+    const user = new User({
+      name,
+      email,
+      password,
+      role,
+      isVerified: false,
+      bankDetails: (role === 'school_admin' || role === 'personal_teacher') ? {
+        bankName,
+        bankCode,
+        accountNumber,
+        accountName,
+      } : undefined,
+      payoutPreference: (role === 'school_admin' || role === 'personal_teacher') ? {
+        frequency: payoutFrequency || 'weekly'
+      } : undefined
+    });
     await user.save();
 
     if (role === 'school_admin') {
@@ -190,7 +205,7 @@ router.post('/register', async (req, res) => {
       await tutorial.save();
       user.tutorialId = tutorial._id;
     }
-    
+
     // Assign free trial for School Admins and Personal Teachers
     if (role === 'school_admin' || role === 'personal_teacher') {
       const freeTrialPlan = await SubscriptionPlan.findOne({ planType: 'trial' });
@@ -208,7 +223,7 @@ router.post('/register', async (req, res) => {
 
     // Send response immediately, then send email in background
     res.status(201).json({ message: 'Registration successful. Please verify your email with the OTP sent to your email.', redirectToVerify: true, email });
-    
+
     // Generate and send OTP asynchronously (don't block response)
     generateAndSendOTP(user).catch(err => {
       console.error('Error sending OTP email after registration:', err.message);
@@ -283,7 +298,7 @@ router.post('/resend-otp', async (req, res) => {
 
     // Send response immediately, then send email in background
     res.json({ message: 'New OTP sent to your email' });
-    
+
     generateAndSendOTP(user).catch(err => {
       console.error('Error sending OTP email:', err.message);
     });
@@ -360,7 +375,7 @@ router.get('/me', auth, async (req, res) => {
       .populate('enrolledClasses', 'name schedule')
       .populate('schoolId', 'name') // Populate school name
       .populate('tutorialId', 'name'); // Populate tutorial name
-    
+
     // Check subscription status for School Admin and Personal Teacher
     let trialExpired = false;
     if ((user.role === 'school_admin' || user.role === 'personal_teacher') && user.subscriptionStatus === 'trial') {
@@ -407,7 +422,7 @@ const generateAndSendPasswordResetOTP = async (user) => {
     await user.save();
 
     console.log(`Attempting to send password reset OTP email to ${user.email} via Brevo...`);
-    
+
     const result = await sendEmailViaBrevo({
       to: user.email,
       name: user.name,
@@ -441,22 +456,22 @@ router.post('/forgot-password', async (req, res) => {
     email = email.toLowerCase();
 
     const user = await User.findOne({ email });
-    
+
     // Only send OTP if user exists (don't reveal if user exists or not for security)
     if (user) {
       // Send response immediately, then send email in background
-      res.json({ 
+      res.json({
         message: 'If an account exists with this email, a password reset OTP has been sent.',
         email: email // Return email for frontend to use in next step
       });
-      
+
       // Generate and send password reset OTP asynchronously
       generateAndSendPasswordResetOTP(user).catch(err => {
         console.error('Error sending password reset OTP email:', err.message);
       });
     } else {
       // Still return success message (don't reveal user doesn't exist)
-      res.json({ 
+      res.json({
         message: 'If an account exists with this email, a password reset OTP has been sent.',
         email: email
       });
@@ -487,7 +502,7 @@ router.post('/verify-reset-otp', async (req, res) => {
     }
 
     // OTP is valid - return success (don't clear OTP yet, wait for password reset)
-    res.json({ 
+    res.json({
       message: 'OTP verified successfully. You can now reset your password.',
       verified: true
     });
@@ -511,7 +526,7 @@ router.post('/resend-reset-otp', async (req, res) => {
 
     // Send response immediately, then send email in background
     res.json({ message: 'Password reset OTP sent to your email' });
-    
+
     generateAndSendPasswordResetOTP(user).catch(err => {
       console.error('Error sending password reset OTP email:', err.message);
     });
@@ -551,7 +566,7 @@ router.post('/reset-password', async (req, res) => {
     user.passwordResetOTPExpires = undefined;
     await user.save();
 
-    res.json({ 
+    res.json({
       message: 'Password reset successfully. You can now login with your new password.'
     });
   } catch (error) {
@@ -564,7 +579,7 @@ router.post('/reset-password', async (req, res) => {
 router.post('/test-email', async (req, res) => {
   try {
     if (!isEmailConfigured()) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Email not configured',
         details: {
           BREVO_API_KEY: process.env.BREVO_API_KEY ? 'set' : 'not set',
@@ -574,9 +589,9 @@ router.post('/test-email', async (req, res) => {
     }
 
     const testEmail = req.body.email || process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL;
-    
+
     console.log(`Testing email configuration - sending test email to ${testEmail} via Brevo...`);
-    
+
     const result = await sendEmailViaBrevo({
       to: testEmail,
       subject: 'Test Email from LMS',
@@ -587,14 +602,14 @@ router.post('/test-email', async (req, res) => {
       `
     });
 
-    res.json({ 
+    res.json({
       message: 'Test email sent successfully via Brevo',
       messageId: result.messageId || 'N/A',
       to: testEmail
     });
   } catch (error) {
     console.error('Test email error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to send test email',
       error: error.message,
       details: {
@@ -602,6 +617,44 @@ router.post('/test-email', async (req, res) => {
         response: error.response?.body
       }
     });
+  }
+});
+
+// Update profile (Bank details, Payout preference)
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { name, email, bankDetails, payoutPreference } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (name) user.name = name;
+    if (email) user.email = email.toLowerCase();
+
+    // Only allow personal teachers and school admins to set bank details
+    if (['personal_teacher', 'school_admin'].includes(user.role)) {
+      if (bankDetails) {
+        user.bankDetails = {
+          bankName: bankDetails.bankName || user.bankDetails?.bankName,
+          bankCode: bankDetails.bankCode || user.bankDetails?.bankCode,
+          accountNumber: bankDetails.accountNumber || user.bankDetails?.accountNumber,
+          accountName: bankDetails.accountName || user.bankDetails?.accountName,
+        };
+      }
+      if (payoutPreference) {
+        user.payoutPreference = {
+          frequency: payoutPreference.frequency || user.payoutPreference?.frequency,
+          lastPayoutDate: user.payoutPreference?.lastPayoutDate,
+        };
+      }
+    }
+
+    await user.save();
+    res.json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

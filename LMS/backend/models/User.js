@@ -60,6 +60,24 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  bankDetails: {
+    bankName: String,
+    bankCode: String,
+    accountNumber: String,
+    accountName: String,
+    paystackRecipientCode: String,
+  },
+  payoutPreference: {
+    frequency: {
+      type: String,
+      enum: ['daily', 'weekly', 'monthly'],
+      default: 'weekly',
+    },
+    lastPayoutDate: {
+      type: Date,
+      default: null,
+    },
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

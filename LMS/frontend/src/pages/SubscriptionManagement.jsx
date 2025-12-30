@@ -97,30 +97,32 @@ const SubscriptionManagement = () => {
 
           if (resp.data && resp.data.reference) {
             const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-            // standard multiplier for kobo/cents
-            const payAmount = Math.round(selectedPlan.price * 100);
+            const payAmount = (import.meta.env.VITE_PAYSTACK_CURRENCY || 'NGN').toLowerCase() === 'ngn' ? Math.round(selectedPlan.price * 100) : Math.round(selectedPlan.price * 100);
 
             try {
-              const handleCallback = (response) => {
+              function handleCallback(response) {
+                // call async verify but keep this function synchronous for Paystack
                 (async () => {
                   try {
                     await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
                     toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
                     await refreshUser();
-                    setSubmitting(false);
                     navigate('/dashboard');
                   } catch (err) {
                     console.error('Subscription verification error:', err);
                     setError(err.response?.data?.message || 'Verification failed');
+                  } finally {
                     setSubmitting(false);
                   }
                 })();
-              };
+              }
 
-              const handleOnClose = () => {
+              function handleOnClose() {
                 setSubmitting(false);
                 toast.error('Payment window closed');
-              };
+              }
+
+              if (typeof handleCallback !== 'function') throw new Error('Invalid callback');
 
               const handler = window.PaystackPop.setup({
                 key: pubKey,
@@ -136,13 +138,13 @@ const SubscriptionManagement = () => {
               } else if (handler && typeof handler.open === 'function') {
                 handler.open();
               } else {
-                handler.open();
+                throw new Error('Paystack handler not available');
               }
               // Wait for user interaction or callback
               return;
             } catch (setupErr) {
               console.error('Paystack setup error:', setupErr);
-              throw new Error(`Failed to initialize Paystack modal: ${setupErr.message}`);
+              throw new Error(`Failed to launch Paystack payment window: ${setupErr.message}`);
             }
           }
         }
