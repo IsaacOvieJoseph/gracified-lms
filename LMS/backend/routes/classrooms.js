@@ -299,7 +299,7 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       schedule,
       capacity,
       pricing: pricing || { type: 'per_class', amount: 0 },
-      isPaid: isPaid || false,
+      isPaid: (isPaid && pricing?.amount > 0) ? true : false,
       teacherId: finalTeacherId,
       schoolId: finalSchoolId,
       published: published !== undefined ? published : false
@@ -370,7 +370,12 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
     if (description) classroom.description = description;
     if (capacity) classroom.capacity = capacity;
     if (pricing) classroom.pricing = pricing;
-    if (isPaid !== undefined) classroom.isPaid = isPaid;
+    if (isPaid !== undefined || pricing) {
+      // Re-evaluate isPaid if either isPaid or pricing is provided
+      const newIsPaid = isPaid !== undefined ? isPaid : classroom.isPaid;
+      const newAmount = pricing ? pricing.amount : (classroom.pricing ? classroom.pricing.amount : 0);
+      classroom.isPaid = !!(newIsPaid && newAmount > 0);
+    }
     if (teacherId) classroom.teacherId = teacherId; // Further authorization/validation might be needed here
     if (schoolId) classroom.schoolId = schoolId; // Further authorization/validation might be needed here
     if (published !== undefined) classroom.published = published;
@@ -546,6 +551,11 @@ router.post('/:id/enroll', auth, async (req, res) => {
     // Check capacity
     if (classroom.students.length >= classroom.capacity) {
       return res.status(400).json({ message: 'Classroom is full' });
+    }
+
+    // Only allow direct enrollment if class is free (amount #0)
+    if (classroom.isPaid && classroom.pricing?.amount > 0) {
+      return res.status(400).json({ message: 'This is a paid class. Please enroll through the payment flow.' });
     }
 
     // Enroll student

@@ -4,7 +4,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { auth, authorize } = require('../middleware/auth');
-const axios = require('axios');
+const { sendEmail } = require('../utils/email');
 
 // Get all pending disbursements (Root Admin)
 router.get('/pending', auth, authorize('root_admin'), async (req, res) => {
@@ -56,20 +56,33 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
             // In-app notification
             await Notification.create({
                 userId: owner._id,
-                message: `Your disbursement of ${payment.amount} ${payment.currency} for ${payment.classroomId?.name || 'class'} has been approved and paid.`,
-                type: 'payment_received',
+                message: `Disbursement Approved: ₦${payment.amount} for ${payment.classroomId?.name || 'class enrollment'} has been paid to your bank account.`,
+                type: 'payout_received',
                 entityId: payment._id,
                 entityRef: 'Payment'
             });
 
-            // best-effort internal email notify
+            // Email notification
             try {
-                await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/payout-notification`, {
-                    userId: owner._id,
-                    amount: payment.amount,
-                    status: 'paid',
-                    classroomId: payment.classroomId
-                }, { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } });
+                if (owner.email) {
+                    const classroomName = payment.classroomId?.name || 'class enrollment';
+                    await sendEmail({
+                        to: owner.email,
+                        subject: `Payout Approved: ${classroomName} `,
+                        html: `
+    < div style = "font-family: sans-serif; color: #333;" >
+                <h2 style="color: #4f46e5;">Disbursement Notification</h2>
+                <p>Hello ${owner.name},</p>
+                <p style="font-size: 16px; line-height: 1.5;">Great news! Your payout for <strong>${classroomName}</strong> has been approved and paid.</p>
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                  <p style="margin: 0;"><strong>Amount:</strong> ₦${payment.amount}</p>
+                  <p style="margin: 0;"><strong>Status:</strong> Paid</p>
+                </div>
+                <p style="margin-top: 20px; font-size: 14px;">The funds should reflect in your registered bank account shortly.</p>
+              </div >
+    `
+                    });
+                }
             } catch (e) {
                 console.error('Error sending payout notification email', e.message);
             }

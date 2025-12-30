@@ -12,7 +12,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['class_reminder', 'assignment_reminder', 'assignment_result', 'payment_success', 'new_assignment', 'new_submission', 'assignment_graded'],
+    enum: ['class_reminder', 'assignment_reminder', 'assignment_result', 'payment_success', 'payment_received', 'payout_received', 'new_assignment', 'new_submission', 'assignment_graded', 'subscription_success'],
     required: true,
   },
   // Optional: Link to the specific resource (e.g., assignment, classroom, payment)
@@ -22,7 +22,7 @@ const notificationSchema = new mongoose.Schema({
   },
   entityRef: {
     type: String,
-    required: function() { return this.entityId != null; },
+    required: function () { return this.entityId != null; },
     enum: ['Assignment', 'Classroom', 'Payment', 'Topic', 'User'],
   },
   read: {

@@ -1,56 +1,11 @@
 const express = require('express');
-const brevo = require('@getbrevo/brevo');
-const defaultClient = brevo.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
-const brevoEmailApi = new brevo.TransactionalEmailsApi();
-
-// Helper to send transactional email via Brevo
-async function sendEmail({ to, subject, html }) {
-  const sender = { name: 'Gracified LMS', email: process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL || 'no-reply@yourdomain.com' };
-  const receivers = Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }];
-  const sendSmtpEmail = new brevo.SendSmtpEmail();
-  sendSmtpEmail.sender = sender;
-  sendSmtpEmail.to = receivers;
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-  try {
-    await brevoEmailApi.sendTransacEmail(sendSmtpEmail);
-  } catch (err) {
-    console.error('Brevo sendEmail error:', err);
-    throw err;
-  }
-}
-
-// ========== OLD SIB-API-V3-SDK CODE (COMMENTED OUT) ==========
-// const SibApiV3Sdk = require('sib-api-v3-sdk');
-// const defaultClient = SibApiV3Sdk.ApiClient.instance;
-// const apiKey = defaultClient.authentications['api-key'];
-// apiKey.apiKey = process.env.BREVO_API_KEY;
-// const brevoEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-//
-// // Helper to send transactional email via Brevo (old version)
-// async function sendEmail({ to, subject, html }) {
-//   const sender = { name: 'LMS Platform', email: process.env.BREVO_SENDER_EMAIL || 'no-reply@yourdomain.com' };
-//   const receivers = Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }];
-//   const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-//   sendSmtpEmail.sender = sender;
-//   sendSmtpEmail.to = receivers;
-//   sendSmtpEmail.subject = subject;
-//   sendSmtpEmail.htmlContent = html;
-//   try {
-//     await brevoEmailApi.sendTransacEmail(sendSmtpEmail);
-//   } catch (err) {
-//     console.error('Brevo sendEmail error:', err);
-//     throw err;
-//   }
-// }
+const router = express.Router();
+const { sendEmail } = require('../utils/email');
 // ==========================================================
 const Classroom = require('../models/Classroom');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const internalAuth = require('../middleware/internalAuth'); // Import internalAuth middleware
-const router = express.Router();
 
 
 // Send class reminder

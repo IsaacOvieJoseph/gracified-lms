@@ -47,7 +47,8 @@ const ClassroomDetail = () => {
         name: editForm.name,
         description: editForm.description,
         capacity: editForm.capacity,
-        pricing: { type: editForm.pricingType, amount: editForm.pricingAmount }
+        pricing: { type: editForm.pricingType, amount: editForm.pricingAmount },
+        isPaid: editForm.pricingType !== 'free' && editForm.pricingAmount > 0
       };
       // Only allow teacher change if permitted
       if ((user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher' && editForm.teacherId && editForm.teacherId !== classroom.teacherId?._id) {
@@ -174,7 +175,7 @@ const ClassroomDetail = () => {
 
   const handleEnroll = async () => {
     try {
-      if (classroom.isPaid) {
+      if (classroom.isPaid && classroom.pricing?.amount > 0) {
         // Redirect to payment
         navigate(`/payments?classroomId=${id}`);
       } else {
@@ -562,7 +563,7 @@ const ClassroomDetail = () => {
                 onClick={handleEnroll}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
               >
-                {classroom.isPaid ? `Enroll - ${formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}` : 'Enroll (Free)'}
+                {classroom.isPaid && classroom.pricing?.amount > 0 ? `Enroll - ${formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}` : 'Enroll (Free)'}
               </button>
             )}
             {!isEnrolled && user?.role === 'student' && !classroom.published && (

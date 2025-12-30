@@ -8,35 +8,86 @@ const Notification = require('../models/Notification'); // Import Notification m
 const axios = require('axios'); // Ensure axios is imported here
 const crypto = require('crypto');
 const { auth } = require('../middleware/auth');
+const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
-// Helper: notify recipients (in-app + internal email notify)
+// Helper: notify recipients (in-app + email notify)
 async function notifyRecipients({ payerUser, payment, classroom }) {
   try {
-    const recipients = new Set();
+    const recipients = [];
 
-    // classroom teacher (personal teacher)
-    if (classroom && classroom.teacherId) recipients.add(String(classroom.teacherId));
+    // 1. Root admins (platform owners)
+    const rootAdmins = await User.find({ role: 'root_admin' });
+    rootAdmins.forEach(r => recipients.push({ user: r, role: 'root_admin' }));
 
-    // school admin
-    if (classroom && classroom.schoolId) {
-      const school = await require('../models/School').findById(classroom.schoolId);
-      if (school && school.adminId) recipients.add(String(school.adminId));
+    // 2. Classroom teacher (personal teacher)
+    if (classroom && classroom.teacherId) {
+      const teacher = await User.findById(classroom.teacherId);
+      if (teacher) recipients.push({ user: teacher, role: 'teacher' });
     }
 
-    // root admins (all)
-    const rootAdmins = await User.find({ role: 'root_admin' }).select('_id');
-    rootAdmins.forEach(r => recipients.add(String(r._id)));
+    // 3. School admin
+    if (classroom && classroom.schoolId && classroom.schoolId.length > 0) {
+      const School = require('../models/School');
+      // Handle potential array or single ID
+      const sId = Array.isArray(classroom.schoolId) ? classroom.schoolId[0] : classroom.schoolId;
+      const school = await School.findById(sId);
+      if (school && school.adminId) {
+        const sAdmin = await User.findById(school.adminId);
+        if (sAdmin) recipients.push({ user: sAdmin, role: 'school_admin' });
+      }
+    }
 
-    const recipientIds = Array.from(recipients).filter(id => id && payerUser && String(id) !== String(payerUser._id));
+    // 4. The student/payer - they should also get a notification
+    if (payerUser) {
+      recipients.push({ user: payerUser, role: payerUser.role });
+    }
 
-    // Create in-app notification and trigger internal email notifier per recipient
-    for (const rid of recipientIds) {
+    // Deduplicate recipients by ID
+    const uniqueRecipients = [];
+    const seenIds = new Set();
+    for (const r of recipients) {
+      const sid = String(r.user._id);
+      if (!seenIds.has(sid)) {
+        seenIds.add(sid);
+        uniqueRecipients.push(r);
+      }
+    }
+
+    for (const { user, role } of uniqueRecipients) {
+      let message = '';
+      let type = 'payment_received';
+      const isSubscription = payment.type === 'subscription';
+
+      if (role === 'root_admin') {
+        message = `System Alert: ${isSubscription ? 'New Subscription' : 'Class Enrollment'} of ${payment.amount} ${payment.currency || 'NGN'} from ${payerUser?.name || 'user'}.`;
+      } else if (role === 'school_admin' || role === 'personal_teacher') {
+        if (String(user._id) === String(payerUser?._id)) {
+          // They are the ones who paid (for subscription)
+          message = `Subscription Successful: Your ${payment.type.replace('_', ' ')} is now active. Total Paid: ${payment.amount} ${payment.currency || 'NGN'}.`;
+          type = 'subscription_success';
+        } else {
+          // Someone else paid for their class
+          message = `New Enrollment: ${payerUser?.name || 'A student'} joined ${classroom?.name || 'your class'} (Amount: ${payment.amount} ${payment.currency || 'NGN'}).`;
+        }
+      } else if (role === 'teacher') {
+        message = `Class Enrollment: ${payerUser?.name || 'A student'} joined your class "${classroom?.name || 'Class'}".`;
+      } else if (role === 'student') {
+        message = `Enrollment Successful: You have successfully enrolled in "${classroom?.name || 'the class'}". Total Paid: ₦${payment.amount}.`;
+        type = 'payment_success';
+      } else {
+        // Fallback for any other payer role
+        message = `Payment Successful: ${payment.type.replace('_', ' ')} completed. Amount: ${payment.amount} ${payment.currency || 'NGN'}.`;
+        type = 'payment_success';
+      }
+
+      const rid = user._id;
+
       try {
         await Notification.create({
           userId: rid,
-          message: `Payment of ${payment.amount} ${payment.currency || ''} for ${payment.type.replace('_', ' ')} received from ${payerUser?.email || payerUser?.name || 'a user'}.`,
-          type: 'payment_received',
+          message,
+          type,
           entityId: payment._id,
           entityRef: 'Payment'
         });
@@ -44,19 +95,29 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
         console.error('Error creating in-app notification for recipient', rid, e.message);
       }
 
-      // best-effort internal email/notification endpoint
+      // Email notification
       try {
-        await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/payment-notification`, {
-          userId: rid,
-          type: payment.type,
-          amount: payment.amount,
-          status: payment.status,
-          payer: { id: payerUser?._id, email: payerUser?.email, name: payerUser?.name },
-          receiver: rid,
-          classroomId: payment.classroomId
-        }, { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } });
+        if (user.email) {
+          await sendEmail({
+            to: user.email,
+            subject: `LMS Alert: ${isSubscription ? 'Subscription' : 'Payment'} processed`,
+            html: `
+              <div style="font-family: sans-serif; color: #333;">
+                <h2 style="color: #4f46e5;">Gracified LMS Notification</h2>
+                <p>Hello ${user.name},</p>
+                <p style="font-size: 16px; line-height: 1.5;">${message}</p>
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                  <p style="margin: 0;"><strong>Amount:</strong> ₦${payment.amount}</p>
+                  <p style="margin: 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+                  <p style="margin: 0;"><strong>Type:</strong> ${payment.type.replace('_', ' ')}</p>
+                </div>
+                <p style="margin-top: 20px; font-size: 12px; color: #6b7280;">This is an automated message. Please do not reply directly to this email.</p>
+              </div>
+            `
+          });
+        }
       } catch (e) {
-        console.error('Error sending internal payment notification to', rid, e.message);
+        console.error('Error sending email notification to', user.email, e.message);
       }
     }
   } catch (err) {

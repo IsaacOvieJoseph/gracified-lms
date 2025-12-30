@@ -143,7 +143,10 @@ const Classrooms = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      const submitData = { ...formData };
+      const submitData = {
+        ...formData,
+        isPaid: formData.isPaid && formData.pricing?.amount > 0
+      };
       if (user?.role === 'school_admin') {
         let schoolIdToSend = null;
         if (formData.schoolIds && formData.schoolIds.length > 0) {

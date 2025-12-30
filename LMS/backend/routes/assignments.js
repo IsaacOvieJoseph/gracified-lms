@@ -2,7 +2,7 @@ const express = require('express');
 const Assignment = require('../models/Assignment');
 const Classroom = require('../models/Classroom');
 const Notification = require('../models/Notification'); // Import Notification model
-const axios = require('axios'); // Ensure axios is imported here
+const { sendEmail } = require('../utils/email');
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
 const { filterAssignmentsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
@@ -200,7 +200,7 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
   try {
     const { title, description, classroomId, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt } = req.body;
 
-    const classroom = await Classroom.findById(classroomId);
+    const classroom = await Classroom.findById(classroomId).populate('students', 'name email').populate('teacherId', 'name email');
     if (!classroom) {
       return res.status(404).json({ message: 'Classroom not found' });
     }
@@ -278,14 +278,29 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
     // Add assignment to classroom
     classroom.assignments.push(assignment._id);
     await classroom.save();
-
     // Trigger assignment reminder if dueDate is set
     if (assignment.dueDate) {
       try {
-        // Replace with actual backend notification service call
-        // Example using internal API call if setup (requires proper base URL)
-        await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/assignment-reminder/${assignment._id}`, {},
-          { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } });
+        const recipients = [
+          { email: classroom.teacherId.email, name: classroom.teacherId.name },
+          ...classroom.students.map(s => ({ email: s.email, name: s.name }))
+        ].filter(r => r.email);
+
+        for (const recipient of recipients) {
+          sendEmail({
+            to: recipient.email,
+            subject: `New Assignment: ${assignment.title}`,
+            html: `
+              <h2>Assignment Notification</h2>
+              <p>Hello ${recipient.name},</p>
+              <p>A new assignment has been posted in <strong>${classroom.name}</strong>:</p>
+              <ul>
+                <li><strong>Title:</strong> ${assignment.title}</li>
+                <li><strong>Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</li>
+              </ul>
+            `
+          }).catch(err => console.error('Error sending email to', recipient.email, err.message));
+        }
       } catch (notificationError) {
         console.error('Error sending assignment reminder notification:', notificationError.message);
       }
@@ -327,30 +342,26 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
     const { title, description, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt } = req.body;
 
     const assignment = await Assignment.findById(req.params.id);
-
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
-    // Basic authorization check (can be expanded)
-    const classroom = await Classroom.findById(assignment.classroomId);
+    const classroom = await Classroom.findById(assignment.classroomId).populate('students', 'name email').populate('teacherId', 'name email');
     const canEdit =
       req.user.role === 'root_admin' ||
       (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      classroom.teacherId._id.toString() === req.user._id.toString();
 
     if (!canEdit) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Update fields
     if (title !== undefined) assignment.title = title;
     if (description !== undefined) assignment.description = description;
     if (topicId !== undefined) assignment.topicId = topicId;
     if (dueDate !== undefined) assignment.dueDate = dueDate;
     if (maxScore !== undefined) assignment.maxScore = maxScore;
 
-    // Update new assignment type fields
     if (assignmentType !== undefined) {
       if (!['mcq', 'theory'].includes(assignmentType)) {
         return res.status(400).json({ message: 'Invalid assignment type.' });
@@ -362,84 +373,58 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
       if (!Array.isArray(questions) || questions.length === 0) {
         return res.status(400).json({ message: 'Assignments must have at least one question.' });
       }
-
-      if (assignment.assignmentType === 'mcq') {
-        for (const q of questions) {
-          if (!q.questionText || !Array.isArray(q.options) || q.options.length < 2 || !q.correctOption) {
-            return res.status(400).json({ message: 'MCQ questions must have text, at least two options, and a correct option.' });
-          }
-          if (!q.options.includes(q.correctOption)) {
-            return res.status(400).json({ message: 'Correct option must be one of the provided options for MCQ.' });
-          }
-        }
-      } else if (assignment.assignmentType === 'theory') {
-        for (const q of questions) {
-          if (!q.questionText || !q.markingPreference || !['ai', 'manual'].includes(q.markingPreference)) {
-            return res.status(400).json({ message: 'Theory questions must have text and a valid marking preference.' });
-          }
-        }
-      }
       assignment.questions = questions;
     }
 
-    // Recalculate overall maxScore if questions were updated for a theory assignment
     if (assignment.assignmentType === 'theory' && questions !== undefined) {
       assignment.maxScore = questions.reduce((sum, q) => sum + q.maxScore, 0);
     } else if (assignment.assignmentType === 'mcq' && maxScore !== undefined) {
-      assignment.maxScore = maxScore; // Allow updating overall maxScore directly for MCQ
+      assignment.maxScore = maxScore;
     }
 
-    // Update publishResultsAt field
     if (publishResultsAt !== undefined) {
       if (assignment.assignmentType === 'mcq') {
-        if (publishResultsAt && isNaN(new Date(publishResultsAt).getTime())) {
-          return res.status(400).json({ message: 'Invalid publish results date.' });
-        }
         assignment.publishResultsAt = publishResultsAt;
-      } else if (publishResultsAt) {
-        return res.status(400).json({ message: 'publishResultsAt is only applicable for MCQ assignments.' });
       }
     }
 
     await assignment.save();
 
-    // Trigger assignment reminder if dueDate is set/updated
+    // Notifications
     if (assignment.dueDate) {
-      await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/assignment-reminder/${assignment._id}`, {},
-        { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } }); // Assuming `api` is available or import `axios`
-    }
+      try {
+        const recipients = [
+          { user: classroom.teacherId, name: classroom.teacherId.name, email: classroom.teacherId.email },
+          ...classroom.students.map(s => ({ user: s, name: s.name, email: s.email }))
+        ].filter(r => r.email);
 
-    // Create in-app notifications for updated assignment (especially if dueDate changes)
-    try {
-      // Only send if dueDate actually changed and is set
-      const oldDueDate = req.body.oldDueDate; // Assuming frontend sends old dueDate for comparison
-      if (assignment.dueDate && (!oldDueDate || new Date(assignment.dueDate).getTime() !== new Date(oldDueDate).getTime())) {
-        const message = `Assignment "${assignment.title}" in "${classroom.name}" has been updated. New due date: ${new Date(assignment.dueDate).toLocaleDateString()}.`;
+        const message = `Assignment Update: "${assignment.title}" in "${classroom.name}" has been updated. New due date: ${new Date(assignment.dueDate).toLocaleDateString()}.`;
 
-        await Notification.create({
-          userId: classroom.teacherId,
-          message,
-          type: 'assignment_reminder',
-          entityId: assignment._id,
-          entityRef: 'Assignment',
-        });
+        for (const recipient of recipients) {
+          // In-app
+          await Notification.create({
+            userId: recipient.user._id,
+            message,
+            type: 'assignment_reminder',
+            entityId: assignment._id,
+            entityRef: 'Assignment',
+          }).catch(e => console.error('In-app error', e.message));
 
-        const studentNotifications = classroom.students.map(studentId => ({
-          userId: studentId,
-          message,
-          type: 'assignment_reminder',
-          entityId: assignment._id,
-          entityRef: 'Assignment',
-        }));
-        await Notification.insertMany(studentNotifications);
+          // Email
+          sendEmail({
+            to: recipient.email,
+            subject: `Assignment Updated: ${assignment.title}`,
+            html: `<h2>Update Alert</h2><p>${message}</p>`
+          }).catch(e => console.error('Email error', e.message));
+        }
+      } catch (e) {
+        console.error('Notification error', e.message);
       }
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notifications for updated assignment:', inAppNotifError.message);
     }
 
     res.json({ message: 'Assignment updated successfully', assignment });
   } catch (error) {
-    res.status(500).json({ message: error.reason || error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -530,11 +515,11 @@ router.post('/:id/submit', auth, async (req, res) => {
   }
 });
 
-// Grade assignment (Teacher)
 router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
-      .populate('classroomId');
+      .populate('classroomId')
+      .populate('submissions.studentId', 'name email');
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
@@ -553,7 +538,7 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
     const { studentId, score, feedback } = req.body;
 
     const submission = assignment.submissions.find(
-      sub => sub.studentId.toString() === studentId
+      sub => sub.studentId._id.toString() === studentId
     );
 
     if (!submission) {
@@ -566,35 +551,40 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
 
     await assignment.save();
 
-    // Trigger assignment result notification
-    try {
-      await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/assignment-result/${assignment._id}/${studentId}`, {},
-        { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } });
-    } catch (notificationError) {
-      console.error('Error sending assignment result notification:', notificationError.message);
-    }
+    const student = submission.studentId;
 
-    // Create in-app notifications for assignment graded
+    // Notifications
     try {
-      // Notification for student
+      const message = `Grading Alert: Your assignment "${assignment.title}" in "${classroom.name}" has been graded. Score: ${score}/${assignment.maxScore}.`;
+
+      // Student In-app
       await Notification.create({
         userId: studentId,
-        message: `Your assignment "${assignment.title}" in "${classroom.name}" has been graded. Score: ${score}/${assignment.maxScore}.`,
+        message,
         type: 'assignment_graded',
         entityId: assignment._id,
         entityRef: 'Assignment',
       });
 
-      // Notification for teacher (who graded it)
+      // Student Email
+      if (student && student.email) {
+        sendEmail({
+          to: student.email,
+          subject: `Assignment Graded: ${assignment.title}`,
+          html: `<h2>Result Ready</h2><p>${message}</p>${feedback ? `<p><strong>Feedback:</strong> ${feedback}</p>` : ''}`
+        }).catch(e => console.error('Email error', e.message));
+      }
+
+      // Teacher In-app
       await Notification.create({
-        userId: req.user._id, // The user grading is the teacher
-        message: `You graded assignment "${assignment.title}" for ${submission.studentId.name}. Score: ${score}/${assignment.maxScore}.`,
+        userId: req.user._id,
+        message: `You graded assignment "${assignment.title}" for ${student.name || 'a student'}. Score: ${score}/${assignment.maxScore}.`,
         type: 'assignment_graded',
         entityId: assignment._id,
         entityRef: 'Assignment',
       });
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notifications for assignment graded:', inAppNotifError.message);
+    } catch (e) {
+      console.error('Grading notification error', e.message);
     }
 
     res.json({ message: 'Assignment graded successfully', assignment });
@@ -607,7 +597,8 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
 router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
-      .populate('classroomId');
+      .populate('classroomId')
+      .populate('submissions.studentId', 'name email');
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
@@ -670,17 +661,32 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
 
     await assignment.save();
 
-    // Create in-app notification for student that their assignment has been graded
+    const submissionAfter = assignment.submissions.find(sub => sub.studentId._id.toString() === studentId);
+    const student = submissionAfter?.studentId;
+
+    // Notifications
     try {
+      const message = `Theory Graded: Your assignment "${assignment.title}" in "${classroom.name}" has been graded. Total Score: ${submissionAfter?.score}/${assignment.maxScore}.`;
+
+      // Student In-app
       await Notification.create({
         userId: studentId,
-        message: `Your theory assignment "${assignment.title}" in "${classroom.name}" has been graded. Total Score: ${submission.score}/${assignment.maxScore}.`,
+        message,
         type: 'assignment_graded',
         entityId: assignment._id,
         entityRef: 'Assignment',
       });
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notification for graded theory assignment:', inAppNotifError.message);
+
+      // Student Email
+      if (student && student.email) {
+        sendEmail({
+          to: student.email,
+          subject: `Theory Assignment Graded: ${assignment.title}`,
+          html: `<h2>Grade Released</h2><p>${message}</p>`
+        }).catch(e => console.error('Email error', e.message));
+      }
+    } catch (e) {
+      console.error('Theory grading notification error', e.message);
     }
 
     res.json({ message: 'Theory assignment graded successfully', assignment });
