@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import SubscriptionBlockBanner from './SubscriptionBlockBanner';
 import SchoolSwitcher from './SchoolSwitcher';
+import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
   const { user, logout, refreshUser } = useAuth();
@@ -119,9 +120,9 @@ const Layout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Book className="w-8 h-8 text-blue-600" />
+              <img src={logo} alt="Gracified LMS" className="w-10 h-10 object-contain rounded-full" />
               <div>
-                <h1 className="text-xl font-bold text-gray-800">LMS Platform</h1>
+                <h1 className="text-xl font-bold text-gray-800">Gracified LMS</h1>
                 <p className="text-xs text-gray-500">
                   {user?.role?.replace('_', ' ').toUpperCase()}
                 </p>

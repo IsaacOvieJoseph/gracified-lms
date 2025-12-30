@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Book } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.jpg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -57,11 +57,15 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md transform transition-all hover:scale-[1.01]">
         <div className="text-center mb-8">
-          <div className="bg-indigo-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-            <Book className="w-10 h-10 text-indigo-600" />
+          <div className="flex justify-center mb-6">
+            <img
+              src={logo}
+              alt="Gracified LMS Logo"
+              className="w-24 h-24 object-contain rounded-full shadow-md transform hover:scale-105 transition-transform duration-300"
+            />
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Please enter your details to sign in</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Gracified LMS</h1>
+          <p className="text-gray-600">Empowering education with seamless management and interactive learning</p>
         </div>
 
         <form className="space-y-6">
