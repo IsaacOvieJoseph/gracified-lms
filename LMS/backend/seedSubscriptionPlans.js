@@ -42,9 +42,9 @@ const seedSubscriptionPlans = async () => {
       },
       {
         name: 'Monthly',
-        description: '$10 per month access',
+        description: 'Standard monthly billing',
         planType: 'monthly',
-        price: 10,
+        price: 5000,
         durationDays: 30, // Approximately 30 days
         revenueSharePercentage: 0,
         features: ['Full access for one month'],
@@ -52,12 +52,12 @@ const seedSubscriptionPlans = async () => {
       },
       {
         name: 'Yearly',
-        description: '$100 per year access',
+        description: 'Best value - save more annually',
         planType: 'yearly',
-        price: 100,
+        price: 50000,
         durationDays: 365, // Approximately 365 days
         revenueSharePercentage: 0,
-        features: ['Full access for one year', 'Save $20 annually'],
+        features: ['Full access for one year', 'Save ₦10,000 annually'],
         isActive: true,
       },
     ];

@@ -3,10 +3,12 @@ import { toast } from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api'; // Use our configured API instance
 import { useAuth } from '../context/AuthContext';
+import { formatAmount } from '../utils/currency';
 
 const SubscriptionManagement = () => {
   const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const navigate = useNavigate();
@@ -23,7 +25,7 @@ const SubscriptionManagement = () => {
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch subscription plans');
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
       }
     };
 
@@ -65,7 +67,7 @@ const SubscriptionManagement = () => {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     setError(null);
     try {
       // For trial/pay-as-you-go, no immediate payment, just update user subscription
@@ -79,6 +81,7 @@ const SubscriptionManagement = () => {
 
         toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
         await refreshUser();
+        setSubmitting(false);
         navigate('/dashboard');
       } else {
         // For paid plans (monthly, yearly), integrate with Paystack
@@ -102,7 +105,7 @@ const SubscriptionManagement = () => {
               amount: payAmount,
               ref: resp.data.reference,
               onClose: () => {
-                setLoading(false);
+                setSubmitting(false);
                 toast.error('Payment window closed');
               },
               callback: async (response) => {
@@ -110,15 +113,21 @@ const SubscriptionManagement = () => {
                   await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
                   toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
                   await refreshUser();
+                  setSubmitting(false);
                   navigate('/dashboard');
                 } catch (err) {
                   setError(err.response?.data?.message || 'Verification failed');
-                } finally {
-                  setLoading(false);
+                  setSubmitting(false);
                 }
               }
             });
-            handler.openIframe();
+            if (handler && typeof handler.openIframe === 'function') {
+              handler.openIframe();
+            } else if (handler && typeof handler.open === 'function') {
+              handler.open();
+            } else if (handler) {
+              handler.open();
+            }
             return;
           }
         }
@@ -128,10 +137,7 @@ const SubscriptionManagement = () => {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Subscription failed');
-    } finally {
-      if (!selectedPlan || (selectedPlan.planType === 'trial' || selectedPlan.planType === 'pay_as_you_go')) {
-        setLoading(false);
-      }
+      setSubmitting(false);
     }
   };
 
@@ -142,7 +148,7 @@ const SubscriptionManagement = () => {
     navigate('/login', { state: { message: 'Please choose a subscription plan to access the platform.' } });
   };
 
-  if (loading) {
+  if (initialLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading plans...</div>;
   }
 
@@ -188,7 +194,7 @@ const SubscriptionManagement = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-2">{plan.name}</h3>
               <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
               {plan.price > 0 ? (
-                <p className="text-2xl font-bold text-indigo-600">${plan.price}{plan.planType === 'monthly' ? '/month' : plan.planType === 'yearly' ? '/year' : ''}</p>
+                <p className="text-2xl font-bold text-indigo-600">{formatAmount(plan.price)}{plan.planType === 'monthly' ? '/month' : plan.planType === 'yearly' ? '/year' : ''}</p>
               ) : (
                 <p className="text-2xl font-bold text-indigo-600">{plan.planType === 'trial' ? 'FREE' : 'Revenue Share'}</p>
               )}
@@ -206,15 +212,15 @@ const SubscriptionManagement = () => {
 
         <button
           onClick={handleSubscribe}
-          disabled={loading || !selectedPlan}
+          disabled={submitting || !selectedPlan}
           className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          {loading ? 'Processing...' : `Subscribe to ${selectedPlan ? selectedPlan.name : 'Plan'}`}
+          {submitting ? 'Processing...' : `Subscribe to ${selectedPlan ? selectedPlan.name : 'Plan'}`}
         </button>
 
         {user?.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
           <p className="text-center mt-4">
-            <button onClick={handleSkipTrial} className="text-gray-600 hover:underline disabled:opacity-50" disabled={loading}>Skip for now (Trial Active)</button>
+            <button onClick={handleSkipTrial} className="text-gray-600 hover:underline disabled:opacity-50" disabled={submitting}>Skip for now (Trial Active)</button>
           </p>
         )}
 
