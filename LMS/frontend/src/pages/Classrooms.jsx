@@ -257,11 +257,6 @@ const Classrooms = () => {
                           New
                         </span>
                       )}
-                      {!classroom.published && (
-                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                          Draft
-                        </span>
-                      )}
                       <span className={`text-xs px-2 py-1 rounded-full font-semibold ${(Array.isArray(classroom.schoolId) ? classroom.schoolId.length > 0 : classroom.schoolId) ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'}`}>
                         {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
                         {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}

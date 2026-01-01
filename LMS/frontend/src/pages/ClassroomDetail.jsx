@@ -22,7 +22,7 @@ const ClassroomDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', description: '', capacity: 30, pricingType: 'per_class', pricingAmount: 0 });
+  const [editForm, setEditForm] = useState({ name: '', description: '', capacity: 30, pricingType: 'per_class', pricingAmount: 0, schedule: [] });
   // Open edit modal and prefill form
   const handleOpenEdit = () => {
     setEditForm({
@@ -31,6 +31,7 @@ const ClassroomDetail = () => {
       capacity: classroom.capacity || 30,
       pricingType: classroom.pricing?.type || 'per_class',
       pricingAmount: classroom.pricing?.amount || 0,
+      schedule: classroom.schedule || [],
       teacherId: classroom.teacherId?._id || ''
     });
     if ((user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher') {
@@ -48,7 +49,8 @@ const ClassroomDetail = () => {
         description: editForm.description,
         capacity: editForm.capacity,
         pricing: { type: editForm.pricingType, amount: editForm.pricingAmount },
-        isPaid: editForm.pricingType !== 'free' && editForm.pricingAmount > 0
+        isPaid: editForm.pricingType !== 'free' && editForm.pricingAmount > 0,
+        schedule: editForm.schedule
       };
       // Only allow teacher change if permitted
       if ((user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher' && editForm.teacherId && editForm.teacherId !== classroom.teacherId?._id) {
@@ -444,6 +446,70 @@ const ClassroomDetail = () => {
                         className="w-full px-4 py-2 border rounded-lg"
                         rows="3"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+                      {editForm.schedule.map((session, index) => (
+                        <div key={index} className="flex space-x-2 mb-2 items-center">
+                          <select
+                            value={session.dayOfWeek}
+                            onChange={(e) => {
+                              const newSchedule = [...editForm.schedule];
+                              newSchedule[index].dayOfWeek = e.target.value;
+                              setEditForm({ ...editForm, schedule: newSchedule });
+                            }}
+                            className="w-1/3 px-2 py-1 border rounded-lg"
+                            required
+                          >
+                            <option value="">Select Day</option>
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                              <option key={day} value={day}>{day}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="time"
+                            value={session.startTime}
+                            onChange={(e) => {
+                              const newSchedule = [...editForm.schedule];
+                              newSchedule[index].startTime = e.target.value;
+                              setEditForm({ ...editForm, schedule: newSchedule });
+                            }}
+                            className="w-1/3 px-2 py-1 border rounded-lg"
+                            required
+                          />
+                          <input
+                            type="time"
+                            value={session.endTime}
+                            onChange={(e) => {
+                              const newSchedule = [...editForm.schedule];
+                              newSchedule[index].endTime = e.target.value;
+                              setEditForm({ ...editForm, schedule: newSchedule });
+                            }}
+                            className="w-1/3 px-2 py-1 border rounded-lg"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSchedule = editForm.schedule.filter((_, i) => i !== index);
+                              setEditForm({ ...editForm, schedule: newSchedule });
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            X
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditForm({
+                          ...editForm,
+                          schedule: [...editForm.schedule, { dayOfWeek: '', startTime: '', endTime: '' }]
+                        })}
+                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                      >
+                        Add Session
+                      </button>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
