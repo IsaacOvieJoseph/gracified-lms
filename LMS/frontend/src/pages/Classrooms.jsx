@@ -291,20 +291,26 @@ const Classrooms = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {/* Displaying schedule - iterate over the array */}
-                    {classroom.schedule && classroom.schedule.length > 0 ? (
-                      classroom.schedule.map((session, index) => (
-                        <span key={index} className="mr-1">
-                          {session.dayOfWeek ? session.dayOfWeek.substring(0, 3) : 'N/A'} {session.startTime}-{session.endTime}
-                          {index < classroom.schedule.length - 1 ? ',' : ''}
-                        </span>
-                      ))
-                    ) : (
-                      <span>No schedule available</span>
-                    )}
+                <div className="flex-grow space-y-2 mb-4">
+                  <div className="flex items-start text-sm text-gray-600">
+                    <Calendar className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="truncate">
+                      {classroom.schedule && classroom.schedule.length > 0 ? (
+                        <>
+                          {classroom.schedule.slice(0, 2).map((session, index) => (
+                            <span key={index} className="mr-1">
+                              {session.dayOfWeek ? session.dayOfWeek.substring(0, 3) : 'N/A'} {session.startTime}-{session.endTime}
+                              {index < Math.min(classroom.schedule.length, 2) - 1 ? ',' : ''}
+                            </span>
+                          ))}
+                          {classroom.schedule.length > 2 && (
+                            <span className="text-gray-400">+{classroom.schedule.length - 2} more</span>
+                          )}
+                        </>
+                      ) : (
+                        <span>No schedule available</span>
+                      )}
+                    </div>
                   </div>
                   {user?.role !== 'student' && (
                     <div className="flex items-center text-sm text-gray-600">
@@ -320,7 +326,7 @@ const Classrooms = () => {
 
                 <Link
                   to={`/classrooms/${classroom._id}`}
-                  className="w-full block text-center bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition font-semibold mb-2"
+                  className="w-full block text-center bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition font-semibold mt-auto"
                 >
                   View Details
                 </Link>
