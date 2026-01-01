@@ -466,18 +466,37 @@ const ClassroomDetail = () => {
     <Layout>
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start mb-4">
-            <div className="mb-4 md:mb-0">
-              <h2 className="text-3xl font-bold text-gray-800">{classroom.name}</h2>
-              <p className="text-gray-600 mt-2">{classroom.description}</p>
+          {/* Header Row: Title, Tags, Edit Button */}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800">{classroom.name}</h2>
+                {classroom.isPaid && classroom.pricing?.amount > 0 ? (
+                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
+                  </span>
+                ) : (
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    Free
+                  </span>
+                )}
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${(Array.isArray(classroom.schoolId) ? classroom.schoolId.length > 0 : classroom.schoolId) ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'}`}>
+                  {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
+                  {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
+                </span>
+              </div>
+              {classroom.description && (
+                <p className="text-gray-600 text-sm md:text-base">{classroom.description}</p>
+              )}
             </div>
+
             {canEdit && (
               <button
                 onClick={handleOpenEdit}
-                className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition ml-2"
+                className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition shrink-0"
                 title="Edit Classroom"
               >
-                <Edit className="w-5 h-5" />
+                <Edit className="w-4 h-4" />
                 <span>Edit</span>
               </button>
             )}
@@ -640,45 +659,35 @@ const ClassroomDetail = () => {
                 </div>
               </div>
             )}
-            {classroom.isPaid && classroom.pricing?.amount > 0 ? (
-              <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full font-semibold">
-                {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
-              </span>
-            ) : (
-              <span className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold">
-                Free
-              </span>
-            )}
-            <span className={`px-4 py-2 rounded-full font-semibold ml-2 ${(Array.isArray(classroom.schoolId) ? classroom.schoolId.length > 0 : classroom.schoolId) ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'}`}>
-              {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
-              {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
-            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <Calendar className="w-5 h-5" />
-              {/* Displaying schedule - iterate over the array */}
-              {classroom.schedule && classroom.schedule.length > 0 ? (
-                classroom.schedule.map((session, index) => (
-                  <span key={index} className="mr-1">
-                    {session.dayOfWeek ? session.dayOfWeek.substring(0, 3) : 'N/A'} {session.startTime}-{session.endTime}
-                    {index < classroom.schedule.length - 1 ? ',' : ''}
-                  </span>
-                ))
-              ) : (
-                <span>No schedule available</span>
-              )}
+          {/* Metadata Row: Schedule, Students, Topics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 border-t border-b border-gray-100 mb-6">
+            <div className="flex items-start space-x-3 text-gray-600">
+              <Calendar className="w-5 h-5 mt-0.5 text-gray-400 shrink-0" />
+              <div className="text-sm">
+                {classroom.schedule && classroom.schedule.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {classroom.schedule.map((session, index) => (
+                      <span key={index} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                        {session.dayOfWeek ? session.dayOfWeek.substring(0, 3) : 'N/A'} {session.startTime}-{session.endTime}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400">No schedule</span>
+                )}
+              </div>
             </div>
             {user?.role !== 'student' && (
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Users className="w-5 h-5" />
-                <span>{classroom.students?.length || 0} students</span>
+              <div className="flex items-center space-x-3 text-gray-600">
+                <Users className="w-5 h-5 text-gray-400 shrink-0" />
+                <span className="text-sm">{classroom.students?.length || 0} students</span>
               </div>
             )}
-            <div className="flex items-center space-x-2 text-gray-600">
-              <Book className="w-5 h-5" />
-              <span>{classroom.topics?.length || 0} topics</span>
+            <div className="flex items-center space-x-3 text-gray-600">
+              <Book className="w-5 h-5 text-gray-400 shrink-0" />
+              <span className="text-sm">{classroom.topics?.length || 0} topics</span>
             </div>
           </div>
 
