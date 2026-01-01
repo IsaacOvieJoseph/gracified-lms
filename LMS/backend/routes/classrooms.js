@@ -573,6 +573,46 @@ router.post('/:id/enroll', auth, async (req, res) => {
   }
 });
 
+// Leave classroom (student unenrolls themselves)
+router.post('/:id/leave', auth, async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id);
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    // Only students can leave
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can leave a class' });
+    }
+
+    // Check if enrolled
+    const isEnrolled = classroom.students.some(
+      studentId => studentId.toString() === req.user._id.toString()
+    );
+
+    if (!isEnrolled) {
+      return res.status(400).json({ message: 'You are not enrolled in this class' });
+    }
+
+    // Remove student from classroom
+    classroom.students = classroom.students.filter(
+      studentId => studentId.toString() !== req.user._id.toString()
+    );
+    await classroom.save();
+
+    // Remove classroom from user's enrolled classes
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { enrolledClasses: classroom._id }
+    });
+
+    res.json({ message: 'Successfully left the class' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Add student to classroom (School Admin, Personal Teacher, Root Admin)
 router.post('/:id/students', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {

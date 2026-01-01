@@ -246,17 +246,17 @@ const Classrooms = () => {
             const isTutorial = !classroom.schoolId;
 
             return (
-              <div key={classroom._id} className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition ${isTutorial ? 'border-l-4 border-purple-500' : ''
+              <div key={classroom._id} className={`relative bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition overflow-hidden flex flex-col h-full ${isTutorial ? 'border-l-4 border-purple-500' : ''
                 }`}>
+                {new Date(classroom.createdAt) > new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) && (
+                  <span className="absolute -left-6 top-2 bg-red-500 text-white text-[10px] px-6 py-0.5 font-semibold transform -rotate-45 shadow-sm">
+                    New
+                  </span>
+                )}
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <div className="flex items-center space-x-2">
                       <h3 className="text-xl font-bold text-gray-800">{classroom.name}</h3>
-                      {new Date(classroom.createdAt) > new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) && (
-                        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full animate-pulse font-semibold">
-                          New
-                        </span>
-                      )}
                       <span className={`text-xs px-2 py-1 rounded-full font-semibold ${(Array.isArray(classroom.schoolId) ? classroom.schoolId.length > 0 : classroom.schoolId) ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'}`}>
                         {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
                         {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}

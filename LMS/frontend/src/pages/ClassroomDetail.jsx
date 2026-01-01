@@ -80,6 +80,7 @@ const ClassroomDetail = () => {
   const [showGradeModal, setShowGradeModal] = useState(false);
   const [showDeleteTopicModal, setShowDeleteTopicModal] = useState(false);
   const [topicToDelete, setTopicToDelete] = useState(null);
+  const [showLeaveClassModal, setShowLeaveClassModal] = useState(false);
   const [selectedAssignmentForGrading, setSelectedAssignmentForGrading] = useState(null);
   const [submissionToGrade, setSubmissionToGrade] = useState(null);
   const [expandedSubmissions, setExpandedSubmissions] = useState(new Set()); // Track which submissions are expanded
@@ -250,6 +251,17 @@ const ClassroomDetail = () => {
       fetchClassroom();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error deleting topic');
+    }
+  };
+
+  const handleLeaveClass = async () => {
+    try {
+      await api.post(`/classrooms/${id}/leave`);
+      toast.success('Successfully left the class');
+      setShowLeaveClassModal(false);
+      navigate('/classrooms');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error leaving class');
     }
   };
 
@@ -683,6 +695,14 @@ const ClassroomDetail = () => {
               <span className="px-6 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold">
                 Not Available for Enrollment
               </span>
+            )}
+            {isEnrolled && user?.role === 'student' && (
+              <button
+                onClick={() => setShowLeaveClassModal(true)}
+                className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              >
+                Leave Class
+              </button>
             )}
             {(isEnrolled || canEdit) && (
               <>
@@ -1404,6 +1424,30 @@ const ClassroomDetail = () => {
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Class Confirmation Modal */}
+      {showLeaveClassModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold mb-4 text-gray-800">Leave Class</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to leave this class? You will need to enroll again to rejoin.</p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowLeaveClassModal(false)}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLeaveClass}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                Leave
               </button>
             </div>
           </div>
