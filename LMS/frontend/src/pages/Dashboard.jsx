@@ -142,6 +142,8 @@ const Dashboard = () => {
         const myClasses = availableClassrooms.filter(c => (c.teacherId?._id || c.teacherId) === user?._id);
         studentCount = myClasses.reduce((acc, c) => acc + (c.students?.length || 0), 0);
         classroomCount = myClasses.length;
+      } else if (user?.role === 'student') {
+        classroomCount = relatedClassrooms.length;
       }
 
       setStats({
