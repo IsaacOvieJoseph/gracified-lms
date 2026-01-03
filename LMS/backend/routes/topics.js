@@ -6,6 +6,23 @@ const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import 
 const { isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
 const router = express.Router();
 
+// Helper to check school access
+const hasSchoolAccess = (user, classroom) => {
+  if (user.role === 'root_admin') return true;
+
+  // If user or classroom has no school info, return false (unless user is checking their own class which is handled separately)
+  if (!user.schoolId || !classroom.schoolId) return false;
+
+  const userSchools = Array.isArray(user.schoolId) ? user.schoolId : [user.schoolId];
+  const classroomSchools = Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId];
+
+  // Convert to strings for comparison
+  const userSchoolIds = userSchools.map(id => (id._id || id).toString());
+  const classroomSchoolIds = classroomSchools.map(id => (id._id || id).toString());
+
+  return userSchoolIds.some(id => classroomSchoolIds.includes(id));
+};
+
 // Reorder topics
 router.put('/reorder', auth, subscriptionCheck, async (req, res) => {
   try {
@@ -175,8 +192,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 
     const canCreate =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
 
     if (!canCreate) {
       return res.status(403).json({ message: 'Access denied' });
@@ -216,8 +233,8 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
     const classroom = topic.classroomId;
     const canEdit =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
 
     if (!canEdit) {
       return res.status(403).json({ message: 'Access denied' });
@@ -244,8 +261,8 @@ router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
     const classroom = topic.classroomId;
     const canDelete =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
 
     if (!canDelete) {
       return res.status(403).json({ message: 'Access denied' });

@@ -229,7 +229,7 @@ const Users = () => {
           />
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>

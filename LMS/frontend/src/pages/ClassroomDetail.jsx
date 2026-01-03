@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Edit, Plus, Calendar, Users, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical } from 'lucide-react'; // Added FileText, CheckCircle, Send icons
+import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical } from 'lucide-react'; // Added User icon
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -480,10 +480,6 @@ const ClassroomDetail = () => {
                     Free
                   </span>
                 )}
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${(Array.isArray(classroom.schoolId) ? classroom.schoolId.length > 0 : classroom.schoolId) ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'}`}>
-                  {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
-                  {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
-                </span>
               </div>
               {classroom.description && (
                 <p className="text-gray-600 text-sm md:text-base">{classroom.description}</p>
@@ -493,11 +489,11 @@ const ClassroomDetail = () => {
             {canEdit && (
               <button
                 onClick={handleOpenEdit}
-                className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition shrink-0"
+                className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition shrink-0 self-start"
                 title="Edit Classroom"
               >
                 <Edit className="w-4 h-4" />
-                <span>Edit</span>
+                <span className="hidden md:inline">Edit</span>
               </button>
             )}
             {/* Edit Classroom Modal */}
@@ -661,8 +657,14 @@ const ClassroomDetail = () => {
             )}
           </div>
 
-          {/* Metadata Row: Schedule, Students, Topics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 border-t border-b border-gray-100 mb-6">
+            <div className="flex items-center space-x-3 text-gray-600">
+              <User className="w-5 h-5 text-gray-400 shrink-0" />
+              <div className="text-sm">
+                <span className="block font-medium text-gray-900">Teacher</span>
+                <span>{classroom.teacherId?.name || 'Unknown Teacher'}</span>
+              </div>
+            </div>
             <div className="flex items-start space-x-3 text-gray-600">
               <Calendar className="w-5 h-5 mt-0.5 text-gray-400 shrink-0" />
               <div className="text-sm">
@@ -791,7 +793,7 @@ const ClassroomDetail = () => {
                 className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add Topic</span>
+                <span className="hidden md:inline">Add Topic</span>
               </button>
             )}
           </div>
@@ -846,7 +848,7 @@ const ClassroomDetail = () => {
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 <Plus className="w-4 h-4" />
-                <span>Create Assignment</span>
+                <span className="hidden md:inline">Create Assignment</span>
               </button>
             )}
           </div>
@@ -1185,7 +1187,7 @@ const ClassroomDetail = () => {
                   className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>Add Student</span>
+                  <span className="hidden md:inline">Add Student</span>
                 </button>
               )}
             </div>
