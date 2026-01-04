@@ -101,26 +101,22 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
           await sendEmail({
             to: user.email,
             subject: `Payment Processed: ${isSubscription ? 'Subscription' : 'Class Enrollment'}`,
+            classroomId: classroom ? classroom._id : null,
             html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-                </div>
-                <h2 style="color: #4f46e5;">Payment Confirmation</h2>
-                <p>Hello <strong>${user.name}</strong>,</p>
-                <p>${message}</p>
-                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${payment.amount}</p>
-                  <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-                  <p style="margin: 5px 0;"><strong>Type:</strong> ${payment.type.replace('_', ' ').toUpperCase()}</p>
-                  <p style="margin: 5px 0;"><strong>Reference:</strong> ${payment.paystackReference || payment.stripePaymentId || 'N/A'}</p>
-                </div>
-                <p>Thank you for choosing Gracified LMS. You can view your invoice in your dashboard.</p>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
-                   style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                  Go to Dashboard
-                </a>
+              <h2 style="color: #4f46e5;">Payment Confirmation</h2>
+              <p>Hello <strong>${user.name}</strong>,</p>
+              <p>${message}</p>
+              <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${payment.amount}</p>
+                <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+                <p style="margin: 5px 0;"><strong>Type:</strong> ${payment.type.replace('_', ' ').toUpperCase()}</p>
+                <p style="margin: 5px 0;"><strong>Reference:</strong> ${payment.paystackReference || payment.stripePaymentId || 'N/A'}</p>
               </div>
+              <p>Thank you for choosing Gracified LMS. You can view your invoice in your dashboard.</p>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
+                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
+                Go to Dashboard
+              </a>
             `
           });
         }

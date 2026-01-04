@@ -28,10 +28,12 @@ require('./models/Tutorial'); // Load Tutorial model
 require('./models/SubscriptionPlan'); // Load SubscriptionPlan model
 require('./models/UserSubscription'); // Load UserSubscription model
 
+const path = require('path');
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Basic health check and root routes
 app.get('/', (req, res) => {

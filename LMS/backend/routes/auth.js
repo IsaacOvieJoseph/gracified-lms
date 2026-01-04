@@ -6,7 +6,51 @@ const SubscriptionPlan = require('../models/SubscriptionPlan'); // Import Subscr
 const Tutorial = require('../models/Tutorial'); // Import Tutorial model
 const { auth } = require('../middleware/auth');
 const crypto = require('crypto');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
 const router = express.Router();
+
+// Configure storage for logos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/logos';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|webp/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only images are allowed (jpeg, jpg, png, webp)'));
+  }
+});
+
+// Logo upload endpoint
+router.post('/upload-logo', upload.single('logo'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
+  const protocol = req.protocol;
+  const host = req.get('host');
+  const imageUrl = `${protocol}://${host}/uploads/logos/${req.file.filename}`;
+  res.json({ imageUrl });
+});
 
 // Brevo (formerly Sendinblue) email configuration
 const brevo = require('@getbrevo/brevo');
@@ -85,19 +129,15 @@ const generateAndSendOTP = async (user) => {
       name: user.name,
       subject: 'Email Verification OTP',
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-          </div>
-          <h2 style="color: #4f46e5;">Email Verification</h2>
-          <p>Hello <strong>${user.name}</strong>,</p>
-          <p>Thank you for joining Gracified LMS. To complete your registration, please use the following One-Time Password (OTP):</p>
-          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e1b4b;">${otp}</span>
-          </div>
-          <p style="color: #6b7280; font-size: 14px;">This OTP is valid for 1 hour. If you did not request this, please ignore this email.</p>
-          <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #9ca3af; text-align: center;">© ${new Date().getFullYear()} Gracified LMS. All rights reserved.</p>
+        <h2 style="color: #4f46e5;">Email Verification</h2>
+        <p>Hello <strong>${user.name}</strong>,</p>
+        <p>Thank you for joining Gracified LMS. To complete your registration, please use the following One-Time Password (OTP):</p>
+        <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px; margin: 25px 0;">
+          <h1 style="letter-spacing: 5px; color: #4f46e5; margin: 0; font-size: 32px;">${user.otp}</h1>
+        </div>
+        <p>This code is valid for 1 hour. If you did not request this, please ignore this email.</p>
+        <div style="margin-top: 30px; text-align: center; color: #6b7280; font-size: 14px;">
+          <p>Need help? Contact our support team.</p>
         </div>
       `
     });
@@ -171,7 +211,7 @@ const generateAndSendOTP = async (user) => {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    let { name, email, password, role, schoolName, tutorialName, bankName, bankCode, accountNumber, accountName, payoutFrequency, schoolId } = req.body;
+    let { name, email, password, role, schoolName, tutorialName, bankName, bankCode, accountNumber, accountName, payoutFrequency, schoolId, logoUrl } = req.body;
     email = email.toLowerCase();
 
     // Prevent creation of root_admin via public registration
@@ -211,11 +251,11 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     if (role === 'school_admin') {
-      const school = new School({ name: schoolName, adminId: user._id });
+      const school = new School({ name: schoolName, adminId: user._id, logoUrl: logoUrl || null });
       await school.save();
       user.schoolId.push(school._id); // Push into array
     } else if (role === 'personal_teacher') {
-      const tutorial = new Tutorial({ name: tutorialName, teacherId: user._id });
+      const tutorial = new Tutorial({ name: tutorialName, teacherId: user._id, logoUrl: logoUrl || null });
       await tutorial.save();
       user.tutorialId = tutorial._id;
     } else if (role === 'student' && schoolId) {
@@ -447,24 +487,17 @@ const generateAndSendPasswordResetOTP = async (user) => {
       name: user.name,
       subject: 'Password Reset OTP',
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-          </div>
-          <h2 style="color: #4f46e5;">Password Reset Request</h2>
-          <p>Hello <strong>${user.name}</strong>,</p>
-          <p>We received a request to reset your password. Use the code below to proceed:</p>
-          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e1b4b;">${otp}</span>
-          </div>
-          <p style="color: #6b7280; font-size: 14px;">This OTP is valid for 1 hour. If you did not request this, your password will remain unchanged.</p>
-          <div style="margin-top: 25px; text-align: center;">
-             <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/forgot-password" 
-                style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
-               Reset Password
-             </a>
-          </div>
+        <h2 style="color: #4f46e5;">Password Reset Request</h2>
+        <p>Hello <strong>${user.name}</strong>,</p>
+        <p>We received a request to reset your password. Use the code below to proceed:</p>
+        <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px; margin: 25px 0;">
+          <h1 style="letter-spacing: 5px; color: #4f46e5; margin: 0; font-size: 32px;">${user.passwordResetOTP}</h1>
         </div>
+        <p>This code is valid for 1 hour. If you did not request this, you can safely ignore this email.</p>
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?email=${user.email}" 
+           style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold;">
+          Reset Password
+        </a>
       `
     });
 

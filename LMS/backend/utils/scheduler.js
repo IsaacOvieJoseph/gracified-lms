@@ -59,26 +59,22 @@ const startScheduler = () => {
                         await sendEmail({
                             to: user.email,
                             subject: `Class Reminder: ${classroom.name}`,
+                            classroomId: classroom._id,
                             html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                  <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="${(process.env.FRONTEND_URL || 'http://localhost:3000')}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-                  </div>
-                  <h2 style="color: #4f46e5;">Class Session Reminder</h2>
-                  <p>Hello <strong>${user.name}</strong>,</p>
-                  <p>This is a reminder that your class session is starting soon:</p>
-                  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>
-                    <p style="margin: 5px 0;"><strong>Starts At:</strong> ${timeStr}</p>
-                    <p style="margin: 5px 0;"><strong>Day:</strong> ${currentDay}</p>
-                  </div>
-                  <p>Please log in and be ready to join the session.</p>
-                  <a href="${(process.env.FRONTEND_URL || 'http://localhost:3000')}/classrooms/${classroom._id}" 
-                     style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
-                    Go to Classroom
-                  </a>
-                </div>
-              `
+                              <h2 style="color: #4f46e5;">Class Session Reminder</h2>
+                              <p>Hello <strong>${user.name}</strong>,</p>
+                              <p>This is a reminder that your class session is starting soon:</p>
+                              <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                <p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>
+                                <p style="margin: 5px 0;"><strong>Starts At:</strong> ${timeStr}</p>
+                                <p style="margin: 5px 0;"><strong>Day:</strong> ${currentDay}</p>
+                              </div>
+                              <p>Please log in and be ready to join the session.</p>
+                              <a href="${(process.env.FRONTEND_URL || 'http://localhost:3000')}/classrooms/${classroom._id}" 
+                                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
+                                Go to Classroom
+                              </a>
+                            `
                         });
                     } catch (err) {
                         console.error(`Failed to send email reminder to ${user.email}:`, err.message);

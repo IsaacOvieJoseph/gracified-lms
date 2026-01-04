@@ -16,7 +16,10 @@ const RegisterSchoolAdmin = () => {
     accountNumber: '',
     accountName: '',
     payoutFrequency: 'weekly',
+    logoUrl: '',
   });
+  const [logoFile, setLogoFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,6 +35,12 @@ const RegisterSchoolAdmin = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleLogoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setLogoFile(e.target.files[0]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -58,8 +67,28 @@ const RegisterSchoolAdmin = () => {
       return;
     }
 
+    let currentLogoUrl = formData.logoUrl;
+
     try {
-      const response = await api.post('/auth/register', { ...formData, role: 'school_admin' }, { skipLoader: true });
+      // 1. Upload logo if selected
+      if (logoFile) {
+        setIsUploading(true);
+        const uploadData = new FormData();
+        uploadData.append('logo', logoFile);
+        const uploadRes = await api.post('/auth/upload-logo', uploadData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          skipLoader: true
+        });
+        currentLogoUrl = uploadRes.data.imageUrl;
+        setIsUploading(false);
+      }
+
+      // 2. Register with logoUrl
+      const response = await api.post('/auth/register', {
+        ...formData,
+        logoUrl: currentLogoUrl,
+        role: 'school_admin'
+      }, { skipLoader: true });
       setMessage(response.data.message);
       if (response.data.redirectToVerify) {
         sessionStorage.setItem('verifyEmail', formData.email);
@@ -132,6 +161,18 @@ const RegisterSchoolAdmin = () => {
               className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
               placeholder="Excellence Academy"
             />
+          </div>
+          <div>
+            <label htmlFor="logo" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">School Logo (Optional)</label>
+            <input
+              type="file"
+              id="logo"
+              name="logo"
+              onChange={handleLogoChange}
+              accept="image/*"
+              className="w-full px-4 py-2 border border-none rounded-xl bg-gray-50 focus:bg-white transition-all duration-200 outline-none"
+            />
+            <p className="text-[10px] text-gray-500 mt-1 ml-1">Recommended: Square image, max 2MB</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -237,10 +278,10 @@ const RegisterSchoolAdmin = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isUploading}
             className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? 'Registering...' : 'Complete Registration'}
+            {isUploading ? 'Uploading logo...' : loading ? 'Registering...' : 'Complete Registration'}
           </button>
         </form>
         <p className="mt-8 text-center text-gray-600">

@@ -304,25 +304,21 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
           sendEmail({
             to: recipient.email,
             subject: `New Assignment: ${assignment.title}`,
+            classroomId: classroom._id,
             html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-                </div>
-                <h2 style="color: #4f46e5;">New Assignment Posted</h2>
-                <p>Hello <strong>${recipient.name}</strong>,</p>
-                <p>A new assignment has been posted in <strong>${classroom.name}</strong>. Please check the details below:</p>
-                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <p style="margin: 5px 0;"><strong>Title:</strong> ${assignment.title}</p>
-                  <p style="margin: 5px 0;"><strong>Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</p>
-                  <p style="margin: 5px 0;"><strong>Type:</strong> ${assignment.assignmentType.toUpperCase()}</p>
-                </div>
-                <p>Log in to your dashboard to view the full details and start working on it.</p>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                   style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                  View Assignment
-                </a>
+              <h2 style="color: #4f46e5;">New Assignment Posted</h2>
+              <p>Hello <strong>${recipient.name}</strong>,</p>
+              <p>A new assignment has been posted in <strong>${classroom.name}</strong>. Please check the details below:</p>
+              <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Title:</strong> ${assignment.title}</p>
+                <p style="margin: 5px 0;"><strong>Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</p>
+                <p style="margin: 5px 0;"><strong>Type:</strong> ${assignment.assignmentType.toUpperCase()}</p>
               </div>
+              <p>Log in to your dashboard to view the full details and start working on it.</p>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
+                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
+                View Assignment
+              </a>
             `
           }).catch(err => console.error('Error sending email to', recipient.email, err.message));
         }
@@ -439,23 +435,19 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
           sendEmail({
             to: recipient.email,
             subject: `Assignment Updated: ${assignment.title}`,
+            classroomId: classroom._id,
             html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-                </div>
-                <h2 style="color: #4f46e5;">Assignment Updated</h2>
-                <p>Hello <strong>${recipient.name}</strong>,</p>
-                <p>The assignment <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been updated.</p>
-                <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4f46e5;">
-                  <p style="margin: 5px 0;"><strong>New Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</p>
-                </div>
-                <p>Please review the updated instructions or deadline.</p>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                   style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                  Go to Classroom
-                </a>
+              <h2 style="color: #4f46e5;">Assignment Updated</h2>
+              <p>Hello <strong>${recipient.name}</strong>,</p>
+              <p>The assignment <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been updated.</p>
+              <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4f46e5;">
+                <p style="margin: 5px 0;"><strong>New Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</p>
               </div>
+              <p>Please review the updated instructions or deadline.</p>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
+                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
+                Go to Classroom
+              </a>
             `
           }).catch(e => console.error('Email error', e.message));
         }
@@ -566,23 +558,19 @@ router.post('/:id/submit', auth, async (req, res) => {
         sendEmail({
           to: req.user.email,
           subject: `Assignment Graded: ${assignment.title}`,
+          classroomId: assignment.classroomId._id || assignment.classroomId,
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-              </div>
-              <h2 style="color: #10b981;">Assignment Graded</h2>
-              <p>Hello <strong>${req.user.name}</strong>,</p>
-              <p>Your MCQ assignment for <strong>${classroomName}</strong> has been auto-graded.</p>
-              <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; border: 1px solid #bbf7d0;">
-                <p style="margin: 0; font-size: 14px; color: #166534;">Your Score</p>
-                <h1 style="margin: 10px 0; color: #166534; font-size: 36px;">${score} / ${assignment.maxScore}</h1>
-              </div>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id || assignment.classroomId}" 
-                 style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                View Results
-              </a>
+            <h2 style="color: #10b981;">Assignment Graded</h2>
+            <p>Hello <strong>${req.user.name}</strong>,</p>
+            <p>Your MCQ assignment for <strong>${classroomName}</strong> has been auto-graded.</p>
+            <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; border: 1px solid #bbf7d0;">
+              <p style="margin: 0; font-size: 14px; color: #166534;">Your Score</p>
+              <h1 style="margin: 10px 0; color: #166534; font-size: 36px;">${score} / ${assignment.maxScore}</h1>
             </div>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id || assignment.classroomId}" 
+               style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              View Results
+            </a>
           `
         }).catch(e => console.error('Auto-grading email error:', e.message));
       }
@@ -652,24 +640,20 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
         sendEmail({
           to: student.email,
           subject: `Assignment Graded: ${assignment.title}`,
+          classroomId: classroom._id,
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-              </div>
-              <h2 style="color: #4f46e5;">Assignment Result Ready</h2>
-              <p>Hello <strong>${student.name}</strong>,</p>
-              <p>Your submission for <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been graded.</p>
-              <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                <p style="margin: 0; font-size: 14px; color: #6b7280;">Your Score</p>
-                <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${score} / ${assignment.maxScore}</h1>
-                ${feedback ? `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: left;"><p style="margin: 0; font-weight: bold;">Feedback:</p><p style="margin: 5px 0; color: #4b5563;">${feedback}</p></div>` : ''}
-              </div>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                View Full Results
-              </a>
+            <h2 style="color: #4f46e5;">Assignment Result Ready</h2>
+            <p>Hello <strong>${student.name}</strong>,</p>
+            <p>Your submission for <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been graded.</p>
+            <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+              <p style="margin: 0; font-size: 14px; color: #6b7280;">Your Score</p>
+              <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${score} / ${assignment.maxScore}</h1>
+              ${feedback ? `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: left;"><p style="margin: 0; font-weight: bold;">Feedback:</p><p style="margin: 5px 0; color: #4b5563;">${feedback}</p></div>` : ''}
             </div>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
+               style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              View Full Results
+            </a>
           `
         }).catch(e => console.error('Email error', e.message));
       }
@@ -781,24 +765,20 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
         sendEmail({
           to: student.email,
           subject: `Theory Assignment Graded: ${assignment.title}`,
+          classroomId: classroom._id,
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/logo.jpg" alt="Gracified logo" style="max-height: 80px;">
-              </div>
-              <h2 style="color: #4f46e5;">Theory Grade Released</h2>
-              <p>Hello <strong>${student.name}</strong>,</p>
-              <p>Excellent work! Your theory assignment <strong>"${assignment.title}"</strong> has been graded by your teacher.</p>
-              <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                <p style="margin: 0; font-size: 14px; color: #6b7280;">Overall Score</p>
-                <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${submissionAfter?.score} / ${assignment.maxScore}</h1>
-              </div>
-              <p>You can check individual question feedback and scores on your portal.</p>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                View Detailed Feedback
-              </a>
+            <h2 style="color: #4f46e5;">Theory Grade Released</h2>
+            <p>Hello <strong>${student.name}</strong>,</p>
+            <p>Excellent work! Your theory assignment <strong>"${assignment.title}"</strong> has been graded by your teacher.</p>
+            <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+              <p style="margin: 0; font-size: 14px; color: #6b7280;">Overall Score</p>
+              <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${submissionAfter?.score} / ${assignment.maxScore}</h1>
             </div>
+            <p>You can check individual question feedback and scores on your portal.</p>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
+               style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              View Detailed Feedback
+            </a>
           `
         }).catch(e => console.error('Email error', e.message));
       }
