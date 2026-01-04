@@ -100,18 +100,23 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
         if (user.email) {
           await sendEmail({
             to: user.email,
-            subject: `LMS Alert: ${isSubscription ? 'Subscription' : 'Payment'} processed`,
+            subject: `Payment Processed: ${isSubscription ? 'Subscription' : 'Class Enrollment'}`,
             html: `
-              <div style="font-family: sans-serif; color: #333;">
-                <h2 style="color: #4f46e5;">Gracified LMS Notification</h2>
-                <p>Hello ${user.name},</p>
-                <p style="font-size: 16px; line-height: 1.5;">${message}</p>
-                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                  <p style="margin: 0;"><strong>Amount:</strong> ₦${payment.amount}</p>
-                  <p style="margin: 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-                  <p style="margin: 0;"><strong>Type:</strong> ${payment.type.replace('_', ' ')}</p>
+              <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+                <h2 style="color: #4f46e5;">Payment Confirmation</h2>
+                <p>Hello <strong>${user.name}</strong>,</p>
+                <p>${message}</p>
+                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${payment.amount}</p>
+                  <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+                  <p style="margin: 5px 0;"><strong>Type:</strong> ${payment.type.replace('_', ' ').toUpperCase()}</p>
+                  <p style="margin: 5px 0;"><strong>Reference:</strong> ${payment.paystackReference || payment.stripePaymentId || 'N/A'}</p>
                 </div>
-                <p style="margin-top: 20px; font-size: 12px; color: #6b7280;">This is an automated message. Please do not reply directly to this email.</p>
+                <p>Thank you for choosing Gracified LMS. You can view your invoice in your dashboard.</p>
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
+                   style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
+                  Go to Dashboard
+                </a>
               </div>
             `
           });

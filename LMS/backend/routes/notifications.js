@@ -32,15 +32,21 @@ router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
       to: recipient.email,
       subject: `Class Reminder: ${classroom.name}`,
       html: `
-        <h2>Class Reminder</h2>
-        <p>Hello ${recipient.name},</p>
-        <p>This is a reminder that you have a class scheduled:</p>
-        <ul>
-          <li><strong>Class:</strong> ${classroom.name}</li>
-          <li><strong>Schedule:</strong> ${classroom.schedule}</li>
-          <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
-        </ul>
-        <p>Please be prepared and join on time.</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Class Session Reminder</h2>
+          <p>Hello <strong>${recipient.name}</strong>,</p>
+          <p>This is a reminder for your upcoming class session:</p>
+          <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>
+            <p style="margin: 5px 0;"><strong>Schedule:</strong> ${classroom.schedule}</p>
+            <p style="margin: 5px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          <p>Please be prepared and join the session on time.</p>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
+             style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
+            Join Classroom
+          </a>
+        </div>
       `
     })));
 
@@ -87,15 +93,21 @@ router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res)
       to: recipient.email,
       subject: `Assignment Reminder: ${assignment.title}`,
       html: `
-        <h2>Assignment Reminder</h2>
-        <p>Hello ${recipient.name},</p>
-        <p>This is a reminder about an assignment:</p>
-        <ul>
-          <li><strong>Assignment:</strong> ${assignment.title}</li>
-          <li><strong>Class:</strong> ${classroom.name}</li>
-          <li><strong>Due Date:</strong> ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}</li>
-        </ul>
-        <p>Please make sure to submit before the due date.</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #f59e0b;">Assignment Reminder</h2>
+          <p>Hello <strong>${recipient.name}</strong>,</p>
+          <p>This is a reminder about an upcoming assignment deadline:</p>
+          <div style="background-color: #fffbeb; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+            <p style="margin: 5px 0;"><strong>Assignment:</strong> ${assignment.title}</p>
+            <p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>
+            <p style="margin: 5px 0;"><strong>Due Date:</strong> ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}</p>
+          </div>
+          <p>Don't forget to submit your work before the deadline!</p>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
+             style="display: inline-block; padding: 10px 20px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
+            Open Assignment
+          </a>
+        </div>
       `
     })));
 
@@ -144,14 +156,20 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
       to: student.email,
       subject: `Assignment Result: ${assignment.title}`,
       html: `
-        <h2>Assignment Result</h2>
-        <p>Hello ${student.name},</p>
-        <p>Your assignment has been graded:</p>
-        <ul>
-          <li><strong>Assignment:</strong> ${assignment.title}</li>
-          <li><strong>Score:</strong> ${submission.score}/${assignment.maxScore}</li>
-          <li><strong>Feedback:</strong> ${submission.feedback || 'No feedback provided'}</li>
-        </ul>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Assignment Result Ready</h2>
+          <p>Hello <strong>${student.name}</strong>,</p>
+          <p>Your assignment for <strong>"${assignment.title}"</strong> has been graded.</p>
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">Your Score</p>
+            <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${submission.score} / ${assignment.maxScore}</h1>
+            <p style="margin: 5px 0; color: #4b5563;"><strong>Feedback:</strong> ${submission.feedback || 'Good job!'}</p>
+          </div>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}" 
+             style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            View Detailed Results
+          </a>
+        </div>
       `
     });
 
@@ -160,14 +178,20 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
       to: teacher.email,
       subject: `Assignment Graded: ${assignment.title}`,
       html: `
-        <h2>Assignment Graded</h2>
-        <p>Hello ${teacher.name},</p>
-        <p>You have graded an assignment:</p>
-        <ul>
-          <li><strong>Assignment:</strong> ${assignment.title}</li>
-          <li><strong>Student:</strong> ${student.name}</li>
-          <li><strong>Score:</strong> ${submission.score}/${assignment.maxScore}</li>
-        </ul>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Assignment Graded</h2>
+          <p>Hello <strong>${teacher.name}</strong>,</p>
+          <p>You have successfully graded an assignment for <strong>${student.name}</strong>.</p>
+          <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Assignment:</strong> ${assignment.title}</p>
+            <p style="margin: 5px 0;"><strong>Student:</strong> ${student.name}</p>
+            <p style="margin: 5px 0;"><strong>Final Score:</strong> ${submission.score} / ${assignment.maxScore}</p>
+          </div>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}" 
+             style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Go to Classroom
+          </a>
+        </div>
       `
     });
 
@@ -196,14 +220,21 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
       to: user.email,
       subject: `Payment ${status}: ${type}`,
       html: `
-        <h2>Payment Notification</h2>
-        <p>Hello ${user.name},</p>
-        <p>Your payment has been ${status}:</p>
-        <ul>
-          <li><strong>Type:</strong> ${type}</li>
-          <li><strong>Amount:</strong> $${amount}</li>
-          <li><strong>Status:</strong> ${status}</li>
-        </ul>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: ${status === 'success' ? '#10b981' : '#ef4444'}; text-transform: capitalize;">Payment ${status}</h2>
+          <p>Hello <strong>${user.name}</strong>,</p>
+          <p>Your payment for <strong>${type}</strong> has been processed.</p>
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${amount}</p>
+            <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <p style="margin: 5px 0;"><strong>Status:</strong> <span style="font-weight: bold; color: ${status === 'success' ? '#10b981' : '#ef4444'};">${status.toUpperCase()}</span></p>
+          </div>
+          <p>If you have any questions, please contact our support team.</p>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
+             style="display: inline-block; padding: 10px 20px; background-color: #1e1b4b; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Go to Dashboard
+          </a>
+        </div>
       `
     });
 
@@ -229,15 +260,21 @@ router.post('/payout-notification', internalAuth, async (req, res) => {
       to: user.email,
       subject: `Payout Approved: ${classroomName}`,
       html: `
-        <h2>Disbursement Notification</h2>
-        <p>Hello ${user.name},</p>
-        <p>Great news! Your disbursement has been approved and paid:</p>
-        <ul>
-          <li><strong>Amount:</strong> ₦${amount}</li>
-          <li><strong>Class:</strong> ${classroomName}</li>
-          <li><strong>Status:</strong> ${status}</li>
-        </ul>
-        <p>The funds should reflect in your registered bank account soon.</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #10b981;">Payout Successful</h2>
+          <p>Hello <strong>${user.name}</strong>,</p>
+          <p>Great news! Your disbursement has been approved and paid out to your registered bank account.</p>
+          <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #bbf7d0;">
+            <p style="margin: 5px 0; color: #166534;"><strong>Amount:</strong> ₦${amount}</p>
+            <p style="margin: 5px 0; color: #166534;"><strong>Source:</strong> ${classroomName}</p>
+            <p style="margin: 5px 0; color: #166534;"><strong>Status:</strong> PAID</p>
+          </div>
+          <p>The funds should reflect in your account within 1-3 business days depending on your bank.</p>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
+             style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            View Transaction History
+          </a>
+        </div>
       `
     });
 

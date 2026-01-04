@@ -85,11 +85,17 @@ const generateAndSendOTP = async (user) => {
       name: user.name,
       subject: 'Email Verification OTP',
       html: `
-        <h2>Email Verification</h2>
-        <p>Hello ${user.name},</p>
-        <p>Your OTP for email verification is: <strong>${otp}</strong></p>
-        <p>This OTP is valid for 1 hour.</p>
-        <p>If you did not request this, please ignore this email.</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Email Verification</h2>
+          <p>Hello <strong>${user.name}</strong>,</p>
+          <p>Thank you for joining Gracified LMS. To complete your registration, please use the following One-Time Password (OTP):</p>
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e1b4b;">${otp}</span>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">This OTP is valid for 1 hour. If you did not request this, please ignore this email.</p>
+          <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #9ca3af; text-align: center;">© ${new Date().getFullYear()} Gracified LMS. All rights reserved.</p>
+        </div>
       `
     });
 
@@ -438,11 +444,21 @@ const generateAndSendPasswordResetOTP = async (user) => {
       name: user.name,
       subject: 'Password Reset OTP',
       html: `
-        <h2>Password Reset Request</h2>
-        <p>Hello ${user.name},</p>
-        <p>You requested to reset your password. Your OTP is: <strong>${otp}</strong></p>
-        <p>This OTP is valid for 1 hour.</p>
-        <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Password Reset Request</h2>
+          <p>Hello <strong>${user.name}</strong>,</p>
+          <p>We received a request to reset your password. Use the code below to proceed:</p>
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e1b4b;">${otp}</span>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">This OTP is valid for 1 hour. If you did not request this, your password will remain unchanged.</p>
+          <div style="margin-top: 25px; text-align: center;">
+             <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/forgot-password" 
+                style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+               Reset Password
+             </a>
+          </div>
+        </div>
       `
     });
 
