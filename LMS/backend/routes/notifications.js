@@ -6,6 +6,7 @@ const Classroom = require('../models/Classroom');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const internalAuth = require('../middleware/internalAuth'); // Import internalAuth middleware
+const { checkAndSendReminders } = require('../utils/reminderHelper');
 
 
 // Send class reminder
@@ -274,6 +275,31 @@ router.post('/payout-notification', internalAuth, async (req, res) => {
     res.json({ message: 'Payout notification sent successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+/**
+ * Trigger for external cron jobs (e.g., cron-job.org)
+ * GET /api/notifications/trigger-reminders?secret=YOUR_CRON_SECRET
+ */
+router.get('/trigger-reminders', async (req, res) => {
+  try {
+    const cronSecret = process.env.CRON_SECRET;
+    const providedSecret = req.query.secret;
+
+    if (cronSecret && providedSecret !== cronSecret) {
+      return res.status(401).json({ message: 'Unauthorized trigger' });
+    }
+
+    const result = await checkAndSendReminders();
+    res.json({
+      success: true,
+      message: 'Reminder check completed',
+      details: result
+    });
+  } catch (error) {
+    console.error('Trigger Reminders Error:', error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
