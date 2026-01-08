@@ -233,6 +233,7 @@ const Payments = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payer</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Class/Topic</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payment Ref</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">{user?.role === 'student' ? 'Amount' : 'Total Paid'}</th>
                   {user?.role !== 'student' && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Net Payout</th>
@@ -255,6 +256,9 @@ const Payments = () => {
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-800 whitespace-nowrap">
                         {payment.classroomId?.name || payment.topicId?.name || payment.planId?.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
+                        {payment.paystackReference || payment.stripePaymentId || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
                         {formatAmount(payment.amount, payment.currency || 'NGN')}

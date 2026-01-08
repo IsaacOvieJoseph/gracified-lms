@@ -47,6 +47,7 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
         payment.payoutStatus = 'paid';
         payment.payoutApprovedAt = new Date();
         payment.payoutPaidAt = new Date();
+        payment.payoutReference = `POUT-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
         await payment.save();
 
         // Notify owner

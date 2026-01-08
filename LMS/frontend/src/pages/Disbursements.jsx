@@ -101,8 +101,12 @@ const Disbursements = () => {
                                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Class Owner</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Bank Details</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Payment Details</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Payment Ref</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Deductions</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Net Payout</th>
+                                    {activeTab === 'history' && (
+                                        <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Payout Ref</th>
+                                    )}
                                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Action</th>
                                 </tr>
                             </thead>
@@ -139,6 +143,11 @@ const Disbursements = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
+                                            <p className="text-[10px] text-gray-500 font-mono">
+                                                {item.paystackReference || item.stripePaymentId || 'N/A'}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-4">
                                             <div className="text-[10px] text-gray-500 space-y-0.5">
                                                 {item.taxAmount > 0 && <p>Tax ({item.taxRate}%): -{formatAmount(item.taxAmount, item.currency)}</p>}
                                                 {item.vatAmount > 0 && <p>VAT ({item.vatRate}%): -{formatAmount(item.vatAmount, item.currency)}</p>}
@@ -151,6 +160,13 @@ const Disbursements = () => {
                                         <td className="px-6 py-4 text-sm font-bold text-indigo-600">
                                             {formatAmount(item.payoutAmount || item.amount, item.currency)}
                                         </td>
+                                        {activeTab === 'history' && (
+                                            <td className="px-6 py-4">
+                                                <p className="text-[10px] text-gray-500 font-mono">
+                                                    {item.payoutReference || 'N/A'}
+                                                </p>
+                                            </td>
+                                        )}
                                         <td className="px-6 py-4">
                                             {activeTab === 'pending' ? (
                                                 <button
