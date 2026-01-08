@@ -182,7 +182,7 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
 // Create topic
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
-    const { name, description, classroomId, order, materials, isPaid, price } = req.body;
+    const { name, description, classroomId, order, materials, isPaid, price, duration } = req.body;
 
     // Verify classroom exists and user has permission
     const classroom = await Classroom.findById(classroomId);
@@ -199,7 +199,7 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const topic = new Topic({
+    const topicData = {
       name,
       description,
       classroomId,
@@ -207,8 +207,17 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       materials: materials || [],
       isPaid: isPaid || false,
       price: price || 0
-    });
+    };
 
+    // Add duration if provided
+    if (duration) {
+      topicData.duration = {
+        mode: duration.mode || 'not_sure',
+        value: duration.value || 1
+      };
+    }
+
+    const topic = new Topic(topicData);
     await topic.save();
 
     // Add topic to classroom
@@ -279,6 +288,124 @@ router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// Import topic progression helper
+const {
+  markTopicComplete,
+  setNextTopic,
+  activateTopic,
+  getCurrentTopic
+} = require('../utils/topicProgressionHelper');
+
+// Get current active topic for a classroom
+router.get('/classroom/:classroomId/current', auth, subscriptionCheck, async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.classroomId);
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    const currentTopic = await getCurrentTopic(req.params.classroomId);
+    res.json({ currentTopic });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Mark topic as complete (authorized roles only)
+router.post('/:id/complete', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const topic = await Topic.findById(req.params.id).populate('classroomId');
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    const classroom = topic.classroomId;
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const result = await markTopicComplete(req.params.id, req.user._id);
+    res.json({
+      message: 'Topic marked as complete',
+      completedTopic: result.completedTopic,
+      nextTopic: result.nextTopic
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Set next topic manually (authorized roles only)
+router.put('/:id/set-next', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const { nextTopicId } = req.body;
+
+    if (!nextTopicId) {
+      return res.status(400).json({ message: 'nextTopicId is required' });
+    }
+
+    const topic = await Topic.findById(req.params.id).populate('classroomId');
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    const classroom = topic.classroomId;
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const updatedTopic = await setNextTopic(req.params.id, nextTopicId);
+    res.json({
+      message: 'Next topic set successfully',
+      topic: updatedTopic
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Activate a topic (start it)
+router.post('/:id/activate', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const topic = await Topic.findById(req.params.id).populate('classroomId');
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    const classroom = topic.classroomId;
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const activatedTopic = await activateTopic(req.params.id);
+    res.json({
+      message: 'Topic activated successfully',
+      topic: activatedTopic
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 
 

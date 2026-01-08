@@ -36,6 +36,50 @@ const topicSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Duration configuration
+  duration: {
+    mode: {
+      type: String,
+      enum: ['not_sure', 'day', 'week', 'month', 'year'],
+      default: 'not_sure'
+    },
+    value: {
+      type: Number,
+      default: 1,
+      min: 1
+    }
+  },
+  // Topic progression tracking
+  status: {
+    type: String,
+    enum: ['pending', 'active', 'completed'],
+    default: 'pending'
+  },
+  startedAt: {
+    type: Date,
+    default: null
+  },
+  completedAt: {
+    type: Date,
+    default: null
+  },
+  // Calculated end date based on duration (if duration mode is not 'not_sure')
+  expectedEndDate: {
+    type: Date,
+    default: null
+  },
+  // Manual override for next topic (if set, system uses this instead of order)
+  nextTopicId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Topic',
+    default: null
+  },
+  // Track who marked it as done
+  completedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
