@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { CheckCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignment, submissionToGrade }) => {
   const [questionGrades, setQuestionGrades] = useState([]); // Array of { questionIndex, score, feedback }
@@ -47,18 +48,18 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
       for (const qg of questionGrades) {
         const assignmentQuestion = selectedAssignment.questions[qg.questionIndex];
         if (qg.score < 0 || qg.score > assignmentQuestion.maxScore) {
-          alert(`Score for question ${qg.questionIndex + 1} must be between 0 and ${assignmentQuestion.maxScore}.`);
+          toast.error(`Score for question ${qg.questionIndex + 1} must be between 0 and ${assignmentQuestion.maxScore}.`);
           return;
         }
       }
 
       await api.put(`/assignments/${selectedAssignment._id}/grade-theory`, payload);
 
-      alert('Theory assignment graded successfully!');
+      toast.success('Theory assignment graded successfully!');
       onClose();
       onSubmitSuccess();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error grading assignment');
+      toast.error(error.response?.data?.message || 'Error grading assignment');
     }
   };
 

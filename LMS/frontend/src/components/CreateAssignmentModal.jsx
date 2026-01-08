@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, X, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics, editAssignment }) => {
   const [createForm, setCreateForm] = useState({
@@ -104,28 +105,28 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
       if (createForm.assignmentType === 'mcq') {
         for (const q of createForm.questions) {
           if (!q.questionText || !Array.isArray(q.options) || q.options.length < 2 || !q.correctOption) {
-            alert('MCQ questions must have text, at least two options, and a correct option.');
+            toast.error('MCQ questions must have text, at least two options, and a correct option.');
             return;
           }
           if (!q.options.includes(q.correctOption)) {
-            alert('Correct option must be one of the provided options for MCQ.');
+            toast.error('Correct option must be one of the provided options for MCQ.');
             return;
           }
         }
         // Validate publishResultsAt for MCQ assignments
         if (createForm.publishResultsAt && isNaN(new Date(createForm.publishResultsAt).getTime())) {
-          alert('Invalid publish results date and time.');
+          toast.error('Invalid publish results date and time.');
           return;
         }
       } else if (createForm.assignmentType === 'theory') {
         for (const q of createForm.questions) {
           if (!q.questionText || !q.markingPreference || !['ai', 'manual'].includes(q.markingPreference)) {
-            alert('Theory questions must have text and a valid marking preference.');
+            toast.error('Theory questions must have text and a valid marking preference.');
             return;
           }
         }
         if (createForm.publishResultsAt) {
-          alert('Publish results date is only applicable for MCQ assignments.');
+          toast.error('Publish results date is only applicable for MCQ assignments.');
           return;
         }
       }
@@ -137,7 +138,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
         if (isEvenlyDistributed) {
           if (overallMaxScoreInput <= 0) {
-            alert('Overall Max Score must be greater than 0 for even distribution.');
+            toast.error('Overall Max Score must be greater than 0 for even distribution.');
             return;
           }
           const questionsCount = newQuestions.length;
@@ -152,7 +153,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
         } else { // per_question
           for (const q of newQuestions) {
             if (q.maxScore <= 0) {
-              alert('Each theory question must have a max score greater than 0.');
+              toast.error('Each theory question must have a max score greater than 0.');
               return;
             }
             calculatedOverallMaxScore += q.maxScore;
@@ -168,10 +169,10 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
       if (editAssignment) {
         await api.put(`/assignments/${editAssignment._id}`, createForm, { skipLoader: true });
-        alert('Assignment updated successfully!');
+        toast.success('Assignment updated successfully!');
       } else {
         await api.post('/assignments', createForm, { skipLoader: true });
-        alert('Assignment created successfully!');
+        toast.success('Assignment created successfully!');
       }
       onClose();
       onSubmitSuccess(); // Callback to refresh assignments in parent component
@@ -189,7 +190,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
       setIsEvenlyDistributed(false); // Reset checkbox state
       setOverallMaxScoreInput(100); // Reset overall max score input
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating assignment');
+      toast.error(error.response?.data?.message || 'Error creating assignment');
     } finally {
       setIsSubmitting(false);
     }

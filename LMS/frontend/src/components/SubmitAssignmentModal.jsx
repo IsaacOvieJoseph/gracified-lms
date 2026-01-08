@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) => {
   const [studentAnswers, setStudentAnswers] = useState(() => {
@@ -31,7 +32,7 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
     });
 
     if (!allAnswered) {
-      alert('Please answer all questions before submitting.');
+      toast.error('Please answer all questions before submitting.');
       return;
     }
 
