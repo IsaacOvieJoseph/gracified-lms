@@ -31,6 +31,7 @@ const ClassroomDetail = () => {
       capacity: classroom.capacity || 30,
       pricingType: classroom.pricing?.type || 'per_class',
       pricingAmount: classroom.pricing?.amount || 0,
+      isPaid: classroom.isPaid || false,
       schedule: classroom.schedule || [],
       teacherId: classroom.teacherId?._id || ''
     });
@@ -49,7 +50,7 @@ const ClassroomDetail = () => {
         description: editForm.description,
         capacity: editForm.capacity,
         pricing: { type: editForm.pricingType, amount: editForm.pricingAmount },
-        isPaid: editForm.pricingType !== 'free' && editForm.pricingAmount > 0,
+        isPaid: editForm.isPaid,
         schedule: editForm.schedule
       };
       // Only allow teacher change if permitted
@@ -680,30 +681,48 @@ const ClassroomDetail = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Type</label>
-                      <select
-                        value={editForm.pricingType}
-                        onChange={e => setEditForm({ ...editForm, pricingType: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg"
-                      >
-                        <option value="per_class">Per Class</option>
-                        <option value="per_topic">Per Topic</option>
-                        <option value="per_subject">Per Subject</option>
-                        <option value="free">Free</option>
-                      </select>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={editForm.isPaid}
+                          onChange={(e) => setEditForm({ ...editForm, isPaid: e.target.checked })}
+                        />
+                        <span>Paid Class</span>
+                      </label>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Amount</label>
-                      <input
-                        type="number"
-                        value={editForm.pricingAmount}
-                        onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-2 border rounded-lg"
-                        min="0"
-                        step="0.01"
-                        disabled={editForm.pricingType === 'free'}
-                      />
-                    </div>
+
+                    {editForm.isPaid && (
+                      <div className="space-y-4">
+                        {user?.subscriptionStatus === 'pay_as_you_go' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Type</label>
+                            <select
+                              value={editForm.pricingType}
+                              onChange={e => setEditForm({ ...editForm, pricingType: e.target.value })}
+                              className="w-full px-4 py-2 border rounded-lg"
+                            >
+                              <option value="per_class">Per Class</option>
+                              <option value="per_topic">Per Topic</option>
+                              <option value="per_subject">Per Subject</option>
+                            </select>
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {user?.subscriptionStatus === 'pay_as_you_go' ? 'Price (₦)' : 'Class Price (₦)'}
+                          </label>
+                          <input
+                            type="number"
+                            value={editForm.pricingAmount}
+                            onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
+                            className="w-full px-4 py-2 border rounded-lg"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
                     {/* Only show teacher select for admins if allowed */}
                     {(user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher' && (
                       <div>

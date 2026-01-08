@@ -663,19 +663,41 @@ const Classrooms = () => {
                 </div>
               )}
               {formData.isPaid && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (₦)</label>
-                  <input
-                    type="number"
-                    value={formData.pricing.amount}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      pricing: { ...formData.pricing, amount: parseFloat(e.target.value) }
-                    })}
-                    className="w-full px-4 py-2 border rounded-lg"
-                    min="0"
-                    step="0.01"
-                  />
+                <div className="space-y-4">
+                  {user?.subscriptionStatus === 'pay_as_you_go' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Type</label>
+                      <select
+                        value={formData.pricing.type}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pricing: { ...formData.pricing, type: e.target.value }
+                        })}
+                        className="w-full px-4 py-2 border rounded-lg"
+                      >
+                        <option value="per_class">Per Class</option>
+                        <option value="per_topic">Per Topic</option>
+                        <option value="per_subject">Per Subject</option>
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {user?.subscriptionStatus === 'pay_as_you_go' ? 'Price (₦)' : 'Class Price (₦)'}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.pricing.amount}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 }
+                      })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
                 </div>
               )}
               <div className="flex space-x-3">
