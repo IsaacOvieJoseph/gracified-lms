@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { sendEmail } = require('../utils/email');
 
 const router = express.Router();
 
@@ -52,36 +53,7 @@ router.post('/upload-logo', upload.single('logo'), (req, res) => {
   res.json({ imageUrl });
 });
 
-// Brevo (formerly Sendinblue) email configuration
-const brevo = require('@getbrevo/brevo');
-const defaultClient = brevo.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
-const brevoApiInstance = new brevo.TransactionalEmailsApi();
-
-// Helper function to send email via Brevo
-const sendEmailViaBrevo = async ({ to, subject, html, name }) => {
-  const sendSmtpEmail = new brevo.SendSmtpEmail();
-
-  sendSmtpEmail.sender = {
-    name: 'Gracified LMS',
-    email: process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL
-  };
-
-  sendSmtpEmail.to = [{ email: to, name: name || to }];
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-
-  try {
-    const result = await brevoApiInstance.sendTransacEmail(sendSmtpEmail);
-    return result;
-  } catch (error) {
-    console.error('Brevo API error:', error);
-    throw error;
-  }
-};
-
-// Verify email configuration
+// Email configuration check
 const isEmailConfigured = () => {
   return !!(process.env.BREVO_API_KEY && (process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL));
 };
@@ -124,7 +96,7 @@ const generateAndSendOTP = async (user) => {
 
     console.log(`Attempting to send OTP email to ${user.email} via Brevo...`);
 
-    const result = await sendEmailViaBrevo({
+    const result = await sendEmail({
       to: user.email,
       name: user.name,
       subject: 'Email Verification OTP',
@@ -482,7 +454,7 @@ const generateAndSendPasswordResetOTP = async (user) => {
 
     console.log(`Attempting to send password reset OTP email to ${user.email} via Brevo...`);
 
-    const result = await sendEmailViaBrevo({
+    const result = await sendEmail({
       to: user.email,
       name: user.name,
       subject: 'Password Reset OTP',
@@ -657,13 +629,13 @@ router.post('/test-email', async (req, res) => {
 
     console.log(`Testing email configuration - sending test email to ${testEmail} via Brevo...`);
 
-    const result = await sendEmailViaBrevo({
+    const result = await sendEmail({
       to: testEmail,
       subject: 'Test Email from LMS',
       html: `
         <h2>Test Email</h2>
         <p>This is a test email from your LMS backend.</p>
-        <p>If you received this, your Brevo email configuration is working correctly!</p>
+        <p>If you received this, your branded email configuration is working correctly!</p>
       `
     });
 
