@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, GripVertical, Trash2, Loader2, CheckCircle, Clock, Circle, Play, Flag, Book } from 'lucide-react';
+import { X, Plus, Trash2, Loader2, CheckCircle, Clock, Circle, Play, Flag, Book, Pencil, GripVertical, RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 
@@ -9,6 +9,7 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [editingTopic, setEditingTopic] = useState(null);
+    const [draggedIndex, setDraggedIndex] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -112,23 +113,54 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
         }
     };
 
-    const handleSetNext = async (currentTopicId, nextTopicId) => {
+    const handleReactivate = async (topicId) => {
         try {
-            await api.put(`/topics/${currentTopicId}/set-next`, { nextTopicId });
-            toast.success('Next topic set successfully!');
+            await api.post(`/topics/${topicId}/reset`);
+            toast.success('Topic reset to pending!');
             fetchTopics();
+            fetchCurrentTopic();
+            if (onSuccess) onSuccess();
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Error setting next topic');
+            toast.error(error.response?.data?.message || 'Error resetting topic');
         }
     };
 
-    const handleReorder = async (orderedIds) => {
+    // Drag and drop handlers
+    const handleDragStart = (e, index) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = async (e, dropIndex) => {
+        e.preventDefault();
+
+        if (draggedIndex === null || draggedIndex === dropIndex) {
+            setDraggedIndex(null);
+            return;
+        }
+
+        const reorderedTopics = [...topics];
+        const [draggedTopic] = reorderedTopics.splice(draggedIndex, 1);
+        reorderedTopics.splice(dropIndex, 0, draggedTopic);
+
+        // Update local state immediately for smooth UX
+        setTopics(reorderedTopics);
+        setDraggedIndex(null);
+
+        // Send new order to backend
         try {
+            const orderedIds = reorderedTopics.map(t => t._id);
             await api.put('/topics/reorder', { orderedIds });
             toast.success('Topics reordered!');
-            fetchTopics();
+            fetchTopics(); // Refresh to get updated order from server
         } catch (error) {
             toast.error('Error reordering topics');
+            fetchTopics(); // Revert on error
         }
     };
 
@@ -336,16 +368,28 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                             topics.map((topic, index) => (
                                 <div
                                     key={topic._id}
-                                    className={`bg-white border-2 rounded-lg p-4 transition-all ${topic.status === 'active' ? 'border-blue-400 shadow-lg' :
-                                        topic.status === 'completed' ? 'border-green-200 opacity-75' :
-                                            'border-gray-200 hover:border-gray-300'
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDrop={(e) => handleDrop(e, index)}
+                                    className={`bg-white border-2 rounded-lg p-4 transition-all cursor-move ${draggedIndex === index ? 'opacity-50 scale-95' : ''
+                                        } ${topic.status === 'active' ? 'border-blue-400 shadow-lg' :
+                                            topic.status === 'completed' ? 'border-green-200 opacity-75' :
+                                                'border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start space-x-3 flex-1">
+                                            {/* Drag Handle */}
+                                            <div className="mt-1 text-gray-400 cursor-grab active:cursor-grabbing">
+                                                <GripVertical className="w-5 h-5" />
+                                            </div>
+
+                                            {/* Status Icon */}
                                             <div className="mt-1">
                                                 {getStatusIcon(topic.status)}
                                             </div>
+
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-2 mb-1">
                                                     <h4 className="font-semibold text-gray-800">{topic.name}</h4>
@@ -391,12 +435,21 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                                     <Flag className="w-4 h-4" />
                                                 </button>
                                             )}
+                                            {topic.status === 'completed' && (
+                                                <button
+                                                    onClick={() => handleReactivate(topic._id)}
+                                                    className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                                                    title="Reactivate Topic"
+                                                >
+                                                    <RotateCcw className="w-4 h-4" />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => openEditForm(topic)}
-                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
+                                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
                                                 title="Edit Topic"
                                             >
-                                                <Plus className="w-4 h-4 rotate-45" />
+                                                <Pencil className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(topic._id)}
@@ -415,6 +468,13 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
 
                 {/* Footer */}
                 <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                        <span className="flex items-center space-x-2">
+                            <GripVertical className="w-4 h-4" />
+                            <span>Drag topics to reorder</span>
+                        </span>
+                        <span>{topics.length} topic{topics.length !== 1 ? 's' : ''}</span>
+                    </div>
                     <button
                         onClick={onClose}
                         className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
@@ -428,3 +488,4 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
 };
 
 export default TopicManagementModal;
+

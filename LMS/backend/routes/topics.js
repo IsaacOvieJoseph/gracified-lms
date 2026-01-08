@@ -406,6 +406,48 @@ router.post('/:id/activate', auth, authorize('root_admin', 'school_admin', 'teac
   }
 });
 
+// Reset a topic to pending (for completed topics)
+router.post('/:id/reset', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const topic = await Topic.findById(req.params.id).populate('classroomId');
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    const classroom = topic.classroomId;
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Reset topic to pending state
+    topic.status = 'pending';
+    topic.startedAt = null;
+    topic.completedAt = null;
+    topic.expectedEndDate = null;
+    topic.completedBy = null;
+    await topic.save();
+
+    // If this was the current topic, clear it from classroom
+    if (classroom.currentTopicId && classroom.currentTopicId.toString() === topic._id.toString()) {
+      classroom.currentTopicId = null;
+      await classroom.save();
+    }
+
+    res.json({
+      message: 'Topic reset to pending',
+      topic
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 
 
