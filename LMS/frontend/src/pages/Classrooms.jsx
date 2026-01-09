@@ -126,12 +126,16 @@ const Classrooms = () => {
     }
   };
 
+  const [publishingClassId, setPublishingClassId] = useState(null);
   const handlePublishToggle = async (classroomId, currentStatus) => {
+    setPublishingClassId(classroomId);
     try {
       await api.put(`/classrooms/${classroomId}/publish`, { published: !currentStatus });
       fetchClassrooms();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error updating publish status');
+    } finally {
+      setPublishingClassId(null);
     }
   };
 
@@ -306,8 +310,15 @@ const Classrooms = () => {
                       : 'bg-gray-100 text-gray-800'
                       }`}
                     title={classroom.published ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
+                    disabled={publishingClassId === classroom._id}
                   >
-                    {classroom.published ? <Eye className="w-3 h-3 inline" /> : <EyeOff className="w-3 h-3 inline" />}
+                    {publishingClassId === classroom._id ? (
+                      <Loader2 className="w-3 h-3 inline animate-spin" />
+                    ) : classroom.published ? (
+                      <Eye className="w-3 h-3 inline" />
+                    ) : (
+                      <EyeOff className="w-3 h-3 inline" />
+                    )}
                   </button>
                 )}
                 {(user?.role === 'root_admin' || user?.role === 'school_admin' || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
