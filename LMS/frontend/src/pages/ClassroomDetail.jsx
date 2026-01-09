@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy } from 'lucide-react';
+import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal, formatDisplayDate } from '../utils/timezone';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -947,50 +947,78 @@ const ClassroomDetail = () => {
 
           <div className="space-y-3">
             {classroom.topics && classroom.topics.length > 0 ? (
-              classroom.topics
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .slice(0, 5) // Show first 5 topics
-                .map((topic, index) => (
-                  <div
-                    key={topic._id}
-                    className={`border-2 rounded-lg p-4 transition ${topic.status === 'active' ? 'border-blue-400 bg-blue-50' :
-                      topic.status === 'completed' ? 'border-green-200 bg-green-50 opacity-75' :
-                        'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
-                        {topic.status === 'completed' ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : topic.status === 'active' ? (
-                          <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center text-xs text-gray-500">
-                            {index + 1}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="font-semibold text-gray-800">{topic.name}</h4>
-                          {topic.status === 'active' && (
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                              Current
-                            </span>
-                          )}
-                          {topic.status === 'completed' && (
-                            <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                              Done
-                            </span>
+              (() => {
+                const sortedTopics = [...classroom.topics].sort((a, b) => (a.order || 0) - (b.order || 0));
+                const activeIndex = sortedTopics.findIndex(t => t.status === 'active');
+                let nextId = null;
+                if (activeIndex !== -1) {
+                  const nextTopic = sortedTopics.find((t, i) => i > activeIndex && t.status === 'pending');
+                  if (nextTopic) nextId = nextTopic._id;
+                } else {
+                  const firstPending = sortedTopics.find(t => t.status === 'pending');
+                  if (firstPending) nextId = firstPending._id;
+                }
+
+                return sortedTopics.map((topic, index) => {
+                  const isNext = topic._id === nextId;
+                  const isCurrent = topic.status === 'active';
+                  const isDone = topic.status === 'completed';
+                  const isPending = topic.status === 'pending' && !isNext;
+
+                  return (
+                    <div
+                      key={topic._id}
+                      className={`border-2 rounded-lg p-4 transition ${isCurrent ? 'border-blue-400 bg-blue-50' :
+                        isDone ? 'border-green-200 bg-green-50 opacity-75' :
+                          isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
+                            'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1">
+                          {isDone ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : isCurrent ? (
+                            <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
+                          ) : isNext ? (
+                            <Play className="w-5 h-5 text-indigo-600" />
+                          ) : (
+                            <Circle className="w-5 h-5 text-gray-400" />
                           )}
                         </div>
-                        {topic.description && (
-                          <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
-                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-semibold text-gray-800">{topic.name}</h4>
+                            {isCurrent && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                                Current
+                              </span>
+                            )}
+                            {isDone && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                                Done
+                              </span>
+                            )}
+                            {isNext && (
+                              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
+                                Next
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
+                                Pending
+                              </span>
+                            )}
+                          </div>
+                          {topic.description && (
+                            <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                });
+              })()
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Book className="w-12 h-12 mx-auto mb-3 text-gray-300" />
@@ -999,14 +1027,6 @@ const ClassroomDetail = () => {
                   <p className="text-sm mt-1">Click "Manage Topics" to create your first topic</p>
                 )}
               </div>
-            )}
-            {classroom.topics && classroom.topics.length > 5 && (
-              <button
-                onClick={() => setShowTopicModal(true)}
-                className="w-full py-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition"
-              >
-                View all {classroom.topics.length} topics →
-              </button>
             )}
           </div>
         </div>
@@ -1451,52 +1471,14 @@ const ClassroomDetail = () => {
         )}
       </div>
 
-      {/* Add Topic Modal */}
+      {/* Topic Management Modal */}
       {showTopicModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-4">Add Topic</h3>
-            <form onSubmit={handleCreateTopic} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={topicForm.name}
-                  onChange={(e) => setTopicForm({ ...topicForm, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={topicForm.description}
-                  onChange={(e) => setTopicForm({ ...topicForm, description: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  rows="3"
-                />
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowTopicModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreatingTopic}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center"
-                >
-                  Create
-                  {isCreatingTopic && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <TopicManagementModal
+          show={showTopicModal}
+          onClose={() => setShowTopicModal(false)}
+          classroomId={id}
+          onSuccess={fetchClassroom}
+        />
       )}
 
       {/* Create Assignment Modal */}

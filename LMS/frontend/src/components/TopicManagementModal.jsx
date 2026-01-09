@@ -365,103 +365,145 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                 <p>No topics yet. Create your first topic to get started!</p>
                             </div>
                         ) : (
-                            topics.map((topic, index) => (
-                                <div
-                                    key={topic._id}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, index)}
-                                    onDragOver={(e) => handleDragOver(e, index)}
-                                    onDrop={(e) => handleDrop(e, index)}
-                                    className={`bg-white border-2 rounded-lg p-4 transition-all cursor-move ${draggedIndex === index ? 'opacity-50 scale-95' : ''
-                                        } ${topic.status === 'active' ? 'border-blue-400 shadow-lg' :
-                                            topic.status === 'completed' ? 'border-green-200 opacity-75' :
-                                                'border-gray-200 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-start space-x-3 flex-1">
-                                            {/* Drag Handle */}
-                                            <div className="mt-1 text-gray-400 cursor-grab active:cursor-grabbing">
-                                                <GripVertical className="w-5 h-5" />
-                                            </div>
+                            (() => {
+                                const activeIndex = topics.findIndex(t => t.status === 'active');
+                                let nextId = null;
+                                if (activeIndex !== -1) {
+                                    const nextTopic = topics.find((t, i) => i > activeIndex && t.status === 'pending');
+                                    if (nextTopic) nextId = nextTopic._id;
+                                } else {
+                                    const firstPending = topics.find(t => t.status === 'pending');
+                                    if (firstPending) nextId = firstPending._id;
+                                }
 
-                                            {/* Status Icon */}
-                                            <div className="mt-1">
-                                                {getStatusIcon(topic.status)}
-                                            </div>
+                                return topics.map((topic, index) => {
+                                    const isNext = topic._id === nextId;
+                                    const isCurrent = topic.status === 'active';
+                                    const isDone = topic.status === 'completed';
+                                    const isPending = topic.status === 'pending' && !isNext;
 
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-2 mb-1">
-                                                    <h4 className="font-semibold text-gray-800">{topic.name}</h4>
-                                                    {getStatusBadge(topic.status)}
-                                                    {currentTopic?._id === topic._id && (
-                                                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
-                                                            Current
-                                                        </span>
-                                                    )}
+                                    return (
+                                        <div
+                                            key={topic._id}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, index)}
+                                            onDragOver={(e) => handleDragOver(e, index)}
+                                            onDrop={(e) => handleDrop(e, index)}
+                                            className={`bg-white border-2 rounded-lg p-4 transition-all cursor-move ${draggedIndex === index ? 'opacity-50 scale-95' : ''
+                                                } ${isCurrent ? 'border-blue-400 shadow-lg' :
+                                                    isDone ? 'border-green-200 opacity-75' :
+                                                        isNext ? 'border-indigo-300 shadow-md transform scale-[1.01]' :
+                                                            'border-gray-200 hover:border-gray-300'
+                                                }`}
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-start space-x-3 flex-1">
+                                                    {/* Drag Handle */}
+                                                    <div className="mt-1 text-gray-400 cursor-grab active:cursor-grabbing">
+                                                        <GripVertical className="w-5 h-5" />
+                                                    </div>
+
+                                                    {/* Status Icon */}
+                                                    <div className="mt-1">
+                                                        {isDone ? (
+                                                            <CheckCircle className="w-5 h-5 text-green-600" />
+                                                        ) : isCurrent ? (
+                                                            <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
+                                                        ) : isNext ? (
+                                                            <Play className="w-5 h-5 text-indigo-600" />
+                                                        ) : (
+                                                            <Circle className="w-5 h-5 text-gray-400" />
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center space-x-2 mb-1">
+                                                            <h4 className="font-semibold text-gray-800">{topic.name}</h4>
+                                                            {isCurrent && (
+                                                                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                                                                    Current
+                                                                </span>
+                                                            )}
+                                                            {isDone && (
+                                                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                                                                    Done
+                                                                </span>
+                                                            )}
+                                                            {isNext && (
+                                                                <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
+                                                                    Next
+                                                                </span>
+                                                            )}
+                                                            {isPending && (
+                                                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
+                                                                    Pending
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {topic.description && (
+                                                            <p className="text-sm text-gray-600 mb-2">{topic.description}</p>
+                                                        )}
+                                                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                                            <span className="flex items-center space-x-1">
+                                                                <Clock className="w-3 h-3" />
+                                                                <span>{getDurationText(topic.duration)}</span>
+                                                            </span>
+                                                            {topic.isPaid && (
+                                                                <span className="text-green-600 font-semibold">₦{topic.price}</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                {topic.description && (
-                                                    <p className="text-sm text-gray-600 mb-2">{topic.description}</p>
-                                                )}
-                                                <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                                    <span className="flex items-center space-x-1">
-                                                        <Clock className="w-3 h-3" />
-                                                        <span>{getDurationText(topic.duration)}</span>
-                                                    </span>
-                                                    {topic.isPaid && (
-                                                        <span className="text-green-600 font-semibold">₦{topic.price}</span>
+
+                                                {/* Actions */}
+                                                <div className="flex items-center space-x-2 ml-4">
+                                                    {(topic.status === 'pending') && (
+                                                        <button
+                                                            onClick={() => handleActivate(topic._id)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                            title="Activate Topic"
+                                                        >
+                                                            <Play className="w-4 h-4" />
+                                                        </button>
                                                     )}
+                                                    {topic.status === 'active' && (
+                                                        <button
+                                                            onClick={() => handleComplete(topic._id)}
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                            title="Mark as Complete"
+                                                        >
+                                                            <Flag className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    {topic.status === 'completed' && (
+                                                        <button
+                                                            onClick={() => handleReactivate(topic._id)}
+                                                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                                                            title="Reactivate Topic"
+                                                        >
+                                                            <RotateCcw className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => openEditForm(topic)}
+                                                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                                        title="Edit Topic"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(topic._id)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                        title="Delete Topic"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* Actions */}
-                                        <div className="flex items-center space-x-2 ml-4">
-                                            {topic.status === 'pending' && (
-                                                <button
-                                                    onClick={() => handleActivate(topic._id)}
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                    title="Activate Topic"
-                                                >
-                                                    <Play className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            {topic.status === 'active' && (
-                                                <button
-                                                    onClick={() => handleComplete(topic._id)}
-                                                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
-                                                    title="Mark as Complete"
-                                                >
-                                                    <Flag className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            {topic.status === 'completed' && (
-                                                <button
-                                                    onClick={() => handleReactivate(topic._id)}
-                                                    className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition"
-                                                    title="Reactivate Topic"
-                                                >
-                                                    <RotateCcw className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => openEditForm(topic)}
-                                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                                                title="Edit Topic"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(topic._id)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                                title="Delete Topic"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
+                                    );
+                                });
+                            })()
                         )}
                     </div>
                 </div>
