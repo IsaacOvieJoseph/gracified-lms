@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { Book, LogOut, Users, DollarSign, FileText, LayoutDashboard, Landmark, Bell, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -100,6 +101,7 @@ const Layout = ({ children }) => {
   const handleMarkAsRead = async (notificationId) => {
     try {
       await api.put(`/notifications/inapp/${notificationId}/read`);
+      toast.success('Notification marked as read');
       fetchNotifications();
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -109,6 +111,7 @@ const Layout = ({ children }) => {
   const handleMarkAllAsRead = async () => {
     try {
       await api.put('/notifications/inapp/mark-all-read');
+      toast.success('All notifications marked as read');
       fetchNotifications();
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -201,7 +204,10 @@ const Layout = ({ children }) => {
                         <h4 className="font-semibold text-gray-800">Notifications</h4>
                         {unreadCount > 0 && (
                           <button
-                            onClick={handleMarkAllAsRead}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAllAsRead();
+                            }}
                             className="text-blue-600 hover:underline text-sm"
                           >
                             Mark all as read
@@ -221,7 +227,10 @@ const Layout = ({ children }) => {
                               </p>
                               {!notification.read && (
                                 <button
-                                  onClick={() => handleMarkAsRead(notification._id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMarkAsRead(notification._id);
+                                  }}
                                   className="mt-2 text-xs text-blue-600 hover:underline"
                                 >
                                   Mark as Read
@@ -269,7 +278,15 @@ const Layout = ({ children }) => {
                       <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                         <h4 className="font-semibold text-gray-800">Notifications</h4>
                         {unreadCount > 0 && (
-                          <button onClick={handleMarkAllAsRead} className="text-blue-600 text-xs">Mark all read</button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAllAsRead();
+                            }}
+                            className="text-blue-600 text-xs"
+                          >
+                            Mark all read
+                          </button>
                         )}
                       </div>
                       <div className="max-h-60 overflow-y-auto">
@@ -277,7 +294,17 @@ const Layout = ({ children }) => {
                           notifications.map(n => (
                             <div key={n._id} className={`p-3 border-b text-sm ${n.read ? 'bg-white' : 'bg-blue-50'}`}>
                               <p>{n.message}</p>
-                              {!n.read && <button onClick={() => handleMarkAsRead(n._id)} className="text-blue-600 text-xs mt-1">Mark Read</button>}
+                              {!n.read && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMarkAsRead(n._id);
+                                  }}
+                                  className="text-blue-600 text-xs mt-1"
+                                >
+                                  Mark Read
+                                </button>
+                              )}
                             </div>
                           ))
                         ) : (
