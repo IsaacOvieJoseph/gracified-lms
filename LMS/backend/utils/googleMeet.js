@@ -22,7 +22,7 @@ function createOAuth2ClientFromEnv() {
 function createJwtClientFromEnv() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   const subject = process.env.GOOGLE_IMPERSONATED_USER;
-  if (!raw || !subject) return null;
+  if (!raw) return null;
 
   let key;
   try {
@@ -37,12 +37,14 @@ function createJwtClientFromEnv() {
   if (!clientEmail || !privateKey) return null;
 
   const scopes = ['https://www.googleapis.com/auth/calendar'];
-  const jwtClient = new google.auth.JWT({
+  const jwtOptions = {
     email: clientEmail,
     key: privateKey,
     scopes,
-    subject,
-  });
+  };
+  if (subject) jwtOptions.subject = subject;
+
+  const jwtClient = new google.auth.JWT(jwtOptions);
   return jwtClient;
 }
 
