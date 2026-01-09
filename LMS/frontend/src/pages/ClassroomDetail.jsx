@@ -365,8 +365,9 @@ const ClassroomDetail = () => {
       }
     } catch (error) {
       if (error.response?.data?.googleAuthRequired) {
-        // Redirect user to backend Google consent flow
-        window.location.href = `/api/google-auth/start-consent?userId=${user?._id}&classroomId=${id}`;
+        // Redirect user to backend Google consent flow using full backend URL
+        const apiBase = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || '';
+        window.location.href = `${apiBase}/api/google-auth/start-consent?userId=${user?._id}&classroomId=${id}`;
       } else {
         toast.error(error.response?.data?.message || 'Error starting meeting');
       }
