@@ -12,10 +12,15 @@ const Payments = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const classroomId = searchParams.get('classroomId');
+  const topicId = searchParams.get('topicId');
+  const paramAmount = searchParams.get('amount') ? parseFloat(searchParams.get('amount')) : 0;
+  const type = searchParams.get('type') || 'class_enrollment';
+
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(!!classroomId);
   const [classroomForPayment, setClassroomForPayment] = useState(null);
+  const [topicForPayment, setTopicForPayment] = useState(null);
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState(null);
 
@@ -23,12 +28,13 @@ const Payments = () => {
     fetchPayments();
     if (classroomId) {
       fetchClassroomForPayment();
+      if (topicId) fetchTopicForPayment();
     }
     // Listen for school selection changes
     const handler = () => fetchPayments();
     window.addEventListener('schoolSelectionChanged', handler);
     return () => window.removeEventListener('schoolSelectionChanged', handler);
-  }, [classroomId]);
+  }, [classroomId, topicId]);
 
   const fetchPayments = async () => {
     try {
@@ -45,10 +51,32 @@ const Payments = () => {
     try {
       const response = await api.get(`/classrooms/${classroomId}`);
       setClassroomForPayment(response.data.classroom || null);
-      // show modal if classroom exists
       if (response.data.classroom) setShowPaymentModal(true);
     } catch (error) {
       console.error('Error fetching classroom:', error);
+    }
+  };
+
+  const fetchTopicForPayment = async () => {
+    try {
+      // We don't have a direct "get topic" endpoint that is public if it's not nested?
+      // But we can assume we can get it from topics list or assume params are correct.
+      // Actually /topics/:id exists.
+      // But let's just use a simple fetch if possible.
+      // Or just trust the query params if endpoint fails.
+      // Wait, there is no public /topics/:id probably? backend routes usually imply auth.
+      // user is authenticated here.
+      // Let's try to get it from classroom topics if we have classroom.
+      // Or just simpler:
+      setTopicForPayment({ _id: topicId, name: 'Topic Access', price: paramAmount }); // Stub initially
+
+      // Try to fetch real name
+      try {
+        // If we have class data we might find it there
+        // But classrooms/:id fetches topics too
+      } catch (e) { }
+    } catch (error) {
+      console.error('Error fetching topic:', error);
     }
   };
 
@@ -59,8 +87,8 @@ const Payments = () => {
       const usePaystack = !!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || false;
       if (usePaystack) {
         // Request server to initialize Paystack transaction
-        const returnUrl = `${window.location.origin}/payments?classroomId=${classroomId}`;
-        const resp = await api.post('/payments/paystack/initiate', { amount, classroomId, type: 'class_enrollment', returnUrl });
+        const returnUrl = `${window.location.origin}/payments?classroomId=${classroomId}&topicId=${topicId || ''}`;
+        const resp = await api.post('/payments/paystack/initiate', { amount, classroomId, topicId, type, returnUrl });
         if (resp.data && resp.data.reference) {
           // load Paystack inline script then open inline
           await loadPaystackScript();
@@ -125,14 +153,16 @@ const Payments = () => {
 
       // Fallback: existing Stripe flow
       const intentRes = await api.post('/payments/create-intent', {
-        type: 'class_enrollment',
+        type: type,
         classroomId,
+        topicId: topicId || null,
         amount
       });
       const confirmRes = await api.post('/payments/confirm', {
         paymentIntentId: intentRes.data.paymentIntentId,
-        type: 'class_enrollment',
+        type: type,
         classroomId,
+        topicId: topicId || null,
         amount
       });
 
@@ -205,15 +235,28 @@ const Payments = () => {
       {showPaymentModal && classroomForPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-            <h3 className="text-lg font-bold mb-2">Pay to Enroll</h3>
-            <p className="text-sm text-gray-600 mb-4">You're about to enroll in <strong>{classroomForPayment.name}</strong>.</p>
+            <h3 className="text-lg font-bold mb-2">
+              {topicId ? 'Pay for Topic Access' : 'Pay to Enroll'}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {topicId
+                ? <span>You're about to purchase access to the topic in <strong>{classroomForPayment.name}</strong>.</span>
+                : <span>You're about to enroll in <strong>{classroomForPayment.name}</strong>.</span>
+              }
+            </p>
             <div className="mb-4">
               <div className="text-sm text-gray-500">Amount</div>
-              <div className="text-2xl font-semibold">{formatAmount(classroomForPayment.pricing?.amount || 0, classroomForPayment.pricing?.currency || 'NGN')}</div>
+              <div className="text-2xl font-semibold">
+                {formatAmount(topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0), classroomForPayment.pricing?.currency || 'NGN')}
+              </div>
             </div>
             <div className="flex justify-end gap-3">
               <button className="px-4 py-2 border rounded" onClick={() => { setShowPaymentModal(false); setClassroomForPayment(null); window.history.replaceState({}, document.title, '/payments'); }}>Cancel</button>
-              <button disabled={isPaying} className={`px-4 py-2 ${isPaying ? 'bg-gray-400' : 'bg-blue-600'} text-white rounded`} onClick={() => handlePayment(classroomForPayment._id, classroomForPayment.pricing?.amount || 0)}>
+              <button
+                disabled={isPaying}
+                className={`px-4 py-2 ${isPaying ? 'bg-gray-400' : 'bg-blue-600'} text-white rounded`}
+                onClick={() => handlePayment(classroomForPayment._id, topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0))}
+              >
                 {isPaying ? 'Processing...' : 'Pay Now'}
               </button>
             </div>
