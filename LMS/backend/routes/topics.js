@@ -102,10 +102,21 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       }
     }
 
-    const topics = await Topic.find({ classroomId: req.params.classroomId })
-      .sort({ order: 1 });
-
-    res.json({ topics });
+    // Determine if paid topics should be visible
+    let showPaidTopics = false;
+    if (classroom.pricing?.type === 'per_topic' && classroom.teacherId && ['personal_teacher', 'school_admin'].includes(classroom.teacherId.role) && classroom.teacherId.subscriptionStatus === 'pay_as_you_go') {
+      showPaidTopics = true;
+    }
+    let topics = await Topic.find({ classroomId: req.params.classroomId }).sort({ order: 1 });
+    if (!showPaidTopics) {
+      // Hide paid topics if not allowed
+      topics = topics.map(t => ({
+        ...t.toObject(),
+        isPaid: false,
+        price: 0
+      }));
+    }
+    res.json({ topics, showPaidTopics });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

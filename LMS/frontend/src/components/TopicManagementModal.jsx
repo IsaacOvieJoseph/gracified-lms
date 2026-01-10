@@ -20,11 +20,14 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
         isPaid: false,
         price: 0
     });
+    const [showPaidTopics, setShowPaidTopics] = useState(false);
+    const [classroom, setClassroom] = useState(null);
 
     useEffect(() => {
         if (show && classroomId) {
             fetchTopics();
             fetchCurrentTopic();
+            fetchClassroomDetails();
         }
     }, [show, classroomId]);
 
@@ -43,6 +46,17 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
             setCurrentTopic(response.data.currentTopic);
         } catch (error) {
             console.error('Error fetching current topic:', error);
+        }
+    };
+
+    const fetchClassroomDetails = async () => {
+        try {
+            const response = await api.get(`/classrooms/${classroomId}`);
+            setClassroom(response.data.classroom);
+            setShowPaidTopics(response.data.showPaidTopics);
+        } catch (error) {
+            setClassroom(null);
+            setShowPaidTopics(false);
         }
     };
 
@@ -307,25 +321,28 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                 </div>
 
                                 <div className="flex items-center space-x-4">
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.isPaid}
-                                            onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                                            className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                                        />
-                                        <span className="text-sm font-medium text-gray-700">Paid Topic</span>
-                                    </label>
-
-                                    {formData.isPaid && (
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={formData.price}
-                                            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                                            placeholder="Price"
-                                            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        />
+                                    {showPaidTopics && (
+                                        <>
+                                            <label className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.isPaid}
+                                                    onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                                />
+                                                <span className="text-sm font-medium text-gray-700">Paid Topic</span>
+                                            </label>
+                                            {formData.isPaid && (
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={formData.price}
+                                                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                                                    placeholder="Price"
+                                                    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                />
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>

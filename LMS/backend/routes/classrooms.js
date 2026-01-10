@@ -193,7 +193,26 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Classroom not available' });
     }
 
-    res.json({ classroom });
+    // Determine if dynamic topic pricing should be used
+    let dynamicTopicPrice = null;
+    let showPaidTopics = false;
+    const owner = classroom.teacherId;
+    // Check if class is per_topic and owner is pay_as_you_go
+    if (classroom.pricing?.type === 'per_topic' && owner && ['personal_teacher', 'school_admin'].includes(owner.role) && owner.subscriptionStatus === 'pay_as_you_go') {
+      showPaidTopics = true;
+      // Get current active topic
+      const Topic = require('../models/Topic');
+      let currentTopic = null;
+      if (classroom.currentTopicId) {
+        currentTopic = await Topic.findById(classroom.currentTopicId);
+      } else {
+        currentTopic = await Topic.findOne({ classroomId: classroom._id, status: 'active' }).sort({ order: 1 });
+      }
+      if (currentTopic && currentTopic.isPaid && currentTopic.price > 0) {
+        dynamicTopicPrice = currentTopic.price;
+      }
+    }
+    res.json({ classroom, dynamicTopicPrice, showPaidTopics });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

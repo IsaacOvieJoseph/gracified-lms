@@ -6,6 +6,7 @@ import { formatDisplayDate } from '../utils/timezone';
 const TopicDisplay = ({ classroomId }) => {
     const [currentTopic, setCurrentTopic] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showPaidTopics, setShowPaidTopics] = useState(false);
 
     useEffect(() => {
         if (classroomId) {
@@ -17,6 +18,9 @@ const TopicDisplay = ({ classroomId }) => {
         try {
             const response = await api.get(`/topics/classroom/${classroomId}/current`);
             setCurrentTopic(response.data.currentTopic);
+            // Fetch paid topic visibility
+            const topicsResp = await api.get(`/topics/classroom/${classroomId}`);
+            setShowPaidTopics(topicsResp.data.showPaidTopics);
         } catch (error) {
             console.error('Error fetching current topic:', error);
         } finally {
@@ -117,7 +121,8 @@ const TopicDisplay = ({ classroomId }) => {
                                 </div>
                             )}
 
-                            {currentTopic.isPaid && currentTopic.price > 0 && (
+                            {/* Only show paid topic price if allowed */}
+                            {showPaidTopics && currentTopic.isPaid && currentTopic.price > 0 && (
                                 <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
                                     ₦{currentTopic.price}
                                 </span>
