@@ -744,5 +744,46 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// Get paid/unpaid topics and total for a student in a classroom
+// Returns: { paidTopics: [...], unpaidTopics: [...], totalUnpaidAmount, allTopics: [...] }
+router.get('/topic-status/:classroomId', auth, async (req, res) => {
+  try {
+    const { classroomId } = req.params;
+    const userId = req.user._id;
+    // Get all topics for the classroom
+    const topics = await Topic.find({ classroomId }).select('_id name price isPaid');
+    // Get all topic_access payments for this user and classroom
+    const payments = await Payment.find({
+      userId,
+      classroomId,
+      type: 'topic_access',
+      status: 'completed',
+    }).select('topicId');
+    const paidTopicIds = new Set(payments.map(p => String(p.topicId)));
+    const paidTopics = [];
+    const unpaidTopics = [];
+    let totalUnpaidAmount = 0;
+    const allTopics = topics.map(topic => {
+      const isPaid = paidTopicIds.has(String(topic._id));
+      const topicObj = {
+        _id: topic._id,
+        name: topic.name,
+        price: topic.price,
+        isPaid,
+      };
+      if (isPaid) paidTopics.push(topicObj);
+      else {
+        unpaidTopics.push(topicObj);
+        totalUnpaidAmount += topic.price || 0;
+      }
+      return topicObj;
+    });
+    res.json({ paidTopics, unpaidTopics, totalUnpaidAmount, allTopics });
+  } catch (err) {
+    console.error('Error in /topic-status/:classroomId', err.message);
+    res.status(500).json({ message: 'Failed to get topic payment status' });
+  }
+});
+
 module.exports = router;
 

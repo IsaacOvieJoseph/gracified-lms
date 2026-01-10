@@ -3,16 +3,44 @@ import { Book, Clock, CheckCircle, Circle, Calendar } from 'lucide-react';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
 
+
 const TopicDisplay = ({ classroomId }) => {
     const [currentTopic, setCurrentTopic] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showPaidTopics, setShowPaidTopics] = useState(false);
+    const [topicStatus, setTopicStatus] = useState(null); // { paidTopics, unpaidTopics, totalUnpaidAmount, allTopics }
+    const [paying, setPaying] = useState(false);
+
 
     useEffect(() => {
         if (classroomId) {
             fetchCurrentTopic();
+            fetchTopicStatus();
         }
     }, [classroomId]);
+    // Fetch paid/unpaid topics and total
+    const fetchTopicStatus = async () => {
+        try {
+            const resp = await api.get(`/payments/topic-status/${classroomId}`);
+            setTopicStatus(resp.data);
+        } catch (err) {
+            setTopicStatus(null);
+        }
+    };
+    // Payment handlers (stub, to be implemented with payment integration)
+    const handlePayForTopic = async (topicId) => {
+        setPaying(true);
+        // TODO: Integrate with payment API for single topic
+        alert('Pay for topic: ' + topicId);
+        setPaying(false);
+    };
+
+    const handlePayForAllTopics = async () => {
+        setPaying(true);
+        // TODO: Integrate with payment API for all unpaid topics
+        alert('Pay for all unpaid topics');
+        setPaying(false);
+    };
 
     const fetchCurrentTopic = async () => {
         try {
@@ -131,6 +159,38 @@ const TopicDisplay = ({ classroomId }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Paid/Unpaid Topics and Payment Options */}
+            {showPaidTopics && topicStatus && (
+                <div className="mt-6">
+                    <h4 className="font-semibold mb-2">Your Topic Access</h4>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        {topicStatus.allTopics.map(topic => (
+                            <span key={topic._id} className={`px-2 py-1 rounded-full text-xs font-semibold ${topic.isPaid ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                {topic.name} {topic.isPaid ? '✓' : `₦${topic.price}`}
+                                {!topic.isPaid && topic.price > 0 && (
+                                    <button
+                                        className="ml-2 px-2 py-0.5 bg-purple-600 text-white rounded text-xs"
+                                        disabled={paying}
+                                        onClick={() => handlePayForTopic(topic._id)}
+                                    >
+                                        Pay
+                                    </button>
+                                )}
+                            </span>
+                        ))}
+                    </div>
+                    {topicStatus.unpaidTopics.length > 1 && topicStatus.totalUnpaidAmount > 0 && (
+                        <button
+                            className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
+                            disabled={paying}
+                            onClick={handlePayForAllTopics}
+                        >
+                            Pay for all unpaid topics (₦{topicStatus.totalUnpaidAmount})
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
