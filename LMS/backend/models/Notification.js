@@ -12,7 +12,19 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['class_reminder', 'assignment_reminder', 'assignment_result', 'payment_success', 'payment_received', 'payout_received', 'new_assignment', 'new_submission', 'assignment_graded', 'subscription_success'],
+    enum: [
+      'class_reminder',
+      'assignment_reminder',
+      'assignment_result',
+      'payment_success',
+      'payment_received',
+      'payout_received',
+      'new_assignment',
+      'new_submission',
+      'assignment_graded',
+      'subscription_success',
+      'student_enrolled' // Added for enrollment notifications
+    ],
     required: true,
   },
   // Optional: Link to the specific resource (e.g., assignment, classroom, payment)

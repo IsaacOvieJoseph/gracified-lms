@@ -414,12 +414,6 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       classroom.schedule = schedule;
     }
 
-
-
-
-
-
-
     Object.assign(classroom, req.body);
     classroom.updatedAt = Date.now();
     await classroom.save();
@@ -544,7 +538,7 @@ router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'person
 // Enroll student (after payment or free class)
 router.post('/:id/enroll', auth, async (req, res) => {
   try {
-    const classroom = await Classroom.findById(req.params.id);
+    const classroom = await Classroom.findById(req.params.id).populate('teacherId schoolId');
 
     if (!classroom) {
       return res.status(404).json({ message: 'Classroom not found' });
@@ -583,6 +577,61 @@ router.post('/:id/enroll', auth, async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, {
       $addToSet: { enrolledClasses: classroom._id }
     });
+
+    // --- Notification Logic ---
+    const Notification = require('../models/Notification');
+    const sendEmail = require('../utils/email').sendEmail;
+    const School = require('../models/School');
+
+    // Get teacher, personal teacher, and school admin
+    let notifyUserIds = [];
+    let notifyEmails = [];
+
+    // Teacher
+    if (classroom.teacherId) {
+      notifyUserIds.push(classroom.teacherId._id);
+      notifyEmails.push(classroom.teacherId.email);
+    }
+
+    // Personal Teacher (if different from teacher)
+    if (classroom.teacherId && classroom.teacherId.role === 'personal_teacher') {
+      // Already added above, so skip
+    }
+
+    // School Admin(s)
+    if (classroom.schoolId && classroom.schoolId.length > 0) {
+      for (const school of classroom.schoolId) {
+        if (school.adminId) {
+          notifyUserIds.push(school.adminId);
+          const adminUser = await User.findById(school.adminId);
+          if (adminUser && adminUser.email) notifyEmails.push(adminUser.email);
+        }
+      }
+    }
+
+    // Remove duplicates
+    notifyUserIds = [...new Set(notifyUserIds.map(id => id.toString()))];
+    notifyEmails = [...new Set(notifyEmails)];
+
+    // Create in-app notifications
+    const notifications = notifyUserIds.map(userId => ({
+      userId,
+      message: `Student ${req.user.name} has enrolled in your class "${classroom.name}".`,
+      type: 'student_enrolled',
+      entityId: classroom._id,
+      entityRef: 'Classroom',
+    }));
+    await Notification.insertMany(notifications);
+
+    // Send email notifications
+    if (notifyEmails.length > 0) {
+      await sendEmail({
+        to: notifyEmails,
+        subject: `New Enrollment: ${req.user.name} joined ${classroom.name}`,
+        html: `<p>Student <strong>${req.user.name}</strong> has enrolled in your class <strong>${classroom.name}</strong>.</p>`,
+        classroomId: classroom._id
+      });
+    }
 
     res.json({ message: 'Enrolled successfully', classroom });
   } catch (error) {
