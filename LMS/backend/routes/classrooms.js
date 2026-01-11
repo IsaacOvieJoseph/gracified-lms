@@ -1221,6 +1221,14 @@ router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher',
     // 2. Clear Students
     classroom.students = [];
 
+    // Also remove this classroom from the students' enrolledClasses array
+    if (studentsToNotify.length > 0) {
+      await User.updateMany(
+        { _id: { $in: studentsToNotify } },
+        { $pull: { enrolledClasses: classroom._id } }
+      );
+    }
+
     // 3. Reset Assignments (Unpublish, Clear dates, Clear submissions)
     await Assignment.updateMany(
       { classroomId: classroom._id },

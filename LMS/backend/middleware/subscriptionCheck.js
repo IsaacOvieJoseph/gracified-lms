@@ -51,15 +51,19 @@ const subscriptionCheck = async (req, res, next) => {
         }
 
         // Check if student is enrolled in the class
-        const isEnrolled = classroom.students.some(
-          studentId => studentId.toString() === user._id.toString()
-        ) || user.enrolledClasses.some(
-          classId => classId.toString() === classroomId
-        );
+        // const isEnrolled = classroom.students.some(
+        //   studentId => studentId.toString() === user._id.toString()
+        // ) || user.enrolledClasses.some(
+        //   classId => classId.toString() === classroomId
+        // );
 
-        if (!isEnrolled) {
-          return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
-        }
+        // Allow students to view the classroom details page even if not enrolled
+        // This is necessary for them to see the "Enroll" button after being removed.
+        // Specific routes (like accessing paid topics) should have their own checks.
+
+        // if (!isEnrolled) {
+        //   return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
+        // }
       }
       // If no classroom context, allow access (students can view dashboard, etc.)
       return next();
