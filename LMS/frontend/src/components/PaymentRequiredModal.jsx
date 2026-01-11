@@ -39,12 +39,16 @@ const PaymentRequiredModal = ({ show, onClose, topic, classroomId, onSuccess }) 
       if (resp.data.reference) {
         // 2. Open Modal
         await loadPaystackScript();
-        const handler = window.PaystackPop.setup({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-          email: user?.email,
-          amount: Math.round(amount * 100),
-          ref: resp.data.reference,
-          callback: async (response) => {
+
+        const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+        const payAmount = (import.meta.env.VITE_PAYSTACK_CURRENCY || 'NGN').toLowerCase() === 'ngn' ? Math.round(amount * 100) : Math.round(amount * 100);
+
+        if (!user || !user.email) {
+          throw new Error('User email not available. Please log in before paying.');
+        }
+
+        const handleCallback = (response) => {
+          (async () => {
             try {
               await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
               toast.success('Payment successful! Access granted.');
@@ -55,14 +59,30 @@ const PaymentRequiredModal = ({ show, onClose, topic, classroomId, onSuccess }) 
             } finally {
               setIsPaying(false);
             }
-          },
+          })();
+        };
+
+        const handler = window.PaystackPop.setup({
+          key: pubKey,
+          email: user.email,
+          amount: payAmount,
+          ref: resp.data.reference,
+          callback: handleCallback,
           onClose: () => setIsPaying(false)
         });
-        handler.openIframe();
+
+        if (handler && typeof handler.openIframe === 'function') {
+          handler.openIframe();
+        } else if (handler && typeof handler.open === 'function') {
+          handler.open();
+        } else {
+          throw new Error('Could not open Paystack payment window.');
+        }
       }
     } catch (err) {
       console.error('Payment failed', err);
-      toast.error(err.response?.data?.message || 'Could not start payment');
+      const errMsg = err.response?.data?.message || err.message || 'Could not start payment';
+      toast.error(errMsg);
       setIsPaying(false);
     }
   };

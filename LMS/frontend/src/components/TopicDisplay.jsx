@@ -72,19 +72,39 @@ const TopicDisplay = ({ classroomId }) => {
             if (resp.data.reference) {
                 // 2. Load and open Paystack Inline
                 await loadPaystackScript();
+
+                const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+                const payAmount = (import.meta.env.VITE_PAYSTACK_CURRENCY || 'NGN').toLowerCase() === 'ngn' ? Math.round(amount * 100) : Math.round(amount * 100);
+
+                if (!user || !user.email) {
+                    throw new Error('User email not available. Please log in before paying.');
+                }
+
+                const handleCallback = (response) => {
+                    handlePaymentSuccess(response.reference);
+                };
+
                 const handler = window.PaystackPop.setup({
-                    key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+                    key: pubKey,
                     email: user.email,
-                    amount: Math.round(amount * 100),
+                    amount: payAmount,
                     ref: resp.data.reference,
-                    callback: (response) => handlePaymentSuccess(response.reference),
+                    callback: handleCallback,
                     onClose: () => setPaying(false)
                 });
-                handler.openIframe();
+
+                if (handler && typeof handler.openIframe === 'function') {
+                    handler.openIframe();
+                } else if (handler && typeof handler.open === 'function') {
+                    handler.open();
+                } else {
+                    throw new Error('Could not open Paystack payment window.');
+                }
             }
         } catch (err) {
             console.error('Payment initialization failed', err);
-            import('react-hot-toast').then(({ toast }) => toast.error('Could not start payment.'));
+            const errMsg = err.response?.data?.message || err.message || 'Could not start payment.';
+            import('react-hot-toast').then(({ toast }) => toast.error(errMsg));
             setPaying(false);
         }
     };
@@ -102,19 +122,39 @@ const TopicDisplay = ({ classroomId }) => {
 
             if (resp.data.reference) {
                 await loadPaystackScript();
+
+                const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+                const payAmount = (import.meta.env.VITE_PAYSTACK_CURRENCY || 'NGN').toLowerCase() === 'ngn' ? Math.round(topicStatus.totalUnpaidAmount * 100) : Math.round(topicStatus.totalUnpaidAmount * 100);
+
+                if (!user || !user.email) {
+                    throw new Error('User email not available. Please log in before paying.');
+                }
+
+                const handleCallback = (response) => {
+                    handlePaymentSuccess(response.reference);
+                };
+
                 const handler = window.PaystackPop.setup({
-                    key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+                    key: pubKey,
                     email: user.email,
-                    amount: Math.round(topicStatus.totalUnpaidAmount * 100),
+                    amount: payAmount,
                     ref: resp.data.reference,
-                    callback: (response) => handlePaymentSuccess(response.reference),
+                    callback: handleCallback,
                     onClose: () => setPaying(false)
                 });
-                handler.openIframe();
+
+                if (handler && typeof handler.openIframe === 'function') {
+                    handler.openIframe();
+                } else if (handler && typeof handler.open === 'function') {
+                    handler.open();
+                } else {
+                    throw new Error('Could not open Paystack payment window.');
+                }
             }
         } catch (err) {
             console.error('Payment initialization failed', err);
-            import('react-hot-toast').then(({ toast }) => toast.error('Could not start payment.'));
+            const errMsg = err.response?.data?.message || err.message || 'Could not start payment.';
+            import('react-hot-toast').then(({ toast }) => toast.error(errMsg));
             setPaying(false);
         }
     };
