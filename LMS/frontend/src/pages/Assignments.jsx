@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Calendar, FileText, CheckCircle, Plus, Book, Send, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, FileText, CheckCircle, Plus, Book, Send, Search, ChevronDown, ChevronUp, Eye, EyeOff, Megaphone } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -290,6 +290,34 @@ const Assignments = () => {
     }
   };
 
+  const [publishingAssignmentId, setPublishingAssignmentId] = useState(null);
+  const handleAssignmentPublishToggle = async (assignment) => {
+    setPublishingAssignmentId(assignment._id);
+    try {
+      const newStatus = !assignment.published;
+      await api.put(`/assignments/${assignment._id}/publish`, { published: newStatus });
+      fetchAssignments();
+      toast.success(newStatus ? 'Assignment published' : 'Assignment unpublished');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error updating assignment publish status');
+    } finally {
+      setPublishingAssignmentId(null);
+    }
+  };
+
+  const [notifyingAssignmentId, setNotifyingAssignmentId] = useState(null);
+  const handleNotifyStudents = async (assignmentId) => {
+    setNotifyingAssignmentId(assignmentId);
+    try {
+      await api.post(`/assignments/${assignmentId}/notify`);
+      toast.success('Students notified successfully!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error notifying students');
+    } finally {
+      setNotifyingAssignmentId(null);
+    }
+  };
+
   if (loading || userLoading) {
     return <Layout><div className="text-center py-8">Loading...</div></Layout>;
   }
@@ -398,6 +426,39 @@ const Assignments = () => {
                       )}
                       {canManageAssignment(assignment) && (
                         <div className="flex space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAssignmentPublishToggle(assignment);
+                            }}
+                            disabled={publishingAssignmentId === assignment._id}
+                            className={`p-1 transition-colors ${assignment.published !== false ? 'text-green-500 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'
+                              }`}
+                            title={assignment.published !== false ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
+                          >
+                            {publishingAssignmentId === assignment._id ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : assignment.published !== false ? (
+                              <Eye className="w-5 h-5" />
+                            ) : (
+                              <EyeOff className="w-5 h-5" />
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotifyStudents(assignment._id);
+                            }}
+                            disabled={notifyingAssignmentId === assignment._id}
+                            className="text-blue-500 hover:text-blue-700 p-1 disabled:opacity-50"
+                            title="Notify students (re-publish)"
+                          >
+                            {notifyingAssignmentId === assignment._id ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <Megaphone className="w-5 h-5 transition-colors" />
+                            )}
+                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

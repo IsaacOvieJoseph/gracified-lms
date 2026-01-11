@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward } from 'lucide-react';
+import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal, formatDisplayDate } from '../utils/timezone';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -113,6 +113,8 @@ const ClassroomDetail = () => {
   const [assignmentToDelete, setAssignmentToDelete] = useState(null);
   const [isDeletingAssignment, setIsDeletingAssignment] = useState(false);
   const [assignmentToEdit, setAssignmentToEdit] = useState(null);
+  const [publishing, setPublishing] = useState(false);
+  const [notifyingAssignmentId, setNotifyingAssignmentId] = useState(null);
 
   // Payment Check Logic
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -136,10 +138,52 @@ const ClassroomDetail = () => {
   const fetchTopicStatus = async () => {
     try {
       const resp = await api.get(`/payments/topic-status/${id}`);
-      const paidIds = new Set(resp.data.paidTopics.map(t => t._id));
-      setPaidTopicIds(paidIds);
+      if (resp.data.paidTopics) {
+        const paidIds = new Set(resp.data.paidTopics.map(t => t._id));
+        setPaidTopicIds(paidIds);
+      }
     } catch (err) {
       console.error('Error fetching topic status', err);
+    }
+  };
+
+  const handlePublishToggle = async () => {
+    setPublishing(true);
+    try {
+      await api.put(`/classrooms/${id}/publish`, { published: !classroom.published });
+      fetchClassroom();
+      toast.success(classroom.published ? 'Classroom unpublished' : 'Classroom published');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error updating publish status');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleNotifyStudents = async (assignmentId) => {
+    setNotifyingAssignmentId(assignmentId);
+    try {
+      await api.post(`/assignments/${assignmentId}/notify`);
+      toast.success('Students notified successfully!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error notifying students');
+    } finally {
+      setNotifyingAssignmentId(null);
+    }
+  };
+
+  const [publishingAssignmentId, setPublishingAssignmentId] = useState(null);
+  const handleAssignmentPublishToggle = async (assignment) => {
+    setPublishingAssignmentId(assignment._id);
+    try {
+      const newStatus = !assignment.published;
+      await api.put(`/assignments/${assignment._id}/publish`, { published: newStatus });
+      fetchClassroom();
+      toast.success(newStatus ? 'Assignment published' : 'Assignment unpublished');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error updating assignment publish status');
+    } finally {
+      setPublishingAssignmentId(null);
     }
   };
 
@@ -652,6 +696,24 @@ const ClassroomDetail = () => {
             {canEdit && (
               <div className="flex space-x-2">
                 <button
+                  onClick={handlePublishToggle}
+                  disabled={publishing}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition font-medium ${classroom.published
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  title={classroom.published ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
+                >
+                  {publishing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : classroom.published ? (
+                    <Eye className="w-4 h-4" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 opacity-50" />
+                  )}
+                  <span className="hidden md:inline">{classroom.published ? 'Published' : 'Unpublished'}</span>
+                </button>
+                <button
                   onClick={handleOpenEdit}
                   className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition shrink-0 self-start"
                   title="Edit Classroom"
@@ -672,188 +734,188 @@ const ClassroomDetail = () => {
                 )}
               </div>
             )}
-            {/* Edit Classroom Modal */}
-            {showEditModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-                  <h3 className="text-xl font-bold mb-4">Edit Classroom</h3>
-                  <form onSubmit={(e) => { setIsEditing(true); handleEditClassroom(e); }} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                      <input
-                        type="text"
-                        value={editForm.name}
-                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <textarea
-                        value={editForm.description}
-                        onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg"
-                        rows="3"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-                      {editForm.schedule.map((session, index) => (
-                        <div key={index} className="flex space-x-2 mb-2 items-center">
-                          <select
-                            value={session.dayOfWeek}
-                            onChange={(e) => {
-                              const newSchedule = [...editForm.schedule];
-                              newSchedule[index].dayOfWeek = e.target.value;
-                              setEditForm({ ...editForm, schedule: newSchedule });
-                            }}
-                            className="w-1/3 px-2 py-1 border rounded-lg"
-                            required
-                          >
-                            <option value="">Select Day</option>
-                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                              <option key={day} value={day}>{day}</option>
-                            ))}
-                          </select>
-                          <input
-                            type="time"
-                            value={session.startTime}
-                            onChange={(e) => {
-                              const newSchedule = [...editForm.schedule];
-                              newSchedule[index].startTime = e.target.value;
-                              setEditForm({ ...editForm, schedule: newSchedule });
-                            }}
-                            className="w-1/3 px-2 py-1 border rounded-lg"
-                            required
-                          />
-                          <input
-                            type="time"
-                            value={session.endTime}
-                            onChange={(e) => {
-                              const newSchedule = [...editForm.schedule];
-                              newSchedule[index].endTime = e.target.value;
-                              setEditForm({ ...editForm, schedule: newSchedule });
-                            }}
-                            className="w-1/3 px-2 py-1 border rounded-lg"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newSchedule = editForm.schedule.filter((_, i) => i !== index);
-                              setEditForm({ ...editForm, schedule: newSchedule });
-                            }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            X
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setEditForm({
-                          ...editForm,
-                          schedule: [...editForm.schedule, { dayOfWeek: '', startTime: '', endTime: '' }]
-                        })}
-                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-                      >
-                        Add Session
-                      </button>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                      <input
-                        type="number"
-                        value={editForm.capacity}
-                        onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) })}
-                        className="w-full px-4 py-2 border rounded-lg"
-                        min="1"
-                      />
-                    </div>
-                    <div>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={editForm.isPaid}
-                          onChange={(e) => setEditForm({ ...editForm, isPaid: e.target.checked })}
-                        />
-                        <span>Paid Class</span>
-                      </label>
-                    </div>
-
-                    {editForm.isPaid && (
-                      <div className="space-y-4">
-                        {user?.subscriptionStatus === 'pay_as_you_go' && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Type</label>
-                            <select
-                              value={editForm.pricingType}
-                              onChange={e => setEditForm({ ...editForm, pricingType: e.target.value })}
-                              className="w-full px-4 py-2 border rounded-lg"
-                            >
-                              <option value="monthly">Monthly</option>
-                              <option value="weekly">Weekly</option>
-                              <option value="per_lecture">Per Lecture</option>
-                              <option value="per_topic">Per Topic</option>
-                              <option value="free">Free</option>
-                            </select>
-                          </div>
-                        )}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {user?.subscriptionStatus === 'pay_as_you_go' ? 'Price (₦)' : 'Class Price (₦)'}
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.pricingAmount}
-                            onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
-                            className="w-full px-4 py-2 border rounded-lg"
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {/* Only show teacher select for admins if allowed */}
-                    {(user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+          </div>
+          {/* Edit Classroom Modal */}
+          {showEditModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
+                <h3 className="text-xl font-bold mb-4">Edit Classroom</h3>
+                <form onSubmit={(e) => { setIsEditing(true); handleEditClassroom(e); }} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      rows="3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+                    {editForm.schedule.map((session, index) => (
+                      <div key={index} className="flex space-x-2 mb-2 items-center">
                         <select
-                          value={editForm.teacherId}
-                          onChange={e => setEditForm({ ...editForm, teacherId: e.target.value })}
-                          className="w-full px-4 py-2 border rounded-lg"
+                          value={session.dayOfWeek}
+                          onChange={(e) => {
+                            const newSchedule = [...editForm.schedule];
+                            newSchedule[index].dayOfWeek = e.target.value;
+                            setEditForm({ ...editForm, schedule: newSchedule });
+                          }}
+                          className="w-1/3 px-2 py-1 border rounded-lg"
+                          required
                         >
-                          <option value="">Select a teacher</option>
-                          {availableTeachers.map(teacher => (
-                            <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
+                          <option value="">Select Day</option>
+                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                            <option key={day} value={day}>{day}</option>
                           ))}
                         </select>
+                        <input
+                          type="time"
+                          value={session.startTime}
+                          onChange={(e) => {
+                            const newSchedule = [...editForm.schedule];
+                            newSchedule[index].startTime = e.target.value;
+                            setEditForm({ ...editForm, schedule: newSchedule });
+                          }}
+                          className="w-1/3 px-2 py-1 border rounded-lg"
+                          required
+                        />
+                        <input
+                          type="time"
+                          value={session.endTime}
+                          onChange={(e) => {
+                            const newSchedule = [...editForm.schedule];
+                            newSchedule[index].endTime = e.target.value;
+                            setEditForm({ ...editForm, schedule: newSchedule });
+                          }}
+                          className="w-1/3 px-2 py-1 border rounded-lg"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSchedule = editForm.schedule.filter((_, i) => i !== index);
+                            setEditForm({ ...editForm, schedule: newSchedule });
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          X
+                        </button>
                       </div>
-                    )}
-                    <div className="flex space-x-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowEditModal(false)}
-                        className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isEditing}
-                        className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 flex items-center justify-center"
-                      >
-                        Save Changes
-                        {isEditing && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
-                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({
+                        ...editForm,
+                        schedule: [...editForm.schedule, { dayOfWeek: '', startTime: '', endTime: '' }]
+                      })}
+                      className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                    >
+                      Add Session
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                    <input
+                      type="number"
+                      value={editForm.capacity}
+                      onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editForm.isPaid}
+                        onChange={(e) => setEditForm({ ...editForm, isPaid: e.target.checked })}
+                      />
+                      <span>Paid Class</span>
+                    </label>
+                  </div>
+
+                  {editForm.isPaid && (
+                    <div className="space-y-4">
+                      {user?.subscriptionStatus === 'pay_as_you_go' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Pricing Type</label>
+                          <select
+                            value={editForm.pricingType}
+                            onChange={e => setEditForm({ ...editForm, pricingType: e.target.value })}
+                            className="w-full px-4 py-2 border rounded-lg"
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="per_lecture">Per Lecture</option>
+                            <option value="per_topic">Per Topic</option>
+                            <option value="free">Free</option>
+                          </select>
+                        </div>
+                      )}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {user?.subscriptionStatus === 'pay_as_you_go' ? 'Price (₦)' : 'Class Price (₦)'}
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.pricingAmount}
+                          onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-4 py-2 border rounded-lg"
+                          min="0"
+                          step="0.01"
+                          required
+                        />
+                      </div>
                     </div>
-                  </form>
-                </div>
+                  )}
+                  {/* Only show teacher select for admins if allowed */}
+                  {(user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                      <select
+                        value={editForm.teacherId}
+                        onChange={e => setEditForm({ ...editForm, teacherId: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg"
+                      >
+                        <option value="">Select a teacher</option>
+                        {availableTeachers.map(teacher => (
+                          <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isEditing}
+                      className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 flex items-center justify-center"
+                    >
+                      Save Changes
+                      {isEditing && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
+                    </button>
+                  </div>
+                </form>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 border-t border-b border-gray-100 mb-6">
             <div className="flex items-center space-x-3 text-gray-600">
@@ -1198,6 +1260,39 @@ const ClassroomDetail = () => {
                         )}
                         {canEdit && (
                           <div className="flex space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAssignmentPublishToggle(assignment);
+                              }}
+                              disabled={publishingAssignmentId === assignment._id}
+                              className={`p-1 transition-colors ${assignment.published !== false ? 'text-green-500 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                              title={assignment.published !== false ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
+                            >
+                              {publishingAssignmentId === assignment._id ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : assignment.published !== false ? (
+                                <Eye className="w-5 h-5" />
+                              ) : (
+                                <EyeOff className="w-5 h-5" />
+                              )}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNotifyStudents(assignment._id);
+                              }}
+                              disabled={notifyingAssignmentId === assignment._id}
+                              className="text-blue-500 hover:text-blue-700 p-1 disabled:opacity-50"
+                              title="Notify students (re-publish)"
+                            >
+                              {notifyingAssignmentId === assignment._id ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <Megaphone className="w-5 h-5 transition-colors" />
+                              )}
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

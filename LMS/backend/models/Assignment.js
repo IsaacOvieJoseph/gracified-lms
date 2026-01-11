@@ -87,6 +87,10 @@ const assignmentSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  published: {
+    type: Boolean,
+    default: true
   }
 });
 

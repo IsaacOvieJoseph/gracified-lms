@@ -14,7 +14,8 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
     maxScore: 100,
     assignmentType: 'theory',
     publishResultsAt: '', // New field for MCQ result release time
-    questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }]
+    questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }],
+    published: true
   });
 
   const [isEvenlyDistributed, setIsEvenlyDistributed] = useState(false); // New state for checkbox
@@ -31,7 +32,8 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
         maxScore: editAssignment.maxScore || 100,
         assignmentType: editAssignment.assignmentType || 'theory',
         publishResultsAt: editAssignment.publishResultsAt ? toLocalISOString(editAssignment.publishResultsAt) : '',
-        questions: editAssignment.questions || [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }]
+        questions: editAssignment.questions || [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }],
+        published: editAssignment.published !== false
       });
       setOverallMaxScoreInput(editAssignment.maxScore || 100);
     } else if (classroomId) {
@@ -193,7 +195,8 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
         maxScore: 100,
         assignmentType: 'theory',
         publishResultsAt: '',
-        questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }]
+        questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }],
+        published: true
       });
       setIsEvenlyDistributed(false); // Reset checkbox state
       setOverallMaxScoreInput(100); // Reset overall max score input
@@ -450,6 +453,20 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               />
             </div>
           )}
+          <div>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={createForm.published}
+                onChange={(e) => setCreateForm({ ...createForm, published: e.target.checked })}
+                className="form-checkbox h-5 w-5 text-blue-600 rounded"
+              />
+              <span className="text-sm font-medium text-gray-700">Published (Visible to students)</span>
+            </label>
+            <p className="text-xs text-gray-500 mt-1 ml-7">
+              If published, students will be notified immediately.
+            </p>
+          </div>
           {createForm.assignmentType === 'mcq' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max Score</label>

@@ -4,7 +4,8 @@ const Classroom = require('../models/Classroom');
 const Notification = require('../models/Notification'); // Import Notification model
 const { sendEmail } = require('../utils/email');
 const { auth, authorize } = require('../middleware/auth');
-const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
+const subscriptionCheck = require('../middleware/subscriptionCheck');
+const { notifyNewAssignment } = require('../utils/assignmentNotificationHelper'); // Import subscriptionCheck middleware
 const { filterAssignmentsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
 const router = express.Router();
 
@@ -105,7 +106,12 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       }
     }
 
-    let assignments = await Assignment.find({ classroomId: req.params.classroomId })
+    let query = { classroomId: req.params.classroomId };
+    if (req.user.role === 'student') {
+      query.published = { $ne: false };
+    }
+
+    let assignments = await Assignment.find(query)
       .populate('topicId', 'name isPaid price')
       .populate({
         path: 'classroomId',
@@ -212,7 +218,7 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
 // Create assignment
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
-    const { title, description, classroomId, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt } = req.body;
+    const { title, description, classroomId, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt, published } = req.body;
 
     const classroom = await Classroom.findById(classroomId).populate('students', 'name email').populate('teacherId', 'name email');
     if (!classroom) {
@@ -284,7 +290,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       maxScore: calculatedOverallMaxScore,
       assignmentType,
       questions,
-      publishResultsAt: publishResultsAt || null
+      publishResultsAt: publishResultsAt || null,
+      published: published !== undefined ? published : true
     });
 
     await assignment.save();
@@ -292,63 +299,9 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
     // Add assignment to classroom
     classroom.assignments.push(assignment._id);
     await classroom.save();
-    // Trigger assignment reminder if dueDate is set
-    if (assignment.dueDate) {
-      try {
-        const recipients = [
-          { email: classroom.teacherId.email, name: classroom.teacherId.name },
-          ...classroom.students.map(s => ({ email: s.email, name: s.name }))
-        ].filter(r => r.email);
-
-        for (const recipient of recipients) {
-          sendEmail({
-            to: recipient.email,
-            subject: `New Assignment: ${assignment.title}`,
-            classroomId: classroom._id,
-            html: `
-              <h2 style="color: #4f46e5;">New Assignment Posted</h2>
-              <p>Hello <strong>${recipient.name}</strong>,</p>
-              <p>A new assignment has been posted in <strong>${classroom.name}</strong>. Please check the details below:</p>
-              <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 5px 0;"><strong>Title:</strong> ${assignment.title}</p>
-                <p style="margin: 5px 0;"><strong>Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()} (GMT)</p>
-                <p style="margin: 5px 0;"><strong>Type:</strong> ${assignment.assignmentType.toUpperCase()}</p>
-              </div>
-              <p>Log in to your dashboard to view the full details and start working on it.</p>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                View Assignment
-              </a>
-            `
-          }).catch(err => console.error('Error sending email to', recipient.email, err.message));
-        }
-      } catch (notificationError) {
-        console.error('Error sending assignment reminder notification:', notificationError.message);
-      }
-    }
-
-    // Create in-app notifications for new assignment
-    try {
-      // Notification for teacher
-      await Notification.create({
-        userId: classroom.teacherId,
-        message: `New assignment: "${assignment.title}" has been created in "${classroom.name}".`,
-        type: 'new_assignment',
-        entityId: assignment._id,
-        entityRef: 'Assignment',
-      });
-
-      // Notifications for students in the classroom
-      const studentNotifications = classroom.students.map(studentId => ({
-        userId: studentId,
-        message: `New assignment: "${assignment.title}" has been posted in "${classroom.name}".`,
-        type: 'new_assignment',
-        entityId: assignment._id,
-        entityRef: 'Assignment',
-      }));
-      await Notification.insertMany(studentNotifications);
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notifications for new assignment:', inAppNotifError.message);
+    // Send notifications only if published
+    if (assignment.published) {
+      await notifyNewAssignment(assignment);
     }
 
     res.status(201).json({ assignment });
@@ -360,7 +313,7 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 // Update assignment
 router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
-    const { title, description, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt } = req.body;
+    const { title, description, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt, published } = req.body;
 
     const assignment = await Assignment.findById(req.params.id);
     if (!assignment) {
@@ -409,7 +362,19 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
       }
     }
 
+    let newlyPublished = false;
+    if (published !== undefined) {
+      if (published === true && assignment.published === false) {
+        newlyPublished = true;
+      }
+      assignment.published = published;
+    }
+
     await assignment.save();
+
+    if (newlyPublished) {
+      await notifyNewAssignment(assignment);
+    }
 
     // Notifications
     if (assignment.dueDate) {
@@ -889,6 +854,65 @@ router.delete('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', '
 
     await Assignment.findByIdAndDelete(req.params.id);
     res.json({ message: 'Assignment deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Toggle assignment published status
+router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const { published } = req.body;
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const classroom = await Classroom.findById(assignment.classroomId);
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const previouslyPublished = assignment.published;
+    assignment.published = published;
+    await assignment.save();
+
+    // If newly published, trigger notifications
+    if (published && !previouslyPublished) {
+      await notifyNewAssignment(assignment);
+    }
+
+    res.json({ message: `Assignment ${published ? 'published' : 'unpublished'} successfully`, assignment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Trigger notifications for an assignment manually (Re-publish/Notify)
+router.post('/:id/notify', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const classroom = await Classroom.findById(assignment.classroomId);
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    await notifyNewAssignment(assignment);
+    res.json({ message: 'Notifications sent successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

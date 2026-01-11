@@ -213,6 +213,12 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
         // Do NOT override classroom.pricing.amount; keep class price as originally set
       }
     }
+
+    // Filter out unpublished assignments for students
+    if (req.user.role === 'student' && classroom.assignments) {
+      classroom.assignments = classroom.assignments.filter(a => a.published !== false);
+    }
+
     res.json({ classroom, dynamicTopicPrice, showPaidTopics });
   } catch (error) {
     res.status(500).json({ message: error.message });
