@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone } from 'lucide-react';
+import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone, Flag } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal, formatDisplayDate } from '../utils/timezone';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -184,6 +184,23 @@ const ClassroomDetail = () => {
       toast.error(error.response?.data?.message || 'Error updating assignment publish status');
     } finally {
       setPublishingAssignmentId(null);
+    }
+  };
+
+  const [showEndClassModal, setShowEndClassModal] = useState(false);
+  const [isEndingClass, setIsEndingClass] = useState(false);
+
+  const confirmEndClassroom = async () => {
+    setIsEndingClass(true);
+    try {
+      await api.post(`/classrooms/${id}/end`, {});
+      toast.success('Classroom ended successfully');
+      setShowEndClassModal(false);
+      navigate('/classrooms'); // proper redirect
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error ending classroom');
+    } finally {
+      setIsEndingClass(false);
     }
   };
 
@@ -720,6 +737,15 @@ const ClassroomDetail = () => {
                 >
                   <Edit className="w-4 h-4" />
                   <span className="hidden md:inline">Edit</span>
+                </button>
+                {/* End Class Button */}
+                <button
+                  onClick={() => setShowEndClassModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shrink-0 self-start"
+                  title="End Classroom (Reset)"
+                >
+                  <Flag className="w-4 h-4" />
+                  <span className="hidden md:inline">End Class</span>
                 </button>
                 {/* Delete Button (Only for admins or personal teacher owners) */}
                 {(user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
@@ -1894,6 +1920,49 @@ const ClassroomDetail = () => {
                 >
                   {isDeletingClass ? 'Deleting...' : 'Delete'}
                   {isDeletingClass && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+        )
+      }
+
+      {/* End Classroom Confirmation Modal */}
+      {
+        showEndClassModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+              <div className="flex justify-center mb-4">
+                <div className="bg-indigo-100 p-3 rounded-full">
+                  <Flag className="w-6 h-6 text-indigo-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-center text-gray-900 mb-2">End Classroom?</h3>
+              <p className="text-gray-500 text-center mb-4 text-sm">
+                Are you sure? This action will:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-500 mb-6 space-y-1">
+                <li>Remove all students</li>
+                <li>Unpublish assignments & clear deadlines</li>
+                <li>Reset all topic progress</li>
+                <li>Notify students and request feedback</li>
+              </ul>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowEndClassModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  disabled={isEndingClass}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmEndClassroom}
+                  disabled={isEndingClass}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center"
+                >
+                  {isEndingClass ? 'Ending...' : 'End Class'}
+                  {isEndingClass && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
                 </button>
               </div>
             </div>

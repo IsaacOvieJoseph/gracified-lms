@@ -33,7 +33,7 @@ const subscriptionCheck = async (req, res, next) => {
     }
 
     // For Teachers - no subscription blocking (removed subscription checks)
-    if (user.role === 'teacher' || user.role === 'student') {
+    if (user.role === 'teacher') {
       return next();
     }
 

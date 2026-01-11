@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import SubscriptionBlockBanner from './SubscriptionBlockBanner';
 import SchoolSwitcher from './SchoolSwitcher';
+import FeedbackManager from './FeedbackManager';
 import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
@@ -162,6 +163,7 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+      <FeedbackManager />
       {shouldBlock && !isDashboard && (
         <SubscriptionBlockBanner
           onViewPlans={() => navigate('/subscription-management')}

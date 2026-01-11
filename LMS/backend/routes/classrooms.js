@@ -7,6 +7,10 @@ const CallSession = require('../models/CallSession');
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
 const { filterClassroomsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
+const Assignment = require('../models/Assignment');
+const Topic = require('../models/Topic');
+const FeedbackRequest = require('../models/FeedbackRequest');
+const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
 // Get all classrooms
@@ -112,6 +116,82 @@ router.get('/active-meetings', auth, async (req, res) => {
     }).sort({ startedAt: -1 });
 
     res.json({ activeSessions });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get pending feedback requests for student
+router.get('/feedback/pending', auth, async (req, res) => {
+  try {
+    const feedbackRequests = await FeedbackRequest.find({
+      studentId: req.user._id,
+      status: 'pending'
+    }).populate('classroomId', 'name');
+    res.json({ feedbackRequests });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Submit feedback
+router.post('/feedback', auth, async (req, res) => {
+  try {
+    const { requestId, rating, comment } = req.body;
+    const request = await FeedbackRequest.findOne({
+      _id: requestId,
+      studentId: req.user._id
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: 'Feedback request not found' });
+    }
+
+    request.status = 'completed';
+    request.rating = rating;
+    request.comment = comment;
+    request.submittedAt = Date.now();
+    await request.save();
+
+    res.json({ message: 'Feedback submitted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get pending feedback requests for student
+router.get('/feedback/pending', auth, async (req, res) => {
+  try {
+    const feedbackRequests = await FeedbackRequest.find({
+      studentId: req.user._id,
+      status: 'pending'
+    }).populate('classroomId', 'name');
+    res.json({ feedbackRequests });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Submit feedback
+router.post('/feedback', auth, async (req, res) => {
+  try {
+    const { requestId, rating, comment } = req.body;
+    const request = await FeedbackRequest.findOne({
+      _id: requestId,
+      studentId: req.user._id
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: 'Feedback request not found' });
+    }
+
+    request.status = 'completed';
+    request.rating = rating;
+    request.comment = comment;
+    request.submittedAt = Date.now();
+    await request.save();
+
+    res.json({ message: 'Feedback submitted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1054,6 +1134,94 @@ router.get('/:id/call', auth, subscriptionCheck, async (req, res) => {
   } catch (error) {
     console.error('Error fetching class call:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// End Classroom - Removes students, resets assignments/topics, requests feedback
+router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id);
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+
+    // Authorization check
+    let authorized = false;
+    const user = req.user;
+    if (user.role === 'root_admin') authorized = true;
+    else if (['teacher', 'personal_teacher'].includes(user.role)) {
+      if ((classroom.teacherId?._id || classroom.teacherId).toString() === user._id.toString()) authorized = true;
+    }
+    // School Admin check
+    else if (user.role === 'school_admin') {
+      const School = require('../models/School');
+      const managedSchools = await School.find({ adminId: user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+        .filter(Boolean)
+        .map(sid => (sid._id || sid).toString());
+
+      if (classSchoolIds.some(sid => managedSchoolIds.includes(sid))) {
+        authorized = true;
+      }
+    }
+
+    if (!authorized) return res.status(403).json({ message: 'Access denied' });
+
+    // 1. Get students for feedback requests (before removing)
+    const studentsToNotify = (classroom.students || []).map(s => s.toString());
+
+    // 2. Clear Students
+    classroom.students = [];
+
+    // 3. Reset Assignments (Unpublish, Clear dates, Clear submissions)
+    await Assignment.updateMany(
+      { classroomId: classroom._id },
+      {
+        $set: {
+          published: false,
+          dueDate: null,
+          publishResultsAt: null,
+          submissions: []
+        }
+      }
+    );
+
+    // 4. Reset Topics (Status pending)
+    await Topic.updateMany(
+      { classroomId: classroom._id },
+      { $set: { status: 'pending', completedBy: null, completedAt: null } }
+    );
+
+    // 5. Create Feedback Requests & Notifications
+    for (const studentId of studentsToNotify) {
+      // Check if feedback request already exists to avoid dupes?
+      // Assuming new end class implies new feedback cycle.
+      await FeedbackRequest.create({
+        studentId,
+        classroomId: classroom._id,
+        classroomName: classroom.name,
+        teacherId: classroom.teacherId,
+        status: 'pending'
+      });
+
+      // Send Notification (Email)
+      const student = await User.findById(studentId);
+      if (student && student.email) {
+        // We use a generic message here; template could be improved.
+        await sendEmail({
+          to: student.email,
+          subject: 'Classroom Ended - Your Feedback Matters',
+          html: `The classroom "${classroom.name}" has formally ended. We'd love to hear your feedback. Please log in to your dashboard to rate your experience.`,
+          classroomId: classroom._id
+        });
+      }
+    }
+
+    await classroom.save();
+    res.json({ message: 'Classroom ended successfully. Students removed and notified.' });
+
+  } catch (err) {
+    console.error('Error ending classroom:', err);
+    res.status(500).json({ message: err.message });
   }
 });
 
