@@ -11,6 +11,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Hide default password reveal button in Edge/Internet Explorer */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
