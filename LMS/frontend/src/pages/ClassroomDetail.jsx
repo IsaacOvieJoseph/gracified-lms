@@ -416,7 +416,7 @@ const ClassroomDetail = () => {
         const w = window.open(link, '_blank');
         if (w) w.opener = null;
       } else {
-        toast.error('Could not create meeting link');
+        toast.error('Could not create lecture link');
       }
     } catch (error) {
       if (error.response?.data?.googleAuthRequired) {

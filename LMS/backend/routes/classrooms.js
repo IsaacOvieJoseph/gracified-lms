@@ -841,7 +841,13 @@ function generateGoogleMeetLink() {
 // Start a class call (teacher, personal_teacher owner, school_admin of school, root_admin)
 router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
   try {
-    const classroom = await Classroom.findById(req.params.id).populate('schoolId');
+    const classroom = await Classroom.findById(req.params.id)
+      .populate('schoolId')
+      .populate({
+        path: 'teacherId',
+        select: 'name tutorialId',
+        populate: { path: 'tutorialId', select: 'name' }
+      });
     if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
 
     const user = req.user;
@@ -873,6 +879,27 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
     let link = null;
     let created = false;
 
+    // Prepare details for Google Meet
+    const Topic = require('../models/Topic');
+    let currentTopic = null;
+    if (classroom.currentTopicId) {
+      currentTopic = await Topic.findById(classroom.currentTopicId);
+    } else {
+      currentTopic = await Topic.findOne({ classroomId: classroom._id, status: 'active' }).sort({ order: 1 });
+    }
+
+    const schoolOrTutorial = (Array.isArray(classroom.schoolId) && classroom.schoolId[0]?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial';
+    const summary = `${classroom.name} | ${schoolOrTutorial}`;
+
+    let description = `Lecture for Class: ${classroom.name}.\n`;
+    if (currentTopic) {
+      description += `Current Topic: ${currentTopic.name}\n`;
+      if (currentTopic.description) {
+        description += `Topic Description: ${currentTopic.description}\n`;
+      }
+    }
+    description += `Started At: ${now.toLocaleString()}`;
+
     if (!latest) {
       // create a real Google Meet if configured, otherwise fallback to pseudo link
       let eventId = null;
@@ -896,7 +923,12 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
         if (needsGoogleAuth) {
           return res.status(403).json({ message: 'Google authorization required', googleAuthRequired: true });
         }
-        const meet = await createGoogleMeet({ summary: `Class: ${classroom.name}`, attendees: [], refreshToken });
+        const meet = await createGoogleMeet({
+          summary,
+          description,
+          attendees: [],
+          refreshToken
+        });
         link = meet.meetUrl || generateGoogleMeetLink();
         eventId = meet.eventId || null;
         htmlLink = meet.htmlLink || null;
@@ -932,7 +964,12 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
           if (needsGoogleAuth) {
             return res.status(403).json({ message: 'Google authorization required', googleAuthRequired: true });
           }
-          const meet = await createGoogleMeet({ summary: `Class: ${classroom.name}`, attendees: [], refreshToken });
+          const meet = await createGoogleMeet({
+            summary,
+            description,
+            attendees: [],
+            refreshToken
+          });
           link = meet.meetUrl || generateGoogleMeetLink();
           eventId = meet.eventId || null;
           htmlLink = meet.htmlLink || null;
