@@ -159,6 +159,55 @@ router.post('/feedback', auth, async (req, res) => {
   }
 });
 
+// Trigger platform feedback request (Root Admin)
+router.post('/feedback/request', auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const { targetRole, message } = req.body;
+    // targetRole: 'all', 'student', 'teacher', 'school_admin'
+
+    let query = {};
+    if (targetRole && targetRole !== 'all') {
+      query.role = targetRole;
+    } else {
+      query.role = { $in: ['student', 'teacher', 'school_admin', 'personal_teacher'] };
+    }
+
+    const users = await User.find(query).select('_id email title');
+
+    // Filter out users who already have a pending request of this type/message? 
+    // For simplicity, we'll allow multiple for now or rely on client to manage frequency.
+
+    const feedbackRequests = users.map(user => ({
+      studentId: user._id, // User providing feedback
+      type: 'platform',
+      title: message || 'We value your opinion!',
+      status: 'pending'
+    }));
+
+    if (feedbackRequests.length > 0) {
+      await FeedbackRequest.insertMany(feedbackRequests);
+    }
+
+    res.json({ message: `Feedback requested from ${feedbackRequests.length} users successfully.` });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all feedbacks (Root Admin)
+router.get('/feedback/all', auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const feedbacks = await FeedbackRequest.find({ status: 'completed' })
+      .populate('studentId', 'name email')
+      .populate('teacherId', 'name email')
+      .sort({ submittedAt: -1 });
+    res.json({ feedbacks });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get pending feedback requests for student
 router.get('/feedback/pending', auth, async (req, res) => {
   try {
@@ -1214,6 +1263,23 @@ router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher',
           classroomId: classroom._id
         });
       }
+    }
+
+
+    // 6. Notify Root Admins
+    try {
+      const rootAdmins = await User.find({ role: 'root_admin' });
+      const notifications = rootAdmins.map(admin => ({
+        user: admin._id,
+        message: `Classroom "${classroom.name}" has been ended/reset by ${req.user.name}.`,
+        type: 'classroom_ended',
+        relatedId: classroom._id
+      }));
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+    } catch (notifyErr) {
+      console.error('Error notifying root admins:', notifyErr);
     }
 
     await classroom.save();

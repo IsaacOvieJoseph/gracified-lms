@@ -8,12 +8,18 @@ const feedbackRequestSchema = new mongoose.Schema({
     },
     classroomId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Classroom',
-        required: true
+        ref: 'Classroom'
     },
     classroomName: {
-        type: String, // Store name in case classroom is deleted later (unlikely but good for display)
-        required: true
+        type: String // Store name in case classroom is deleted later (unlikely but good for display)
+    },
+    type: {
+        type: String,
+        enum: ['classroom', 'platform'],
+        default: 'classroom'
+    },
+    title: { // For platform feedback context (e.g. "We'd love your thoughts?")
+        type: String
     },
     teacherId: { // To know who to show feedback to (optional maybe)
         type: mongoose.Schema.Types.ObjectId,
