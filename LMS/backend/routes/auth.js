@@ -760,6 +760,85 @@ router.put('/profile', auth, async (req, res) => {
 // });
 // ==========================================================
 
+// ==========================================================
+
+// Set password for invited users
+router.post('/set-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+
+    // Find user with valid invite token
+    const user = await User.findOne({
+      inviteToken: token,
+      inviteTokenExpires: { $gt: Date.now() },
+      isPendingInvite: true
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired invite link' });
+    }
+
+    // Set the new password
+    user.password = password;
+    user.inviteToken = null;
+    user.inviteTokenExpires = null;
+    user.isPendingInvite = false;
+    user.isVerified = true;
+
+    await user.save();
+
+    // Generate JWT token for automatic login
+    const jwtToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      message: 'Password set successfully',
+      token: jwtToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify invite token (check if token is valid before showing set password form)
+router.get('/verify-invite/:token', async (req, res) => {
+  try {
+    const user = await User.findOne({
+      inviteToken: req.params.token,
+      inviteTokenExpires: { $gt: Date.now() },
+      isPendingInvite: true
+    }).select('name email role');
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired invite link' });
+    }
+
+    res.json({
+      valid: true,
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Update profile settings
 router.put('/profile', auth, async (req, res) => {
   try {

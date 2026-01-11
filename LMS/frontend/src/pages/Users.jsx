@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import Select from 'react-select';
-import { Plus, Edit, Trash2, Search, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Loader2, Upload, Download } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,10 @@ const Users = () => {
   }, [user]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResults, setUploadResults] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -155,6 +159,56 @@ const Users = () => {
     }
   };
 
+  const handleBulkUpload = async (e) => {
+    e.preventDefault();
+    if (!csvFile) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadResults(null);
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('csvFile', csvFile);
+      formDataToSend.append('role', formData.role || 'student');
+
+      if (user?.role === 'school_admin' && selectedSchools.length > 0) {
+        formDataToSend.append('schoolId', JSON.stringify(selectedSchools));
+      }
+
+      const response = await api.post('/users/bulk-invite', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        skipLoader: true
+      });
+
+      setUploadResults(response.data);
+      toast.success(`Successfully processed ${response.data.successful} users`);
+
+      if (response.data.failed > 0) {
+        toast.error(`${response.data.failed} users failed to process`);
+      }
+
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error uploading CSV');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const csvContent = 'name,email\nJohn Doe,john@example.com\nJane Smith,jane@example.com';
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_users.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const [isCreating, setIsCreating] = useState(false);
 
   const handleDelete = async (userId) => {
@@ -197,28 +251,40 @@ const Users = () => {
               : 'User Management'}
           </h2>
           {['root_admin', 'school_admin'].includes(user?.role) && (
-            <button
-              onClick={() => {
-                // Reset form and sync with selectedSchools when opening modal
-                const currentSelected = JSON.parse(localStorage.getItem('selectedSchools') || '[]');
-                if (user?.role === 'school_admin' && currentSelected.length > 0) {
-                  setFormData({
-                    name: '',
-                    email: '',
-                    password: '',
-                    role: 'student',
-                    schoolIds: currentSelected // Pre-populate with selected school
-                  });
-                } else {
-                  setFormData({ name: '', email: '', password: '', role: 'student', schoolIds: [] });
-                }
-                setShowCreateModal(true);
-              }}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create User</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const currentSelected = JSON.parse(localStorage.getItem('selectedSchools') || '[]');
+                  if (user?.role === 'school_admin' && currentSelected.length > 0) {
+                    setFormData({
+                      name: '',
+                      email: '',
+                      password: '',
+                      role: 'student',
+                      schoolIds: currentSelected
+                    });
+                  } else {
+                    setFormData({ name: '', email: '', password: '', role: 'student', schoolIds: [] });
+                  }
+                  setShowCreateModal(true);
+                }}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create User</span>
+              </button>
+              <button
+                onClick={() => {
+                  setCsvFile(null);
+                  setUploadResults(null);
+                  setShowBulkUploadModal(true);
+                }}
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Bulk Upload</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -411,6 +477,120 @@ const Users = () => {
                   Create
                   {isCreating && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]">
+            <h3 className="text-xl font-bold mb-4">Bulk Upload Users via CSV</h3>
+
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800 mb-2">
+                <strong>Instructions:</strong>
+              </p>
+              <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
+                <li>Upload a CSV file with columns: <code className="bg-blue-100 px-1 rounded">name</code>, <code className="bg-blue-100 px-1 rounded">email</code></li>
+                <li>Each user will receive an invite email with a unique link to set their password</li>
+                <li>The invite link expires in 7 days</li>
+                <li>Select the role for all users in this upload</li>
+              </ul>
+              <button
+                onClick={downloadSampleCSV}
+                className="mt-3 flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Sample CSV</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkUpload} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CSV File</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setCsvFile(e.target.files[0])}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  required
+                />
+                {csvFile && (
+                  <p className="text-sm text-gray-600 mt-1">Selected: {csvFile.name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role for All Users</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  required
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  {user?.role === 'root_admin' && (
+                    <>
+                      <option value="school_admin">School Admin</option>
+                      <option value="personal_teacher">Personal Teacher</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {uploadResults && (
+                <div className="p-4 bg-gray-50 border rounded-lg">
+                  <h4 className="font-semibold mb-2">Upload Results:</h4>
+                  <p className="text-sm text-green-600">✓ Successful: {uploadResults.successful}</p>
+                  <p className="text-sm text-red-600">✗ Failed: {uploadResults.failed}</p>
+
+                  {uploadResults.errors && uploadResults.errors.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium text-gray-700 mb-1">Errors:</p>
+                      <div className="max-h-40 overflow-y-auto">
+                        {uploadResults.errors.map((err, idx) => (
+                          <p key={idx} className="text-xs text-red-600">
+                            Row {err.row}: {err.email} - {err.error}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBulkUploadModal(false);
+                    setCsvFile(null);
+                    setUploadResults(null);
+                  }}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  {uploadResults ? 'Close' : 'Cancel'}
+                </button>
+                {!uploadResults && (
+                  <button
+                    type="submit"
+                    disabled={isUploading}
+                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      'Upload & Send Invites'
+                    )}
+                  </button>
+                )}
               </div>
             </form>
           </div>

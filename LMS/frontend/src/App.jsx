@@ -23,6 +23,7 @@ import Disbursements from './pages/Disbursements'; // Import new Disbursements c
 import PlatformSettings from './pages/PlatformSettings';
 import Feedbacks from './pages/Feedbacks';
 import ForgotPassword from './pages/ForgotPassword';
+import SetPassword from './pages/SetPassword';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -242,6 +243,7 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route path="/set-password" element={<SetPassword />} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
     </Routes>
   );

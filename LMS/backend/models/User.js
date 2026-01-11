@@ -93,10 +93,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Fields for invite-based user creation
+  inviteToken: {
+    type: String,
+    default: null,
+  },
+  inviteTokenExpires: {
+    type: Date,
+    default: null,
+  },
+  isPendingInvite: {
+    type: Boolean,
+    default: false,
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  // Skip password hashing if user is pending invite (no password set yet)
+  if (!this.isModified('password') || this.isPendingInvite) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);

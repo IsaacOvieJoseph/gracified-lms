@@ -1,62 +1,60 @@
 const express = require('express');
 const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
-const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
+const subscriptionCheck = require('../middleware/subscriptionCheck');
+const crypto = require('crypto');
+const { sendEmail } = require('../utils/email');
+const multer = require('multer');
+const csv = require('csv-parser');
+const fs = require('fs');
 const router = express.Router();
+
+// Configure multer for CSV upload
+const upload = multer({ dest: 'uploads/' });
 
 // Get all users (Root Admin, School Admin, Personal Teacher)
 router.get('/', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     let query = {};
 
-    const { schoolId, role } = req.query; // Extract schoolId and role from query parameters
+    const { schoolId, role } = req.query;
 
-    // If schoolId is provided in query, filter by it
     if (schoolId) {
       query.schoolId = schoolId;
     }
 
-    // If role is provided in query (e.g., "teacher,personal_teacher"), filter by it
     if (role) {
       const rolesArray = role.split(',').map(r => r.trim());
       query.role = { $in: rolesArray };
     }
 
-    // Root Admin sees all users (unless specific query filters are applied)
     if (req.user.role === 'root_admin') {
-      // No additional filter needed based on req.user.role, query is already built from req.query
+      // No additional filter
     }
-    // School Admin can only see teachers and students from their schools
     else if (req.user.role === 'school_admin') {
-      // Get all schools where this admin is the adminId (more reliable than user.schoolId array)
       const School = require('../models/School');
       const adminSchools = await School.find({ adminId: req.user._id }).select('_id');
       const adminSchoolIds = adminSchools.map(s => s._id);
 
-      // If a specific schoolId is provided in query, verify it belongs to this admin
       if (req.query.schoolId) {
         const requestedSchoolId = req.query.schoolId;
         if (adminSchoolIds.some(id => id.toString() === requestedSchoolId.toString())) {
           query.schoolId = requestedSchoolId;
         } else {
-          // Requested school doesn't belong to admin, return empty
-          query._id = null; // This will return no results
+          query._id = null;
         }
       } else {
-        // No specific school requested, show users from all admin's schools
         if (adminSchoolIds.length > 0) {
           query.schoolId = { $in: adminSchoolIds };
         } else {
-          // Admin has no schools, return empty
-          query._id = null; // This will return no results
+          query._id = null;
         }
       }
 
-      if (!query.role) { // If role not specified in query, default to teachers/students
+      if (!query.role) {
         query.role = { $in: ['teacher', 'student'] };
       }
     }
-    // Personal Teacher can see all students (for adding to their classes)
     else if (req.user.role === 'personal_teacher') {
       query.role = 'student';
     }
@@ -86,31 +84,25 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
   try {
     const { name, email, password, role, schoolId } = req.body;
 
-    // Root Admin can create any user EXCEPT another root_admin (for security)
     if (req.user.role === 'root_admin') {
       if (role === 'root_admin') {
         return res.status(403).json({ message: 'Creating root_admin users is not allowed.' });
       }
     }
-    // School Admin can only create teachers and students for their school
     else if (req.user.role === 'school_admin') {
       if (!['teacher', 'student'].includes(role)) {
         return res.status(403).json({ message: 'School admin can only create teachers and students' });
       }
     }
 
-    // School Admin can only create users for their school
     let finalSchoolId;
     if (req.user.role === 'school_admin') {
-      // If schoolId is provided in body, verify the admin owns these schools
       if (schoolId) {
         const School = require('../models/School');
         const providedSchoolIds = Array.isArray(schoolId)
           ? schoolId.map(id => id.toString())
           : [schoolId.toString()];
 
-        // Check if the admin is the adminId for all provided schools
-        // This is more reliable than checking schoolId array, as it checks actual ownership
         const schools = await School.find({
           _id: { $in: providedSchoolIds },
           adminId: req.user._id
@@ -120,13 +112,11 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
         const allValid = providedSchoolIds.every(id => foundSchoolIds.includes(id));
 
         if (allValid && schools.length === providedSchoolIds.length) {
-          // All provided schools belong to this admin
           finalSchoolId = schoolId;
         } else {
           return res.status(403).json({ message: 'You can only assign users to your assigned schools' });
         }
       } else {
-        // If no schoolId provided, return error - school must be selected
         return res.status(400).json({ message: 'School ID is required. Please select a school from the dropdown.' });
       }
     } else {
@@ -156,6 +146,143 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
   }
 });
 
+// Bulk CSV upload with invite links
+router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No CSV file uploaded' });
+    }
+
+    const { role, schoolId } = req.body;
+    const results = [];
+    const errors = [];
+
+    // Validate school access for school admin
+    let finalSchoolId;
+    if (req.user.role === 'school_admin') {
+      if (!schoolId) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: 'School ID is required' });
+      }
+
+      const School = require('../models/School');
+      const providedSchoolIds = Array.isArray(schoolId)
+        ? schoolId
+        : [schoolId];
+
+      const schools = await School.find({
+        _id: { $in: providedSchoolIds },
+        adminId: req.user._id
+      });
+
+      if (schools.length !== providedSchoolIds.length) {
+        fs.unlinkSync(req.file.path);
+        return res.status(403).json({ message: 'You can only assign users to your assigned schools' });
+      }
+      finalSchoolId = schoolId;
+    } else {
+      finalSchoolId = schoolId;
+    }
+
+    // Parse CSV
+    const users = [];
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on('data', (row) => {
+        users.push(row);
+      })
+      .on('end', async () => {
+        try {
+          for (let i = 0; i < users.length; i++) {
+            const userData = users[i];
+            const { name, email } = userData;
+
+            if (!name || !email) {
+              errors.push({ row: i + 1, email: email || 'N/A', error: 'Missing name or email' });
+              continue;
+            }
+
+            // Check if user already exists
+            const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+            if (existingUser) {
+              errors.push({ row: i + 1, email, error: 'User already exists' });
+              continue;
+            }
+
+            // Generate invite token
+            const inviteToken = crypto.randomBytes(32).toString('hex');
+            const inviteTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+            // Create user with pending invite
+            const newUser = new User({
+              name: name.trim(),
+              email: email.toLowerCase().trim(),
+              password: crypto.randomBytes(16).toString('hex'), // Temporary password
+              role: role || 'student',
+              schoolId: finalSchoolId,
+              createdBy: req.user._id,
+              inviteToken,
+              inviteTokenExpires,
+              isPendingInvite: true,
+              isVerified: false
+            });
+
+            await newUser.save();
+
+            // Send invite email
+            const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/set-password?token=${inviteToken}`;
+
+            try {
+              await sendEmail({
+                to: newUser.email,
+                subject: 'Welcome to Gracified LMS - Set Your Password',
+                html: `
+                  <h2>Welcome to Gracified LMS!</h2>
+                  <p>Hello ${newUser.name},</p>
+                  <p>You have been invited to join Gracified LMS as a ${newUser.role}.</p>
+                  <p>Please click the link below to set your password and activate your account:</p>
+                  <p><a href="${inviteLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Set Your Password</a></p>
+                  <p>Or copy and paste this link in your browser:</p>
+                  <p>${inviteLink}</p>
+                  <p>This link will expire in 7 days.</p>
+                  <p>Best regards,<br>Gracified LMS Team</p>
+                `
+              });
+
+              results.push({ row: i + 1, name, email, status: 'success' });
+            } catch (emailError) {
+              console.error('Email send error:', emailError);
+              results.push({ row: i + 1, name, email, status: 'created_but_email_failed' });
+            }
+          }
+
+          // Clean up uploaded file
+          fs.unlinkSync(req.file.path);
+
+          res.json({
+            message: `Processed ${users.length} users`,
+            successful: results.length,
+            failed: errors.length,
+            results,
+            errors
+          });
+        } catch (processingError) {
+          fs.unlinkSync(req.file.path);
+          res.status(500).json({ message: processingError.message });
+        }
+      })
+      .on('error', (error) => {
+        fs.unlinkSync(req.file.path);
+        res.status(500).json({ message: 'Error parsing CSV: ' + error.message });
+      });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Update user
 router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
@@ -164,17 +291,14 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, re
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check permissions
     if (req.user.role === 'root_admin') {
       if (req.body.role === 'root_admin' && targetUser.role !== 'root_admin') {
         return res.status(403).json({ message: 'Cannot elevate a user to root_admin.' });
       }
     } else if (req.user.role === 'school_admin') {
-      // School admin can only update users from their school
       if (targetUser.schoolId?.toString() !== req.user.schoolId?.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
-      // Cannot update to roles other than teacher/student
       if (req.body.role && !['teacher', 'student'].includes(req.body.role)) {
         return res.status(403).json({ message: 'Cannot change to this role' });
       }
@@ -205,7 +329,7 @@ router.delete('/:id', auth, authorize('root_admin'), async (req, res) => {
   }
 });
 
-// Get students for a teacher (Teachers can see their students)
+// Get students for a teacher
 router.get('/my-students', auth, authorize('teacher', 'personal_teacher'), async (req, res) => {
   try {
     const Classroom = require('../models/Classroom');
@@ -213,7 +337,6 @@ router.get('/my-students', auth, authorize('teacher', 'personal_teacher'), async
       .populate('students', 'name email enrolledClasses')
       .select('name students');
 
-    // Get unique students from all classrooms
     const studentMap = new Map();
     classrooms.forEach(classroom => {
       classroom.students.forEach(student => {
@@ -231,4 +354,3 @@ router.get('/my-students', auth, authorize('teacher', 'personal_teacher'), async
 });
 
 module.exports = router;
-
