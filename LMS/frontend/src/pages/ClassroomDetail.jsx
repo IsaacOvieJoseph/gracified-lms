@@ -424,7 +424,7 @@ const ClassroomDetail = () => {
         const apiBase = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || '';
         window.location.href = `${apiBase}/api/google-auth/start-consent?userId=${user?._id}&classroomId=${id}`;
       } else {
-        toast.error(error.response?.data?.message || 'Error starting meeting');
+        toast.error(error.response?.data?.message || 'Error starting lecture');
       }
     }
   };
@@ -439,10 +439,10 @@ const ClassroomDetail = () => {
         const w = window.open(link, '_blank');
         if (w) w.opener = null;
       } else {
-        toast.error('No active meeting found');
+        toast.error('No active lecture found');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error joining meeting');
+      toast.error(err.response?.data?.message || 'Error joining lecture');
     }
   };
 
@@ -932,8 +932,8 @@ const ClassroomDetail = () => {
                   const canStartCall = isTeacherOwner || isRoot || isSchoolAdminOfClass;
 
                   if (canStartCall) {
-                    // For starters show a single CTA: 'Start Meeting' when no current call exists, otherwise 'Join Meeting'
-                    const label = currentCall && currentCall.link ? 'Join Meeting' : 'Start Meeting';
+                    // For starters show a single CTA: 'Start Lecture' when no current call exists, otherwise 'Attend Lecture'
+                    const label = currentCall && currentCall.link ? 'Attend Lecture' : 'Start Lecture';
                     return (
                       <button
                         onClick={handleStartZoom}
@@ -945,7 +945,7 @@ const ClassroomDetail = () => {
                     );
                   }
 
-                  // Not a starter: fall back to join button for enrolled students
+                  // Not a starter: fall back to attend button for enrolled students
                   if (isEnrolled) {
                     return (
                       <button
@@ -953,7 +953,7 @@ const ClassroomDetail = () => {
                         className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                       >
                         <Video className="w-5 h-5" />
-                        <span>Join Meeting</span>
+                        <span>Attend Lecture</span>
                       </button>
                     );
                   }

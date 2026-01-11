@@ -113,7 +113,7 @@ const PaymentRequiredModal = ({ show, onClose, topic, classroomId, onSuccess }) 
 
           <h4 className="text-xl font-bold text-gray-800 mb-2">Payment Required</h4>
           <p className="text-gray-600 mb-6">
-            The topic <span className="font-semibold text-indigo-600">"{topic.name}"</span> requires payment to access its contents, including assignments, meetings, and the whiteboard.
+            The topic <span className="font-semibold text-indigo-600">"{topic.name}"</span> requires payment to access its contents, including assignments, lectures, and the whiteboard.
           </p>
 
           <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">

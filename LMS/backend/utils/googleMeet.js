@@ -56,7 +56,7 @@ function createJwtClientFromEnv() {
  *  - endTime: Date or ISO string
  *  - attendees: array of email strings
  */
-async function createGoogleMeet({ summary = 'Class Meeting', description = '', startTime = new Date(), endTime = null, attendees = [], refreshToken = null } = {}) {
+async function createGoogleMeet({ summary = 'Class Lecture', description = '', startTime = new Date(), endTime = null, attendees = [], refreshToken = null } = {}) {
   const oAuth2Client = createOAuth2ClientFromEnv(refreshToken);
   let authClient = null;
 

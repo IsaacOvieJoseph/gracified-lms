@@ -108,7 +108,7 @@ const Dashboard = () => {
       const classroomsWithActivity = relatedClassrooms.map(c => {
         const activities = [];
         const activeMeeting = activeMeetings.find(m => m.classroomId?.toString() === c._id.toString());
-        if (activeMeeting) activities.push({ type: 'meeting', label: 'Active Meeting' });
+        if (activeMeeting) activities.push({ type: 'meeting', label: 'Active Lecture' });
 
         const newAssignments = assignments.filter(a =>
           a.classroomId?._id?.toString() === c._id.toString() &&
