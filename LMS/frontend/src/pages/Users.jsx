@@ -231,18 +231,53 @@ const Users = () => {
           rowErrors.push(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
         }
 
-        // Validate school if provided
+        // Initialize schools as array
         if (row.school) {
-          const schoolExists = schools.find(s =>
-            s.name.toLowerCase() === row.school.toLowerCase() ||
-            s._id === row.school
-          );
-          if (!schoolExists) {
-            rowErrors.push(`School "${row.school}" not found`);
-          } else {
-            row.schoolId = schoolExists._id;
-            row.schoolName = schoolExists.name;
+          row.schools = row.school.split(',').map(s => s.trim()).filter(s => s);
+        } else {
+          row.schools = [];
+        }
+
+        // Validate school - students must have at least one school
+        if (row.role === 'student' || !row.role) {
+          const hasSchool = row.schools && row.schools.length > 0;
+          if (!hasSchool) {
+            rowErrors.push('Students must belong to at least one school');
           }
+        }
+
+        // Validate schools if provided
+        if (row.schools && row.schools.length > 0) {
+          const invalidSchools = [];
+          const validSchoolIds = [];
+          const validSchoolNames = [];
+
+          row.schools.forEach(schoolName => {
+            if (!schoolName) return;
+
+            if (schoolName === 'ALL') {
+              validSchoolIds.push(...schools.map(s => s._id));
+              validSchoolNames.push(...schools.map(s => s.name));
+            } else {
+              const schoolExists = schools.find(s =>
+                s.name.toLowerCase() === schoolName.toLowerCase() ||
+                s._id === schoolName
+              );
+              if (!schoolExists) {
+                invalidSchools.push(schoolName);
+              } else {
+                validSchoolIds.push(schoolExists._id);
+                validSchoolNames.push(schoolExists.name);
+              }
+            }
+          });
+
+          if (invalidSchools.length > 0) {
+            rowErrors.push(`School(s) not found: ${invalidSchools.join(', ')}`);
+          }
+
+          row.schoolIds = [...new Set(validSchoolIds)];
+          row.schoolNames = [...new Set(validSchoolNames)];
         }
 
         data.push({
@@ -287,14 +322,19 @@ const Users = () => {
 
       const formDataToSend = new FormData();
 
-      // Create a new CSV with only valid users
-      const csvContent = 'name,email,role,school\n' +
-        validUsers.map(u => `${u.name},${u.email},${u.role || 'student'},${u.school || ''}`).join('\n');
+      // Create a new CSV with only valid users, including school IDs
+      const csvContent = 'name,email,role,school,schoolIds\n' +
+        validUsers.map(u => {
+          const schoolNames = u.schools ? u.schools.join(';') : '';
+          const schoolIds = u.schoolIds ? u.schoolIds.join(';') : '';
+          return `${u.name},${u.email},${u.role || 'student'},${schoolNames},${schoolIds}`;
+        }).join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv' });
       formDataToSend.append('csvFile', blob, 'validated_users.csv');
       formDataToSend.append('role', 'student'); // Default, will be overridden by CSV
 
+      // For school admin, send their selected schools as default
       if (user?.role === 'school_admin' && selectedSchools.length > 0) {
         formDataToSend.append('schoolId', JSON.stringify(selectedSchools));
       }
@@ -332,6 +372,122 @@ Bob Johnson,bob@example.com,student,`;
     a.download = 'sample_users.csv';
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const handleFieldEdit = (rowIndex, field, value) => {
+    const updatedData = [...parsedData];
+
+    // Handle schools field specially for multi-select
+    if (field === 'schools') {
+      updatedData[rowIndex].schools = value; // value is already an array
+    } else {
+      updatedData[rowIndex][field] = value;
+    }
+
+    // Re-validate the row
+    const row = updatedData[rowIndex];
+    const rowErrors = [];
+    const emailSet = new Set();
+
+    // Collect all other emails for duplicate check
+    parsedData.forEach((r, idx) => {
+      if (idx !== rowIndex && r.email) {
+        emailSet.add(r.email.toLowerCase());
+      }
+    });
+
+    // Validate name
+    if (!row.name || !row.name.trim()) {
+      rowErrors.push('Name is required');
+    }
+
+    // Validate email
+    if (!row.email || !row.email.trim()) {
+      rowErrors.push('Email is required');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
+      rowErrors.push('Invalid email format');
+    } else if (emailSet.has(row.email.toLowerCase())) {
+      rowErrors.push('Duplicate email in CSV');
+    }
+
+    // Check if user already exists
+    const existingUsers = users.filter(u => u.email.toLowerCase() === row.email.toLowerCase());
+    if (existingUsers.length > 0) {
+      rowErrors.push('User already exists in system');
+    }
+
+    // Validate role
+    const validRoles = ['student', 'teacher', 'personal_teacher'];
+    if (user?.role === 'root_admin') {
+      validRoles.push('school_admin');
+    }
+
+    if (row.role && !validRoles.includes(row.role)) {
+      rowErrors.push(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+
+    // Validate school - students must have at least one school
+    if (row.role === 'student') {
+      const hasSchool = row.schools && row.schools.length > 0 && row.schools.some(s => s && s !== '');
+      if (!hasSchool) {
+        rowErrors.push('Students must belong to at least one school');
+      }
+    }
+
+    // Validate schools if provided
+    if (row.schools && row.schools.length > 0) {
+      const invalidSchools = [];
+      const validSchoolIds = [];
+      const validSchoolNames = [];
+
+      row.schools.forEach(schoolName => {
+        if (!schoolName || schoolName === '') return;
+
+        if (schoolName === 'ALL') {
+          // Select all schools
+          validSchoolIds.push(...schools.map(s => s._id));
+          validSchoolNames.push(...schools.map(s => s.name));
+        } else {
+          const schoolExists = schools.find(s =>
+            s.name.toLowerCase() === schoolName.toLowerCase() ||
+            s._id === schoolName
+          );
+          if (!schoolExists) {
+            invalidSchools.push(schoolName);
+          } else {
+            validSchoolIds.push(schoolExists._id);
+            validSchoolNames.push(schoolExists.name);
+          }
+        }
+      });
+
+      if (invalidSchools.length > 0) {
+        rowErrors.push(`School(s) not found: ${invalidSchools.join(', ')}`);
+      }
+
+      row.schoolIds = [...new Set(validSchoolIds)]; // Remove duplicates
+      row.schoolNames = [...new Set(validSchoolNames)];
+    } else {
+      // Clear school data if empty
+      row.schoolIds = [];
+      row.schoolNames = [];
+    }
+
+    updatedData[rowIndex].errors = rowErrors;
+    updatedData[rowIndex].valid = rowErrors.length === 0;
+
+    setParsedData(updatedData);
+
+    // Update validation errors list
+    const newErrors = updatedData
+      .filter(r => !r.valid)
+      .map(r => ({
+        row: r.rowNumber,
+        email: r.email || 'N/A',
+        errors: r.errors
+      }));
+
+    setValidationErrors(newErrors);
   };
 
   const [isCreating, setIsCreating] = useState(false);
@@ -732,6 +888,15 @@ Bob Johnson,bob@example.com,student,`;
                   </div>
                 </div>
 
+                <div className="mb-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                  <p className="text-sm text-indigo-800 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <strong>Tip:</strong> You can edit any field directly in the table below. Changes are validated in real-time.
+                  </p>
+                </div>
+
                 <div className="mb-4 max-h-96 overflow-y-auto border rounded-lg">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100 sticky top-0">
@@ -746,16 +911,91 @@ Bob Johnson,bob@example.com,student,`;
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {parsedData.map((row, idx) => (
-                        <tr key={idx} className={row.valid ? 'bg-white' : 'bg-red-50'}>
-                          <td className="px-3 py-2 text-gray-600">{row.rowNumber}</td>
-                          <td className="px-3 py-2">{row.name}</td>
-                          <td className="px-3 py-2 text-xs">{row.email}</td>
+                        <tr key={idx} className={row.valid ? 'bg-white hover:bg-gray-50' : 'bg-red-50 hover:bg-red-100'}>
+                          <td className="px-3 py-2 text-gray-600 font-medium">{row.rowNumber}</td>
                           <td className="px-3 py-2">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                              {row.role || 'student'}
-                            </span>
+                            <input
+                              type="text"
+                              value={row.name || ''}
+                              onChange={(e) => handleFieldEdit(idx, 'name', e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter name"
+                            />
                           </td>
-                          <td className="px-3 py-2 text-xs">{row.schoolName || row.school || '-'}</td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="email"
+                              value={row.email || ''}
+                              onChange={(e) => handleFieldEdit(idx, 'email', e.target.value)}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter email"
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <select
+                              value={row.role || 'student'}
+                              onChange={(e) => handleFieldEdit(idx, 'role', e.target.value)}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                            >
+                              <option value="student">Student</option>
+                              <option value="teacher">Teacher</option>
+                              <option value="personal_teacher">Personal Teacher</option>
+                              {user?.role === 'root_admin' && (
+                                <option value="school_admin">School Admin</option>
+                              )}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2">
+                            <Select
+                              isMulti
+                              value={
+                                row.schools && row.schools.length > 0
+                                  ? row.schools.map(schoolName => {
+                                    if (schoolName === 'ALL') {
+                                      return { value: 'ALL', label: 'All Schools' };
+                                    }
+                                    const school = schools.find(s => s.name === schoolName);
+                                    return school ? { value: school.name, label: school.name } : null;
+                                  }).filter(Boolean)
+                                  : []
+                              }
+                              onChange={(selected) => {
+                                if (selected && selected.some(opt => opt.value === 'ALL')) {
+                                  // If "All" is selected, select all schools
+                                  handleFieldEdit(idx, 'schools', schools.map(s => s.name));
+                                } else {
+                                  handleFieldEdit(idx, 'schools', selected ? selected.map(opt => opt.value) : []);
+                                }
+                              }}
+                              options={[
+                                { value: 'ALL', label: 'All Schools' },
+                                ...schools.map(school => ({ value: school.name, label: school.name }))
+                              ]}
+                              className="text-xs"
+                              classNamePrefix="react-select"
+                              placeholder="Select school(s)..."
+                              styles={{
+                                control: (base) => ({
+                                  ...base,
+                                  minHeight: '30px',
+                                  fontSize: '0.75rem'
+                                }),
+                                valueContainer: (base) => ({
+                                  ...base,
+                                  padding: '0 6px'
+                                }),
+                                input: (base) => ({
+                                  ...base,
+                                  margin: 0,
+                                  padding: 0
+                                }),
+                                indicatorsContainer: (base) => ({
+                                  ...base,
+                                  height: '30px'
+                                })
+                              }}
+                            />
+                          </td>
                           <td className="px-3 py-2">
                             {row.valid ? (
                               <span className="flex items-center text-green-600 text-xs font-semibold">

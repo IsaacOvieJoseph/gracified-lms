@@ -153,33 +153,33 @@ router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), uploa
       return res.status(400).json({ message: 'No CSV file uploaded' });
     }
 
+
     const { role, schoolId } = req.body;
     const results = [];
     const errors = [];
 
     // Validate school access for school admin
-    let finalSchoolId;
+    let finalSchoolId = null;
     if (req.user.role === 'school_admin') {
-      if (!schoolId) {
-        fs.unlinkSync(req.file.path);
-        return res.status(400).json({ message: 'School ID is required' });
+      // School ID is only required if CSV doesn't have schoolIds column
+      // We'll validate per-user schools later when processing CSV
+      if (schoolId) {
+        const School = require('../models/School');
+        const providedSchoolIds = Array.isArray(schoolId)
+          ? schoolId
+          : [schoolId];
+
+        const schools = await School.find({
+          _id: { $in: providedSchoolIds },
+          adminId: req.user._id
+        });
+
+        if (schools.length !== providedSchoolIds.length) {
+          fs.unlinkSync(req.file.path);
+          return res.status(403).json({ message: 'You can only assign users to your assigned schools' });
+        }
+        finalSchoolId = schoolId;
       }
-
-      const School = require('../models/School');
-      const providedSchoolIds = Array.isArray(schoolId)
-        ? schoolId
-        : [schoolId];
-
-      const schools = await School.find({
-        _id: { $in: providedSchoolIds },
-        adminId: req.user._id
-      });
-
-      if (schools.length !== providedSchoolIds.length) {
-        fs.unlinkSync(req.file.path);
-        return res.status(403).json({ message: 'You can only assign users to your assigned schools' });
-      }
-      finalSchoolId = schoolId;
     } else {
       finalSchoolId = schoolId;
     }
@@ -213,13 +213,49 @@ router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), uploa
             const inviteToken = crypto.randomBytes(32).toString('hex');
             const inviteTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
+
+            // Determine school IDs for this user
+            let userSchoolIds = finalSchoolId;
+
+            // If CSV has schoolIds column, use that instead
+            if (userData.schoolIds && userData.schoolIds.trim()) {
+              const csvSchoolIds = userData.schoolIds.split(';').map(id => id.trim()).filter(id => id);
+              if (csvSchoolIds.length > 0) {
+                userSchoolIds = csvSchoolIds;
+              }
+            }
+
+            // Validate students must have at least one school
+            const userRole = userData.role || role || 'student';
+            if (userRole === 'student') {
+              if (!userSchoolIds || (Array.isArray(userSchoolIds) && userSchoolIds.length === 0)) {
+                errors.push({ row: i + 1, email, error: 'Students must belong to at least one school' });
+                continue;
+              }
+            }
+
+            // For school_admin, validate they can only assign to their schools
+            if (req.user.role === 'school_admin' && userSchoolIds) {
+              const School = require('../models/School');
+              const adminSchools = await School.find({ adminId: req.user._id }).select('_id');
+              const adminSchoolIds = adminSchools.map(s => s._id.toString());
+
+              const schoolIdsToCheck = Array.isArray(userSchoolIds) ? userSchoolIds : [userSchoolIds];
+              const invalidSchools = schoolIdsToCheck.filter(id => !adminSchoolIds.includes(id.toString()));
+
+              if (invalidSchools.length > 0) {
+                errors.push({ row: i + 1, email, error: 'You can only assign users to your assigned schools' });
+                continue;
+              }
+            }
+
             // Create user with pending invite
             const newUser = new User({
               name: name.trim(),
               email: email.toLowerCase().trim(),
               password: crypto.randomBytes(16).toString('hex'), // Temporary password
-              role: role || 'student',
-              schoolId: finalSchoolId,
+              role: userRole,
+              schoolId: userSchoolIds,
               createdBy: req.user._id,
               inviteToken,
               inviteTokenExpires,
