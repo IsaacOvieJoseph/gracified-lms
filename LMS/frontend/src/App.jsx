@@ -24,6 +24,7 @@ import PlatformSettings from './pages/PlatformSettings';
 import Feedbacks from './pages/Feedbacks';
 import ForgotPassword from './pages/ForgotPassword';
 import SetPassword from './pages/SetPassword';
+import Reports from './pages/Reports';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -240,6 +241,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Feedbacks />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <PrivateRoute>
+            <Reports />
           </PrivateRoute>
         }
       />

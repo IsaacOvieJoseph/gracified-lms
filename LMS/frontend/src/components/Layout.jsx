@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { Book, LogOut, Users, DollarSign, FileText, LayoutDashboard, Landmark, Bell, Menu, X, MessageSquare } from 'lucide-react';
+import { Book, LogOut, Users, DollarSign, FileText, LayoutDashboard, Landmark, Bell, Menu, X, MessageSquare, BarChart2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import SubscriptionBlockBanner from './SubscriptionBlockBanner';
@@ -136,6 +136,7 @@ const Layout = ({ children }) => {
     ...(['student', 'root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/payments', icon: DollarSign, label: 'Payments' }] : []),
     ...(user?.role === 'student' ? [{ path: '/assignments', icon: FileText, label: 'Assignments' }] : []),
     ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
+    { path: '/reports', icon: BarChart2, label: 'Reports' },
     ...(['root_admin', 'school_admin'].includes(user?.role) ? [{ path: '/schools', icon: Landmark, label: 'Schools' }] : []),
     ...(user?.role === 'root_admin' ? [{ path: '/disbursements', icon: Landmark, label: 'Disbursements' }] : []),
     ...(user?.role === 'root_admin' ? [{ path: '/feedbacks', icon: MessageSquare, label: 'Feedbacks' }] : []),

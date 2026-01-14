@@ -61,6 +61,7 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/disbursements', require('./routes/disbursements'));
 const googleAuthRouter = require('./routes/googleAuth');
 app.use('/api/google-auth', googleAuthRouter);
+app.use('/api/reports', require('./routes/reports'));
 
 // Connect to MongoDB
 const connectDB = async () => {
