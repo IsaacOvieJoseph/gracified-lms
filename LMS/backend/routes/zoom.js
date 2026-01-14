@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const Classroom = require('../models/Classroom');
+const CallSession = require('../models/CallSession');
 const { auth } = require('../middleware/auth');
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.post('/create-meeting/:classroomId', auth, async (req, res) => {
       topic: classroom.name,
       type: 2, // Scheduled meeting
       start_time: new Date().toISOString(),
-      duration: 60,
+      duration: 55, // Increased to 55 minutes as per request
       default_password : false,
       password: "testClass",
       settings: {
@@ -51,17 +52,22 @@ router.post('/create-meeting/:classroomId', auth, async (req, res) => {
         'Content-Type': 'application/json'
       }
     });
-    
 
-    // Save meeting ID to classroom
-    classroom.zoomMeetingId = meetingId;
-    await classroom.save();
+    const { id: eventId, join_url: joinUrl, start_url: htmlLink } = zoomResponse.data;
+
+    const callSession = new CallSession({
+      classroomId: classroom._id,
+      startedBy: req.user._id,
+      link: joinUrl,
+      eventId: eventId,
+      htmlLink: htmlLink,
+    });
+    await callSession.save();
 
     res.json({
-      meetingId,
-      password,
-      meetingUrl,
-      joinUrl: meetingUrl,
+      meetingId: eventId,
+      joinUrl,
+      startUrl: htmlLink, // For the teacher to start the meeting
       message: 'Zoom meeting created successfully'
     });
   } catch (error) {
@@ -88,17 +94,20 @@ router.get('/meeting/:classroomId', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    if (!classroom.zoomMeetingId) {
-      return res.status(404).json({ message: 'No meeting scheduled' });
+    // Find the most recent active call session for this classroom
+    const activeCallSession = await CallSession.findOne({
+      classroomId: req.params.classroomId,
+      startedAt: { $gte: new Date(Date.now() - 55 * 60 * 1000) } // Active within the last 55 minutes
+    }).sort({ startedAt: -1 });
+
+    if (!activeCallSession) {
+      return res.status(404).json({ message: 'No active meeting scheduled' });
     }
 
-    // In production, fetch from Zoom API
-    const meetingUrl = `https://zoom.us/j/${classroom.zoomMeetingId}`;
-
     res.json({
-      meetingId: classroom.zoomMeetingId,
-      meetingUrl,
-      joinUrl: meetingUrl
+      meetingId: activeCallSession.eventId,
+      joinUrl: activeCallSession.link,
+      startUrl: activeCallSession.htmlLink // For the teacher to start the meeting
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

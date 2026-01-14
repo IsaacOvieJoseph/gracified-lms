@@ -68,10 +68,6 @@ const classroomSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assignment'
   }],
-  zoomMeetingId: {
-    type: String,
-    default: null
-  },
   whiteboardUrl: {
     type: String,
     default: null

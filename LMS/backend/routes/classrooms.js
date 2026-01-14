@@ -101,7 +101,8 @@ router.get('/active-meetings', auth, async (req, res) => {
       classroomQuery = { students: req.user._id, published: true };
     } else if (req.user.role === 'teacher' || req.user.role === 'personal_teacher') {
       classroomQuery = { teacherId: req.user._id };
-    } else if (req.user.role === 'school_admin') {
+    }
+     else if (req.user.role === 'school_admin') {
       const adminSchools = await School.find({ adminId: req.user._id }).select('_id');
       classroomQuery = { schoolId: { $in: adminSchools.map(s => s._id) } };
     }
@@ -168,7 +169,8 @@ router.post('/feedback/request', auth, authorize('root_admin'), async (req, res)
     let query = {};
     if (targetRole && targetRole !== 'all') {
       query.role = targetRole;
-    } else {
+    }
+    else {
       query.role = { $in: ['student', 'teacher', 'school_admin', 'personal_teacher'] };
     }
 
@@ -287,7 +289,7 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
     if (req.user.role !== 'teacher' && req.user.role !== 'student') {
       const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
       if (!isOwnerSubscriptionValid) {
-        return res.status(403).json({ message: 'This class is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+        return res.status(403).json({ message: 'This class is not available. The class owner\\\'s subscription has expired.', subscriptionExpired: true });
       }
     }
 
@@ -298,7 +300,7 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
         // Teacher trying to access someone else's class - check subscription
         const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
         if (!isOwnerSubscriptionValid) {
-          return res.status(403).json({ message: 'This class is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+          return res.status(403).json({ message: 'This class is not available. The class owner\\\'s subscription has expired.', subscriptionExpired: true });
         }
       }
     }
@@ -405,9 +407,13 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
         const managedSchoolIds = managedSchools.map(s => s._id.toString());
 
         // Fetch teacher again to get fresh schoolId data
+
         const teacherToVerify = await User.findById(teacherId);
+
         const teacherSchoolIds = (Array.isArray(teacherToVerify?.schoolId) ? teacherToVerify.schoolId : [teacherToVerify?.schoolId])
+
           .filter(Boolean)
+
           .map(id => (id._id || id).toString());
 
         const hasAccess = teacherSchoolIds.some(sid => managedSchoolIds.includes(sid));
@@ -417,7 +423,7 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
           // or if there's any other indicator of association. 
           // For now, let's just make the error message more descriptive if it fails.
           return res.status(403).json({
-            message: 'Teacher must belong to one of your schools. Please check the teacher\'s profile and ensure they are assigned to your school.',
+            message: 'Teacher must belong to one of your schools. Please check the teacher\\\'s profile and ensure they are assigned to your school.',
             adminSchoolCount: managedSchools.length,
             teacherSchoolCount: teacherSchoolIds.length
           });
@@ -1131,7 +1137,8 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
     if (res.locals._callEventId) {
       resp.eventId = res.locals._callEventId;
       resp.htmlLink = res.locals._callHtmlLink || null;
-    } else if (created) {
+    }
+    else if (created) {
       // load the just-created session to return event metadata if present
       const justCreated = await CallSession.findOne({ classroomId: classroom._id }).sort({ createdAt: -1 });
       if (justCreated) {
@@ -1177,9 +1184,20 @@ router.get('/:id/call', auth, subscriptionCheck, async (req, res) => {
     }
 
     const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
-    if (!latest) return res.status(404).json({ message: 'No active call found' });
+    const now = new Date();
+    const fiftyFiveMin = 55 * 60 * 1000; // 55 minutes in milliseconds
 
-    res.json({ link: latest.link, startedAt: latest.startedAt });
+    if (latest) {
+      const diffMs = now - new Date(latest.startedAt);
+      if (diffMs > fiftyFiveMin) {
+        // If the latest call started more than 55 minutes ago, consider it inactive
+        return res.status(404).json({ message: 'No active call found (previous call expired)' });
+      } else {
+        return res.json({ link: latest.link, startedAt: latest.startedAt });
+      }
+    } else {
+      return res.status(404).json({ message: 'No active call found' });
+    }
   } catch (error) {
     console.error('Error fetching class call:', error);
     res.status(500).json({ message: error.message });
@@ -1300,4 +1318,3 @@ router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher',
 });
 
 module.exports = router;
-
