@@ -221,23 +221,13 @@ exports.getSchoolPerformance = async (req, res) => {
     try {
         const { schoolId } = req.params;
 
-        // Verify authorization
-        // Logic: if school_admin, must belong to schoolId. If root_admin, ok.
-
-        // Fix user.schoolId check if array
-        let userInSchool = false;
-        if (Array.isArray(req.user.schoolId)) {
-            userInSchool = req.user.schoolId.some(id => id.toString() === schoolId.toString());
-        } else if (req.user.schoolId) {
-            userInSchool = req.user.schoolId.toString() === schoolId.toString();
-        }
-
-        if (req.user.role !== 'root_admin' && !userInSchool) {
-            return res.status(403).json({ message: 'Not authorized' });
-        }
-
         const school = await School.findById(schoolId);
         if (!school) return res.status(404).json({ message: 'School not found' });
+
+        // Authorization: Check if user is root_admin or the school's admin
+        if (req.user.role !== 'root_admin' && school.adminId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
 
         // Get all classrooms for this school
         const classrooms = await Classroom.find({ schoolId: schoolId });

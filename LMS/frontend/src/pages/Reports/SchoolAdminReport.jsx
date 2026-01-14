@@ -4,31 +4,57 @@ import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { School, Users, BookOpen, TrendingUp } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Select from 'react-select';
 
 const SchoolAdminReport = () => {
     const { user } = useAuth();
+    const [schools, setSchools] = useState([]);
+    const [selectedSchool, setSelectedSchool] = useState(null);
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Fetch Admin's Schools on mount
     useEffect(() => {
-        const fetchSchoolReport = async () => {
+        const fetchSchools = async () => {
             try {
-                // If school_admin has multiple schools, we might need a selector.
-                // For now, assume first school ID in array or field
-                let schoolId = null;
-                if (Array.isArray(user.schoolId) && user.schoolId.length > 0) {
-                    schoolId = user.schoolId[0];
-                } else if (user.schoolId) {
-                    schoolId = user.schoolId;
-                }
-
-                if (!schoolId) {
-                    setLoading(false);
-                    return; // No school assigned
-                }
-
                 const token = localStorage.getItem('token');
-                const res = await axios.get(`http://localhost:5000/api/reports/school/${schoolId}`, {
+                // For school admin, /api/schools returns their managed schools
+                const res = await axios.get('http://localhost:5000/api/schools', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                // The backend for GET /api/schools for school_admin returns { schools: [...] }
+                const schoolList = res.data.schools || [];
+                const options = schoolList.map(s => ({ value: s._id, label: s.name }));
+
+                setSchools(options);
+
+                if (options.length > 0) {
+                    setSelectedSchool(options[0]);
+                } else {
+                    setLoading(false); // No schools found
+                }
+            } catch (error) {
+                console.error(error);
+                toast.error("Failed to fetch schools");
+                setLoading(false);
+            }
+        };
+
+        if (user) {
+            fetchSchools();
+        }
+    }, [user]);
+
+    // Fetch report when selected school changes
+    useEffect(() => {
+        if (!selectedSchool) return;
+
+        const fetchSchoolReport = async () => {
+            setLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get(`http://localhost:5000/api/reports/school/${selectedSchool.value}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setReportData(res.data);
@@ -41,23 +67,40 @@ const SchoolAdminReport = () => {
             }
         };
 
-        if (user) {
-            fetchSchoolReport();
-        }
-    }, [user]);
+        fetchSchoolReport();
+    }, [selectedSchool]);
 
-    if (loading) return <div className="p-10 text-center">Loading School Analytics...</div>;
-    if (!reportData) return <div className="p-10 text-center text-gray-500">No school data found.</div>;
+    if (loading && !reportData) return <div className="p-10 text-center">Loading School Analytics...</div>;
+
+    if (schools.length === 0 && !loading) return <div className="p-10 text-center text-gray-500">No schools assigned.</div>;
+
+    if (!reportData) return null;
 
     const { schoolName, totalStudents, totalClassrooms, overallAverage, classPerformance } = reportData;
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center space-x-4 mb-4">
-                <div className="bg-indigo-600 p-2 rounded-lg text-white">
-                    <School size={32} />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center space-x-4">
+                    <div className="bg-indigo-600 p-2 rounded-lg text-white">
+                        <School size={32} />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">{schoolName} <span className="text-gray-400 font-normal">Dashboard</span></h2>
+                    </div>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">{schoolName} <span className="text-gray-400 font-normal">Dashboard</span></h2>
+
+                {/* School Selector if multiple schools */}
+                {schools.length > 1 && (
+                    <div className="w-full md:w-64">
+                        <Select
+                            options={schools}
+                            value={selectedSchool}
+                            onChange={setSelectedSchool}
+                            placeholder="Select School"
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Key Metrics */}

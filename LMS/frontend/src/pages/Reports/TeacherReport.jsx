@@ -20,7 +20,7 @@ const TeacherReport = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 // Filter if necessary, but backend usually handles "my classrooms"
-                const options = res.data.map(c => ({ value: c._id, label: c.name }));
+                const options = res.data.classrooms.map(c => ({ value: c._id, label: c.name }));
                 setClassrooms(options);
 
                 if (options.length > 0) {
@@ -142,7 +142,7 @@ const TeacherReport = () => {
                                                 <td className="px-3 py-3 font-medium text-gray-900">{student.name}</td>
                                                 <td className="px-3 py-3 text-right">
                                                     <span className={`font-bold ${student.averagePercentage >= 70 ? 'text-green-600' :
-                                                            student.averagePercentage >= 50 ? 'text-yellow-600' : 'text-red-600'
+                                                        student.averagePercentage >= 50 ? 'text-yellow-600' : 'text-red-600'
                                                         }`}>
                                                         {student.averagePercentage}%
                                                     </span>
