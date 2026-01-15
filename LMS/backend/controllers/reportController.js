@@ -136,6 +136,10 @@ exports.getStudentPerformance = async (req, res) => {
         });
 
         res.json({
+            student: {
+                name: req.user.name,
+                email: req.user.email
+            },
             summary: {
                 totalAssignments,
                 submittedCount,

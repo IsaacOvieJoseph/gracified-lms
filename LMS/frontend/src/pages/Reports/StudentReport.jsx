@@ -3,6 +3,8 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { BookOpen, CheckCircle, Clock, Award, Users } from 'lucide-react';
 
+import StudentAcademicReportSheet from '../../components/Reports/StudentAcademicReportSheet';
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const StudentReport = () => {
@@ -33,7 +35,7 @@ const StudentReport = () => {
 
     if (!data) return <div>No data available</div>;
 
-    const { summary, byClass, recentAssignments } = data;
+    const { student, summary, byClass, recentAssignments } = data;
 
     const pieData = [
         { name: 'Submitted', value: summary.submittedCount },
@@ -42,6 +44,16 @@ const StudentReport = () => {
 
     return (
         <div className="space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-2 border-b border-gray-100 pb-4">
+                <div>
+                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Performance Overview</h2>
+                    <p className="text-gray-500 mt-1">Detailed academic report for <span className="text-indigo-600 font-semibold">{student?.name}</span></p>
+                </div>
+                <p className="text-sm text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                    ID: {student?.email}
+                </p>
+            </div>
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center space-x-4">
@@ -98,7 +110,7 @@ const StudentReport = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Performance by Class Chart */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-bold mb-6 text-gray-800">Performance by Subject</h3>
+                    <h3 className="text-lg font-bold mb-6 text-gray-800">Performance Chart</h3>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={byClass.map(c => ({
@@ -111,8 +123,8 @@ const StudentReport = () => {
                                 <YAxis unit="%" />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="averagePercentage" name="Avg Score (%)" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="attendancePercentage" name="Attendance (%)" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="averagePercentage" name="Avg Score (%)" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="attendancePercentage" name="Attendance (%)" fill="#10b981" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -145,6 +157,9 @@ const StudentReport = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Academic Report Sheet (Official Table) */}
+            <StudentAcademicReportSheet data={byClass} studentName={student?.name} />
 
             {/* Recent Activity Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
