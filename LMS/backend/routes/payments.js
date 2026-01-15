@@ -153,7 +153,7 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
               <p>Hello <strong>${user.name}</strong>,</p>
               <p>${message}</p>
               <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${payment.amount}</p>
+                <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${(payment.amount || 0).toLocaleString()}</p>
                 <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()} (GMT)</p>
                 <p style="margin: 5px 0;"><strong>Type:</strong> ${payment.type.replace('_', ' ').toUpperCase()}</p>
                 <p style="margin: 5px 0;"><strong>Reference:</strong> ${payment.paystackReference || payment.stripePaymentId || 'N/A'}</p>

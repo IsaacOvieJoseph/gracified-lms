@@ -40,7 +40,10 @@ router.get('/history', auth, authorize('root_admin'), async (req, res) => {
 // In a real app, this might initiate a Paystack transfer
 router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, res) => {
     try {
-        const payment = await Payment.findById(req.params.paymentId).populate('payoutOwnerId');
+        const payment = await Payment.findById(req.params.paymentId)
+            .populate('payoutOwnerId')
+            .populate('classroomId');
+
         if (!payment) return res.status(404).json({ message: 'Payment not found' });
         if (payment.payoutStatus !== 'pending') return res.status(400).json({ message: 'Payment is not pending' });
 
@@ -55,9 +58,10 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
             const owner = payment.payoutOwnerId;
 
             // In-app notification
+            const displayAmount = (payment.payoutAmount || payment.amount || 0).toLocaleString();
             await Notification.create({
                 userId: owner._id,
-                message: `Disbursement Approved: ₦${payment.payoutAmount || payment.amount} for ${payment.classroomId?.name || 'class enrollment'} has been paid to your bank account.`,
+                message: `Disbursement Approved: ₦${displayAmount} for ${payment.classroomId?.name || 'class enrollment'} has been paid to your bank account.`,
                 type: 'payout_received',
                 entityId: payment._id,
                 entityRef: 'Payment'
@@ -67,21 +71,59 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
             try {
                 if (owner.email) {
                     const classroomName = payment.classroomId?.name || 'class enrollment';
+                    const amount = (payment.amount || 0).toLocaleString();
+                    const serviceFee = (payment.serviceFeeAmount || 0).toLocaleString();
+                    const tax = (payment.taxAmount || 0).toLocaleString();
+                    const vat = (payment.vatAmount || 0).toLocaleString();
+                    const payoutAmount = (payment.payoutAmount || 0).toLocaleString();
+
                     await sendEmail({
                         to: owner.email,
-                        subject: `Payout Approved: ${classroomName} `,
+                        subject: `Payout Approved: ${classroomName}`,
                         html: `
-    < div style = "font-family: sans-serif; color: #333;" >
+            <div style="font-family: sans-serif; color: #333;">
                 <h2 style="color: #4f46e5;">Disbursement Notification</h2>
                 <p>Hello ${owner.name},</p>
-                <p style="font-size: 16px; line-height: 1.5;">Great news! Your payout for <strong>${classroomName}</strong> has been approved and paid.</p>
-                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                  <p style="margin: 0;"><strong>Amount:</strong> ₦${payment.payoutAmount || payment.amount}</p>
-                  <p style="margin: 0;"><strong>Status:</strong> Paid</p>
+                <p style="font-size: 16px; line-height: 1.5;">Great news! Your payout for <strong>${classroomName}</strong> has been approved and successfully processed.</p>
+                
+                <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; margin-top: 20px;">
+                    <div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 12px;">
+                        <p style="margin: 0; display: flex; justify-content: space-between;">
+                            <strong>Total Received:</strong> 
+                            <span>₦${amount}</span>
+                        </p>
+                    </div>
+                    
+                    <div style="color: #6b7280; font-size: 14px; margin-bottom: 12px;">
+                        <p style="margin: 4px 0; display: flex; justify-content: space-between;">
+                            <span>Service Fee:</span>
+                            <span>- ₦${serviceFee}</span>
+                        </p>
+                        <p style="margin: 4px 0; display: flex; justify-content: space-between;">
+                            <span>Tax:</span>
+                            <span>- ₦${tax}</span>
+                        </p>
+                        <p style="margin: 4px 0; display: flex; justify-content: space-between;">
+                            <span>VAT:</span>
+                            <span>- ₦${vat}</span>
+                        </p>
+                    </div>
+                    
+                    <div style="border-top: 2px solid #4f46e5; padding-top: 12px; color: #4f46e5;">
+                        <p style="margin: 0; display: flex; justify-content: space-between; font-size: 18px;">
+                            <strong>Disbursed Amount:</strong> 
+                            <strong>₦${payoutAmount}</strong>
+                        </p>
+                    </div>
                 </div>
-                <p style="margin-top: 20px; font-size: 14px;">The funds should reflect in your registered bank account shortly.</p>
-              </div >
-    `
+
+                <div style="margin-top: 25px; padding: 12px; background: #ecfdf5; border-radius: 8px; border: 1px solid #10b981; color: #065f46; text-align: center;">
+                    <strong>Status:</strong> Paid
+                </div>
+
+                <p style="margin-top: 25px; font-size: 14px; color: #6b7280;">The funds should reflect in your registered bank account shortly. Thank you for your hard work!</p>
+            </div>
+            `
                     });
                 }
             } catch (e) {
