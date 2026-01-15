@@ -12,6 +12,11 @@ const User = require('./models/User');
 const Classroom = require('./models/Classroom');
 const Whiteboard = require('./models/Whiteboard');
 const { startScheduler } = require('./utils/scheduler');
+const path = require('path');
+
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const app = express();
 
@@ -22,17 +27,38 @@ require('./models/Assignment');
 require('./models/Topic');
 require('./models/Payment');
 require('./models/Notification');
-require('./models/School'); // Load School model
-require('./models/Tutorial'); // Load Tutorial model
-require('./models/SubscriptionPlan'); // Load SubscriptionPlan model
-require('./models/UserSubscription'); // Load UserSubscription model
+require('./models/School');
+require('./models/Tutorial');
+require('./models/SubscriptionPlan');
+require('./models/UserSubscription');
 
-const path = require('path');
+// Security Middlewares
+app.use(helmet()); // Sets various security-related HTTP headers
+app.use(mongoSanitize()); // Prevent NoSQL injection attacks
+
+// Rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10kb' })); // Body limit to prevent large payload attacks
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Apply rate limiting to authentication routes
+app.use('/api/auth', authLimiter);
+app.use('/api/google-auth', authLimiter);
 
 // Basic health check and root routes
 app.get('/', (req, res) => {
@@ -76,7 +102,11 @@ const connectDB = async () => {
     });
     console.log('MongoDB Connected');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    if (error.message.includes('ENOTFOUND')) {
+      console.error('MongoDB connection error: Could not resolve DNS. Check your internet connection or MongoDB URI.');
+    } else {
+      console.error('MongoDB connection error:', error.message);
+    }
     process.exit(1);
   }
 };
@@ -90,7 +120,12 @@ const PORT = process.env.PORT || 5000;
 
 // create http server and attach socket.io
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ["GET", "POST"]
+  }
+});
 
 // Authenticate socket connections using JWT token sent in handshake auth
 io.use(async (socket, next) => {
@@ -98,7 +133,13 @@ io.use(async (socket, next) => {
     const tokenRaw = socket.handshake.auth?.token || socket.handshake.headers?.authorization || '';
     const token = tokenRaw.replace(/^Bearer\s+/i, '');
     if (!token) return next(new Error('Authentication error: No token provided'));
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET not configured');
+      return next(new Error('Internal server error'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId);
     if (!user) return next(new Error('Authentication error: User not found'));
     socket.data.user = user;
@@ -329,6 +370,17 @@ function hashCode(str) {
   }
   return hash;
 }
+
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  const status = err.status || 500;
+  const message = process.env.NODE_ENV === 'production'
+    ? 'An internal server error occurred.'
+    : err.message;
+
+  res.status(status).json({ message });
+});
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

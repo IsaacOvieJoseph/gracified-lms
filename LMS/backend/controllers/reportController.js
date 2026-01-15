@@ -170,9 +170,26 @@ exports.getClassPerformance = async (req, res) => {
             return res.status(404).json({ message: 'Classroom not found' });
         }
 
-        if (req.user.role !== 'root_admin' &&
-            req.user.role !== 'school_admin' &&
-            classroom.teacherId.toString() !== req.user._id.toString()) {
+        // Authorization check
+        let isAuthorized = false;
+
+        if (req.user.role === 'root_admin') {
+            isAuthorized = true;
+        } else if (req.user.role === 'school_admin') {
+            // Check if this class belongs to a school this admin manages
+            if (classroom.schoolId && classroom.schoolId.length > 0) {
+                const School = require('../models/School');
+                const school = await School.findOne({
+                    _id: { $in: classroom.schoolId },
+                    adminId: req.user._id
+                });
+                if (school) isAuthorized = true;
+            }
+        } else if (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString()) {
+            isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
             return res.status(403).json({ message: 'Not authorized to view this report' });
         }
 

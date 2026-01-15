@@ -84,8 +84,10 @@ const generateAndSendOTP = async (user) => {
     // Check if email is configured
     if (!isEmailConfigured()) {
       console.error('Email not configured: BREVO_API_KEY or BREVO_FROM_EMAIL missing');
-      const otp = crypto.randomInt(100000, 999999).toString();
-      console.log(`OTP for ${user.email}: ${otp}`);
+      if (process.env.NODE_ENV === 'development') {
+        const otp = crypto.randomInt(100000, 999999).toString();
+        console.log(`OTP for ${user.email}: ${otp}`);
+      }
       return;
     }
 
@@ -125,7 +127,9 @@ const generateAndSendOTP = async (user) => {
     });
 
     // Log OTP in console for development/debugging
-    console.log(`OTP for ${user.email} (email failed): ${user.otp || 'not generated'}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`OTP for ${user.email} (email failed): ${user.otp || 'not generated'}`);
+    }
     throw error; // Re-throw so caller can handle it
   }
 };
@@ -456,8 +460,10 @@ const generateAndSendPasswordResetOTP = async (user) => {
     // Check if email is configured
     if (!isEmailConfigured()) {
       console.error('Email not configured: BREVO_API_KEY or BREVO_FROM_EMAIL missing');
-      const otp = crypto.randomInt(100000, 999999).toString();
-      console.log(`Password Reset OTP for ${user.email}: ${otp}`);
+      if (process.env.NODE_ENV === 'development') {
+        const otp = crypto.randomInt(100000, 999999).toString();
+        console.log(`Password Reset OTP for ${user.email}: ${otp}`);
+      }
       return;
     }
 
@@ -480,7 +486,7 @@ const generateAndSendPasswordResetOTP = async (user) => {
           <h1 style="letter-spacing: 5px; color: #4f46e5; margin: 0; font-size: 32px;">${user.passwordResetOTP}</h1>
         </div>
         <p>This code is valid for 1 hour. If you did not request this, you can safely ignore this email.</p>
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?email=${user.email}" 
+        <a href="${process.env.FRONTEND_URL}/reset-password?email=${user.email}" 
            style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold;">
           Reset Password
         </a>

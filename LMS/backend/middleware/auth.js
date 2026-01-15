@@ -12,7 +12,12 @@ const auth = async (req, res, next) => {
     }
 
     console.log('Auth middleware: Token received. Attempting to verify...');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not defined in environment variables');
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Auth middleware: Token decoded. Decoded userId:', decoded.userId);
 
     const user = await User.findById(decoded.userId);

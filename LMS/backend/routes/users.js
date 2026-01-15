@@ -266,7 +266,7 @@ router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), uploa
             await newUser.save();
 
             // Send invite email
-            const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/set-password?token=${inviteToken}`;
+            const inviteLink = `${process.env.FRONTEND_URL}/set-password?token=${inviteToken}`;
 
             try {
               await sendEmail({
