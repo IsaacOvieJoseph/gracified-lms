@@ -1041,6 +1041,16 @@ const ClassroomDetail = () => {
                 <span>{classroom.teacherId?.name || 'Unknown Teacher'}</span>
               </div>
             </div>
+            <div className="flex items-center space-x-3 text-gray-600">
+              <School className="w-5 h-5 text-gray-400 shrink-0" />
+              <div className="text-sm">
+                <span className="block font-medium text-gray-900">School / Tutorial</span>
+                <span className="truncate max-w-[200px] block" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
+                  {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
+                  {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
+                </span>
+              </div>
+            </div>
             <div className="flex items-start space-x-3 text-gray-600">
               <Calendar className="w-5 h-5 mt-0.5 text-gray-400 shrink-0" />
               <div className="text-sm">
