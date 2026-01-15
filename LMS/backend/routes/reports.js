@@ -5,12 +5,14 @@ const {
     getStudentPerformance,
     getClassPerformance,
     getSchoolPerformance,
-    getAdminOverview
+    getAdminOverview,
+    getAllStudentsReport
 } = require('../controllers/reportController');
 
 router.get('/student/me', protect, getStudentPerformance);
 router.get('/class/:classId', protect, getClassPerformance);
 router.get('/school/:schoolId', protect, getSchoolPerformance);
 router.get('/admin/overview', protect, getAdminOverview);
+router.get('/all-students', protect, getAllStudentsReport);
 
 module.exports = router;

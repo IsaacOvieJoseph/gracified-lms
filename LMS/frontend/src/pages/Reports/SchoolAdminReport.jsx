@@ -6,6 +6,7 @@ import { School, Users, BookOpen, TrendingUp, Eye } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Select from 'react-select';
 import StudentReportTable from '../../components/Reports/StudentReportTable';
+import AllStudentsReportTable from '../../components/Reports/AllStudentsReportTable';
 
 const SchoolAdminReport = () => {
     const { user } = useAuth();
@@ -234,6 +235,12 @@ const SchoolAdminReport = () => {
                     </table>
                 </div>
             </div>
+
+            {/* All Students Overview Table */}
+            <div>
+                <AllStudentsReportTable />
+            </div>
+
             {/* Class Details Modal */}
             {viewingClass && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">

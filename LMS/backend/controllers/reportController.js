@@ -365,3 +365,75 @@ exports.getAdminOverview = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+// @desc    Get consolidated students report for Teacher or School Admin
+// @route   GET /api/reports/all-students
+// @access  Private (Teacher, School Admin)
+exports.getAllStudentsReport = async (req, res) => {
+    try {
+        const user = req.user;
+        let classrooms = [];
+
+        // 1. Identify relevant classrooms
+        if (user.role === 'personal_teacher' || user.role === 'teacher') {
+            classrooms = await Classroom.find({ teacherId: user._id }).populate('students', 'name email');
+        } else if (user.role === 'school_admin') {
+            const schools = await School.find({ adminId: user._id });
+            const schoolIds = schools.map(s => s._id);
+            classrooms = await Classroom.find({ schoolId: { $in: schoolIds } }).populate('students', 'name email');
+        } else {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const classroomNames = [...new Set(classrooms.map(c => c.name))].sort();
+        const studentMap = {}; // email -> { name, email, scores: { className: score } }
+
+        // 2. Iterate classrooms and calculate stats for each student
+        for (const classroom of classrooms) {
+            const assignments = await Assignment.find({ classroomId: classroom._id });
+
+            for (const student of classroom.students) {
+                let totalScore = 0;
+                let maxPossible = 0;
+
+                assignments.forEach(assign => {
+                    const sub = assign.submissions.find(s => s.studentId.toString() === student._id.toString());
+                    if (sub && (sub.status === 'graded' || sub.status === 'returned')) {
+                        totalScore += sub.score;
+                        maxPossible += assign.maxScore;
+                    }
+                });
+
+                const percentage = maxPossible > 0 ? parseFloat(((totalScore / maxPossible) * 100).toFixed(2)) : 0;
+
+                if (!studentMap[student.email]) {
+                    studentMap[student.email] = {
+                        id: student._id,
+                        name: student.name,
+                        email: student.email,
+                        scores: {}
+                    };
+                }
+
+                studentMap[student.email].scores[classroom.name] = percentage;
+            }
+        }
+
+        const students = Object.values(studentMap).map(s => {
+            const scoreValues = Object.values(s.scores);
+            const overallAverage = scoreValues.length > 0
+                ? parseFloat((scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length).toFixed(2))
+                : 0;
+            return { ...s, overallAverage };
+        });
+
+        res.json({
+            classrooms: classroomNames,
+            students: students.sort((a, b) => b.overallAverage - a.overallAverage)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching students report' });
+    }
+};

@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Users, FileText, TrendingUp, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import StudentReportTable from '../../components/Reports/StudentReportTable';
+import AllStudentsReportTable from '../../components/Reports/AllStudentsReportTable';
 
 const TeacherReport = () => {
     const [classrooms, setClassrooms] = useState([]);
@@ -130,6 +131,11 @@ const TeacherReport = () => {
                         <div className="md:col-span-2">
                             <StudentReportTable students={reportData.studentStats} classroomName={reportData.classroom.name} />
                         </div>
+                    </div>
+
+                    {/* All Students Overview Table */}
+                    <div className="mt-8">
+                        <AllStudentsReportTable />
                     </div>
                 </>
             )}
