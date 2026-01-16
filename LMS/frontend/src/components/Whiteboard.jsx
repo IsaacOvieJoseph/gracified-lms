@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useContext, useCallback } from 'rea
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff } from 'lucide-react';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const DEFAULT_SOCKET_URL = API_URL.replace(/\/api$/, '');
@@ -22,11 +22,14 @@ export default function Whiteboard() {
   const undoStackRef = useRef([]);
   const redoStackRef = useRef([]);
   const strokeHistoryRef = useRef([]); // local authoritative history for redraws
+  const inputRef = useRef(null);
+  const panStartRef = useRef({ clientX: 0, clientY: 0, scrollTop: 0, scrollLeft: 0 });
   const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: '', fontSize: 18 });
   const [otherCursors, setOtherCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
   const { user } = useAuth();
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
   const [locked, setLocked] = useState(false);
   const [followEnabled, setFollowEnabled] = useState(false);
   const [tool, setTool] = useState('pen'); // pen, eraser, rect, circle, text, pointer
@@ -201,6 +204,12 @@ export default function Whiteboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
+  useEffect(() => {
+    if (textInput.visible && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [textInput.visible]);
+
   function drawLine(prev, curr, color = '#000', width = 2, emit = true) {
     const ctx = ctxRef.current;
     const canvas = canvasRef.current;
@@ -341,6 +350,16 @@ export default function Whiteboard() {
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(true);
       socketRef.current._lastPos = pos;
+    } else if (tool === 'hand') {
+      setIsPanning(true);
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      panStartRef.current = {
+        clientX,
+        clientY,
+        scrollTop: containerRef.current.scrollTop,
+        scrollLeft: containerRef.current.scrollLeft
+      };
     } else if (tool === 'rect' || tool === 'circle') {
       shapeStartRef.current = pos;
       // clear overlay
@@ -351,12 +370,23 @@ export default function Whiteboard() {
       }
     } else if (tool === 'text') {
       // show inline text input at clicked position
-      setTextInput({ visible: true, x: pos.x, y: pos.y - containerRef.current.scrollTop, value: '', fontSize: 18 });
+      // Using direct canvas coordinates since absolute items in a relative 
+      // overflow div will scroll correctly without manual offset tracking
+      setTextInput({ visible: true, x: pos.x, y: pos.y, value: '', fontSize: 18 });
     }
   };
   const handlePointerMove = (e) => {
-    if (locked && !isTeacher) return;
+    if (locked && !isTeacher && tool !== 'hand') return;
     const pos = getPointerPos(e);
+    if (tool === 'hand' && isPanning) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const dx = clientX - panStartRef.current.clientX;
+      const dy = clientY - panStartRef.current.clientY;
+      containerRef.current.scrollTop = panStartRef.current.scrollTop - dy;
+      containerRef.current.scrollLeft = panStartRef.current.scrollLeft - dx;
+      return;
+    }
     if (tool === 'pen') {
       if (!isDrawing) return;
       const prev = socketRef.current._lastPos || pos;
@@ -409,6 +439,10 @@ export default function Whiteboard() {
     }
   };
   const handlePointerUp = (e) => {
+    if (tool === 'hand') {
+      setIsPanning(false);
+      return;
+    }
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(false);
       if (socketRef.current) socketRef.current._lastPos = null;
@@ -442,8 +476,7 @@ export default function Whiteboard() {
       return;
     }
     const canvas = canvasRef.current;
-    const pos = { x: textInput.x, y: textInput.y + containerRef.current.scrollTop };
-    const posNorm = { x: pos.x / canvas.width, y: pos.y / canvas.height };
+    const posNorm = { x: textInput.x / canvas.width, y: textInput.y / canvas.height };
     const stroke = { type: 'text', pos: posNorm, text: textInput.value, color, fontSize: textInput.fontSize };
     renderStroke(stroke, false);
     socketRef.current.emit('wb:draw', { ...stroke, persist: false });
@@ -559,6 +592,13 @@ export default function Whiteboard() {
             {/* Drawing Tools */}
             <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
               <button
+                onClick={() => setTool('hand')}
+                className={`p-2 rounded-lg transition-all ${tool === 'hand' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+                title="Pan Tool (Hand)"
+              >
+                <Hand className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => setTool('pointer')}
                 className={`p-2 rounded-lg transition-all ${tool === 'pointer' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
                 title="Pointer"
@@ -668,7 +708,12 @@ export default function Whiteboard() {
         )}
       </div>
 
-      <div ref={containerRef} className="flex-1 overflow-auto relative bg-gray-100/50">
+      <div
+        ref={containerRef}
+        className={`flex-1 overflow-auto relative bg-gray-100/50 ${tool === 'hand' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') :
+            tool === 'pointer' ? 'cursor-default' : 'cursor-crosshair'
+          }`}
+      >
         <canvas
           ref={canvasRef}
           style={{ width: '100%', height: `${canvasHeightRef.current}px`, border: '1px solid #e5e7eb', touchAction: 'none', display: 'block' }}
@@ -686,12 +731,27 @@ export default function Whiteboard() {
         {/* inline text input */}
         {textInput.visible && (
           <input
-            autoFocus
+            ref={inputRef}
+            className="outline-none border-b-2 border-indigo-500 bg-white/90 backdrop-blur-sm shadow-lg pointer-events-auto"
             value={textInput.value}
             onChange={(e) => setTextInput(t => ({ ...t, value: e.target.value }))}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitTextInput(); if (e.key === 'Escape') setTextInput({ visible: false, x: 0, y: 0, value: '' }); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitTextInput();
+              if (e.key === 'Escape') setTextInput({ visible: false, x: 0, y: 0, value: '' });
+              e.stopPropagation();
+            }}
             onBlur={() => submitTextInput()}
-            style={{ position: 'absolute', left: textInput.x, top: textInput.y, zIndex: 60, padding: 6, fontSize: textInput.fontSize, minWidth: 120 }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              left: `${textInput.x}px`,
+              top: `${textInput.y}px`,
+              zIndex: 100,
+              padding: '4px 8px',
+              fontSize: `${textInput.fontSize}px`,
+              minWidth: '150px'
+            }}
           />
         )}
 
