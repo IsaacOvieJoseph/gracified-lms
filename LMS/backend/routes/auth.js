@@ -50,13 +50,23 @@ router.post('/upload-logo', upload.single('logo'), async (req, res) => {
 
   // Deep file validation (Magic Numbers)
   try {
-    const FileType = await import('file-type');
-    const type = await FileType.fromFile(req.file.path);
+    const fileTypeModule = await import('file-type');
+    // Handle both ESM default export and direct exports
+    const FileType = fileTypeModule.default || fileTypeModule;
+    const fromFileFn = FileType.fromFile || FileType.fileTypeFromFile;
+
+    if (typeof fromFileFn !== 'function') {
+      console.error('file-type module structure:', Object.keys(fileTypeModule));
+      if (fileTypeModule.default) console.error('file-type default structure:', Object.keys(fileTypeModule.default));
+      throw new Error('file-type validation function not found');
+    }
+
+    const type = await fromFileFn(req.file.path);
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!type || !allowedTypes.includes(type.mime)) {
       // Delete the invalid file
-      fs.unlinkSync(req.file.path);
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       return res.status(400).json({ message: 'Invalid file content. Only real images (JPG, PNG, WebP) are allowed.' });
     }
   } catch (err) {
