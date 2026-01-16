@@ -920,9 +920,20 @@ router.delete('/:id/students/:studentId', auth, authorize('root_admin', 'school_
     }
 
     // Check permissions
+    let hasAccess = false;
+    if (req.user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+        .filter(Boolean)
+        .map(sid => (sid._id || sid).toString());
+
+      hasAccess = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+
     const canManage =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
+      (req.user.role === 'school_admin' && hasAccess) ||
       (req.user.role === 'personal_teacher' && classroom.teacherId._id.toString() === req.user._id.toString());
 
     if (!canManage) {
