@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -50,9 +51,11 @@ api.interceptors.response.use(
     }
     // Log connection errors for debugging
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      toast.error('The server is taking too long to respond. Please try again.');
       console.error('Request timeout - Backend may be slow or unavailable:', error.config?.url);
       console.error('API URL being used:', API_URL);
     } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+      toast.error('Unable to connect to the server. Please check your internet connection.');
       console.error('Network error - Cannot reach backend:', error.config?.url);
       console.error('API URL being used:', API_URL);
       console.error('Check if backend is running and CORS is configured correctly');
