@@ -26,7 +26,8 @@ const Classrooms = () => {
     isPaid: false,
     teacherId: '',
     schoolIds: [], // Changed from schoolId
-    published: false
+    published: false,
+    isPrivate: false
   });
 
   const [openMySchool, setOpenMySchool] = useState(true);
@@ -203,7 +204,8 @@ const Classrooms = () => {
         pricing: { type: user?.defaultPricingType || 'monthly', amount: 0 },
         isPaid: false,
         teacherId: '',
-        published: false
+        published: false,
+        isPrivate: false
       });
       toast.success('Classroom created successfully');
       fetchClassrooms();
@@ -725,6 +727,19 @@ const Classrooms = () => {
                   </label>
                 </div>
               )}
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPrivate}
+                    onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
+                  />
+                  <span>Private Classroom</span>
+                </label>
+                <p className="text-[10px] text-gray-500 ml-5 mt-1">
+                  Private classes are only visible to school members and enrolled students.
+                </p>
+              </div>
               {formData.isPaid && (
                 <div className="space-y-4">
                   {user?.subscriptionStatus === 'pay_as_you_go' && (

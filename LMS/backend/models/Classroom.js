@@ -80,6 +80,10 @@ const classroomSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isPrivate: {
+    type: Boolean,
+    default: false
+  },
   // Track current active topic
   currentTopicId: {
     type: mongoose.Schema.Types.ObjectId,

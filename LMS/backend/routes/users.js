@@ -366,13 +366,22 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, re
   }
 });
 
-// Delete user (Root Admin only)
-router.delete('/:id', auth, authorize('root_admin'), async (req, res) => {
+// Delete user (Root Admin, School Admin for their own users)
+router.delete('/:id', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) {
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Permission check
+    if (req.user.role === 'school_admin') {
+      if (!targetUser.createdBy || targetUser.createdBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Access denied: You can only delete users you created.' });
+      }
+    }
+
+    await User.findByIdAndDelete(req.params.id);
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

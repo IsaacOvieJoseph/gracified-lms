@@ -37,11 +37,13 @@ router.get('/', auth, subscriptionCheck, async (req, res) => {
 
       // If not strictly restricted (or fallback), check standard logic
       if (!query.schoolId && !query.teacherId) {
+        const studentSchoolIds = Array.isArray(req.user.schoolId) ? req.user.schoolId : (req.user.schoolId ? [req.user.schoolId] : []);
         query = {
           published: true,
           $or: [
+            { isPrivate: false }, // Publicly visible
             { students: req.user._id }, // Already enrolled
-            { students: { $ne: req.user._id } } // Available to enroll
+            { schoolId: { $in: studentSchoolIds } } // Member of the school
           ]
         };
       }
@@ -369,7 +371,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       isPaid,
       teacherId,
       schoolId,
-      published
+      published,
+      isPrivate
     } = req.body;
 
     // Validate schedule array
@@ -481,7 +484,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       isPaid: (isPaid && pricing?.amount > 0) ? true : false,
       teacherId: finalTeacherId,
       schoolId: finalSchoolId,
-      published: published !== undefined ? published : false
+      published: published !== undefined ? published : false,
+      isPrivate: isPrivate !== undefined ? isPrivate : false
     });
 
     await classroom.save();
@@ -543,7 +547,7 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published } = req.body;
+    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate } = req.body;
 
     if (name) classroom.name = name;
     if (description) classroom.description = description;
@@ -558,6 +562,7 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
     if (teacherId) classroom.teacherId = teacherId; // Further authorization/validation might be needed here
     if (schoolId) classroom.schoolId = schoolId; // Further authorization/validation might be needed here
     if (published !== undefined) classroom.published = published;
+    if (isPrivate !== undefined) classroom.isPrivate = isPrivate;
 
     // Handle schedule update with validation
     if (schedule) {

@@ -26,7 +26,7 @@ const ClassroomDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', description: '', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [] });
+  const [editForm, setEditForm] = useState({ name: '', description: '', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false });
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
   // Open edit modal and prefill form
   const handleOpenEdit = () => {
@@ -46,7 +46,8 @@ const ClassroomDetail = () => {
           endTime: localEnd.time
         };
       }),
-      teacherId: classroom.teacherId?._id || ''
+      teacherId: classroom.teacherId?._id || '',
+      isPrivate: classroom.isPrivate || false
     });
     if ((user?.role === 'root_admin' || user?.role === 'school_admin') && classroom.schoolId && classroom.teacherId?.role !== 'personal_teacher') {
       fetchAvailableTeachers();
@@ -64,6 +65,7 @@ const ClassroomDetail = () => {
         capacity: editForm.capacity,
         pricing: { type: editForm.pricingType, amount: editForm.pricingAmount },
         isPaid: editForm.isPaid,
+        isPrivate: editForm.isPrivate,
         schedule: editForm.schedule.map(s => {
           const utc = convertLocalToUTC(s.dayOfWeek, s.startTime);
           const utcEnd = convertLocalToUTC(s.dayOfWeek, s.endTime);
@@ -973,6 +975,19 @@ const ClassroomDetail = () => {
                       <span>Paid Class</span>
                     </label>
                   </div>
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editForm.isPrivate}
+                        onChange={(e) => setEditForm({ ...editForm, isPrivate: e.target.checked })}
+                      />
+                      <span>Private Classroom</span>
+                    </label>
+                    <p className="text-[10px] text-gray-500 ml-5 mt-1">
+                      Private classes are only visible to school members and enrolled students.
+                    </p>
+                  </div>
 
                   {editForm.isPaid && (
                     <div className="space-y-4">
@@ -1190,728 +1205,750 @@ const ClassroomDetail = () => {
         </div>
 
         {/* Current Topic Display */}
-        {(isEnrolled || canEdit) && classroom.currentTopicId && (
-          <TopicDisplay classroomId={id} />
-        )}
+        {
+          (isEnrolled || canEdit) && classroom.currentTopicId && (
+            <TopicDisplay classroomId={id} />
+          )
+        }
 
         {/* Topic Management Section */}
-        {(isEnrolled || canEdit) && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-xl font-semibold">Topics</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {classroom.topics?.length || 0} topic{classroom.topics?.length !== 1 ? 's' : ''} created
-                </p>
+        {
+          (isEnrolled || canEdit) && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold">Topics</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {classroom.topics?.length || 0} topic{classroom.topics?.length !== 1 ? 's' : ''} created
+                  </p>
+                </div>
+                {canEdit && (
+                  <button
+                    onClick={() => setShowTopicModal(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition shadow-md"
+                  >
+                    <Book className="w-4 h-4" />
+                    <span>Manage Topics</span>
+                  </button>
+                )}
               </div>
-              {canEdit && (
-                <button
-                  onClick={() => setShowTopicModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition shadow-md"
-                >
-                  <Book className="w-4 h-4" />
-                  <span>Manage Topics</span>
-                </button>
-              )}
-            </div>
 
-            <div className="space-y-3">
-              {classroom.topics && classroom.topics.length > 0 ? (
-                (() => {
-                  const sortedTopics = [...classroom.topics].sort((a, b) => (a.order || 0) - (b.order || 0));
-                  const activeIndex = sortedTopics.findIndex(t => t.status === 'active');
-                  let nextId = null;
-                  if (activeIndex !== -1) {
-                    const nextTopic = sortedTopics.find((t, i) => i > activeIndex && t.status === 'pending');
-                    if (nextTopic) nextId = nextTopic._id;
-                  } else {
-                    const firstPending = sortedTopics.find(t => t.status === 'pending');
-                    if (firstPending) nextId = firstPending._id;
-                  }
+              <div className="space-y-3">
+                {classroom.topics && classroom.topics.length > 0 ? (
+                  (() => {
+                    const sortedTopics = [...classroom.topics].sort((a, b) => (a.order || 0) - (b.order || 0));
+                    const activeIndex = sortedTopics.findIndex(t => t.status === 'active');
+                    let nextId = null;
+                    if (activeIndex !== -1) {
+                      const nextTopic = sortedTopics.find((t, i) => i > activeIndex && t.status === 'pending');
+                      if (nextTopic) nextId = nextTopic._id;
+                    } else {
+                      const firstPending = sortedTopics.find(t => t.status === 'pending');
+                      if (firstPending) nextId = firstPending._id;
+                    }
 
-                  return sortedTopics.map((topic, index) => {
-                    const isNext = topic._id === nextId;
-                    const isCurrent = topic.status === 'active';
-                    const isDone = topic.status === 'completed';
-                    const isPending = topic.status === 'pending' && !isNext;
+                    return sortedTopics.map((topic, index) => {
+                      const isNext = topic._id === nextId;
+                      const isCurrent = topic.status === 'active';
+                      const isDone = topic.status === 'completed';
+                      const isPending = topic.status === 'pending' && !isNext;
 
-                    return (
-                      <div
-                        key={topic._id}
-                        className={`border-2 rounded-lg p-4 transition ${isCurrent ? 'border-blue-400 bg-blue-50' :
-                          isDone ? 'border-green-200 bg-green-50 opacity-75' :
-                            isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
-                              'border-gray-200 bg-white hover:border-gray-300'
-                          }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="mt-1">
-                            {isDone ? (
-                              <CheckCircle className="w-5 h-5 text-green-600" />
-                            ) : isCurrent ? (
-                              <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
-                            ) : isNext ? (
-                              <Play className="w-5 h-5 text-indigo-600" />
-                            ) : (
-                              <Circle className="w-5 h-5 text-gray-400" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h4 className="font-semibold text-gray-800">{topic.name}</h4>
-                              {isCurrent && (
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                                  Current
-                                </span>
-                              )}
-                              {isDone && (
-                                <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                                  Done
-                                </span>
-                              )}
-                              {isNext && (
-                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
-                                  Next
-                                </span>
-                              )}
-                              {isPending && (
-                                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
-                                  Pending
-                                </span>
+                      return (
+                        <div
+                          key={topic._id}
+                          className={`border-2 rounded-lg p-4 transition ${isCurrent ? 'border-blue-400 bg-blue-50' :
+                            isDone ? 'border-green-200 bg-green-50 opacity-75' :
+                              isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
+                                'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-1">
+                              {isDone ? (
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                              ) : isCurrent ? (
+                                <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
+                              ) : isNext ? (
+                                <Play className="w-5 h-5 text-indigo-600" />
+                              ) : (
+                                <Circle className="w-5 h-5 text-gray-400" />
                               )}
                             </div>
-                            {topic.description && (
-                              <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
-                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <h4 className="font-semibold text-gray-800">{topic.name}</h4>
+                                {isCurrent && (
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                                    Current
+                                  </span>
+                                )}
+                                {isDone && (
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                                    Done
+                                  </span>
+                                )}
+                                {isNext && (
+                                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
+                                    Next
+                                  </span>
+                                )}
+                                {isPending && (
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
+                                    Pending
+                                  </span>
+                                )}
+                              </div>
+                              {topic.description && (
+                                <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  });
-                })()
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Book className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>No topics added yet</p>
-                  {canEdit && (
-                    <p className="text-sm mt-1">Click "Manage Topics" to create your first topic</p>
-                  )}
-                </div>
-              )}
+                      );
+                    });
+                  })()
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Book className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No topics added yet</p>
+                    {canEdit && (
+                      <p className="text-sm mt-1">Click "Manage Topics" to create your first topic</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* Assignment Management Section */}
-        {(isEnrolled || canEdit) && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Assignments</h3>
-              {canCreateAssignment && (
-                <button
-                  onClick={() => setShowCreateAssignmentModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden md:inline">Create Assignment</span>
-                </button>
-              )}
-            </div>
+        {
+          (isEnrolled || canEdit) && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Assignments</h3>
+                {canCreateAssignment && (
+                  <button
+                    onClick={() => setShowCreateAssignmentModal(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden md:inline">Create Assignment</span>
+                  </button>
+                )}
+              </div>
 
-            <div className="space-y-3">
-              {classroom.assignments && classroom.assignments.length > 0 ? (
-                classroom.assignments.map((assignment) => {
-                  const submission = assignment.submissions?.find(
-                    s => s.studentId?._id === user?._id
-                  );
-                  const isSubmitted = !!submission;
-                  const isGraded = submission?.status === 'graded';
+              <div className="space-y-3">
+                {classroom.assignments && classroom.assignments.length > 0 ? (
+                  classroom.assignments.map((assignment) => {
+                    const submission = assignment.submissions?.find(
+                      s => s.studentId?._id === user?._id
+                    );
+                    const isSubmitted = !!submission;
+                    const isGraded = submission?.status === 'graded';
 
-                  const isAssignmentExpanded = expandedAssignments.has(assignment._id);
-                  const toggleAssignmentExpanded = () => {
-                    setExpandedAssignments(prev => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(assignment._id)) {
-                        newSet.delete(assignment._id);
-                      } else {
-                        newSet.add(assignment._id);
-                      }
-                      return newSet;
-                    });
-                  };
+                    const isAssignmentExpanded = expandedAssignments.has(assignment._id);
+                    const toggleAssignmentExpanded = () => {
+                      setExpandedAssignments(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(assignment._id)) {
+                          newSet.delete(assignment._id);
+                        } else {
+                          newSet.add(assignment._id);
+                        }
+                        return newSet;
+                      });
+                    };
 
-                  return (
-                    <div key={assignment._id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                      <div
-                        className="flex flex-col md:flex-row justify-between items-start p-6 cursor-pointer hover:bg-gray-50 transition"
-                        onClick={toggleAssignmentExpanded}
-                      >
-                        <div className="flex items-start space-x-3 flex-1 mb-4 md:mb-0">
-                          {isAssignmentExpanded ? (
-                            <ChevronUp className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-800">
-                              {assignment.title}
-                              {assignment.topicId?.name && (
-                                <span className="ml-2 text-sm font-normal text-gray-500">
-                                  ({assignment.topicId.name})
-                                </span>
+                    return (
+                      <div key={assignment._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                        <div
+                          className="flex flex-col md:flex-row justify-between items-start p-6 cursor-pointer hover:bg-gray-50 transition"
+                          onClick={toggleAssignmentExpanded}
+                        >
+                          <div className="flex items-start space-x-3 flex-1 mb-4 md:mb-0">
+                            {isAssignmentExpanded ? (
+                              <ChevronUp className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+                            )}
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-800">
+                                {assignment.title}
+                                {assignment.topicId?.name && (
+                                  <span className="ml-2 text-sm font-normal text-gray-500">
+                                    ({assignment.topicId.name})
+                                  </span>
+                                )}
+                              </h4>
+                              {!isAssignmentExpanded && (
+                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{assignment.description}</p>
                               )}
-                            </h4>
-                            {!isAssignmentExpanded && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{assignment.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 items-center md:justify-end flex-shrink-0 w-full md:w-auto ml-8 md:ml-0">
+                            {assignment.dueDate ? (
+                              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
+                                Due: {formatDisplayDate(assignment.dueDate)}
+                              </span>
+                            ) : (
+                              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
+                                No Due Date
+                              </span>
+                            )}
+                            {assignment.assignmentType === 'mcq' && assignment.publishResultsAt && (
+                              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
+                                Results: {formatDisplayDate(assignment.publishResultsAt)}
+                                {/* Only show "Pending" if results not published AND student hasn't submitted yet */}
+                                {new Date() < new Date(assignment.publishResultsAt) && !isSubmitted && (
+                                  <span className="ml-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-semibold">Pending</span>
+                                )}
+                              </span>
+                            )}
+                            {/* Show "Graded" only if graded AND (theory OR MCQ with results published) */}
+                            {isGraded && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
+                              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                Graded
+                              </span>
+                            )}
+                            {/* Show "Submitted" only if submitted AND NOT graded */}
+                            {isSubmitted && !isGraded && (
+                              <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                Submitted
+                              </span>
+                            )}
+                            {/* Show "Submitted" for MCQ that is graded but results not published yet */}
+                            {isSubmitted && isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt) && (
+                              <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                Submitted
+                              </span>
+                            )}
+                            {canEdit && (
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAssignmentPublishToggle(assignment);
+                                  }}
+                                  disabled={publishingAssignmentId === assignment._id}
+                                  className={`p-1 transition-colors ${assignment.published !== false ? 'text-green-500 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'
+                                    }`}
+                                  title={assignment.published !== false ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
+                                >
+                                  {publishingAssignmentId === assignment._id ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                  ) : assignment.published !== false ? (
+                                    <Eye className="w-5 h-5" />
+                                  ) : (
+                                    <EyeOff className="w-5 h-5" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNotifyStudents(assignment._id);
+                                  }}
+                                  disabled={notifyingAssignmentId === assignment._id}
+                                  className="text-blue-500 hover:text-blue-700 p-1 disabled:opacity-50"
+                                  title="Notify students (re-publish)"
+                                >
+                                  {notifyingAssignmentId === assignment._id ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                  ) : (
+                                    <Megaphone className="w-5 h-5 transition-colors" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenEditAssignment(assignment);
+                                  }}
+                                  className="text-yellow-500 hover:text-yellow-700 p-1"
+                                  title="Edit assignment"
+                                >
+                                  <Edit className="w-5 h-5 transition-colors" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAssignment(assignment._id);
+                                  }}
+                                  className="text-red-500 hover:text-red-700 p-1"
+                                  title="Delete assignment"
+                                >
+                                  <X className="w-5 h-5 transition-colors" />
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 items-center md:justify-end flex-shrink-0 w-full md:w-auto ml-8 md:ml-0">
-                          {assignment.dueDate ? (
-                            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
-                              Due: {formatDisplayDate(assignment.dueDate)}
-                            </span>
-                          ) : (
-                            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
-                              No Due Date
-                            </span>
-                          )}
-                          {assignment.assignmentType === 'mcq' && assignment.publishResultsAt && (
-                            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
-                              Results: {formatDisplayDate(assignment.publishResultsAt)}
-                              {/* Only show "Pending" if results not published AND student hasn't submitted yet */}
-                              {new Date() < new Date(assignment.publishResultsAt) && !isSubmitted && (
-                                <span className="ml-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-semibold">Pending</span>
-                              )}
-                            </span>
-                          )}
-                          {/* Show "Graded" only if graded AND (theory OR MCQ with results published) */}
-                          {isGraded && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
-                              Graded
-                            </span>
-                          )}
-                          {/* Show "Submitted" only if submitted AND NOT graded */}
-                          {isSubmitted && !isGraded && (
-                            <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
-                              Submitted
-                            </span>
-                          )}
-                          {/* Show "Submitted" for MCQ that is graded but results not published yet */}
-                          {isSubmitted && isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt) && (
-                            <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
-                              Submitted
-                            </span>
-                          )}
-                          {canEdit && (
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAssignmentPublishToggle(assignment);
-                                }}
-                                disabled={publishingAssignmentId === assignment._id}
-                                className={`p-1 transition-colors ${assignment.published !== false ? 'text-green-500 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'
-                                  }`}
-                                title={assignment.published !== false ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
-                              >
-                                {publishingAssignmentId === assignment._id ? (
-                                  <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : assignment.published !== false ? (
-                                  <Eye className="w-5 h-5" />
-                                ) : (
-                                  <EyeOff className="w-5 h-5" />
-                                )}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleNotifyStudents(assignment._id);
-                                }}
-                                disabled={notifyingAssignmentId === assignment._id}
-                                className="text-blue-500 hover:text-blue-700 p-1 disabled:opacity-50"
-                                title="Notify students (re-publish)"
-                              >
-                                {notifyingAssignmentId === assignment._id ? (
-                                  <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                  <Megaphone className="w-5 h-5 transition-colors" />
-                                )}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenEditAssignment(assignment);
-                                }}
-                                className="text-yellow-500 hover:text-yellow-700 p-1"
-                                title="Edit assignment"
-                              >
-                                <Edit className="w-5 h-5 transition-colors" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteAssignment(assignment._id);
-                                }}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="Delete assignment"
-                              >
-                                <X className="w-5 h-5 transition-colors" />
-                              </button>
+
+                        {isAssignmentExpanded && (
+                          <div className="px-6 pb-6 border-t">
+                            <div className="pt-4">
+                              <p className="text-sm text-gray-600 mb-4">{assignment.description}</p>
                             </div>
-                          )}
-                        </div>
-                      </div>
 
-                      {isAssignmentExpanded && (
-                        <div className="px-6 pb-6 border-t">
-                          <div className="pt-4">
-                            <p className="text-sm text-gray-600 mb-4">{assignment.description}</p>
-                          </div>
-
-                          {user?.role === 'student' && isGraded && submission && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                <span className="font-semibold">
-                                  Score: {submission.score}/{assignment.maxScore}
-                                </span>
-                              </div>
-                              {submission.feedback && (
-                                <p className="text-gray-700 mt-2">Feedback: {submission.feedback}</p>
-                              )}
-                              <div className="mt-4 border-t pt-4">
-                                <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
-                                {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
-                                  <ul className="list-disc list-inside text-gray-700">
-                                    {assignment.questions.map((q, qIndex) => {
-                                      const questionGrade = submission.questionScores?.find(qs => qs.questionIndex === qIndex);
-                                      return (
+                            {user?.role === 'student' && isGraded && submission && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
+                              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <CheckCircle className="w-5 h-5 text-green-600" />
+                                  <span className="font-semibold">
+                                    Score: {submission.score}/{assignment.maxScore}
+                                  </span>
+                                </div>
+                                {submission.feedback && (
+                                  <p className="text-gray-700 mt-2">Feedback: {submission.feedback}</p>
+                                )}
+                                <div className="mt-4 border-t pt-4">
+                                  <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
+                                  {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
+                                    <ul className="list-disc list-inside text-gray-700">
+                                      {assignment.questions.map((q, qIndex) => {
+                                        const questionGrade = submission.questionScores?.find(qs => qs.questionIndex === qIndex);
+                                        return (
+                                          <li key={qIndex}>
+                                            <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
+                                            Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span><br />
+                                            {questionGrade && (
+                                              <span className="ml-2 text-sm font-medium text-green-600">
+                                                Score: {questionGrade.score}/{q.maxScore}
+                                                {questionGrade.feedback && ` - Feedback: ${questionGrade.feedback}`}
+                                              </span>
+                                            )}
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  )}
+                                  {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
+                                    <ul className="list-disc list-inside text-gray-700">
+                                      {assignment.questions.map((q, qIndex) => (
                                         <li key={qIndex}>
                                           <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                          Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span><br />
-                                          {questionGrade && (
-                                            <span className="ml-2 text-sm font-medium text-green-600">
-                                              Score: {questionGrade.score}/{q.maxScore}
-                                              {questionGrade.feedback && ` - Feedback: ${questionGrade.feedback}`}
+                                          Your Answer: {submission.answers[qIndex]}
+                                          {q.correctOption && (
+                                            <span className={`ml-2 text-sm font-medium ${submission.answers[qIndex] === q.correctOption ? 'text-green-600' : 'text-red-600'}`}>
+                                              ({submission.answers[qIndex] === q.correctOption ? 'Correct' : `Incorrect, Correct: ${q.correctOption}`})
                                             </span>
                                           )}
                                         </li>
-                                      );
-                                    })}
-                                  </ul>
-                                )}
-                                {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
-                                  <ul className="list-disc list-inside text-gray-700">
-                                    {assignment.questions.map((q, qIndex) => (
-                                      <li key={qIndex}>
-                                        <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                        Your Answer: {submission.answers[qIndex]}
-                                        {q.correctOption && (
-                                          <span className={`ml-2 text-sm font-medium ${submission.answers[qIndex] === q.correctOption ? 'text-green-600' : 'text-red-600'}`}>
-                                            ({submission.answers[qIndex] === q.correctOption ? 'Correct' : `Incorrect, Correct: ${q.correctOption}`})
-                                          </span>
-                                        )}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Student View: Submitted but not graded, or MCQ graded but results not published yet */}
-                          {user?.role === 'student' && isSubmitted && (!isGraded || (assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt))) && (
-                            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                              <p className="font-semibold text-blue-600">
-                                {isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt)
-                                  ? `Results for this MCQ assignment will be published on ${new Date(assignment.publishResultsAt).toLocaleString()}.`
-                                  : 'Your assignment has been submitted and is awaiting grading.'
-                                }
-                              </p>
+                            {/* Student View: Submitted but not graded, or MCQ graded but results not published yet */}
+                            {user?.role === 'student' && isSubmitted && (!isGraded || (assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt))) && (
+                              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                <p className="font-semibold text-blue-600">
+                                  {isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt)
+                                    ? `Results for this MCQ assignment will be published on ${new Date(assignment.publishResultsAt).toLocaleString()}.`
+                                    : 'Your assignment has been submitted and is awaiting grading.'
+                                  }
+                                </p>
+                                <div className="mt-4 border-t pt-4">
+                                  <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
+                                  {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
+                                    <ul className="list-disc list-inside text-gray-700">
+                                      {assignment.questions.map((q, qIndex) => (
+                                        <li key={qIndex}>
+                                          <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
+                                          Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                  {assignment.assignmentType === 'theory' && submission.answers && !Array.isArray(submission.answers) && (
+                                    <p className="text-gray-700">{submission.answers}</p>
+                                  )}
+                                  {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
+                                    <ul className="list-disc list-inside text-gray-700">
+                                      {assignment.questions.map((q, qIndex) => (
+                                        <li key={qIndex}>
+                                          <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
+                                          Your Answer: {submission.answers[qIndex]}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {user?.role === 'student' && !isSubmitted && (
+                              (() => {
+                                const isPastDue = assignment.dueDate && new Date() > new Date(assignment.dueDate);
+                                return (
+                                  <button
+                                    onClick={(e) => {
+                                      if (isPastDue) return;
+                                      e.stopPropagation();
+
+                                      // Check topic access before opening submit modal
+                                      // assignment.topicId might be populated or just ID
+                                      const topicId = assignment.topicId?._id || assignment.topicId;
+                                      if (!checkTopicAccess(topicId)) return;
+
+                                      setAssignmentToSubmit(assignment);
+                                      setShowSubmitAssignmentModal(true);
+                                    }}
+                                    disabled={isPastDue}
+                                    className={`px-4 py-2 rounded-lg transition ${isPastDue
+                                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                                      }`}
+                                  >
+                                    {isPastDue ? 'Deadline Passed' : 'Submit Assignment'}
+                                  </button>
+                                );
+                              })()
+                            )}
+
+                            {/* Teacher/Admin: View and Grade Submissions */}
+                            {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? classroom.teacherId?._id === user?._id : true) && (
                               <div className="mt-4 border-t pt-4">
-                                <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
-                                {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
-                                  <ul className="list-disc list-inside text-gray-700">
-                                    {assignment.questions.map((q, qIndex) => (
-                                      <li key={qIndex}>
-                                        <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                        Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                                {assignment.assignmentType === 'theory' && submission.answers && !Array.isArray(submission.answers) && (
-                                  <p className="text-gray-700">{submission.answers}</p>
-                                )}
-                                {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
-                                  <ul className="list-disc list-inside text-gray-700">
-                                    {assignment.questions.map((q, qIndex) => (
-                                      <li key={qIndex}>
-                                        <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                        Your Answer: {submission.answers[qIndex]}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            </div>
-                          )}
+                                <h4 className="font-semibold text-gray-700 mb-3">Submissions ({assignment.submissions?.length || 0}):</h4>
+                                {assignment.submissions && assignment.submissions.length > 0 ? (
+                                  assignment.submissions.map(sub => {
+                                    const isExpanded = expandedSubmissions.has(sub._id);
+                                    const toggleExpanded = () => {
+                                      setExpandedSubmissions(prev => {
+                                        const newSet = new Set(prev);
+                                        if (newSet.has(sub._id)) {
+                                          newSet.delete(sub._id);
+                                        } else {
+                                          newSet.add(sub._id);
+                                        }
+                                        return newSet;
+                                      });
+                                    };
 
-                          {user?.role === 'student' && !isSubmitted && (
-                            (() => {
-                              const isPastDue = assignment.dueDate && new Date() > new Date(assignment.dueDate);
-                              return (
-                                <button
-                                  onClick={(e) => {
-                                    if (isPastDue) return;
-                                    e.stopPropagation();
-
-                                    // Check topic access before opening submit modal
-                                    // assignment.topicId might be populated or just ID
-                                    const topicId = assignment.topicId?._id || assignment.topicId;
-                                    if (!checkTopicAccess(topicId)) return;
-
-                                    setAssignmentToSubmit(assignment);
-                                    setShowSubmitAssignmentModal(true);
-                                  }}
-                                  disabled={isPastDue}
-                                  className={`px-4 py-2 rounded-lg transition ${isPastDue
-                                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    }`}
-                                >
-                                  {isPastDue ? 'Deadline Passed' : 'Submit Assignment'}
-                                </button>
-                              );
-                            })()
-                          )}
-
-                          {/* Teacher/Admin: View and Grade Submissions */}
-                          {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? classroom.teacherId?._id === user?._id : true) && (
-                            <div className="mt-4 border-t pt-4">
-                              <h4 className="font-semibold text-gray-700 mb-3">Submissions ({assignment.submissions?.length || 0}):</h4>
-                              {assignment.submissions && assignment.submissions.length > 0 ? (
-                                assignment.submissions.map(sub => {
-                                  const isExpanded = expandedSubmissions.has(sub._id);
-                                  const toggleExpanded = () => {
-                                    setExpandedSubmissions(prev => {
-                                      const newSet = new Set(prev);
-                                      if (newSet.has(sub._id)) {
-                                        newSet.delete(sub._id);
-                                      } else {
-                                        newSet.add(sub._id);
-                                      }
-                                      return newSet;
-                                    });
-                                  };
-
-                                  return (
-                                    <div key={sub._id} className="border rounded-lg mb-2 bg-gray-50 overflow-hidden">
-                                      <div
-                                        className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-100 transition"
-                                        onClick={toggleExpanded}
-                                      >
-                                        <div className="flex items-center space-x-2 flex-1">
-                                          {isExpanded ? (
-                                            <ChevronUp className="w-4 h-4 text-gray-600" />
-                                          ) : (
-                                            <ChevronDown className="w-4 h-4 text-gray-600" />
-                                          )}
-                                          <div className="flex-1">
-                                            <p className="font-medium text-gray-800">{sub.studentId?.name || 'Unknown Student'}</p>
-                                            <p className="text-sm text-gray-600">Status: {sub.status}</p>
-                                            {sub.status === 'graded' && (
-                                              <p className="text-sm text-gray-600">Score: {sub.score}/{assignment.maxScore}</p>
+                                    return (
+                                      <div key={sub._id} className="border rounded-lg mb-2 bg-gray-50 overflow-hidden">
+                                        <div
+                                          className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-100 transition"
+                                          onClick={toggleExpanded}
+                                        >
+                                          <div className="flex items-center space-x-2 flex-1">
+                                            {isExpanded ? (
+                                              <ChevronUp className="w-4 h-4 text-gray-600" />
+                                            ) : (
+                                              <ChevronDown className="w-4 h-4 text-gray-600" />
                                             )}
+                                            <div className="flex-1">
+                                              <p className="font-medium text-gray-800">{sub.studentId?.name || 'Unknown Student'}</p>
+                                              <p className="text-sm text-gray-600">Status: {sub.status}</p>
+                                              {sub.status === 'graded' && (
+                                                <p className="text-sm text-gray-600">Score: {sub.score}/{assignment.maxScore}</p>
+                                              )}
+                                            </div>
                                           </div>
+                                          {sub.status !== 'graded' ? (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedAssignmentForGrading(assignment);
+                                                setSubmissionToGrade(sub);
+                                                setShowGradeModal(true);
+                                              }}
+                                              className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+                                            >
+                                              Grade
+                                            </button>
+                                          ) : (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedAssignmentForGrading(assignment);
+                                                setSubmissionToGrade(sub);
+                                                setShowGradeModal(true);
+                                              }}
+                                              className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm"
+                                            >
+                                              Edit Grade
+                                            </button>
+                                          )}
                                         </div>
-                                        {sub.status !== 'graded' ? (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSelectedAssignmentForGrading(assignment);
-                                              setSubmissionToGrade(sub);
-                                              setShowGradeModal(true);
-                                            }}
-                                            className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
-                                          >
-                                            Grade
-                                          </button>
-                                        ) : (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSelectedAssignmentForGrading(assignment);
-                                              setSubmissionToGrade(sub);
-                                              setShowGradeModal(true);
-                                            }}
-                                            className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm"
-                                          >
-                                            Edit Grade
-                                          </button>
+                                        {isExpanded && (
+                                          <div className="px-3 pb-3 pt-0 border-t bg-white">
+                                            {/* Display answers based on type */}
+                                            {assignment.assignmentType === 'theory' && sub.answers && (
+                                              <div className="mt-2">
+                                                <p className="text-sm font-medium text-gray-700 mb-1">Answer:</p>
+                                                <p className="text-sm text-gray-600 whitespace-pre-wrap">{Array.isArray(sub.answers) ? sub.answers.join('\n') : sub.answers}</p>
+                                              </div>
+                                            )}
+                                            {assignment.assignmentType === 'mcq' && sub.answers && Array.isArray(sub.answers) && (
+                                              <div className="mt-2">
+                                                <p className="text-sm font-medium text-gray-700 mb-1">Selected options:</p>
+                                                <ul className="list-disc list-inside text-sm text-gray-600">
+                                                  {sub.answers.map((ans, ansIdx) => (
+                                                    <li key={ansIdx}>
+                                                      {ans}
+                                                      {assignment.questions[ansIdx]?.correctOption && (
+                                                        <span className={`ml-2 text-sm font-medium ${ans === assignment.questions[ansIdx].correctOption ? 'text-green-600' : 'text-red-600'}`}>
+                                                          ({ans === assignment.questions[ansIdx].correctOption ? 'Correct' : `Incorrect, Correct: ${assignment.questions[ansIdx].correctOption}`})
+                                                        </span>
+                                                      )}
+                                                    </li>
+                                                  ))}
+                                                </ul>
+                                              </div>
+                                            )}
+                                            {/* Add display for files if available in sub.files */}
+                                          </div>
                                         )}
                                       </div>
-                                      {isExpanded && (
-                                        <div className="px-3 pb-3 pt-0 border-t bg-white">
-                                          {/* Display answers based on type */}
-                                          {assignment.assignmentType === 'theory' && sub.answers && (
-                                            <div className="mt-2">
-                                              <p className="text-sm font-medium text-gray-700 mb-1">Answer:</p>
-                                              <p className="text-sm text-gray-600 whitespace-pre-wrap">{Array.isArray(sub.answers) ? sub.answers.join('\n') : sub.answers}</p>
-                                            </div>
-                                          )}
-                                          {assignment.assignmentType === 'mcq' && sub.answers && Array.isArray(sub.answers) && (
-                                            <div className="mt-2">
-                                              <p className="text-sm font-medium text-gray-700 mb-1">Selected options:</p>
-                                              <ul className="list-disc list-inside text-sm text-gray-600">
-                                                {sub.answers.map((ans, ansIdx) => (
-                                                  <li key={ansIdx}>
-                                                    {ans}
-                                                    {assignment.questions[ansIdx]?.correctOption && (
-                                                      <span className={`ml-2 text-sm font-medium ${ans === assignment.questions[ansIdx].correctOption ? 'text-green-600' : 'text-red-600'}`}>
-                                                        ({ans === assignment.questions[ansIdx].correctOption ? 'Correct' : `Incorrect, Correct: ${assignment.questions[ansIdx].correctOption}`})
-                                                      </span>
-                                                    )}
-                                                  </li>
-                                                ))}
-                                              </ul>
-                                            </div>
-                                          )}
-                                          {/* Add display for files if available in sub.files */}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })
-                              ) : (
-                                <p className="text-gray-500 text-center py-2">No submissions yet.</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-gray-500 text-center py-4">No assignments for this classroom yet</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Enrolled Students Section */}
-        {canViewStudents && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Enrolled Students ({classroom.students?.length || 0}/{classroom.capacity})</h3>
-              {canManageStudents && (
-                <button
-                  onClick={() => {
-                    setSelectedStudentId(''); // Ensure selectedStudentId is reset
-                    fetchAvailableStudents();
-                    setShowAddStudentModal(true);
-                  }}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span className="hidden md:inline">Add Student</span>
-                </button>
-              )}
-            </div>
-            <div className="space-y-2">
-              {classroom.students && classroom.students.length > 0 ? (
-                classroom.students.map((student) => (
-                  <div key={student._id || student} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                    <div>
-                      <p className="font-medium text-gray-800">
-                        {typeof student === 'object' ? student.name : 'Loading...'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {typeof student === 'object' ? student.email : ''}
-                      </p>
-                    </div>
-                    {canManageStudents && (
-                      <button
-                        onClick={() => handleRemoveStudent(student._id || student)}
-                        className="text-red-600 hover:text-red-800 p-2"
-                        title="Remove student"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">No students enrolled yet</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Teacher Management (Root Admin only) */}
-        {user?.role === 'root_admin' && classroom?.schoolId && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-xl font-semibold">Class Management</h3>
-                <div className="mt-2 space-y-1">
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Teacher:</span> {classroom.teacherId?.name} ({classroom.teacherId?.email})
-                  </p>
-                  {classroom.schoolId?.adminId && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">School Admin:</span> {classroom.schoolId.adminId.name} ({classroom.schoolId.adminId.email})
-                    </p>
-                  )}
-                </div>
-              </div>
-              {canChangeTeacher && (
-                <button
-                  onClick={() => {
-                    fetchAvailableTeachers();
-                    setShowChangeTeacherModal(true);
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  Change Teacher
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Topic Management Modal */}
-      {showTopicModal && (
-        <TopicManagementModal
-          show={showTopicModal}
-          onClose={() => setShowTopicModal(false)}
-          classroomId={id}
-          onSuccess={fetchClassroom}
-        />
-      )}
-
-      {/* Create Assignment Modal */}
-      {showCreateAssignmentModal && (
-        <CreateAssignmentModal
-          show={showCreateAssignmentModal}
-          onClose={() => {
-            setShowCreateAssignmentModal(false);
-            setAssignmentToEdit(null);
-          }}
-          onSubmitSuccess={handleCreateAssignment} // Pass the success callback
-          classroomId={id} // Pass the current classroom ID
-          availableTopics={availableTopicsForAssignment}
-          editAssignment={assignmentToEdit}
-        />
-      )}
-
-      {/* Grade Assignment Modal */}
-      {showGradeModal && (
-        <GradeAssignmentModal
-          show={showGradeModal}
-          onClose={() => setShowGradeModal(false)}
-          onSubmitSuccess={handleGradeSubmission}
-          selectedAssignment={selectedAssignmentForGrading}
-          submissionToGrade={submissionToGrade}
-        />
-      )}
-
-      {/* Submit Assignment Modal */}
-      {showSubmitAssignmentModal && assignmentToSubmit && (
-        <SubmitAssignmentModal
-          assignment={assignmentToSubmit}
-          onClose={() => setShowSubmitAssignmentModal(false)}
-          onSubmit={handleSubmitAssignment}
-          isSubmitting={isSubmittingAssignment}
-        />
-      )}
-
-      {/* Add Student Modal */}
-      {showAddStudentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-4">Add Student to "{classroom.name}"</h3>
-            <form onSubmit={handleAddStudent} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Select a student to add</option>
-                  {availableStudents.map(student => (
-                    <option key={student._id} value={student._id}>{student.name} ({student.email})</option>
-                  ))}
-                </select>
-                {availableStudents.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-2">No available students to add at this time.</p>
+                                    );
+                                  })
+                                ) : (
+                                  <p className="text-gray-500 text-center py-2">No submissions yet.</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No assignments for this classroom yet</p>
                 )}
               </div>
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddStudentModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!selectedStudentId || availableStudents.length === 0 || isAddingStudent} // Disable if no student selected or no available students
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  Add Student
-                  {isAddingStudent && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
-                </button>
+            </div>
+          )
+        }
+
+        {/* Enrolled Students Section */}
+        {
+          canViewStudents && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Enrolled Students ({classroom.students?.length || 0}/{classroom.capacity})</h3>
+                {canManageStudents && (
+                  <button
+                    onClick={() => {
+                      setSelectedStudentId(''); // Ensure selectedStudentId is reset
+                      fetchAvailableStudents();
+                      setShowAddStudentModal(true);
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span className="hidden md:inline">Add Student</span>
+                  </button>
+                )}
               </div>
-            </form>
+              <div className="space-y-2">
+                {classroom.students && classroom.students.length > 0 ? (
+                  classroom.students.map((student) => (
+                    <div key={student._id || student} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {typeof student === 'object' ? student.name : 'Loading...'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {typeof student === 'object' ? student.email : ''}
+                        </p>
+                      </div>
+                      {canManageStudents && (
+                        <button
+                          onClick={() => handleRemoveStudent(student._id || student)}
+                          className="text-red-600 hover:text-red-800 p-2"
+                          title="Remove student"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No students enrolled yet</p>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        {/* Teacher Management (Root Admin only) */}
+        {
+          user?.role === 'root_admin' && classroom?.schoolId && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold">Class Management</h3>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Teacher:</span> {classroom.teacherId?.name} ({classroom.teacherId?.email})
+                    </p>
+                    {classroom.schoolId?.adminId && (
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">School Admin:</span> {classroom.schoolId.adminId.name} ({classroom.schoolId.adminId.email})
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {canChangeTeacher && (
+                  <button
+                    onClick={() => {
+                      fetchAvailableTeachers();
+                      setShowChangeTeacherModal(true);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Change Teacher
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        }
+      </div >
+
+      {/* Topic Management Modal */}
+      {
+        showTopicModal && (
+          <TopicManagementModal
+            show={showTopicModal}
+            onClose={() => setShowTopicModal(false)}
+            classroomId={id}
+            onSuccess={fetchClassroom}
+          />
+        )
+      }
+
+      {/* Create Assignment Modal */}
+      {
+        showCreateAssignmentModal && (
+          <CreateAssignmentModal
+            show={showCreateAssignmentModal}
+            onClose={() => {
+              setShowCreateAssignmentModal(false);
+              setAssignmentToEdit(null);
+            }}
+            onSubmitSuccess={handleCreateAssignment} // Pass the success callback
+            classroomId={id} // Pass the current classroom ID
+            availableTopics={availableTopicsForAssignment}
+            editAssignment={assignmentToEdit}
+          />
+        )
+      }
+
+      {/* Grade Assignment Modal */}
+      {
+        showGradeModal && (
+          <GradeAssignmentModal
+            show={showGradeModal}
+            onClose={() => setShowGradeModal(false)}
+            onSubmitSuccess={handleGradeSubmission}
+            selectedAssignment={selectedAssignmentForGrading}
+            submissionToGrade={submissionToGrade}
+          />
+        )
+      }
+
+      {/* Submit Assignment Modal */}
+      {
+        showSubmitAssignmentModal && assignmentToSubmit && (
+          <SubmitAssignmentModal
+            assignment={assignmentToSubmit}
+            onClose={() => setShowSubmitAssignmentModal(false)}
+            onSubmit={handleSubmitAssignment}
+            isSubmitting={isSubmittingAssignment}
+          />
+        )
+      }
+
+      {/* Add Student Modal */}
+      {
+        showAddStudentModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
+              <h3 className="text-xl font-bold mb-4">Add Student to "{classroom.name}"</h3>
+              <form onSubmit={handleAddStudent} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                  >
+                    <option value="">Select a student to add</option>
+                    {availableStudents.map(student => (
+                      <option key={student._id} value={student._id}>{student.name} ({student.email})</option>
+                    ))}
+                  </select>
+                  {availableStudents.length === 0 && (
+                    <p className="text-sm text-gray-500 mt-2">No available students to add at this time.</p>
+                  )}
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddStudentModal(false)}
+                    className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!selectedStudentId || availableStudents.length === 0 || isAddingStudent} // Disable if no student selected or no available students
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    Add Student
+                    {isAddingStudent && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Change Teacher Modal */}
-      {showChangeTeacherModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-4">Change Teacher for "{classroom.name}"</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select New Teacher</label>
-                <select
-                  value={selectedTeacherId}
-                  onChange={(e) => setSelectedTeacherId(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Select a teacher</option>
-                  {availableTeachers.map(teacher => (
-                    <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowChangeTeacherModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isChangingTeacher}
-                  onClick={handleChangeTeacher}
-                >
-                  Change Teacher
-                </button>
+      {
+        showChangeTeacherModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
+              <h3 className="text-xl font-bold mb-4">Change Teacher for "{classroom.name}"</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select New Teacher</label>
+                  <select
+                    value={selectedTeacherId}
+                    onChange={(e) => setSelectedTeacherId(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                  >
+                    <option value="">Select a teacher</option>
+                    {availableTeachers.map(teacher => (
+                      <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowChangeTeacherModal(false)}
+                    className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isChangingTeacher}
+                    onClick={handleChangeTeacher}
+                  >
+                    Change Teacher
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Payment Required Modal */}
       <PaymentRequiredModal
@@ -1923,60 +1960,62 @@ const ClassroomDetail = () => {
       />
 
       {/* Enrollment Payment Modal */}
-      {showEnrollmentPaymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-yellow-300" />
-                Enrollment Payment
-              </h3>
-              <button
-                onClick={() => setShowEnrollmentPaymentModal(false)}
-                className="text-white hover:text-gray-200 transition"
-                disabled={isProcessingPayment}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 text-center">
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Join {classroom.name}</h4>
-              <p className="text-gray-600 mb-6">Complete your payment to gain full access to this classroom.</p>
-
-              <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                <div className="text-sm text-gray-500 mb-1">Total Amount</div>
-                <div className="text-3xl font-bold text-green-600">
-                  {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
+      {
+        showEnrollmentPaymentModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-yellow-300" />
+                  Enrollment Payment
+                </h3>
                 <button
                   onClick={() => setShowEnrollmentPaymentModal(false)}
+                  className="text-white hover:text-gray-200 transition"
                   disabled={isProcessingPayment}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
                 >
-                  Cancel
+                  <X className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={handleEnrollmentPayment}
-                  disabled={isProcessingPayment}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium shadow-md"
-                >
-                  {isProcessingPayment ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Pay Now'
-                  )}
-                </button>
+              </div>
+              <div className="p-6 text-center">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Join {classroom.name}</h4>
+                <p className="text-gray-600 mb-6">Complete your payment to gain full access to this classroom.</p>
+
+                <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Total Amount</div>
+                  <div className="text-3xl font-bold text-green-600">
+                    {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowEnrollmentPaymentModal(false)}
+                    disabled={isProcessingPayment}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEnrollmentPayment}
+                    disabled={isProcessingPayment}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium shadow-md"
+                  >
+                    {isProcessingPayment ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Pay Now'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
 
       {/* Delete Topic Confirmation Modal */}

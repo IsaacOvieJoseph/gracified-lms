@@ -685,11 +685,12 @@ Bob Johnson,bob@example.com,student,`;
                   <td className="px-6 py-4 text-sm text-green-600">
                     {u.isActive !== false ? 'Active' : 'Inactive'}
                   </td>
-                  {user?.role === 'root_admin' && (
+                  {(user?.role === 'root_admin' || (user?.role === 'school_admin' && u.createdBy === user._id)) && (
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleDelete(u._id)}
                         className="text-red-600 hover:text-red-800"
+                        title="Delete User"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -716,7 +717,7 @@ Bob Johnson,bob@example.com,student,`;
       {
         showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
+            <div className={`bg-white rounded-lg shadow-2xl ${uploadStep === 2 ? 'max-w-4xl' : 'max-w-md'} w-full p-6 overflow-y-auto max-h-[90vh]`}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold">Create User</h3>
                 <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
@@ -979,8 +980,114 @@ Bob Johnson,bob@example.com,student,`;
                   </div>
 
                   <div className="mb-4 max-h-96 overflow-y-auto border rounded-lg">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-100 sticky top-0">
+                    {/* Mobile Card Layout */}
+                    <div className="block sm:hidden divide-y divide-gray-200">
+                      {parsedData.map((row, idx) => (
+                        <div key={idx} className={`p-4 space-y-3 ${row.valid ? 'bg-white' : 'bg-red-50'}`}>
+                          <div className="flex justify-between items-center border-b pb-2">
+                            <span className="font-bold text-gray-700">User #{row.rowNumber}</span>
+                            {row.valid ? (
+                              <span className="text-green-600 text-xs font-semibold flex items-center">
+                                <CheckCircle className="w-4 h-4 mr-1" /> Valid
+                              </span>
+                            ) : (
+                              <span className="text-red-600 text-xs font-semibold flex items-center">
+                                <XCircle className="w-4 h-4 mr-1" /> Invalid
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase font-bold text-gray-400">Name</label>
+                            <input
+                              type="text"
+                              value={row.name || ''}
+                              onChange={(e) => handleFieldEdit(idx, 'name', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
+                              placeholder="Enter name"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase font-bold text-gray-400">Email</label>
+                            <input
+                              type="email"
+                              value={row.email || ''}
+                              onChange={(e) => handleFieldEdit(idx, 'email', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
+                              placeholder="Enter email"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-gray-400">Role</label>
+                              <select
+                                value={row.role || 'student'}
+                                onChange={(e) => handleFieldEdit(idx, 'role', e.target.value)}
+                                className="w-full px-2 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 bg-white"
+                              >
+                                <option value="student">Student</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="personal_teacher">Personal Teacher</option>
+                                {user?.role === 'root_admin' && (
+                                  <option value="school_admin">School Admin</option>
+                                )}
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-gray-400">Status</label>
+                              {!row.valid && (
+                                <ul className="text-[10px] text-red-600 list-disc list-inside">
+                                  {row.errors.map((err, i) => (
+                                    <li key={i}>{err}</li>
+                                  ))}
+                                </ul>
+                              )}
+                              {row.valid && <div className="text-[10px] text-green-600 font-medium py-1">Ready for upload</div>}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase font-bold text-gray-400">School(s)</label>
+                            <Select
+                              isMulti
+                              value={
+                                row.schools && row.schools.length > 0
+                                  ? row.schools.map(schoolName => {
+                                    if (schoolName === 'ALL') {
+                                      return { value: 'ALL', label: 'All Schools' };
+                                    }
+                                    const school = schools.find(s => s.name === schoolName);
+                                    return school ? { value: school.name, label: school.name } : null;
+                                  }).filter(Boolean)
+                                  : []
+                              }
+                              onChange={(selected) => {
+                                if (selected && selected.some(opt => opt.value === 'ALL')) {
+                                  handleFieldEdit(idx, 'schools', schools.map(s => s.name));
+                                } else {
+                                  handleFieldEdit(idx, 'schools', selected ? selected.map(opt => opt.value) : []);
+                                }
+                              }}
+                              options={[
+                                { value: 'ALL', label: 'All Schools' },
+                                ...schools.map(school => ({ value: school.name, label: school.name }))
+                              ]}
+                              className="text-sm"
+                              classNamePrefix="react-select"
+                              placeholder="Select school(s)..."
+                              menuPlacement="auto"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <table className="hidden sm:table w-full text-sm">
+                      <thead className="bg-gray-100 sticky top-0 z-10">
                         <tr>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">#</th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Name</th>
@@ -1008,7 +1115,7 @@ Bob Johnson,bob@example.com,student,`;
                                 type="email"
                                 value={row.email || ''}
                                 onChange={(e) => handleFieldEdit(idx, 'email', e.target.value)}
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="Enter email"
                               />
                             </td>
@@ -1016,7 +1123,7 @@ Bob Johnson,bob@example.com,student,`;
                               <select
                                 value={row.role || 'student'}
                                 onChange={(e) => handleFieldEdit(idx, 'role', e.target.value)}
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
                               >
                                 <option value="student">Student</option>
                                 <option value="teacher">Teacher</option>
@@ -1042,7 +1149,6 @@ Bob Johnson,bob@example.com,student,`;
                                 }
                                 onChange={(selected) => {
                                   if (selected && selected.some(opt => opt.value === 'ALL')) {
-                                    // If "All" is selected, select all schools
                                     handleFieldEdit(idx, 'schools', schools.map(s => s.name));
                                   } else {
                                     handleFieldEdit(idx, 'schools', selected ? selected.map(opt => opt.value) : []);
