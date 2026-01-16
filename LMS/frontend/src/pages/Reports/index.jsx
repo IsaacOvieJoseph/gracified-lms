@@ -37,17 +37,19 @@ const Reports = () => {
 
     return (
         <Layout>
-            <div className="mb-8 flex items-center gap-3">
-                <div className="p-3 bg-indigo-100 rounded-lg">
-                    <BarChart2 className="w-8 h-8 text-indigo-600" />
-                </div>
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Performance Reports</h1>
-                    <p className="text-gray-500">View analytics and performance metrics</p>
+            <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 sm:p-3 bg-indigo-100 rounded-lg shrink-0">
+                        <BarChart2 className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 leading-tight">Performance Reports</h1>
+                        <p className="text-sm sm:text-base text-gray-500 hidden xs:block">View analytics and performance metrics</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 min-h-[600px]">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-6 min-h-[500px]">
                 {renderReportView()}
             </div>
         </Layout>

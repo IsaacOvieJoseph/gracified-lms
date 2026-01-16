@@ -75,29 +75,29 @@ const TeacherReport = () => {
             {!loading && reportData && (
                 <>
                     {/* Top Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-                            <div className="flex items-center space-x-3 mb-2">
-                                <Users className="opacity-80" size={24} />
-                                <h3 className="font-medium opacity-90">Total Students</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+                            <div className="flex items-center space-x-3 mb-1 sm:mb-2">
+                                <Users className="opacity-80" size={20} />
+                                <h3 className="text-sm sm:text-base font-medium opacity-90">Total Students</h3>
                             </div>
-                            <p className="text-3xl font-bold">{reportData.classroom.studentCount}</p>
+                            <p className="text-xl sm:text-3xl font-bold">{reportData.classroom.studentCount}</p>
                         </div>
-                        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-                            <div className="flex items-center space-x-3 mb-2 text-green-600">
-                                <FileText size={24} />
-                                <h3 className="font-medium text-gray-600">Assignments Created</h3>
+                        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm">
+                            <div className="flex items-center space-x-3 mb-1 sm:mb-2 text-green-600">
+                                <FileText size={20} />
+                                <h3 className="text-sm sm:text-base font-medium text-gray-600">Assignments</h3>
                             </div>
-                            <p className="text-3xl font-bold text-gray-800">{reportData.assignmentStats.length}</p>
+                            <p className="text-xl sm:text-3xl font-bold text-gray-800">{reportData.assignmentStats.length}</p>
                         </div>
-                        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-                            <div className="flex items-center space-x-3 mb-2 text-blue-600">
-                                <TrendingUp size={24} />
-                                <h3 className="font-medium text-gray-600">Class Average</h3>
+                        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm">
+                            <div className="flex items-center space-x-3 mb-1 sm:mb-2 text-blue-600">
+                                <TrendingUp size={20} />
+                                <h3 className="text-sm sm:text-base font-medium text-gray-600">Class Avg</h3>
                             </div>
                             {/* Calculate overall average from assignments avg */}
-                            <p className="text-3xl font-bold text-gray-800">
-                                {(reportData.assignmentStats.reduce((acc, curr) => acc + curr.averageScore, 0) / (reportData.assignmentStats.length || 1)).toFixed(1)}
+                            <p className="text-xl sm:text-3xl font-bold text-gray-800">
+                                {(reportData.assignmentStats.reduce((acc, curr) => acc + curr.averageScore, 0) / (reportData.assignmentStats.length || 1)).toFixed(1)}%
                             </p>
                         </div>
                     </div>
@@ -106,17 +106,20 @@ const TeacherReport = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                             <h3 className="font-bold text-gray-800 mb-6">Assignment Performance Averages</h3>
-                            <div className="h-80">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={reportData.assignmentStats}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="title" hide />
-                                        <YAxis />
-                                        <Tooltip labelStyle={{ color: 'black' }} />
-                                        <Bar dataKey="averageScore" fill="#6366f1" radius={[4, 4, 0, 0]} name="Avg Score" />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-200">
+                                <div className="min-w-[600px] sm:min-w-full h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={reportData.assignmentStats}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                            <XAxis dataKey="title" hide />
+                                            <YAxis />
+                                            <Tooltip labelStyle={{ color: 'black' }} />
+                                            <Bar dataKey="averageScore" fill="#6366f1" radius={[4, 4, 0, 0]} name="Avg Score ( % )" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </div>
+                            <p className="text-[10px] text-gray-400 mt-2 block sm:hidden text-center">← Swipe to see more →</p>
                             <p className="text-xs text-center text-gray-400 mt-2">Assignments (Chronological)</p>
                         </div>
 

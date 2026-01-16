@@ -79,33 +79,33 @@ const AllStudentsReportTable = () => {
     if (loading && data.students.length === 0) return <div className="p-4 text-center">Loading academic report sheet...</div>;
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col space-y-4">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-2">
                 <h3 className="font-bold text-lg text-gray-800">Academic Report Sheet</h3>
 
-                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:flex-none">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                         <input
                             type="text"
                             placeholder="Search student..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full md:w-64"
+                            className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-48 text-sm"
                         />
                     </div>
 
                     <div className="flex space-x-2">
                         <button
                             onClick={exportCSV}
-                            className="flex items-center space-x-1 px-3 py-2 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition"
+                            className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition border border-green-200"
                         >
                             <FileText size={16} />
                             <span>CSV</span>
                         </button>
                         <button
                             onClick={exportPDF}
-                            className="flex items-center space-x-1 px-3 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition"
+                            className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition border border-red-200"
                         >
                             <Download size={16} />
                             <span>PDF</span>

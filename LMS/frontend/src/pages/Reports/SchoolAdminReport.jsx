@@ -99,14 +99,14 @@ const SchoolAdminReport = () => {
     const { schoolName, totalStudents, totalClassrooms, overallAverage, classPerformance } = reportData;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center space-x-4">
-                    <div className="bg-indigo-600 p-2 rounded-lg text-white">
-                        <School size={32} />
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                    <div className="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-white">
+                        <School className="w-6 h-6 sm:w-8 sm:h-8" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">{schoolName} <span className="text-gray-400 font-normal">Dashboard</span></h2>
+                        <h2 className="text-lg sm:text-2xl font-bold text-gray-900">{schoolName} <span className="text-gray-400 font-normal hidden xs:inline">Dashboard</span></h2>
                     </div>
                 </div>
 
@@ -118,40 +118,41 @@ const SchoolAdminReport = () => {
                             value={selectedSchool}
                             onChange={setSelectedSchool}
                             placeholder="Select School"
+                            className="text-sm"
                         />
                     </div>
                 )}
             </div>
 
             {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Total Students</p>
-                        <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500">Total Students</p>
+                        <p className="text-xl sm:text-3xl font-bold text-gray-900">{totalStudents}</p>
                     </div>
-                    <div className="bg-blue-100 p-3 rounded-full text-blue-600">
-                        <Users size={24} />
+                    <div className="bg-blue-100 p-2 sm:p-3 rounded-full text-blue-600">
+                        <Users size={20} className="sm:w-6 sm:h-6" />
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Active Classes</p>
-                        <p className="text-3xl font-bold text-gray-900">{totalClassrooms}</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500">Active Classes</p>
+                        <p className="text-xl sm:text-3xl font-bold text-gray-900">{totalClassrooms}</p>
                     </div>
-                    <div className="bg-purple-100 p-3 rounded-full text-purple-600">
-                        <BookOpen size={24} />
+                    <div className="bg-purple-100 p-2 sm:p-3 rounded-full text-purple-600">
+                        <BookOpen size={20} className="sm:w-6 sm:h-6" />
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-500">School Average</p>
-                        <p className={`text-3xl font-bold ${overallAverage >= 70 ? 'text-green-600' : 'text-yellow-600'}`}>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500">School Average</p>
+                        <p className={`text-xl sm:text-3xl font-bold ${overallAverage >= 70 ? 'text-green-600' : 'text-yellow-600'}`}>
                             {overallAverage}%
                         </p>
                     </div>
-                    <div className="bg-green-100 p-3 rounded-full text-green-600">
-                        <TrendingUp size={24} />
+                    <div className="bg-green-100 p-2 sm:p-3 rounded-full text-green-600">
+                        <TrendingUp size={20} className="sm:w-6 sm:h-6" />
                     </div>
                 </div>
             </div>
@@ -159,19 +160,22 @@ const SchoolAdminReport = () => {
             {/* Main Chart */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-800 mb-6">Classroom Performance Overview</h3>
-                <div className="h-96">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={classPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="name" />
-                            <YAxis unit="%" />
-                            <Tooltip cursor={{ fill: '#f3f4f6' }} />
-                            <Legend />
-                            <Bar dataKey="averagePercentage" name="Average Score" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={40} />
-                            <Bar dataKey="attendancePercentage" name="Avg Attendance" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-200">
+                    <div className="min-w-[800px] sm:min-w-full h-96">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={classPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="name" />
+                                <YAxis unit="%" />
+                                <Tooltip cursor={{ fill: '#f3f4f6' }} />
+                                <Legend />
+                                <Bar dataKey="averagePercentage" name="Average Score" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={40} />
+                                <Bar dataKey="attendancePercentage" name="Avg Attendance" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
+                <p className="text-[10px] text-gray-400 mt-2 block sm:hidden text-center">← Swipe to see more →</p>
             </div>
 
             {/* Detailed Table */}

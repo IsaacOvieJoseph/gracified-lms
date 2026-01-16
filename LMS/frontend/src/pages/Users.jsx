@@ -585,10 +585,11 @@ Bob Johnson,bob@example.com,student,`;
           <div className="flex gap-2">
             <button
               onClick={exportUsersToCSV}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              className="flex items-center space-x-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              title="Export Users"
             >
               <Download className="w-4 h-4" />
-              <span>Export</span>
+              <span className="hidden sm:inline">Export</span>
             </button>
             {['root_admin', 'school_admin'].includes(user?.role) && (
               <>
@@ -609,10 +610,11 @@ Bob Johnson,bob@example.com,student,`;
                     setShowModalPassword(false);
                     setShowCreateModal(true);
                   }}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  title="Create User"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Create User</span>
+                  <span className="hidden sm:inline">Create User</span>
                 </button>
                 <button
                   onClick={() => {
@@ -620,10 +622,11 @@ Bob Johnson,bob@example.com,student,`;
                     setUploadResults(null);
                     setShowBulkUploadModal(true);
                   }}
-                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                  className="flex items-center space-x-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                  title="Bulk Upload"
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Bulk Upload</span>
+                  <span className="hidden sm:inline">Bulk Upload</span>
                 </button>
               </>
             )}

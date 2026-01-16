@@ -64,20 +64,20 @@ const StudentReportTable = ({ students, classroomName }) => {
     }
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-gray-800">Student Report Cards</h3>
-                <div className="flex space-x-2">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6">
+                <h3 className="font-bold text-gray-800 text-lg">Student Report Cards</h3>
+                <div className="flex w-full sm:w-auto space-x-2">
                     <button
                         onClick={exportCSV}
-                        className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition border border-green-200"
                     >
                         <FileText size={16} />
                         <span>CSV</span>
                     </button>
                     <button
                         onClick={exportPDF}
-                        className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition border border-red-200"
                     >
                         <Download size={16} />
                         <span>PDF</span>

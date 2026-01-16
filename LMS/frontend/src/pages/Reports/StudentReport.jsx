@@ -39,66 +39,66 @@ const StudentReport = () => {
     ];
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-end gap-2 border-b border-gray-100 pb-4">
+        <div className="space-y-6 sm:space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3 border-b border-gray-100 pb-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Performance Overview</h2>
-                    <p className="text-gray-500 mt-1">Detailed academic report for <span className="text-indigo-600 font-semibold">{student?.name}</span></p>
+                    <h2 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight">Performance Overview</h2>
+                    <p className="text-sm sm:text-base text-gray-500 mt-1">Detailed academic report for <span className="text-indigo-600 font-semibold">{student?.name}</span></p>
                 </div>
-                <p className="text-sm text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
                     ID: {student?.email}
                 </p>
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center space-x-4">
-                    <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
-                        <BookOpen size={24} />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                <div className="bg-blue-50 p-3 sm:p-4 rounded-xl border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-2 sm:p-3 bg-blue-100 rounded-lg text-blue-600">
+                        <BookOpen size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500">Total Assignments</p>
-                        <p className="text-2xl font-bold text-gray-800">{summary.totalAssignments}</p>
+                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Total Assignments</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.totalAssignments}</p>
                     </div>
                 </div>
 
-                <div className="bg-green-50 p-4 rounded-xl border border-green-100 flex items-center space-x-4">
-                    <div className="p-3 bg-green-100 rounded-lg text-green-600">
-                        <CheckCircle size={24} />
+                <div className="bg-green-50 p-3 sm:p-4 rounded-xl border border-green-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-2 sm:p-3 bg-green-100 rounded-lg text-green-600">
+                        <CheckCircle size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500">Submitted</p>
-                        <p className="text-2xl font-bold text-gray-800">{summary.submittedCount}</p>
+                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Submitted</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.submittedCount}</p>
                     </div>
                 </div>
 
-                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex items-center space-x-4">
-                    <div className="p-3 bg-yellow-100 rounded-lg text-yellow-600">
-                        <Clock size={24} />
+                <div className="bg-yellow-50 p-3 sm:p-4 rounded-xl border border-yellow-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg text-yellow-600">
+                        <Clock size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500">Pending</p>
-                        <p className="text-2xl font-bold text-gray-800">{summary.pendingCount}</p>
+                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Pending</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.pendingCount}</p>
                     </div>
                 </div>
 
-                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex items-center space-x-4">
-                    <div className="p-3 bg-purple-100 rounded-lg text-purple-600">
-                        <Award size={24} />
+                <div className="bg-purple-50 p-3 sm:p-4 rounded-xl border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-2 sm:p-3 bg-purple-100 rounded-lg text-purple-600">
+                        <Award size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500">Overall Score</p>
-                        <p className="text-2xl font-bold text-gray-800">{summary.overallPercentage}%</p>
+                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Overall Score</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.overallPercentage}%</p>
                     </div>
                 </div>
 
-                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex items-center space-x-4">
-                    <div className="p-3 bg-indigo-100 rounded-lg text-indigo-600">
-                        <Users size={24} />
+                <div className="bg-indigo-50 p-3 sm:p-4 rounded-xl border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 col-span-2 md:col-span-1">
+                    <div className="p-2 sm:p-3 bg-indigo-100 rounded-lg text-indigo-600">
+                        <Users size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500">Attendance</p>
-                        <p className="text-2xl font-bold text-gray-800">{summary.attendancePercentage}%</p>
+                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Attendance</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.attendancePercentage}%</p>
                     </div>
                 </div>
             </div>
@@ -107,23 +107,26 @@ const StudentReport = () => {
                 {/* Performance by Class Chart */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <h3 className="text-lg font-bold mb-6 text-gray-800">Performance Chart</h3>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={byClass.map(c => ({
-                                className: c.className,
-                                averagePercentage: c.averagePercentage,
-                                attendancePercentage: c.attendance?.percentage || 0
-                            }))}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="className" />
-                                <YAxis unit="%" />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="averagePercentage" name="Avg Score (%)" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="attendancePercentage" name="Attendance (%)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-200">
+                        <div className="min-w-[600px] sm:min-w-full h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={byClass.map(c => ({
+                                    className: c.className,
+                                    averagePercentage: c.averagePercentage,
+                                    attendancePercentage: c.attendance?.percentage || 0
+                                }))}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="className" />
+                                    <YAxis unit="%" />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="averagePercentage" name="Avg Score (%)" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="attendancePercentage" name="Attendance (%)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
+                    <p className="text-[10px] text-gray-400 mt-2 block sm:hidden text-center">← Swipe to see more →</p>
                 </div>
 
                 {/* Completion Status Chart */}
