@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useContext, useCallback } from 'rea
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const DEFAULT_SOCKET_URL = API_URL.replace(/\/api$/, '');
@@ -518,37 +519,156 @@ export default function Whiteboard() {
   }
 
   return (
-    <div className="p-4 h-full" style={{ height: '100%' }}>
-      <div className="flex items-center gap-2 mb-2">
-        <h3 className="font-semibold">Whiteboard</h3>
-        {isTeacher && <button className="px-3 py-1 bg-red-500 text-white rounded" onClick={onClear}>Clear</button>}
-        {isTeacher && <button className="px-3 py-1 bg-gray-700 text-white rounded" onClick={onToggleLock}>{locked ? 'Unlock' : 'Lock'}</button>}
-        {isTeacher && <button className="px-3 py-1 bg-indigo-600 text-white rounded" onClick={() => { socketRef.current?.emit('wb:follow', { follow: !followEnabled }); setFollowEnabled(!followEnabled); }}>{followEnabled ? 'Disable Follow' : 'Enable Follow'}</button>}
-        <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
-          {isTeacher && (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button onClick={() => setTool('pointer')} title="Pointer" className={`px-2 py-1 rounded ${tool === 'pointer' ? 'bg-gray-200' : 'bg-white'}`}>☝️</button>
-              <button onClick={() => setTool('pen')} title="Pen" className={`px-2 py-1 rounded ${tool === 'pen' ? 'bg-gray-200' : 'bg-white'}`}>✏️</button>
-              <button onClick={() => setTool('eraser')} title="Eraser" className={`px-2 py-1 rounded ${tool === 'eraser' ? 'bg-gray-200' : 'bg-white'}`}>🧽</button>
-              <button onClick={() => setTool('rect')} title="Rectangle" className={`px-2 py-1 rounded ${tool === 'rect' ? 'bg-gray-200' : 'bg-white'}`}>▭</button>
-              <button onClick={() => setTool('circle')} title="Circle" className={`px-2 py-1 rounded ${tool === 'circle' ? 'bg-gray-200' : 'bg-white'}`}>◯</button>
-              <button onClick={() => setTool('text')} title="Text" className={`px-2 py-1 rounded ${tool === 'text' ? 'bg-gray-200' : 'bg-white'}`}>T</button>
-              <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
-                {['#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff'].map(c => (
-                  <button key={c} onClick={() => setColor(c)} style={{ width: 20, height: 20, background: c, border: c === '#ffffff' ? '1px solid #ccc' : 'none' }} />
+    <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
+      {/* Responsive Toolbar */}
+      <div className="bg-white border-b border-gray-200 p-2 md:p-3 flex flex-wrap items-center gap-2 md:gap-4 sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <h3 className="font-bold text-gray-800 hidden sm:block">Whiteboard</h3>
+          <div className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${locked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {locked ? 'Locked' : 'Open'}
+          </div>
+        </div>
+
+        {isTeacher && (
+          <>
+            {/* Utility Actions */}
+            <div className="flex items-center gap-1 border-r pr-2 md:pr-4">
+              <button
+                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                onClick={onClear}
+                title="Clear All"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                className={`p-2 rounded-lg transition-colors ${locked ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                onClick={onToggleLock}
+                title={locked ? 'Unlock' : 'Lock'}
+              >
+                {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              </button>
+              <button
+                className={`p-2 rounded-lg transition-colors ${followEnabled ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+                onClick={() => { socketRef.current?.emit('wb:follow', { follow: !followEnabled }); setFollowEnabled(!followEnabled); }}
+                title={followEnabled ? 'Disable Follow' : 'Enable Follow'}
+              >
+                {followEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Drawing Tools */}
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+              <button
+                onClick={() => setTool('pointer')}
+                className={`p-2 rounded-lg transition-all ${tool === 'pointer' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+                title="Pointer"
+              >
+                <MousePointer className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool('pen')}
+                className={`p-2 rounded-lg transition-all ${tool === 'pen' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+                title="Pen"
+              >
+                <Paintbrush className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool('eraser')}
+                className={`p-2 rounded-lg transition-all ${tool === 'eraser' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+                title="Eraser"
+              >
+                <Eraser className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool('rect')}
+                className={`p-2 rounded-lg transition-all ${tool === 'rect' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+                title="Rectangle"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool('circle')}
+                className={`p-2 rounded-lg transition-all ${tool === 'circle' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+                title="Circle"
+              >
+                <CircleIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool('text')}
+                className={`p-2 rounded-lg transition-all ${tool === 'text' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+                title="Text"
+              >
+                <Type className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Colors */}
+            <div className="flex items-center gap-1 px-2 border-l border-r">
+              <div className="flex flex-wrap gap-1 max-w-[100px] sm:max-w-none">
+                {['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#06b6d4', '#ffffff'].map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className="w-5 h-5 rounded-full border border-gray-200 transition-transform active:scale-90"
+                    style={{ background: c }}
+                    title={c}
+                  />
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 12 }}>
-                <button onClick={() => { if (undoStackRef.current.length > 0) { const s = undoStackRef.current.pop(); redoStackRef.current.push(s); socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id }); strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id)); redrawAll(); } }} title="Undo" className="px-2 py-1 rounded bg-white">↶</button>
-                <button onClick={() => { if (redoStackRef.current.length > 0) { const s = redoStackRef.current.pop(); renderStroke(s, false); pushToBuffer(s); socketRef.current.emit('wb:draw', { ...s, persist: false }); } }} title="Redo" className="px-2 py-1 rounded bg-white">↷</button>
-                <button onClick={onExportPNG} title="Export PNG" className="px-2 py-1 rounded bg-white">Export PNG</button>
-              </div>
             </div>
-          )}
-        </div>
-        <div className="ml-auto">{locked ? 'Locked' : 'Open'}</div>
+
+            {/* History & Export */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  if (undoStackRef.current.length > 0) {
+                    const s = undoStackRef.current.pop();
+                    redoStackRef.current.push(s);
+                    socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id });
+                    strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
+                    redrawAll();
+                  }
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Undo"
+              >
+                <Undo className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  if (redoStackRef.current.length > 0) {
+                    const s = redoStackRef.current.pop();
+                    renderStroke(s, false);
+                    pushToBuffer(s);
+                    socketRef.current.emit('wb:draw', { ...s, persist: false });
+                  }
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Redo"
+              >
+                <Redo className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onExportPNG}
+                className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors hidden sm:flex items-center gap-2 font-medium text-sm"
+                title="Export Image"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export</span>
+              </button>
+              <button
+                onClick={onExportPNG}
+                className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors sm:hidden"
+                title="Export Image"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
-      <div ref={containerRef} style={{ height: 'calc(100vh - 140px)', overflowY: 'auto', position: 'relative' }}>
+
+      <div ref={containerRef} className="flex-1 overflow-auto relative bg-gray-100/50">
         <canvas
           ref={canvasRef}
           style={{ width: '100%', height: `${canvasHeightRef.current}px`, border: '1px solid #e5e7eb', touchAction: 'none', display: 'block' }}
