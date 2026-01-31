@@ -215,6 +215,8 @@ io.on('connection', (socket) => {
         socketId: socket.id,
         name,
         color,
+        muted: true, // Default to muted on join
+        handRaised: false,
         active: whiteboardSessions.getActiveCount(classId)
       });
       const locked = whiteboardSessions.isLocked(classId);
@@ -242,7 +244,9 @@ io.on('connection', (socket) => {
           participants.push({
             socketId: s.id,
             name: s.data.name || 'User',
-            color: s.data.color
+            color: s.data.color,
+            muted: s.data.muted ?? true,
+            handRaised: s.data.handRaised ?? false
           });
         }
       }
@@ -457,20 +461,32 @@ io.on('connection', (socket) => {
     const { classId, sessionId } = socket.data || {};
     if (!classId || !sessionId) return;
     console.log(`User ${socket.id} ${muted ? 'muted' : 'unmuted'}`);
+    socket.data.muted = !!muted;
     socket.to(sessionId).emit('voice:speaking', { userId: socket.id, speaking: !muted });
+    // Also broadcast explicit mute state for UI icons
+    io.to(sessionId).emit('wb:user-mute-state', { userId: socket.id, muted: !!muted });
   });
 
-  socket.on('wb:force-mute', ({ targetUserId, muteAll }) => {
+  socket.on('wb:raise-hand', ({ raised }) => {
+    const { sessionId } = socket.data || {};
+    if (!sessionId) return;
+    socket.data.handRaised = !!raised;
+    io.to(sessionId).emit('wb:hand-state', { userId: socket.id, raised: !!raised });
+  });
+
+  socket.on('wb:force-mute', ({ targetUserId, muteAll, force }) => {
     const { sessionId, isTeacher } = socket.data || {};
     if (!isTeacher || !sessionId) return;
 
+    // 'force' can be true (mute) or false (unmute)
+    const state = force !== undefined ? !!force : true;
+
     if (muteAll) {
-      console.log(`Teacher ${socket.id} muting everyone in ${sessionId}`);
-      // Send to everyone except the teacher
-      socket.to(sessionId).emit('wb:force-mute', { force: true });
+      console.log(`Teacher ${socket.id} force setting mute all to ${state} in ${sessionId}`);
+      socket.to(sessionId).emit('wb:force-mute', { force: state });
     } else if (targetUserId) {
-      console.log(`Teacher ${socket.id} muting student ${targetUserId}`);
-      io.to(targetUserId).emit('wb:force-mute', { force: true });
+      console.log(`Teacher ${socket.id} force setting student ${targetUserId} mute to ${state}`);
+      io.to(targetUserId).emit('wb:force-mute', { force: state });
     }
   });
 

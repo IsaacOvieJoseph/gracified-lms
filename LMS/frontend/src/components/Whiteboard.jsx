@@ -42,6 +42,7 @@ export default function Whiteboard() {
   // Voice communication state
   const [isMuted, setIsMuted] = useState(true);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [isHandRaised, setIsHandRaised] = useState(false);
   const [activeSpeakers, setActiveSpeakers] = useState(new Set());
   const [localVolume, setLocalVolume] = useState(0);
   const localStreamRef = useRef(null);
@@ -195,10 +196,23 @@ export default function Whiteboard() {
     });
 
     socket.on('wb:force-mute', ({ force }) => {
-      if (force) {
-        // Force mute the user (students only, usually)
-        handleToggleMute(true);
-      }
+      // Teachers can force mute OR unmute (active/inactive states)
+      handleToggleMute(!!force);
+    });
+
+    socket.on('wb:user-mute-state', ({ userId, muted }) => {
+      if (userId === socket.id) return;
+      setOtherCursors(prev => {
+        if (!prev[userId]) return prev;
+        return { ...prev, [userId]: { ...prev[userId], muted: !!muted } };
+      });
+    });
+
+    socket.on('wb:hand-state', ({ userId, raised }) => {
+      setOtherCursors(prev => {
+        if (!prev[userId]) return prev;
+        return { ...prev, [userId]: { ...prev[userId], handRaised: !!raised } };
+      });
     });
 
     socket.on('wb:history', (strokes) => {
@@ -738,6 +752,12 @@ export default function Whiteboard() {
     setTextInput({ visible: false, x: 0, y: 0, value: '' });
   };
 
+  const handleRaiseHand = () => {
+    const newState = !isHandRaised;
+    setIsHandRaised(newState);
+    socketRef.current?.emit('wb:raise-hand', { raised: newState });
+  };
+
   const handleExit = () => {
     if (socketRef.current) {
       socketRef.current.disconnect();
@@ -818,11 +838,12 @@ export default function Whiteboard() {
     }
   };
 
-  const handleForceMute = (targetUserId = 'all') => {
+  const handleForceMute = (targetUserId = 'all', forceState = true) => {
     if (!isTeacher) return;
     socketRef.current?.emit('wb:force-mute', {
       targetUserId: targetUserId === 'all' ? null : targetUserId,
-      muteAll: targetUserId === 'all'
+      muteAll: targetUserId === 'all',
+      force: forceState
     });
   };
 
@@ -911,12 +932,26 @@ export default function Whiteboard() {
             ...otherCursors,
             [socketRef.current?.id]: {
               name: user?.name || user?.email || 'Me',
-              color: '#4f46e5' // indigo
+              color: '#4f46e5',
+              muted: isMuted,
+              handRaised: isHandRaised
             }
           }}
           onForceMute={handleForceMute}
           activeSpeakers={activeSpeakers}
         />
+
+        {/* Raise Hand (Student only, show when voice is enabled) */}
+        {!isTeacher && isVoiceEnabled && (
+          <button
+            onClick={handleRaiseHand}
+            className={`p-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm ${isHandRaised ? 'bg-yellow-500 text-white shadow-lg scale-110' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            title={isHandRaised ? 'Lower Hand' : 'Raise Hand'}
+          >
+            <Hand className={`w-4 h-4 ${isHandRaised ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline">{isHandRaised ? 'Hand Raised' : 'Raise Hand'}</span>
+          </button>
+        )}
 
         {/* Drawing Tools */}
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">

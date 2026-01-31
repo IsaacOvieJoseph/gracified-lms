@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert, Hand } from 'lucide-react';
 
 export default function VoiceControls({
     isVoiceEnabled,
@@ -21,7 +21,9 @@ export default function VoiceControls({
         id,
         name: participants[id].name || 'User',
         color: participants[id].color,
-        isSpeaking: activeSpeakers.has(id)
+        isSpeaking: activeSpeakers.has(id),
+        muted: participants[id].muted,
+        handRaised: participants[id].handRaised
     }));
 
     return (
@@ -96,20 +98,23 @@ export default function VoiceControls({
                         ) : (
                             participantList.map(person => (
                                 <div key={person.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors group">
-                                    <div className="flex items-center gap-2 overflow-hidden">
+                                    <div className="flex items-center gap-2 overflow-hidden flex-1">
                                         <div
                                             className={`w-2 h-2 rounded-full flex-shrink-0 ${person.isSpeaking ? 'bg-green-500 animate-pulse ring-4 ring-green-100' : 'bg-gray-300'}`}
                                         />
                                         <span className="text-sm text-gray-700 truncate font-medium">
                                             {person.name}
                                         </span>
+                                        {person.handRaised && (
+                                            <Hand className="w-3.5 h-3.5 text-yellow-500 animate-bounce flex-shrink-0" />
+                                        )}
                                     </div>
                                     <button
-                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
-                                        onClick={() => onForceMute(person.id)}
-                                        title={`Mute ${person.name}`}
+                                        className={`p-1.5 rounded-md transition-all ${person.muted ? 'bg-red-50 text-red-400 hover:text-red-600' : 'bg-gray-50 text-gray-400 hover:text-green-500'} ${person.id === 'Me' ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}
+                                        onClick={() => onForceMute(person.id, !person.muted)}
+                                        title={person.muted ? `Unmute ${person.name}` : `Mute ${person.name}`}
                                     >
-                                        <MicOff className="w-4 h-4" />
+                                        {person.muted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                                     </button>
                                 </div>
                             ))
