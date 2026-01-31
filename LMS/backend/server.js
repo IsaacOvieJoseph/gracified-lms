@@ -208,8 +208,15 @@ io.on('connection', (socket) => {
 
       // assign a display color for presence cursor
       const color = `hsl(${Math.floor(Math.abs(hashCode(socket.data.user._id.toString())) % 360)},70%,40%)`;
-      socket.data = { ...socket.data, classId, sessionId, isTeacher: !!isTeacher, color };
-      io.to(sessionId).emit('wb:user-joined', { socketId: socket.id, active: whiteboardSessions.getActiveCount(classId) });
+      const name = socket.data.user ? (socket.data.user.name || socket.data.user.email || 'User') : 'User';
+      socket.data = { ...socket.data, classId, sessionId, isTeacher: !!isTeacher, color, name };
+
+      io.to(sessionId).emit('wb:user-joined', {
+        socketId: socket.id,
+        name,
+        color,
+        active: whiteboardSessions.getActiveCount(classId)
+      });
       const locked = whiteboardSessions.isLocked(classId);
       const follow = whiteboardSessions.isFollow(classId);
       socket.emit('wb:lock-state', { locked });
@@ -224,6 +231,23 @@ io.on('connection', (socket) => {
       } catch (err) {
         console.error('Error fetching whiteboard history', err.message);
       }
+
+      // Final step: Send the joiner a list of all currently active participants
+      // This ensures the teacher's list is populated even if students joined earlier
+      const participants = [];
+      const roomSockets = Array.from(io.sockets.adapter.rooms.get(sessionId) || []);
+      for (const sId of roomSockets) {
+        const s = io.sockets.sockets.get(sId);
+        if (s && s.data) {
+          participants.push({
+            socketId: s.id,
+            name: s.data.name || 'User',
+            color: s.data.color
+          });
+        }
+      }
+      socket.emit('wb:participants', participants);
+
     } catch (err) {
       console.error('wb:join error', err);
     }
@@ -434,6 +458,20 @@ io.on('connection', (socket) => {
     if (!classId || !sessionId) return;
     console.log(`User ${socket.id} ${muted ? 'muted' : 'unmuted'}`);
     socket.to(sessionId).emit('voice:speaking', { userId: socket.id, speaking: !muted });
+  });
+
+  socket.on('wb:force-mute', ({ targetUserId, muteAll }) => {
+    const { sessionId, isTeacher } = socket.data || {};
+    if (!isTeacher || !sessionId) return;
+
+    if (muteAll) {
+      console.log(`Teacher ${socket.id} muting everyone in ${sessionId}`);
+      // Send to everyone except the teacher
+      socket.to(sessionId).emit('wb:force-mute', { force: true });
+    } else if (targetUserId) {
+      console.log(`Teacher ${socket.id} muting student ${targetUserId}`);
+      io.to(targetUserId).emit('wb:force-mute', { force: true });
+    }
   });
 
   socket.on('disconnect', () => {

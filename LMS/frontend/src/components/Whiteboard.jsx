@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut } from 'lucide-react';
 import VoiceControls from './VoiceControls';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -11,6 +11,7 @@ const SOCKET_URL = import.meta.env.VITE_API_WS_URL || DEFAULT_SOCKET_URL;
 
 export default function Whiteboard() {
   const { classId: paramClassId } = useParams();
+  const navigate = useNavigate();
   const classId = paramClassId;
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -141,6 +142,14 @@ export default function Whiteboard() {
       if (data && (data._id || data.id)) strokeHistoryRef.current.push(data);
     });
 
+    socket.on('wb:user-joined', (payload) => {
+      if (payload.socketId === socket.id) return;
+      setOtherCursors((prev) => ({
+        ...prev,
+        [payload.socketId]: { ...payload, xNorm: 0, yNorm: 0, lastSeen: Date.now() }
+      }));
+    });
+
     socket.on('wb:cursor', (payload) => {
       // payload: { socketId, xNorm, yNorm, name, color }
       setOtherCursors((prev) => ({ ...prev, [payload.socketId]: { ...payload, lastSeen: Date.now() } }));
@@ -169,6 +178,7 @@ export default function Whiteboard() {
     });
 
     socket.on('wb:voice-state', async ({ enabled }) => {
+      // Use ref to check up-to-date state inside the listener
       if (!!enabled === isVoiceEnabledRef.current) return;
 
       setIsVoiceEnabled(!!enabled);
@@ -178,8 +188,16 @@ export default function Whiteboard() {
         }
       } else {
         if (localStreamRef.current) {
-          await stopVoiceChat(false);
+          // Pass false to avoid emitting another wb:voice-stop which causes loops
+          stopVoiceChat(false);
         }
+      }
+    });
+
+    socket.on('wb:force-mute', ({ force }) => {
+      if (force) {
+        // Force mute the user (students only, usually)
+        handleToggleMute(true);
       }
     });
 
@@ -196,27 +214,40 @@ export default function Whiteboard() {
       }
     });
 
-    // when a stroke is removed (undo by owner or teacher), remove locally and redraw
     socket.on('wb:remove-stroke', ({ strokeId }) => {
       if (!strokeId) return;
       strokeHistoryRef.current = strokeHistoryRef.current.filter(s => (s._id || s.id) !== strokeId);
-      // redraw all
       redrawAll();
-      // also remove from undo stack if present
       undoStackRef.current = undoStackRef.current.filter(s => (s._id || s.id) !== strokeId);
     });
 
-    // cleanup stale cursors periodically
-    const cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      setOtherCursors((prev) => {
+    socket.on('wb:participants', (list) => {
+      setOtherCursors(prev => {
         const next = { ...prev };
-        Object.keys(next).forEach((k) => {
-          if (now - next[k].lastSeen > 8000) delete next[k];
+        list.forEach(p => {
+          if (p.socketId !== socket.id) {
+            next[p.socketId] = { ...p, xNorm: 0, yNorm: 0, lastSeen: Date.now() };
+          }
         });
         return next;
       });
-    }, 3000);
+    });
+
+    socket.on('wb:user-left', ({ socketId }) => {
+      setOtherCursors(prev => {
+        const next = { ...prev };
+        delete next[socketId];
+        return next;
+      });
+      // also cleanup peer connection if voice was on
+      if (peerConnectionsRef.current[socketId]) {
+        peerConnectionsRef.current[socketId].close();
+        delete peerConnectionsRef.current[socketId];
+      }
+    });
+
+    // removed stale cursor cleanup interval to keep users in list until they leave
+
 
     // setup periodic flush of buffered strokes
     flushIntervalRef.current = setInterval(() => {
@@ -229,7 +260,10 @@ export default function Whiteboard() {
       const pc = createPeerConnection(userId);
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socket.emit('wb:sdp-offer', { targetUserId: userId, sdp: pc.localDescription });
+      socket.emit('wb:sdp-offer', {
+        targetUserId: userId,
+        sdp: { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+      });
     });
 
     socket.on('wb:sdp-offer', async ({ senderUserId, sdp }) => {
@@ -238,7 +272,10 @@ export default function Whiteboard() {
       await pc.setRemoteDescription(new RTCSessionDescription(sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socket.emit('wb:sdp-answer', { targetUserId: senderUserId, sdp: pc.localDescription });
+      socket.emit('wb:sdp-answer', {
+        targetUserId: senderUserId,
+        sdp: { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+      });
     });
 
     socket.on('wb:sdp-answer', async ({ senderUserId, sdp }) => {
@@ -260,6 +297,11 @@ export default function Whiteboard() {
         peerConnectionsRef.current[userId].close();
         delete peerConnectionsRef.current[userId];
       }
+      setOtherCursors(prev => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
     });
 
     socket.on('voice:speaking', ({ userId, speaking }) => {
@@ -272,7 +314,6 @@ export default function Whiteboard() {
     });
 
     return () => {
-      clearInterval(cleanupInterval);
       if (flushIntervalRef.current) clearInterval(flushIntervalRef.current);
       try { flushBuffer(); } catch (e) { }
       stopVoiceChat();
@@ -653,7 +694,10 @@ export default function Whiteboard() {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socketRef.current.emit('wb:ice-candidate', { targetUserId: userId, candidate: event.candidate });
+        socketRef.current.emit('wb:ice-candidate', {
+          targetUserId: userId,
+          candidate: event.candidate.toJSON()
+        });
       }
     };
 
@@ -692,6 +736,14 @@ export default function Whiteboard() {
     socketRef.current.emit('wb:draw', { ...stroke, persist: false });
     pushToBuffer(stroke);
     setTextInput({ visible: false, x: 0, y: 0, value: '' });
+  };
+
+  const handleExit = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    stopVoiceChat(true);
+    navigate(`/classrooms/${classId}`);
   };
 
   const onExportPNG = () => {
@@ -746,8 +798,15 @@ export default function Whiteboard() {
     }
   };
 
-  const handleToggleMute = () => {
-    const newMuteState = !isMuted;
+  const handleToggleMute = (forceState = null) => {
+    // If called from onClick, forceState will be an event object or null.
+    // If called from backend, it will be a boolean.
+    const isExplicit = typeof forceState === 'boolean';
+    const newMuteState = isExplicit ? forceState : !isMuted;
+
+    // If we're already in the desired state, skip
+    if (newMuteState === isMuted) return;
+
     setIsMuted(newMuteState);
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
@@ -757,6 +816,14 @@ export default function Whiteboard() {
         socketRef.current?.emit('wb:mute-status', { muted: newMuteState });
       }
     }
+  };
+
+  const handleForceMute = (targetUserId = 'all') => {
+    if (!isTeacher) return;
+    socketRef.current?.emit('wb:force-mute', {
+      targetUserId: targetUserId === 'all' ? null : targetUserId,
+      muteAll: targetUserId === 'all'
+    });
   };
 
 
@@ -840,6 +907,15 @@ export default function Whiteboard() {
           onToggleMute={handleToggleMute}
           isTeacher={isTeacher}
           localVolume={localVolume}
+          participants={{
+            ...otherCursors,
+            [socketRef.current?.id]: {
+              name: user?.name || user?.email || 'Me',
+              color: '#4f46e5' // indigo
+            }
+          }}
+          onForceMute={handleForceMute}
+          activeSpeakers={activeSpeakers}
         />
 
         {/* Drawing Tools */}
@@ -955,6 +1031,17 @@ export default function Whiteboard() {
             title="Export Image"
           >
             <Download className="w-4 h-4" />
+          </button>
+
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+
+          <button
+            onClick={handleExit}
+            className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2 font-medium text-sm"
+            title="Exit Whiteboard"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Exit</span>
           </button>
         </div>
       </div>
