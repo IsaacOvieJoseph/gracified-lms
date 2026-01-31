@@ -181,7 +181,7 @@ io.on('connection', (socket) => {
     try {
       if (!classId) return;
       // determine teacher status: either user's role or explicit teacherId match
-      let isTeacher = ['teacher', 'personal_teacher', 'school_admin', 'root_admin'].includes(socket.data.user.role);
+      let isTeacher = ['teacher', 'personal_teacher', 'school_admin', 'root_admin', 'admin'].includes(socket.data.user.role);
       try {
         const classroom = await Classroom.findById(classId);
         if (classroom && classroom.teacherId && classroom.teacherId.toString() === socket.data.user._id.toString()) {
@@ -214,6 +214,7 @@ io.on('connection', (socket) => {
       const follow = whiteboardSessions.isFollow(classId);
       socket.emit('wb:lock-state', { locked });
       socket.emit('wb:follow-state', { follow });
+      socket.emit('wb:voice-state', { enabled: whiteboardSessions.isVoiceEnabled(classId) });
       // send persisted history to the newly joined socket
       try {
         const wb = await Whiteboard.findOne({ classId });
@@ -372,6 +373,67 @@ io.on('connection', (socket) => {
     whiteboardSessions.lock(classId, !!locked);
     const s = whiteboardSessions.getSession(classId);
     if (s) io.to(s.sessionId).emit('wb:lock-state', { locked: !!locked });
+  });
+
+  // Voice Communication Handlers
+  socket.on('wb:voice-start', () => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+
+    console.log(`User ${socket.id} joining voice in class ${classId}`);
+
+    // If teacher joins, enable globally
+    if (socket.data.isTeacher) {
+      whiteboardSessions.setVoiceEnabled(classId, true);
+      socket.to(sessionId).emit('wb:voice-state', { enabled: true });
+    }
+
+    // Notify others that this user joined voice signaling
+    socket.to(sessionId).emit('wb:voice-user-joined', { userId: socket.id });
+  });
+
+  socket.on('wb:voice-stop', () => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+
+    console.log(`User ${socket.id} leaving voice in class ${classId}`);
+
+    // If teacher stops voice, disable globally for everyone
+    if (socket.data.isTeacher) {
+      whiteboardSessions.setVoiceEnabled(classId, false);
+      socket.to(sessionId).emit('wb:voice-state', { enabled: false });
+    }
+
+    // Notify others that this user left voice signaling
+    socket.to(sessionId).emit('wb:voice-user-left', { userId: socket.id });
+  });
+
+  socket.on('wb:sdp-offer', ({ targetUserId, sdp }) => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    console.log(`SDP offer from ${socket.id} to ${targetUserId}`);
+    io.to(targetUserId).emit('wb:sdp-offer', { senderUserId: socket.id, sdp });
+  });
+
+  socket.on('wb:sdp-answer', ({ targetUserId, sdp }) => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    console.log(`SDP answer from ${socket.id} to ${targetUserId}`);
+    io.to(targetUserId).emit('wb:sdp-answer', { senderUserId: socket.id, sdp });
+  });
+
+  socket.on('wb:ice-candidate', ({ targetUserId, candidate }) => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    console.log(`ICE candidate from ${socket.id} to ${targetUserId}`);
+    io.to(targetUserId).emit('wb:ice-candidate', { senderUserId: socket.id, candidate });
+  });
+
+  socket.on('wb:mute-status', ({ muted }) => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+    console.log(`User ${socket.id} ${muted ? 'muted' : 'unmuted'}`);
+    socket.to(sessionId).emit('voice:speaking', { userId: socket.id, speaking: !muted });
   });
 
   socket.on('disconnect', () => {

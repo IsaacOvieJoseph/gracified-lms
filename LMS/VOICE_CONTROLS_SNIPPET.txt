@@ -1,0 +1,11 @@
+// VOICE CONTROLS INTEGRATION - Manual Step
+// Add this code to Whiteboard.jsx at line 794 (after the utility actions div closes)
+
+            {/* Voice Communication Controls */}
+            \u003cVoiceControls
+              isVoiceEnabled={isVoiceEnabled}
+              isMuted={isMuted}
+              onToggleVoice={handleToggleVoice}
+              onToggleMute={handleToggleMute}
+              localStream={localStreamRef}
+            /\u003e

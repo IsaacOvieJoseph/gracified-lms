@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useState, useContext, useCallback } from 'rea
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand } from 'lucide-react';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import VoiceControls from './VoiceControls';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const DEFAULT_SOCKET_URL = API_URL.replace(/\/api$/, '');
@@ -37,7 +38,20 @@ export default function Whiteboard() {
   const [width, setWidth] = useState(2);
   const shapeStartRef = useRef(null);
 
-  const isTeacher = user && (user.role === 'teacher' || user.role === 'personal_teacher' || user.role === 'school_admin' || user.role === 'root_admin');
+  // Voice communication state
+  const [isMuted, setIsMuted] = useState(true);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [activeSpeakers, setActiveSpeakers] = useState(new Set());
+  const [localVolume, setLocalVolume] = useState(0);
+  const localStreamRef = useRef(null);
+  const peerConnectionsRef = useRef({});
+  const remoteStreamsRef = useRef({});
+  const audioContextRef = useRef(null);
+  const gainNodeRef = useRef(null);
+  const analyserRef = useRef(null);
+  const volumeIntervalRef = useRef(null);
+
+  const isTeacher = user && (user.role === 'teacher' || user.role === 'personal_teacher' || user.role === 'school_admin' || user.role === 'root_admin' || user.role === 'admin');
 
   const generateId = () => {
     if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
@@ -154,6 +168,21 @@ export default function Whiteboard() {
       setFollowEnabled(!!follow);
     });
 
+    socket.on('wb:voice-state', async ({ enabled }) => {
+      if (!!enabled === isVoiceEnabledRef.current) return;
+
+      setIsVoiceEnabled(!!enabled);
+      if (enabled) {
+        if (!localStreamRef.current) {
+          await startVoiceChat();
+        }
+      } else {
+        if (localStreamRef.current) {
+          await stopVoiceChat(false);
+        }
+      }
+    });
+
     socket.on('wb:history', (strokes) => {
       try {
         // draw persisted strokes in order
@@ -194,10 +223,59 @@ export default function Whiteboard() {
       try { flushBuffer(); } catch (e) { /* ignore */ }
     }, 700);
 
+    // WebRTC signaling listeners
+    socket.on('wb:voice-user-joined', async ({ userId }) => {
+      if (!userId || userId === socket.id) return;
+      const pc = createPeerConnection(userId);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit('wb:sdp-offer', { targetUserId: userId, sdp: pc.localDescription });
+    });
+
+    socket.on('wb:sdp-offer', async ({ senderUserId, sdp }) => {
+      if (!senderUserId || senderUserId === socket.id) return;
+      const pc = createPeerConnection(senderUserId);
+      await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('wb:sdp-answer', { targetUserId: senderUserId, sdp: pc.localDescription });
+    });
+
+    socket.on('wb:sdp-answer', async ({ senderUserId, sdp }) => {
+      const pc = peerConnectionsRef.current[senderUserId];
+      if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      }
+    });
+
+    socket.on('wb:ice-candidate', async ({ senderUserId, candidate }) => {
+      const pc = peerConnectionsRef.current[senderUserId];
+      if (pc && candidate) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    });
+
+    socket.on('wb:voice-user-left', ({ userId }) => {
+      if (peerConnectionsRef.current[userId]) {
+        peerConnectionsRef.current[userId].close();
+        delete peerConnectionsRef.current[userId];
+      }
+    });
+
+    socket.on('voice:speaking', ({ userId, speaking }) => {
+      setActiveSpeakers(prev => {
+        const next = new Set(prev);
+        if (speaking) next.add(userId);
+        else next.delete(userId);
+        return next;
+      });
+    });
+
     return () => {
       clearInterval(cleanupInterval);
       if (flushIntervalRef.current) clearInterval(flushIntervalRef.current);
       try { flushBuffer(); } catch (e) { }
+      stopVoiceChat();
       socket.emit('wb:leave');
       socket.disconnect();
     };
@@ -469,6 +547,138 @@ export default function Whiteboard() {
     }
   };
 
+  // WebRTC Voice Communication Functions
+
+  const startVoiceChat = async () => {
+    try {
+      if (localStreamRef.current) return true;
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+
+      // Apply initial mute state
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !isMuted;
+      }
+
+      // Initialize AudioContext and Analyser for visualization
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContextRef.current = new AudioContextClass();
+
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 256;
+
+        source.connect(analyserRef.current);
+
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        volumeIntervalRef.current = setInterval(() => {
+          if (!analyserRef.current || isMuted) {
+            setLocalVolume(0);
+            return;
+          }
+          analyserRef.current.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / bufferLength;
+          setLocalVolume(average); // 0 to 255
+
+          // Auto-update speaking status for others if volume is significant
+          const threshold = 15;
+          const isActuallySpeaking = average > threshold;
+          if (isActuallySpeaking !== activeSpeakers.has(socketRef.current?.id)) {
+            socketRef.current?.emit('wb:mute-status', { muted: !isActuallySpeaking });
+          }
+        }, 100);
+
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      } catch (e) {
+        console.warn('AudioContext not supported or blocked', e);
+      }
+
+      socketRef.current.emit('wb:voice-start');
+      return true;
+    } catch (error) {
+      console.error('Error starting voice chat:', error);
+      setIsVoiceEnabled(false);
+      return false;
+    }
+  };
+
+  const stopVoiceChat = (emit = true) => {
+    let hadStream = false;
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+      hadStream = true;
+    }
+
+    if (volumeIntervalRef.current) {
+      clearInterval(volumeIntervalRef.current);
+      volumeIntervalRef.current = null;
+    }
+    setLocalVolume(0);
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => { });
+      audioContextRef.current = null;
+    }
+    if (gainNodeRef.current) {
+      gainNodeRef.current = null;
+    }
+
+    Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+    peerConnectionsRef.current = {};
+
+    // Only emit if we actually had an active session and emission is requested
+    if (hadStream && emit) {
+      socketRef.current?.emit('wb:voice-stop');
+    }
+  };
+
+  const createPeerConnection = (userId) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current.emit('wb:ice-candidate', { targetUserId: userId, candidate: event.candidate });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      const [remoteStream] = event.streams;
+      const audio = new Audio();
+      audio.srcObject = remoteStream;
+      audio.autoplay = true;
+      // We don't append to DOM, just play it
+      audio.play().catch(e => {
+        console.warn("Autoplay blocked, user might need to interact first:", e);
+        // Fallback: play on next click or interaction if needed
+      });
+    };
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current);
+      });
+    }
+
+    peerConnectionsRef.current[userId] = pc;
+    return pc;
+  };
+
   // handler for submitting text input
   const submitTextInput = () => {
     if (!textInput.value) {
@@ -517,6 +727,39 @@ export default function Whiteboard() {
     setLocked(!locked);
   };
 
+  // Track voice state for socket listeners to avoid stale closure issues
+  const isVoiceEnabledRef = useRef(isVoiceEnabled);
+  useEffect(() => {
+    isVoiceEnabledRef.current = isVoiceEnabled;
+  }, [isVoiceEnabled]);
+
+  // Voice communication handlers
+  const handleToggleVoice = async () => {
+    if (isVoiceEnabled) {
+      setIsVoiceEnabled(false);
+      await stopVoiceChat(true);
+    } else {
+      const success = await startVoiceChat();
+      if (success) {
+        setIsVoiceEnabled(true);
+      }
+    }
+  };
+
+  const handleToggleMute = () => {
+    const newMuteState = !isMuted;
+    setIsMuted(newMuteState);
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !newMuteState;
+        // Notify other users about mute status (for UI indicators)
+        socketRef.current?.emit('wb:mute-status', { muted: newMuteState });
+      }
+    }
+  };
+
+
   // teacher: emit viewport on scroll when locked; students: follow teacher when locked
   useEffect(() => {
     const container = containerRef.current;
@@ -563,155 +806,163 @@ export default function Whiteboard() {
         </div>
 
         {isTeacher && (
-          <>
+          <div className="flex items-center gap-1 border-r pr-2 md:pr-4">
             {/* Utility Actions */}
-            <div className="flex items-center gap-1 border-r pr-2 md:pr-4">
-              <button
-                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                onClick={onClear}
-                title="Clear All"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              <button
-                className={`p-2 rounded-lg transition-colors ${locked ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                onClick={onToggleLock}
-                title={locked ? 'Unlock' : 'Lock'}
-              >
-                {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-              </button>
-              <button
-                className={`p-2 rounded-lg transition-colors ${followEnabled ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
-                onClick={() => { socketRef.current?.emit('wb:follow', { follow: !followEnabled }); setFollowEnabled(!followEnabled); }}
-                title={followEnabled ? 'Disable Follow' : 'Enable Follow'}
-              >
-                {followEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {/* Drawing Tools */}
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
-              <button
-                onClick={() => setTool('hand')}
-                className={`p-2 rounded-lg transition-all ${tool === 'hand' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-                title="Pan Tool (Hand)"
-              >
-                <Hand className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTool('pointer')}
-                className={`p-2 rounded-lg transition-all ${tool === 'pointer' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-                title="Pointer"
-              >
-                <MousePointer className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTool('pen')}
-                className={`p-2 rounded-lg transition-all ${tool === 'pen' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-                title="Pen"
-              >
-                <Paintbrush className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTool('eraser')}
-                className={`p-2 rounded-lg transition-all ${tool === 'eraser' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-                title="Eraser"
-              >
-                <Eraser className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTool('rect')}
-                className={`p-2 rounded-lg transition-all ${tool === 'rect' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-                title="Rectangle"
-              >
-                <Square className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTool('circle')}
-                className={`p-2 rounded-lg transition-all ${tool === 'circle' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-                title="Circle"
-              >
-                <CircleIcon className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTool('text')}
-                className={`p-2 rounded-lg transition-all ${tool === 'text' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-                title="Text"
-              >
-                <Type className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Colors */}
-            <div className="flex items-center gap-1 px-2 border-l border-r">
-              <div className="flex flex-wrap gap-1 max-w-[100px] sm:max-w-none">
-                {['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#06b6d4', '#ffffff'].map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setColor(c)}
-                    className="w-5 h-5 rounded-full border border-gray-200 transition-transform active:scale-90"
-                    style={{ background: c }}
-                    title={c}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* History & Export */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  if (undoStackRef.current.length > 0) {
-                    const s = undoStackRef.current.pop();
-                    redoStackRef.current.push(s);
-                    socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id });
-                    strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
-                    redrawAll();
-                  }
-                }}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Undo"
-              >
-                <Undo className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  if (redoStackRef.current.length > 0) {
-                    const s = redoStackRef.current.pop();
-                    renderStroke(s, false);
-                    pushToBuffer(s);
-                    socketRef.current.emit('wb:draw', { ...s, persist: false });
-                  }
-                }}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Redo"
-              >
-                <Redo className="w-4 h-4" />
-              </button>
-              <button
-                onClick={onExportPNG}
-                className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors hidden sm:flex items-center gap-2 font-medium text-sm"
-                title="Export Image"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export</span>
-              </button>
-              <button
-                onClick={onExportPNG}
-                className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors sm:hidden"
-                title="Export Image"
-              >
-                <Download className="w-4 h-4" />
-              </button>
-            </div>
-          </>
+            <button
+              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+              onClick={onClear}
+              title="Clear All"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button
+              className={`p-2 rounded-lg transition-colors ${locked ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              onClick={onToggleLock}
+              title={locked ? 'Unlock' : 'Lock'}
+            >
+              {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            </button>
+            <button
+              className={`p-2 rounded-lg transition-colors ${followEnabled ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+              onClick={() => { socketRef.current?.emit('wb:follow', { follow: !followEnabled }); setFollowEnabled(!followEnabled); }}
+              title={followEnabled ? 'Disable Follow' : 'Enable Follow'}
+            >
+              {followEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </button>
+          </div>
         )}
+
+        {/* Voice Communication Controls */}
+        <VoiceControls
+          isVoiceEnabled={isVoiceEnabled}
+          isMuted={isMuted}
+          onToggleVoice={handleToggleVoice}
+          onToggleMute={handleToggleMute}
+          isTeacher={isTeacher}
+          localVolume={localVolume}
+        />
+
+        {/* Drawing Tools */}
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+          <button
+            onClick={() => setTool('hand')}
+            className={`p-2 rounded-lg transition-all ${tool === 'hand' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Pan Tool (Hand)"
+          >
+            <Hand className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setTool('pointer')}
+            className={`p-2 rounded-lg transition-all ${tool === 'pointer' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Pointer"
+          >
+            <MousePointer className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setTool('pen')}
+            className={`p-2 rounded-lg transition-all ${tool === 'pen' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Pen"
+          >
+            <Paintbrush className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setTool('eraser')}
+            className={`p-2 rounded-lg transition-all ${tool === 'eraser' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Eraser"
+          >
+            <Eraser className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setTool('rect')}
+            className={`p-2 rounded-lg transition-all ${tool === 'rect' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Rectangle"
+          >
+            <Square className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setTool('circle')}
+            className={`p-2 rounded-lg transition-all ${tool === 'circle' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Circle"
+          >
+            <CircleIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setTool('text')}
+            className={`p-2 rounded-lg transition-all ${tool === 'text' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
+            title="Text"
+          >
+            <Type className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Colors */}
+        <div className="flex items-center gap-1 px-2 border-l border-r">
+          <div className="flex flex-wrap gap-1 max-w-[100px] sm:max-w-none">
+            {['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#06b6d4', '#ffffff'].map(c => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                className="w-5 h-5 rounded-full border border-gray-200 transition-transform active:scale-90"
+                style={{ background: c }}
+                title={c}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* History & Export */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              if (undoStackRef.current.length > 0) {
+                const s = undoStackRef.current.pop();
+                redoStackRef.current.push(s);
+                socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id });
+                strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
+                redrawAll();
+              }
+            }}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Undo"
+          >
+            <Undo className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              if (redoStackRef.current.length > 0) {
+                const s = redoStackRef.current.pop();
+                renderStroke(s, false);
+                pushToBuffer(s);
+                socketRef.current.emit('wb:draw', { ...s, persist: false });
+              }
+            }}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Redo"
+          >
+            <Redo className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onExportPNG}
+            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors hidden sm:flex items-center gap-2 font-medium text-sm"
+            title="Export Image"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export</span>
+          </button>
+          <button
+            onClick={onExportPNG}
+            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors sm:hidden"
+            title="Export Image"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div
         ref={containerRef}
         className={`flex-1 overflow-auto relative bg-gray-100/50 ${tool === 'hand' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') :
-            tool === 'pointer' ? 'cursor-default' : 'cursor-crosshair'
+          tool === 'pointer' ? 'cursor-default' : 'cursor-crosshair'
           }`}
       >
         <canvas
@@ -763,13 +1014,21 @@ export default function Whiteboard() {
           const container = containerRef.current;
           if (!canvas || !container) return null;
           const px = c.xNorm * canvas.width;
-          const py = c.yNorm * canvas.height - container.scrollTop;
+          const py = c.yNorm * canvas.height - (containerRef.current?.scrollTop || 0);
+          const isSpeaking = activeSpeakers.has(id);
+
           return (
             <div key={id} style={{ position: 'absolute', left: px + 8, top: py - 8, pointerEvents: 'none', zIndex: 40 }}>
-              <div style={{ background: c.color || '#000', color: '#fff', padding: '2px 6px', borderRadius: 6, fontSize: 12, whiteSpace: 'nowrap' }}>{c.name}</div>
+              <div
+                className={`transition-all duration-300 ${isSpeaking ? 'ring-4 ring-green-400 ring-offset-2 scale-110' : ''}`}
+                style={{ background: c.color || '#000', color: '#fff', padding: '2px 6px', borderRadius: 6, fontSize: 12, whiteSpace: 'nowrap' }}
+              >
+                {c.name}
+                {isSpeaking && <span className="ml-1">🔊</span>}
+              </div>
               <div style={{ width: 8, height: 8, background: c.color || '#000', borderRadius: '50%', marginTop: 4 }} />
             </div>
-          );
+          )
         })}
       </div>
     </div>

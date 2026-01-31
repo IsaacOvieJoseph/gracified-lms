@@ -17,9 +17,20 @@ class WhiteboardSessions {
       createdAt: Date.now(),
       locked: false,
       follow: false, // when true, students follow teacher viewport/cursor
+      voiceEnabled: false,
     };
     this.sessions[classId] = s;
     return s;
+  }
+
+  setVoiceEnabled(classId, enabled) {
+    const s = this.sessions[classId];
+    if (s) s.voiceEnabled = !!enabled;
+  }
+
+  isVoiceEnabled(classId) {
+    const s = this.sessions[classId];
+    return s ? !!s.voiceEnabled : false;
   }
 
   getSession(classId) {
