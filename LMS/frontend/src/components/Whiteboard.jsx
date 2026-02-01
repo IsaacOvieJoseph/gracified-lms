@@ -872,8 +872,8 @@ export default function Whiteboard() {
     const isExplicit = typeof forceState === 'boolean';
     const newMuteState = isExplicit ? forceState : !isMuted;
 
-    // Prevent unmuting if mic is locked, unless it's a teacher's explicit command
-    if (!isExplicit && !newMuteState && micLocked) {
+    // Prevent unmuting if mic is locked, unless it's a teacher's explicit command OR the teacher themselves
+    if (!isExplicit && !newMuteState && micLocked && !isTeacher) {
       toast.error("Microphone is currently locked by teacher");
       return;
     }

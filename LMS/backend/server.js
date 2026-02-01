@@ -482,24 +482,31 @@ io.on('connection', (socket) => {
     const state = force !== undefined ? !!force : true;
 
     if (muteAll) {
-      console.log(`Teacher ${socket.id} force setting mute all to ${state}, lock: ${!!lock}`);
-      // Notify everyone to actually mute/unmute their hardware
-      socket.to(sessionId).emit('wb:force-mute', { force: state });
+      console.log(`Teacher ${socket.id} mass setting: forceMute=${state}, lock=${!!lock}`);
 
-      // Broadcast lock state (if provided)
+      // If muting: Force everyone's hardware OFF. 
+      // If unmuting: DO NOT force hardware ON (per request), just release lock.
+      if (state === true) {
+        socket.to(sessionId).emit('wb:force-mute', { force: true });
+      }
+
+      // Always broadcast lock state if requested
       if (lock !== undefined) {
         io.to(sessionId).emit('wb:mic-lock-state', { locked: !!lock });
       }
 
-      // Authoritatively update tracking on server and broadcast UI update to everyone
       const roomSockets = io.sockets.adapter.rooms.get(sessionId);
       if (roomSockets) {
         for (const sId of roomSockets) {
           if (sId === socket.id) continue;
           const s = io.sockets.sockets.get(sId);
           if (s) {
-            s.data.muted = state;
-            io.to(sessionId).emit('wb:user-mute-state', { userId: s.id, muted: state });
+            // Only force track 'true' (muted) on server.
+            // If releasing, we don't know their state yet until they click.
+            if (state === true) {
+              s.data.muted = true;
+              io.to(sessionId).emit('wb:user-mute-state', { userId: s.id, muted: true });
+            }
           }
         }
       }

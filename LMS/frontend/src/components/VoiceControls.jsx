@@ -82,7 +82,7 @@ export default function VoiceControls({
                     )}
 
                     <div className="relative z-10 transition-transform" style={{ transform: !isMuted && localVolume > 20 ? `scale(${1 + (localVolume / 400)})` : 'scale(1)' }}>
-                        {micLocked && isMuted ? (
+                        {micLocked && isMuted && !isTeacher ? (
                             <div className="relative">
                                 <MicOff className="w-4 h-4" />
                                 <Lock className="w-2 h-2 absolute -bottom-1 -right-1 text-red-800" />
@@ -97,25 +97,42 @@ export default function VoiceControls({
             {/* Participants Popover */}
             {showParticipants && isTeacher && isVoiceEnabled && (
                 <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-3 border-b flex items-center justify-between bg-gray-50 rounded-t-xl gap-2">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Participants</span>
-                        <div className="flex gap-1">
-                            <button
-                                className="text-[10px] px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors flex items-center gap-1 font-bold"
-                                onClick={() => { onForceMute('all', true); }}
-                                title="Mute Everyone"
-                            >
-                                <MicOff className="w-3 h-3" />
-                                All
-                            </button>
-                            <button
-                                className="text-[10px] px-2 py-1 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex items-center gap-1 font-bold"
-                                onClick={() => { onForceMute('all', false); }}
-                                title="Unmute Everyone"
-                            >
-                                <Mic className="w-3 h-3" />
-                                All
-                            </button>
+                    <div className="p-4 border-b bg-white border-gray-100 rounded-t-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Control</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <span className="text-[11px] font-bold text-gray-700">
+                                {micLocked ? 'Enable all participants\' mic' : 'Disable all participants\' mic'}
+                            </span>
+                            <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '22px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    style={{ opacity: 0, width: 0, height: 0 }}
+                                    checked={!micLocked}
+                                    onChange={() => onForceMute('all', !micLocked)}
+                                />
+                                <span style={{
+                                    position: 'absolute',
+                                    top: 0, left: 0, right: 0, bottom: 0,
+                                    backgroundColor: !micLocked ? '#22c55e' : '#cbd5e1',
+                                    transition: '.4s',
+                                    borderRadius: '34px',
+                                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                                }}>
+                                    <span style={{
+                                        position: 'absolute',
+                                        content: '""',
+                                        height: '18px', width: '18px',
+                                        left: !micLocked ? '20px' : '2px',
+                                        bottom: '2px',
+                                        backgroundColor: 'white',
+                                        transition: '.4s',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                    }} />
+                                </span>
+                            </label>
                         </div>
                     </div>
                     <div className="max-h-60 overflow-y-auto p-2 scrollbar-thin">
