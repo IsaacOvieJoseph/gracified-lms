@@ -27,6 +27,8 @@ export default function Whiteboard() {
   const strokeHistoryRef = useRef([]); // local authoritative history for redraws
   const inputRef = useRef(null);
   const panStartRef = useRef({ clientX: 0, clientY: 0, scrollTop: 0, scrollLeft: 0 });
+  const isSubmittingTextRef = useRef(false);
+  const lastPosRef = useRef(null);
   const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: '', fontSize: 18 });
   const [otherCursors, setOtherCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
@@ -49,6 +51,13 @@ export default function Whiteboard() {
   const activeDrawersRef = useRef({}); // userId -> timeoutId
   const [micLocked, setMicLocked] = useState(false);
   const [, setCursorVisibilityTick] = useState(0);
+
+  // Auto-focus text input when it appears
+  useEffect(() => {
+    if (textInput.visible && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [textInput.visible]);
 
   // Trigger re-render every second to update cursor visibility based on activity
   useEffect(() => {
@@ -120,6 +129,23 @@ export default function Whiteboard() {
       overlayRef.current.style.height = `${canvas.height}px`;
       overlayRef.current.style.width = '100%';
     }
+
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const parent = canvas.parentElement;
+      if (parent) {
+        const width = parent.clientWidth || parent.getBoundingClientRect().width;
+        if (width > 0 && canvas.width !== width) {
+          canvas.width = width;
+          if (overlayRef.current) overlayRef.current.width = width;
+          redrawAll();
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    const initialTimeout = setTimeout(handleResize, 100);
 
     const ensureCanvasHeight = (minHeight) => {
       if (minHeight <= canvas.height) return;
@@ -376,6 +402,8 @@ export default function Whiteboard() {
     });
 
     return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(initialTimeout);
       if (flushIntervalRef.current) clearInterval(flushIntervalRef.current);
       try { flushBuffer(); } catch (e) { }
       stopVoiceChat();
@@ -513,7 +541,7 @@ export default function Whiteboard() {
     const ctx = ctxRef.current;
     if (!ctx || !canvas) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (emit) socketRef.current.emit('wb:clear');
+    if (emit) socketRef.current?.emit('wb:clear');
   }
 
   function getPointerPos(e) {
@@ -527,10 +555,16 @@ export default function Whiteboard() {
 
   const handlePointerDown = (e) => {
     if (locked && !isTeacher) return;
+
+    // If we were typing text, commit it before starting a new action
+    if (textInput.visible) {
+      submitTextInput();
+    }
+
     const pos = getPointerPos(e);
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(true);
-      socketRef.current._lastPos = pos;
+      lastPosRef.current = pos;
     } else if (tool === 'hand') {
       setIsPanning(true);
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -570,18 +604,18 @@ export default function Whiteboard() {
     }
     if (tool === 'pen') {
       if (!isDrawing) return;
-      const prev = socketRef.current._lastPos || pos;
+      const prev = lastPosRef.current || pos;
       drawLine(prev, pos, color, width, true);
-      socketRef.current._lastPos = pos;
+      lastPosRef.current = pos;
     } else if (tool === 'eraser') {
       if (!isDrawing) return;
-      const prev = socketRef.current._lastPos || pos;
+      const prev = lastPosRef.current || pos;
       // draw erase locally
       const eraseStroke = { type: 'erase', prev: { x: prev.x / canvasRef.current.width, y: prev.y / canvasRef.current.height }, curr: { x: pos.x / canvasRef.current.width, y: pos.y / canvasRef.current.height }, width: width * 8 };
       renderStroke(eraseStroke, false);
-      socketRef.current.emit('wb:draw', { ...eraseStroke, persist: false });
+      socketRef.current?.emit('wb:draw', { ...eraseStroke, persist: false });
       pushToBuffer(eraseStroke);
-      socketRef.current._lastPos = pos;
+      lastPosRef.current = pos;
     } else if (tool === 'rect' || tool === 'circle') {
       // draw preview on overlay
       const start = shapeStartRef.current;
@@ -612,7 +646,7 @@ export default function Whiteboard() {
         const canvas = canvasRef.current;
         const xNorm = pos.x / canvas.width;
         const yNorm = pos.y / canvas.height;
-        socketRef.current.emit('wb:cursor', { xNorm, yNorm });
+        socketRef.current?.emit('wb:cursor', { xNorm, yNorm });
         lastCursorEmitRef.current = now;
       }
     } catch (err) {
@@ -626,7 +660,7 @@ export default function Whiteboard() {
     }
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(false);
-      if (socketRef.current) socketRef.current._lastPos = null;
+      lastPosRef.current = null;
     } else if (tool === 'rect' || tool === 'circle') {
       const start = shapeStartRef.current;
       const end = getPointerPos(e);
@@ -787,17 +821,25 @@ export default function Whiteboard() {
 
   // handler for submitting text input
   const submitTextInput = () => {
+    if (isSubmittingTextRef.current) return;
+    if (!textInput.visible) return;
+
     if (!textInput.value) {
       setTextInput({ visible: false, x: 0, y: 0, value: '' });
       return;
     }
-    const canvas = canvasRef.current;
-    const posNorm = { x: textInput.x / canvas.width, y: textInput.y / canvas.height };
-    const stroke = { type: 'text', pos: posNorm, text: textInput.value, color, fontSize: textInput.fontSize };
-    renderStroke(stroke, false);
-    socketRef.current.emit('wb:draw', { ...stroke, persist: false });
-    pushToBuffer(stroke);
-    setTextInput({ visible: false, x: 0, y: 0, value: '' });
+    isSubmittingTextRef.current = true;
+    try {
+      const canvas = canvasRef.current;
+      const posNorm = { x: textInput.x / canvas.width, y: textInput.y / canvas.height };
+      const stroke = { type: 'text', pos: posNorm, text: textInput.value, color, fontSize: textInput.fontSize };
+      renderStroke(stroke, false);
+      socketRef.current?.emit('wb:draw', { ...stroke, persist: false });
+      pushToBuffer(stroke);
+      setTextInput({ visible: false, x: 0, y: 0, value: '' });
+    } finally {
+      isSubmittingTextRef.current = false;
+    }
   };
 
   const handleRaiseHand = () => {
@@ -1098,7 +1140,7 @@ export default function Whiteboard() {
                   if (undoStackRef.current.length > 0) {
                     const s = undoStackRef.current.pop();
                     redoStackRef.current.push(s);
-                    socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id });
+                    socketRef.current?.emit('wb:remove-stroke', { strokeId: s._id || s.id });
                     strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
                     redrawAll();
                   }
@@ -1114,7 +1156,7 @@ export default function Whiteboard() {
                     const s = redoStackRef.current.pop();
                     renderStroke(s, false);
                     pushToBuffer(s);
-                    socketRef.current.emit('wb:draw', { ...s, persist: false });
+                    socketRef.current?.emit('wb:draw', { ...s, persist: false });
                   }
                 }}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
