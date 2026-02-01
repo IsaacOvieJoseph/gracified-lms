@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut } from 'lucide-react';
 import VoiceControls from './VoiceControls';
+import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const DEFAULT_SOCKET_URL = API_URL.replace(/\/api$/, '');
@@ -44,6 +45,16 @@ export default function Whiteboard() {
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [activeSpeakers, setActiveSpeakers] = useState(new Set());
+  const [activeDrawers, setActiveDrawers] = useState(new Set());
+  const activeDrawersRef = useRef({}); // userId -> timeoutId
+  const [micLocked, setMicLocked] = useState(false);
+  const [, setCursorVisibilityTick] = useState(0);
+
+  // Trigger re-render every second to update cursor visibility based on activity
+  useEffect(() => {
+    const timer = setInterval(() => setCursorVisibilityTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [localVolume, setLocalVolume] = useState(0);
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef({});
@@ -141,6 +152,31 @@ export default function Whiteboard() {
       renderStroke(data, false);
       // record to local history if it has an id
       if (data && (data._id || data.id)) strokeHistoryRef.current.push(data);
+
+      // Track active drawers for sorting and cursor visibility
+      if (data.userId) {
+        setOtherCursors(prev => {
+          if (!prev[data.userId]) return prev;
+          // Only update state if it's been more than 2s to avoid spamming re-renders
+          if (Date.now() - prev[data.userId].lastSeen < 2000) return prev;
+          return { ...prev, [data.userId]: { ...prev[data.userId], lastSeen: Date.now() } };
+        });
+
+        setActiveDrawers(prev => {
+          const next = new Set(prev);
+          next.add(data.userId);
+          return next;
+        });
+        if (activeDrawersRef.current[data.userId]) clearTimeout(activeDrawersRef.current[data.userId]);
+        activeDrawersRef.current[data.userId] = setTimeout(() => {
+          setActiveDrawers(prev => {
+            const next = new Set(prev);
+            next.delete(data.userId);
+            return next;
+          });
+          delete activeDrawersRef.current[data.userId];
+        }, 2000);
+      }
     });
 
     socket.on('wb:user-joined', (payload) => {
@@ -200,6 +236,10 @@ export default function Whiteboard() {
       handleToggleMute(!!force);
     });
 
+    socket.on('wb:mic-lock-state', ({ locked }) => {
+      setMicLocked(!!locked);
+    });
+
     socket.on('wb:user-mute-state', ({ userId, muted }) => {
       if (userId === socket.id) return;
       setOtherCursors(prev => {
@@ -211,6 +251,14 @@ export default function Whiteboard() {
     socket.on('wb:hand-state', ({ userId, raised }) => {
       setOtherCursors(prev => {
         if (!prev[userId]) return prev;
+        const person = prev[userId];
+        if (isTeacher && raised && userId !== socket.id) {
+          toast(`${person.name} raised their hand!`, { icon: '✋', duration: 4000 });
+          // Play a gentle 'pop' sound
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+          audio.volume = 0.5;
+          audio.play().catch(e => console.debug("Audio play blocked by browser policy"));
+        }
         return { ...prev, [userId]: { ...prev[userId], handRaised: !!raised } };
       });
     });
@@ -824,8 +872,14 @@ export default function Whiteboard() {
     const isExplicit = typeof forceState === 'boolean';
     const newMuteState = isExplicit ? forceState : !isMuted;
 
-    // If we're already in the desired state, skip
-    if (newMuteState === isMuted) return;
+    // Prevent unmuting if mic is locked, unless it's a teacher's explicit command
+    if (!isExplicit && !newMuteState && micLocked) {
+      toast.error("Microphone is currently locked by teacher");
+      return;
+    }
+
+    // If we're already in the desired state, skip (unless it's an explicit command we want to re-enforce)
+    if (!isExplicit && newMuteState === isMuted) return;
 
     setIsMuted(newMuteState);
     if (localStreamRef.current) {
@@ -840,11 +894,22 @@ export default function Whiteboard() {
 
   const handleForceMute = (targetUserId = 'all', forceState = true) => {
     if (!isTeacher) return;
+
+    // If unmuting an individual student, mute all others first (Exclusive mode)
+    if (targetUserId !== 'all' && forceState === false) {
+      socketRef.current?.emit('wb:force-mute', { muteAll: true, force: true, lock: true });
+    }
+
     socketRef.current?.emit('wb:force-mute', {
       targetUserId: targetUserId === 'all' ? null : targetUserId,
       muteAll: targetUserId === 'all',
-      force: forceState
+      force: forceState,
+      lock: targetUserId === 'all' ? forceState : undefined // Lock if muting all, Unlock if unmuting all
     });
+
+    if (targetUserId === 'all') {
+      setMicLocked(forceState);
+    }
   };
 
 
@@ -939,6 +1004,9 @@ export default function Whiteboard() {
           }}
           onForceMute={handleForceMute}
           activeSpeakers={activeSpeakers}
+          activeDrawers={activeDrawers}
+          localId={socketRef.current?.id}
+          micLocked={micLocked}
         />
 
         {/* Raise Hand (Student only, show when voice is enabled) */}
@@ -1131,7 +1199,7 @@ export default function Whiteboard() {
         {/* render other users' cursors */}
         {Object.keys(otherCursors).map((id) => {
           const c = otherCursors[id];
-          if (!c) return null;
+          if (!c || (Date.now() - (c.lastSeen || 0) > 8000)) return null;
           const canvas = canvasRef.current;
           const container = containerRef.current;
           if (!canvas || !container) return null;

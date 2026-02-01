@@ -306,7 +306,7 @@ io.on('connection', (socket) => {
     const { classId, sessionId } = socket.data || {};
     if (!classId || !sessionId) return;
     if (whiteboardSessions.isLocked(classId) && !socket.data.isTeacher) return;
-    socket.to(sessionId).emit('wb:draw', data);
+    socket.to(sessionId).emit('wb:draw', { ...data, userId: socket.id });
     // persist stroke unless client marks it as ephemeral (we support client-side batching)
     if (!data || data.persist !== false) {
       (async () => {
@@ -474,19 +474,45 @@ io.on('connection', (socket) => {
     io.to(sessionId).emit('wb:hand-state', { userId: socket.id, raised: !!raised });
   });
 
-  socket.on('wb:force-mute', ({ targetUserId, muteAll, force }) => {
-    const { sessionId, isTeacher } = socket.data || {};
+  socket.on('wb:force-mute', ({ targetUserId, muteAll, force, lock }) => {
+    const { sessionId, isTeacher, classId } = socket.data || {};
     if (!isTeacher || !sessionId) return;
 
     // 'force' can be true (mute) or false (unmute)
     const state = force !== undefined ? !!force : true;
 
     if (muteAll) {
-      console.log(`Teacher ${socket.id} force setting mute all to ${state} in ${sessionId}`);
+      console.log(`Teacher ${socket.id} force setting mute all to ${state}, lock: ${!!lock}`);
+      // Notify everyone to actually mute/unmute their hardware
       socket.to(sessionId).emit('wb:force-mute', { force: state });
+
+      // Broadcast lock state (if provided)
+      if (lock !== undefined) {
+        io.to(sessionId).emit('wb:mic-lock-state', { locked: !!lock });
+      }
+
+      // Authoritatively update tracking on server and broadcast UI update to everyone
+      const roomSockets = io.sockets.adapter.rooms.get(sessionId);
+      if (roomSockets) {
+        for (const sId of roomSockets) {
+          if (sId === socket.id) continue;
+          const s = io.sockets.sockets.get(sId);
+          if (s) {
+            s.data.muted = state;
+            io.to(sessionId).emit('wb:user-mute-state', { userId: s.id, muted: state });
+          }
+        }
+      }
     } else if (targetUserId) {
       console.log(`Teacher ${socket.id} force setting student ${targetUserId} mute to ${state}`);
       io.to(targetUserId).emit('wb:force-mute', { force: state });
+
+      // Update state and broadcast UI sync
+      const targetSocket = io.sockets.sockets.get(targetUserId);
+      if (targetSocket) {
+        targetSocket.data.muted = state;
+        io.to(sessionId).emit('wb:user-mute-state', { userId: targetUserId, muted: state });
+      }
     }
   });
 

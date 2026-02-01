@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert, Hand } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert, Hand, Paintbrush, Lock } from 'lucide-react';
 
 export default function VoiceControls({
     isVoiceEnabled,
@@ -10,7 +10,10 @@ export default function VoiceControls({
     localVolume = 0,
     participants = {},
     onForceMute,
-    activeSpeakers = new Set()
+    activeSpeakers = new Set(),
+    activeDrawers = new Set(),
+    localId = null,
+    micLocked = false
 }) {
     const [showParticipants, setShowParticipants] = React.useState(false);
 
@@ -22,9 +25,16 @@ export default function VoiceControls({
         name: participants[id].name || 'User',
         color: participants[id].color,
         isSpeaking: activeSpeakers.has(id),
+        isDrawing: activeDrawers.has(id),
         muted: participants[id].muted,
         handRaised: participants[id].handRaised
-    }));
+    })).sort((a, b) => {
+        // Priority: Hand Raised > Speaking > Drawing > Name
+        if (a.handRaised !== b.handRaised) return b.handRaised ? 1 : -1;
+        if (a.isSpeaking !== b.isSpeaking) return b.isSpeaking ? 1 : -1;
+        if (a.isDrawing !== b.isDrawing) return b.isDrawing ? 1 : -1;
+        return a.name.localeCompare(b.name);
+    });
 
     return (
         <div className="flex items-center gap-1 border-r pr-2 md:pr-4 relative">
@@ -59,9 +69,9 @@ export default function VoiceControls({
                     className={`p-2 rounded-lg transition-all relative overflow-hidden ${isMuted
                         ? 'bg-red-100 text-red-600'
                         : 'bg-blue-100 text-blue-600'
-                        }`}
+                        } ${micLocked && isMuted ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     onClick={onToggleMute}
-                    title={isMuted ? 'Unmute' : 'Mute'}
+                    title={micLocked && isMuted ? 'Microphone Locked by Teacher' : (isMuted ? 'Unmute' : 'Mute')}
                 >
                     {/* Volume Level Indicator */}
                     {!isMuted && localVolume > 5 && (
@@ -72,7 +82,14 @@ export default function VoiceControls({
                     )}
 
                     <div className="relative z-10 transition-transform" style={{ transform: !isMuted && localVolume > 20 ? `scale(${1 + (localVolume / 400)})` : 'scale(1)' }}>
-                        {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        {micLocked && isMuted ? (
+                            <div className="relative">
+                                <MicOff className="w-4 h-4" />
+                                <Lock className="w-2 h-2 absolute -bottom-1 -right-1 text-red-800" />
+                            </div>
+                        ) : (
+                            isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />
+                        )}
                     </div>
                 </button>
             )}
@@ -80,15 +97,26 @@ export default function VoiceControls({
             {/* Participants Popover */}
             {showParticipants && isTeacher && isVoiceEnabled && (
                 <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-3 border-b flex items-center justify-between bg-gray-50 rounded-t-xl">
-                        <span className="text-sm font-bold text-gray-700">Participants ({participantList.length})</span>
-                        <button
-                            className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors flex items-center gap-1 font-bold"
-                            onClick={() => { onForceMute('all'); setShowParticipants(false); }}
-                        >
-                            <ShieldAlert className="w-3 h-3" />
-                            Mute All
-                        </button>
+                    <div className="p-3 border-b flex items-center justify-between bg-gray-50 rounded-t-xl gap-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Participants</span>
+                        <div className="flex gap-1">
+                            <button
+                                className="text-[10px] px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors flex items-center gap-1 font-bold"
+                                onClick={() => { onForceMute('all', true); }}
+                                title="Mute Everyone"
+                            >
+                                <MicOff className="w-3 h-3" />
+                                All
+                            </button>
+                            <button
+                                className="text-[10px] px-2 py-1 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex items-center gap-1 font-bold"
+                                onClick={() => { onForceMute('all', false); }}
+                                title="Unmute Everyone"
+                            >
+                                <Mic className="w-3 h-3" />
+                                All
+                            </button>
+                        </div>
                     </div>
                     <div className="max-h-60 overflow-y-auto p-2 scrollbar-thin">
                         {participantList.length === 0 ? (
@@ -108,9 +136,12 @@ export default function VoiceControls({
                                         {person.handRaised && (
                                             <Hand className="w-3.5 h-3.5 text-yellow-500 animate-bounce flex-shrink-0" />
                                         )}
+                                        {person.isDrawing && !person.handRaised && (
+                                            <Paintbrush className="w-3 h-3 text-indigo-500 animate-pulse flex-shrink-0" />
+                                        )}
                                     </div>
                                     <button
-                                        className={`p-1.5 rounded-md transition-all ${person.muted ? 'bg-red-50 text-red-400 hover:text-red-600' : 'bg-gray-50 text-gray-400 hover:text-green-500'} ${person.id === 'Me' ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}
+                                        className={`p-1.5 rounded-md transition-all ${person.muted ? 'bg-red-50 text-red-400 hover:text-red-600' : 'bg-gray-50 text-gray-400 hover:text-green-500'} ${person.id === localId ? 'invisible pointer-events-none' : 'opacity-0 group-hover:opacity-100'}`}
                                         onClick={() => onForceMute(person.id, !person.muted)}
                                         title={person.muted ? `Unmute ${person.name}` : `Mute ${person.name}`}
                                     >
