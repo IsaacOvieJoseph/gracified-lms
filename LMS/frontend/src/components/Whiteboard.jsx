@@ -1091,35 +1091,39 @@ export default function Whiteboard() {
 
         {/* History & Export */}
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => {
-              if (undoStackRef.current.length > 0) {
-                const s = undoStackRef.current.pop();
-                redoStackRef.current.push(s);
-                socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id });
-                strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
-                redrawAll();
-              }
-            }}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Undo"
-          >
-            <Undo className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => {
-              if (redoStackRef.current.length > 0) {
-                const s = redoStackRef.current.pop();
-                renderStroke(s, false);
-                pushToBuffer(s);
-                socketRef.current.emit('wb:draw', { ...s, persist: false });
-              }
-            }}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Redo"
-          >
-            <Redo className="w-4 h-4" />
-          </button>
+          {isTeacher && (
+            <>
+              <button
+                onClick={() => {
+                  if (undoStackRef.current.length > 0) {
+                    const s = undoStackRef.current.pop();
+                    redoStackRef.current.push(s);
+                    socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id });
+                    strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
+                    redrawAll();
+                  }
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Undo"
+              >
+                <Undo className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  if (redoStackRef.current.length > 0) {
+                    const s = redoStackRef.current.pop();
+                    renderStroke(s, false);
+                    pushToBuffer(s);
+                    socketRef.current.emit('wb:draw', { ...s, persist: false });
+                  }
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Redo"
+              >
+                <Redo className="w-4 h-4" />
+              </button>
+            </>
+          )}
           <button
             onClick={onExportPNG}
             className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors hidden sm:flex items-center gap-2 font-medium text-sm"
