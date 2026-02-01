@@ -713,20 +713,23 @@ export default function Whiteboard() {
       if (localStreamRef.current) {
         // If we already have a stream, check if we need to add video
         const currentVideoTracks = localStreamRef.current.getVideoTracks();
+        let changed = false;
         if (withVideo && currentVideoTracks.length === 0) {
           const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
           const videoTrack = videoStream.getVideoTracks()[0];
           localStreamRef.current.addTrack(videoTrack);
-          // Add to all existing peer connections
-          Object.values(peerConnectionsRef.current).forEach(pc => {
-            pc.addTrack(videoTrack, localStreamRef.current);
-            // Re-negotiate if necessary? For simplicity, we can let the next offer/answer handle it or re-emit voice-start
-          });
+          changed = true;
         } else if (!withVideo && currentVideoTracks.length > 0) {
           currentVideoTracks.forEach(track => {
             track.stop();
             localStreamRef.current.removeTrack(track);
           });
+          changed = true;
+        }
+
+        if (changed) {
+          // Trigger re-negotiation for all participants
+          socketRef.current?.emit('wb:voice-start');
         }
         return true;
       }
@@ -813,6 +816,12 @@ export default function Whiteboard() {
   };
 
   const createPeerConnection = (userId) => {
+    // Close existing connection for this user if any to avoid leaks and conflicts
+    if (peerConnectionsRef.current[userId]) {
+      try { peerConnectionsRef.current[userId].close(); } catch (e) { }
+      delete peerConnectionsRef.current[userId];
+    }
+
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -822,7 +831,7 @@ export default function Whiteboard() {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socketRef.current.emit('wb:ice-candidate', {
+        socketRef.current?.emit('wb:ice-candidate', {
           targetUserId: userId,
           candidate: event.candidate.toJSON()
         });
