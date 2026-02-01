@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert, Hand, Paintbrush, Lock, Video, VideoOff } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert, Hand, Paintbrush, Lock, Video, VideoOff, Maximize2, Minimize2, Move } from 'lucide-react';
 
 export default function VoiceControls({
     isVoiceEnabled,
@@ -20,12 +20,59 @@ export default function VoiceControls({
     localStream = null
 }) {
     const [showParticipants, setShowParticipants] = React.useState(false);
+    const [maximizedUser, setMaximizedUser] = React.useState(null); // ID of user whose video is maximized
+    const [pos, setPos] = React.useState({ x: 24, y: 96 }); // Default top-right-ish
+    const [dragging, setDragging] = React.useState(false);
+    const dragStartRef = React.useRef({ x: 0, y: 0 });
+
+    const handleDragStart = (e) => {
+        setDragging(true);
+        const clientX = e.clientX || e.touches?.[0]?.clientX;
+        const clientY = e.clientY || e.touches?.[0]?.clientY;
+        dragStartRef.current = {
+            x: clientX - pos.x,
+            y: clientY - pos.y
+        };
+    };
+
+    const handleDragMove = React.useCallback((e) => {
+        if (!dragging) return;
+        const clientX = e.clientX || e.touches?.[0]?.clientX;
+        const clientY = e.clientY || e.touches?.[0]?.clientY;
+
+        // Constrain to window bounds
+        const newX = Math.max(0, Math.min(window.innerWidth - 200, clientX - dragStartRef.current.x));
+        const newY = Math.max(0, Math.min(window.innerHeight - 150, clientY - dragStartRef.current.y));
+
+        setPos({ x: newX, y: newY });
+    }, [dragging]);
+
+    const handleDragEnd = () => {
+        setDragging(false);
+    };
+
+    React.useEffect(() => {
+        if (dragging) {
+            window.addEventListener('mousemove', handleDragMove);
+            window.addEventListener('mouseup', handleDragEnd);
+            window.addEventListener('touchmove', handleDragMove);
+            window.addEventListener('touchend', handleDragEnd);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleDragMove);
+            window.removeEventListener('mouseup', handleDragEnd);
+            window.removeEventListener('touchmove', handleDragMove);
+            window.removeEventListener('touchend', handleDragEnd);
+        };
+    }, [dragging, handleDragMove]);
 
     // Normalize volume for display (analyser gives 0-255, we want a percentage)
     const volumePercent = Math.min(100, (localVolume / 100) * 100);
 
-    const VideoFeed = ({ stream, name, muted, isLocal, color }) => {
+    const VideoFeed = ({ stream, name, muted, isLocal, color, id }) => {
         const videoRef = React.useRef();
+        const isMaximized = maximizedUser === id;
+
         React.useEffect(() => {
             if (videoRef.current && stream) {
                 videoRef.current.srcObject = stream;
@@ -33,7 +80,13 @@ export default function VoiceControls({
         }, [stream]);
 
         return (
-            <div className="relative w-40 h-28 bg-gray-900 rounded-xl overflow-hidden shadow-xl border-2 transition-all hover:scale-105 duration-300 group" style={{ borderColor: color || '#333' }}>
+            <div
+                className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl border-2 transition-all duration-300 group flex-shrink-0
+                    ${isMaximized
+                        ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[70vh] z-[200] border-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.3)]'
+                        : 'w-48 h-32 md:w-64 md:h-44 border-gray-100/10'}`}
+                style={{ borderColor: isMaximized ? '#6366f1' : (color || '#333') }}
+            >
                 <video
                     ref={videoRef}
                     autoPlay
@@ -41,16 +94,33 @@ export default function VoiceControls({
                     muted={isLocal}
                     className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-                <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                    <span className="text-[10px] text-white font-bold truncate max-w-[80%] drop-shadow-md">
-                        {isLocal ? 'You' : name}
-                    </span>
-                    {muted && <MicOff className="w-3 h-3 text-red-500 drop-shadow-md" />}
+
+                {/* Overlays */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none" />
+
+                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={() => setMaximizedUser(isMaximized ? null : id)}
+                        className="p-1.5 bg-black/40 backdrop-blur-md rounded-lg text-white hover:bg-black/60 transition-colors"
+                        title={isMaximized ? "Exit Fullscreen" : "Maximize View"}
+                    >
+                        {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    </button>
                 </div>
+
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${muted ? 'bg-red-500' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'}`} />
+                        <span className={`text-white font-bold tracking-wide drop-shadow-md truncate ${isMaximized ? 'text-lg' : 'text-xs md:text-sm'}`}>
+                            {isLocal ? 'You' : name}
+                        </span>
+                    </div>
+                </div>
+
                 {!stream && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                        <VideoOff className="w-6 h-6 text-gray-600" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 gap-3">
+                        <VideoOff className="w-8 h-8 text-gray-500 animate-pulse" />
+                        <span className="text-gray-400 text-[10px] sm:text-xs">Camera is off</span>
                     </div>
                 )}
             </div>
@@ -221,34 +291,63 @@ export default function VoiceControls({
                     </div>
                 </div>
             )}
-            {/* Video Streams Grid */}
+            {/* Video Streams Container */}
             {(isVideoEnabled || Object.keys(remoteStreams).length > 0) && (
-                <div className="fixed top-24 right-6 flex flex-col gap-3 z-[40] pointer-events-none">
-                    <div className="flex flex-col gap-3 pointer-events-auto max-h-[70vh] overflow-y-auto p-2 scrollbar-none">
-                        {isVideoEnabled && localStream && (
-                            <VideoFeed
-                                stream={localStream}
-                                name="You"
-                                isLocal={true}
-                                muted={isMuted}
-                                color={participants[localId]?.color}
-                            />
-                        )}
-                        {Object.keys(remoteStreams).map(userId => {
-                            const person = participants[userId];
-                            if (!person?.videoEnabled) return null;
-                            return (
+                <>
+                    {/* Backdrop for maximized video */}
+                    {maximizedUser && (
+                        <div
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] animate-in fade-in duration-300"
+                            onClick={() => setMaximizedUser(null)}
+                        />
+                    )}
+
+                    <div
+                        className={`fixed flex flex-col gap-3 z-[40] ${dragging ? 'cursor-grabbing select-none' : ''}`}
+                        style={{
+                            left: `${pos.x}px`,
+                            top: `${pos.y}px`,
+                            maxWidth: '400px'
+                        }}
+                    >
+                        {/* Drag Handle */}
+                        <div
+                            onMouseDown={handleDragStart}
+                            onTouchStart={handleDragStart}
+                            className="flex items-center gap-2 px-2 py-1 bg-white/10 backdrop-blur-md rounded-t-lg border-x border-t border-white/5 cursor-grab active:cursor-grabbing hover:bg-white/20 transition-colors group"
+                        >
+                            <Move className="w-3 h-3 text-white/40 group-hover:text-white/80" />
+                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80">Class Videos</span>
+                        </div>
+
+                        <div className="flex flex-col gap-3 max-h-[70vh] overflow-y-auto p-1 scrollbar-none transition-opacity duration-300 bg-black/5 rounded-b-xl border-x border-b border-white/5 backdrop-blur-[2px]">
+                            {isVideoEnabled && localStream && (
                                 <VideoFeed
-                                    key={userId}
-                                    stream={remoteStreams[userId]}
-                                    name={person.name}
-                                    muted={person.muted}
-                                    color={person.color}
+                                    id={localId || 'local'}
+                                    stream={localStream}
+                                    name="You"
+                                    isLocal={true}
+                                    muted={isMuted}
+                                    color={participants[localId]?.color}
                                 />
-                            );
-                        })}
+                            )}
+                            {Object.keys(remoteStreams).map(userId => {
+                                const person = participants[userId];
+                                if (!person?.videoEnabled) return null;
+                                return (
+                                    <VideoFeed
+                                        key={userId}
+                                        id={userId}
+                                        stream={remoteStreams[userId]}
+                                        name={person.name}
+                                        muted={person.muted}
+                                        color={person.color}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     );
