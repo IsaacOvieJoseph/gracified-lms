@@ -728,6 +728,24 @@ export default function Whiteboard() {
         }
 
         if (changed) {
+          // If we added/removed tracks, we need to update all existing peer connections
+          const tracks = localStreamRef.current.getTracks();
+          Object.values(peerConnectionsRef.current).forEach(pc => {
+            const senders = pc.getSenders();
+            tracks.forEach(track => {
+              // Only add if not already there
+              if (!senders.find(s => s.track === track)) {
+                pc.addTrack(track, localStreamRef.current);
+              }
+            });
+            // Also remove tracks that are no longer in the stream
+            senders.forEach(sender => {
+              if (sender.track && !tracks.includes(sender.track)) {
+                pc.removeTrack(sender);
+              }
+            });
+          });
+
           // Trigger re-negotiation for all participants
           socketRef.current?.emit('wb:voice-start');
         }
@@ -816,17 +834,30 @@ export default function Whiteboard() {
   };
 
   const createPeerConnection = (userId) => {
-    // Close existing connection for this user if any to avoid leaks and conflicts
-    if (peerConnectionsRef.current[userId]) {
-      try { peerConnectionsRef.current[userId].close(); } catch (e) { }
-      delete peerConnectionsRef.current[userId];
+    // Reuse existing connection for this user if it's still alive
+    if (peerConnectionsRef.current[userId] &&
+      peerConnectionsRef.current[userId].signalingState !== 'closed') {
+      return peerConnectionsRef.current[userId];
     }
 
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // Add support for custom TURN servers if provided in env
+        ...(import.meta.env.VITE_TURN_SERVER_URL ? [
+          {
+            urls: import.meta.env.VITE_TURN_SERVER_URL,
+            username: import.meta.env.VITE_TURN_SERVER_USERNAME,
+            credential: import.meta.env.VITE_TURN_SERVER_PASSWORD
+          }
+        ] : [])
       ],
+      iceTransportPolicy: 'all',
+      iceCandidatePoolSize: 10
     });
 
     pc.onicecandidate = (event) => {
@@ -839,8 +870,19 @@ export default function Whiteboard() {
     };
 
     pc.ontrack = (event) => {
-      console.log(`Received remote track from ${userId}`);
-      const [remoteStream] = event.streams;
+      console.log(`Received remote track (${event.track.kind}) from ${userId}`);
+      let remoteStream = event.streams[0];
+
+      if (!remoteStream) {
+        // If track has no stream (common in some renegotiation cases), use/create one from Ref
+        if (!remoteStreamsRef.current[userId]) {
+          remoteStreamsRef.current[userId] = new MediaStream();
+        }
+        remoteStream = remoteStreamsRef.current[userId];
+        remoteStream.addTrack(event.track);
+      } else {
+        remoteStreamsRef.current[userId] = remoteStream;
+      }
 
       // Update remote streams state for UI rendering
       setRemoteStreams(prev => ({
@@ -853,7 +895,13 @@ export default function Whiteboard() {
         const audio = new Audio();
         audio.srcObject = remoteStream;
         audio.autoplay = true;
+        // Set slightly higher volume for remote audio
+        audio.volume = 1.0;
         audio.play().catch(e => console.warn("Audio autoplay blocked:", e));
+      } else if (event.track.kind === 'video') {
+        console.log("Received remote video track");
+        // Re-trigger remote streams update to ensure UI re-renders
+        setRemoteStreams(prev => ({ ...prev }));
       }
     };
 

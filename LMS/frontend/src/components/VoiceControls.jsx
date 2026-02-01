@@ -75,7 +75,25 @@ export default function VoiceControls({
 
         React.useEffect(() => {
             if (videoRef.current && stream) {
-                videoRef.current.srcObject = stream;
+                if (videoRef.current.srcObject !== stream) {
+                    videoRef.current.srcObject = stream;
+                }
+
+                // Add event listeners for track changes
+                const playVideo = () => {
+                    if (videoRef.current) videoRef.current.play().catch(e => { });
+                };
+
+                stream.addEventListener('addtrack', playVideo);
+                stream.addEventListener('removetrack', playVideo);
+
+                // Also ensure it plays if already assigned
+                playVideo();
+
+                return () => {
+                    stream.removeEventListener('addtrack', playVideo);
+                    stream.removeEventListener('removetrack', playVideo);
+                };
             }
         }, [stream]);
 
@@ -85,14 +103,14 @@ export default function VoiceControls({
                     ${isMaximized
                         ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[70vh] z-[200] border-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.3)]'
                         : 'w-48 h-32 md:w-64 md:h-44 border-gray-100/10'}`}
-                style={{ borderColor: isMaximized ? '#6366f1' : (color || '#333') }}
+                style={{ borderColor: isMaximized ? '#6366f1' : (color || '#333'), backgroundColor: '#000' }}
             >
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted={isLocal}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover bg-black"
                 />
 
                 {/* Overlays */}
