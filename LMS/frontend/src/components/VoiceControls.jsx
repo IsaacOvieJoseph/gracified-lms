@@ -1,11 +1,13 @@
 import React from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert, Hand, Paintbrush, Lock } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Users, ChevronDown, ShieldAlert, Hand, Paintbrush, Lock, Video, VideoOff } from 'lucide-react';
 
 export default function VoiceControls({
     isVoiceEnabled,
+    isVideoEnabled,
     isMuted,
     onToggleVoice,
     onToggleMute,
+    onToggleVideo,
     isTeacher,
     localVolume = 0,
     participants = {},
@@ -13,12 +15,47 @@ export default function VoiceControls({
     activeSpeakers = new Set(),
     activeDrawers = new Set(),
     localId = null,
-    micLocked = false
+    micLocked = false,
+    remoteStreams = {},
+    localStream = null
 }) {
     const [showParticipants, setShowParticipants] = React.useState(false);
 
     // Normalize volume for display (analyser gives 0-255, we want a percentage)
     const volumePercent = Math.min(100, (localVolume / 100) * 100);
+
+    const VideoFeed = ({ stream, name, muted, isLocal, color }) => {
+        const videoRef = React.useRef();
+        React.useEffect(() => {
+            if (videoRef.current && stream) {
+                videoRef.current.srcObject = stream;
+            }
+        }, [stream]);
+
+        return (
+            <div className="relative w-40 h-28 bg-gray-900 rounded-xl overflow-hidden shadow-xl border-2 transition-all hover:scale-105 duration-300 group" style={{ borderColor: color || '#333' }}>
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted={isLocal}
+                    className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                    <span className="text-[10px] text-white font-bold truncate max-w-[80%] drop-shadow-md">
+                        {isLocal ? 'You' : name}
+                    </span>
+                    {muted && <MicOff className="w-3 h-3 text-red-500 drop-shadow-md" />}
+                </div>
+                {!stream && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                        <VideoOff className="w-6 h-6 text-gray-600" />
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const participantList = Object.keys(participants).map(id => ({
         id,
@@ -27,6 +64,7 @@ export default function VoiceControls({
         isSpeaking: activeSpeakers.has(id),
         isDrawing: activeDrawers.has(id),
         muted: participants[id].muted,
+        videoEnabled: participants[id].videoEnabled,
         handRaised: participants[id].handRaised
     })).sort((a, b) => {
         // Priority: Hand Raised > Speaking > Drawing > Name
@@ -91,6 +129,19 @@ export default function VoiceControls({
                             isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />
                         )}
                     </div>
+                </button>
+            )}
+
+            {isVoiceEnabled && (
+                <button
+                    className={`p-2 rounded-lg transition-all ${isVideoEnabled
+                        ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
+                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        }`}
+                    onClick={onToggleVideo}
+                    title={isVideoEnabled ? 'Turn Camera Off' : 'Turn Camera On'}
+                >
+                    {isVideoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
                 </button>
             )}
 
@@ -167,6 +218,35 @@ export default function VoiceControls({
                                 </div>
                             ))
                         )}
+                    </div>
+                </div>
+            )}
+            {/* Video Streams Grid */}
+            {(isVideoEnabled || Object.keys(remoteStreams).length > 0) && (
+                <div className="fixed top-24 right-6 flex flex-col gap-3 z-[40] pointer-events-none">
+                    <div className="flex flex-col gap-3 pointer-events-auto max-h-[70vh] overflow-y-auto p-2 scrollbar-none">
+                        {isVideoEnabled && localStream && (
+                            <VideoFeed
+                                stream={localStream}
+                                name="You"
+                                isLocal={true}
+                                muted={isMuted}
+                                color={participants[localId]?.color}
+                            />
+                        )}
+                        {Object.keys(remoteStreams).map(userId => {
+                            const person = participants[userId];
+                            if (!person?.videoEnabled) return null;
+                            return (
+                                <VideoFeed
+                                    key={userId}
+                                    stream={remoteStreams[userId]}
+                                    name={person.name}
+                                    muted={person.muted}
+                                    color={person.color}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
             )}

@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useContext, useCallback } from 'rea
 import { io } from 'socket.io-client';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut } from 'lucide-react';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut, Video, VideoOff } from 'lucide-react';
 import VoiceControls from './VoiceControls';
 import toast from 'react-hot-toast';
 
@@ -42,9 +42,11 @@ export default function Whiteboard() {
   const [width, setWidth] = useState(2);
   const shapeStartRef = useRef(null);
 
-  // Voice communication state
+  // Media communication state
   const [isMuted, setIsMuted] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [remoteStreams, setRemoteStreams] = useState({}); // userId -> MediaStream
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [activeSpeakers, setActiveSpeakers] = useState(new Set());
   const [activeDrawers, setActiveDrawers] = useState(new Set());
@@ -247,7 +249,7 @@ export default function Whiteboard() {
       setIsVoiceEnabled(!!enabled);
       if (enabled) {
         if (!localStreamRef.current) {
-          await startVoiceChat();
+          await startMediaChat(false);
         }
       } else {
         if (localStreamRef.current) {
@@ -264,6 +266,16 @@ export default function Whiteboard() {
 
     socket.on('wb:mic-lock-state', ({ locked }) => {
       setMicLocked(!!locked);
+    });
+
+    socket.on('wb:user-video-state', ({ userId, enabled }) => {
+      if (userId === socket.id) return;
+      setOtherCursors(prev => {
+        if (!prev[userId]) return prev;
+        return { ...prev, [userId]: { ...prev[userId], videoEnabled: !!enabled } };
+      });
+      // If video is disabled, we might want to clean up the stream if we're also not getting audio, 
+      // but WebRTC usually handles this via track enabled/disable or removal.
     });
 
     socket.on('wb:user-mute-state', ({ userId, muted }) => {
@@ -327,6 +339,11 @@ export default function Whiteboard() {
         delete next[socketId];
         return next;
       });
+      setRemoteStreams(prev => {
+        const next = { ...prev };
+        delete next[socketId];
+        return next;
+      });
       // also cleanup peer connection if voice was on
       if (peerConnectionsRef.current[socketId]) {
         peerConnectionsRef.current[socketId].close();
@@ -385,6 +402,11 @@ export default function Whiteboard() {
         peerConnectionsRef.current[userId].close();
         delete peerConnectionsRef.current[userId];
       }
+      setRemoteStreams(prev => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
       setOtherCursors(prev => {
         const next = { ...prev };
         delete next[userId];
@@ -686,65 +708,75 @@ export default function Whiteboard() {
 
   // WebRTC Voice Communication Functions
 
-  const startVoiceChat = async () => {
+  const startMediaChat = async (withVideo = isVideoEnabled) => {
     try {
-      if (localStreamRef.current) return true;
+      if (localStreamRef.current) {
+        // If we already have a stream, check if we need to add video
+        const currentVideoTracks = localStreamRef.current.getVideoTracks();
+        if (withVideo && currentVideoTracks.length === 0) {
+          const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const videoTrack = videoStream.getVideoTracks()[0];
+          localStreamRef.current.addTrack(videoTrack);
+          // Add to all existing peer connections
+          Object.values(peerConnectionsRef.current).forEach(pc => {
+            pc.addTrack(videoTrack, localStreamRef.current);
+            // Re-negotiate if necessary? For simplicity, we can let the next offer/answer handle it or re-emit voice-start
+          });
+        } else if (!withVideo && currentVideoTracks.length > 0) {
+          currentVideoTracks.forEach(track => {
+            track.stop();
+            localStreamRef.current.removeTrack(track);
+          });
+        }
+        return true;
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo });
       localStreamRef.current = stream;
 
-      // Apply initial mute state
+      // Apply initial mute/video state
       const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !isMuted;
-      }
+      if (audioTrack) audioTrack.enabled = !isMuted;
 
-      // Initialize AudioContext and Analyser for visualization
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) videoTrack.enabled = withVideo;
+
+      // Initialize AudioContext and Analyser
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioContextRef.current = new AudioContextClass();
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContextClass();
+          const source = audioContextRef.current.createMediaStreamSource(stream);
+          analyserRef.current = audioContextRef.current.createAnalyser();
+          analyserRef.current.fftSize = 256;
+          source.connect(analyserRef.current);
 
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 256;
+          volumeIntervalRef.current = setInterval(() => {
+            if (!analyserRef.current || isMuted) {
+              setLocalVolume(0);
+              return;
+            }
+            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+            analyserRef.current.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            const average = sum / dataArray.length;
+            setLocalVolume(average);
 
-        source.connect(analyserRef.current);
+            if (average > 15 !== activeSpeakers.has(socketRef.current?.id)) {
+              socketRef.current?.emit('wb:mute-status', { muted: average <= 15 });
+            }
+          }, 100);
+        }
+      } catch (e) { console.warn('AudioContext failed', e); }
 
-        const bufferLength = analyserRef.current.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        volumeIntervalRef.current = setInterval(() => {
-          if (!analyserRef.current || isMuted) {
-            setLocalVolume(0);
-            return;
-          }
-          analyserRef.current.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < bufferLength; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / bufferLength;
-          setLocalVolume(average); // 0 to 255
-
-          // Auto-update speaking status for others if volume is significant
-          const threshold = 15;
-          const isActuallySpeaking = average > threshold;
-          if (isActuallySpeaking !== activeSpeakers.has(socketRef.current?.id)) {
-            socketRef.current?.emit('wb:mute-status', { muted: !isActuallySpeaking });
-          }
-        }, 100);
-
-        gainNodeRef.current = audioContextRef.current.createGain();
-        gainNodeRef.current.connect(audioContextRef.current.destination);
-      } catch (e) {
-        console.warn('AudioContext not supported or blocked', e);
-      }
-
-      socketRef.current.emit('wb:voice-start');
+      socketRef.current?.emit('wb:voice-start');
+      if (withVideo) socketRef.current?.emit('wb:video-status', { enabled: true });
       return true;
     } catch (error) {
-      console.error('Error starting voice chat:', error);
+      console.error('Error starting media chat:', error);
       setIsVoiceEnabled(false);
+      setIsVideoEnabled(false);
       return false;
     }
   };
@@ -798,15 +830,22 @@ export default function Whiteboard() {
     };
 
     pc.ontrack = (event) => {
+      console.log(`Received remote track from ${userId}`);
       const [remoteStream] = event.streams;
-      const audio = new Audio();
-      audio.srcObject = remoteStream;
-      audio.autoplay = true;
-      // We don't append to DOM, just play it
-      audio.play().catch(e => {
-        console.warn("Autoplay blocked, user might need to interact first:", e);
-        // Fallback: play on next click or interaction if needed
-      });
+
+      // Update remote streams state for UI rendering
+      setRemoteStreams(prev => ({
+        ...prev,
+        [userId]: remoteStream
+      }));
+
+      // Audio specific: Ensure audio is playing if it's an audio track
+      if (event.track.kind === 'audio') {
+        const audio = new Audio();
+        audio.srcObject = remoteStream;
+        audio.autoplay = true;
+        audio.play().catch(e => console.warn("Audio autoplay blocked:", e));
+      }
     };
 
     if (localStreamRef.current) {
@@ -899,11 +938,34 @@ export default function Whiteboard() {
   const handleToggleVoice = async () => {
     if (isVoiceEnabled) {
       setIsVoiceEnabled(false);
+      setIsVideoEnabled(false);
       await stopVoiceChat(true);
     } else {
-      const success = await startVoiceChat();
+      const success = await startMediaChat(false);
       if (success) {
         setIsVoiceEnabled(true);
+      }
+    }
+  };
+
+  const handleToggleVideo = async () => {
+    const newState = !isVideoEnabled;
+    if (!isVoiceEnabled && newState) {
+      const success = await startMediaChat(true);
+      if (success) {
+        setIsVoiceEnabled(true);
+        setIsVideoEnabled(true);
+      }
+    } else if (isVoiceEnabled) {
+      const success = await startMediaChat(newState);
+      if (success) {
+        setIsVideoEnabled(newState);
+        socketRef.current?.emit('wb:video-status', { enabled: newState });
+        // Toggle local track visibility if already in stream
+        if (localStreamRef.current) {
+          const videoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (videoTrack) videoTrack.enabled = newState;
+        }
       }
     }
   };
@@ -1030,9 +1092,11 @@ export default function Whiteboard() {
         {/* Voice Communication Controls */}
         <VoiceControls
           isVoiceEnabled={isVoiceEnabled}
+          isVideoEnabled={isVideoEnabled}
           isMuted={isMuted}
           onToggleVoice={handleToggleVoice}
           onToggleMute={handleToggleMute}
+          onToggleVideo={handleToggleVideo}
           isTeacher={isTeacher}
           localVolume={localVolume}
           participants={{
@@ -1041,6 +1105,7 @@ export default function Whiteboard() {
               name: user?.name || user?.email || 'Me',
               color: '#4f46e5',
               muted: isMuted,
+              videoEnabled: isVideoEnabled,
               handRaised: isHandRaised
             }
           }}
@@ -1049,6 +1114,8 @@ export default function Whiteboard() {
           activeDrawers={activeDrawers}
           localId={socketRef.current?.id}
           micLocked={micLocked}
+          remoteStreams={remoteStreams}
+          localStream={localStreamRef.current}
         />
 
         {/* Raise Hand (Student only, show when voice is enabled) */}

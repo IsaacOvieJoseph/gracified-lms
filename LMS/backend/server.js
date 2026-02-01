@@ -216,6 +216,7 @@ io.on('connection', (socket) => {
         name,
         color,
         muted: true, // Default to muted on join
+        videoEnabled: false,
         handRaised: false,
         active: whiteboardSessions.getActiveCount(classId)
       });
@@ -246,6 +247,7 @@ io.on('connection', (socket) => {
             name: s.data.name || 'User',
             color: s.data.color,
             muted: s.data.muted ?? true,
+            videoEnabled: s.data.videoEnabled ?? false,
             handRaised: s.data.handRaised ?? false
           });
         }
@@ -465,6 +467,14 @@ io.on('connection', (socket) => {
     socket.to(sessionId).emit('voice:speaking', { userId: socket.id, speaking: !muted });
     // Also broadcast explicit mute state for UI icons
     io.to(sessionId).emit('wb:user-mute-state', { userId: socket.id, muted: !!muted });
+  });
+
+  socket.on('wb:video-status', ({ enabled }) => {
+    const { sessionId } = socket.data || {};
+    if (!sessionId) return;
+    console.log(`User ${socket.id} video ${enabled ? 'enabled' : 'disabled'}`);
+    socket.data.videoEnabled = !!enabled;
+    io.to(sessionId).emit('wb:user-video-state', { userId: socket.id, enabled: !!enabled });
   });
 
   socket.on('wb:raise-hand', ({ raised }) => {
