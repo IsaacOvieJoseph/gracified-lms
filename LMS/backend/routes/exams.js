@@ -7,6 +7,8 @@ const mongoose = require('mongoose');
 const Classroom = require('../models/Classroom');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const School = require('../models/School');
+const Tutorial = require('../models/Tutorial');
 const router = express.Router();
 
 // Helper to check school access
@@ -189,6 +191,28 @@ router.get('/public/:token', async (req, res) => {
             return res.status(410).json({ message: 'Exam is no longer available (Due date passed)' });
         }
 
+        // Fetch Branding and context
+        let classroomName = null;
+        let logoUrl = null;
+
+        if (exam.classId) {
+            const classroom = await Classroom.findById(exam.classId).select('name');
+            if (classroom) classroomName = classroom.name;
+        }
+
+        if (exam.schoolId) {
+            const school = await School.findById(exam.schoolId).select('logoUrl');
+            if (school) logoUrl = school.logoUrl;
+        }
+
+        if (!logoUrl && exam.creatorId) {
+            const creator = await User.findById(exam.creatorId).select('tutorialId role');
+            if (creator && creator.role === 'personal_teacher' && creator.tutorialId) {
+                const tutorial = await Tutorial.findById(creator.tutorialId).select('logoUrl');
+                if (tutorial) logoUrl = tutorial.logoUrl;
+            }
+        }
+
         // Optional Auth check for enrollment feedback
         let isEnrolled = false;
         const authHeader = req.headers.authorization;
@@ -222,7 +246,12 @@ router.get('/public/:token', async (req, res) => {
             }
         }
 
-        res.json({ ...exam.toObject(), isEnrolled });
+        res.json({
+            ...exam.toObject(),
+            isEnrolled,
+            classroomName,
+            logoUrl
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -177,11 +177,24 @@ const ExamCenter = () => {
                 <div className="max-w-2xl w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all">
                     <div className="bg-indigo-600 px-10 py-12 text-white relative overflow-hidden">
                         <div className="relative z-10">
-                            <div className="bg-white/20 backdrop-blur-md w-16 h-16 rounded-2xl flex items-center justify-center mb-6">
-                                <GraduationCap className="w-10 h-10" />
+                            <div className="flex items-center space-x-6">
+                                <div className="bg-white/20 backdrop-blur-md w-20 h-20 rounded-2xl flex items-center justify-center p-3 shadow-inner">
+                                    {exam?.logoUrl ? (
+                                        <img src={exam.logoUrl} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                                    ) : (
+                                        <GraduationCap className="w-12 h-12" />
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    {exam?.classroomName && (
+                                        <div className="text-indigo-200 text-xs font-black uppercase tracking-[0.2em] mb-1 drop-shadow-sm">
+                                            {exam.classroomName}
+                                        </div>
+                                    )}
+                                    <h1 className="text-4xl font-black mb-1 leading-tight drop-shadow-lg">{exam?.title}</h1>
+                                    <p className="text-indigo-100 text-sm font-medium opacity-90 line-clamp-2">{exam?.description}</p>
+                                </div>
                             </div>
-                            <h1 className="text-4xl font-black mb-2 leading-tight">{exam?.title}</h1>
-                            <p className="text-indigo-100 text-lg opacity-80">{exam?.description}</p>
                         </div>
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     </div>
@@ -274,6 +287,16 @@ const ExamCenter = () => {
                                 {!(exam?.accessMode === 'registered' && user && !exam?.isEnrolled) && <Play className="w-6 h-6 fill-current" />}
                             </button>
                         )}
+                    </div>
+
+                    <div className="bg-gray-50/50 px-10 py-8 border-t border-gray-100 flex flex-col items-center justify-center space-y-3 opacity-60 hover:opacity-100 transition-all cursor-default">
+                        <div className="flex items-center space-x-2">
+                            <img src="/logo.jpg" alt="Gracified" className="w-5 h-5 rounded-sm object-cover" />
+                            <span className="text-xs font-black text-gray-700 tracking-tight">Powered by Gracified LMS</span>
+                        </div>
+                        <div className="text-[10px] font-bold text-gray-400">
+                            &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
+                        </div>
                     </div>
                 </div>
             </div>
