@@ -165,8 +165,20 @@ router.delete('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', '
 // @access  Public
 router.get('/public/:token', async (req, res) => {
     try {
-        const exam = await Exam.findOne({ linkToken: req.params.token })
-            .select('title description duration accessMode startTime endTime isPublished');
+        const tokenOrId = req.params.token;
+        let exam = null;
+
+        if (mongoose.Types.ObjectId.isValid(tokenOrId)) {
+            exam = await Exam.findById(tokenOrId);
+        }
+
+        if (!exam) {
+            exam = await Exam.findOne({ linkToken: tokenOrId });
+        }
+
+        if (exam) {
+            exam = await Exam.findById(exam._id).select('title description duration accessMode startTime endTime isPublished resultsPublished resultPublishTime');
+        }
 
         if (!exam) return res.status(404).json({ message: 'Exam link invalid' });
         if (!exam.isPublished) return res.status(403).json({ message: 'Exam is not yet published' });
@@ -187,7 +199,17 @@ router.get('/public/:token', async (req, res) => {
 // @access  Public (Optional Auth)
 router.post('/public/:token/start', async (req, res) => {
     try {
-        const exam = await Exam.findById(req.params.id || req.params.token) || await Exam.findOne({ linkToken: req.params.token });
+        const tokenOrId = req.params.token;
+        let exam = null;
+
+        if (mongoose.Types.ObjectId.isValid(tokenOrId)) {
+            exam = await Exam.findById(tokenOrId);
+        }
+
+        if (!exam) {
+            exam = await Exam.findOne({ linkToken: tokenOrId });
+        }
+
         if (!exam || !exam.isPublished) return res.status(404).json({ message: 'Exam not available' });
 
         // Check Due Date

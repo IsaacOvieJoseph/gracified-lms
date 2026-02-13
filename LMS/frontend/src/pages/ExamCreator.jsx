@@ -56,7 +56,7 @@ const ExamCreator = () => {
     const fetchClassrooms = async () => {
         try {
             const response = await api.get('/classrooms');
-            setClassrooms(response.data);
+            setClassrooms(response.data.classrooms || []);
         } catch (error) {
             console.error('Failed to fetch classrooms');
         }

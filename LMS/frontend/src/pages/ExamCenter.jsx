@@ -222,23 +222,44 @@ const ExamCenter = () => {
                         ) : (
                             <div className="bg-amber-50 rounded-2xl p-6 border-l-4 border-amber-400 flex items-start">
                                 <AlertCircle className="w-6 h-6 text-amber-500 mr-4 flex-shrink-0" />
-                                <div>
-                                    <h4 className="font-bold text-amber-800">Secure Access Only</h4>
-                                    <p className="text-sm text-amber-700 mt-1">
-                                        {user ? `Logged in as ${user.name}. You are eligible to take this exam.` : 'This exam requires an LMS account. Please login to continue.'}
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-amber-800 text-lg">Secure Access Only</h4>
+                                    <p className="text-sm text-amber-700 mt-1 font-medium">
+                                        {user ? (
+                                            <>Logged in as <strong className="text-amber-900">{user.name}</strong>. You are eligible to take this exam.</>
+                                        ) : (
+                                            <>This exam requires an LMS account. Please login to proceed.</>
+                                        )}
                                     </p>
+                                    {!user && (
+                                        <button
+                                            onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
+                                            className="mt-4 text-xs font-black uppercase tracking-widest text-amber-900 border-b-2 border-amber-900 hover:text-black hover:border-black transition-all pb-0.5"
+                                        >
+                                            Go to Login Page →
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
 
-                        <button
-                            onClick={startExam}
-                            disabled={exam?.accessMode === 'registered' && !user}
-                            className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black text-xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:shadow-none"
-                        >
-                            <span>Begin Examination</span>
-                            <Play className="w-6 h-6 fill-current" />
-                        </button>
+                        {exam?.accessMode === 'registered' && !user ? (
+                            <button
+                                onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
+                                className="w-full py-5 bg-gray-900 text-white rounded-[1.5rem] font-black text-xl hover:bg-black transition-all shadow-xl shadow-gray-200 flex items-center justify-center space-x-3 overflow-hidden group"
+                            >
+                                <LogOut className="w-6 h-6 rotate-180 group-hover:-translate-x-1 transition-transform" />
+                                <span>Sign In to Start</span>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={startExam}
+                                className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black text-xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center justify-center space-x-3"
+                            >
+                                <span>Begin Examination</span>
+                                <Play className="w-6 h-6 fill-current" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
