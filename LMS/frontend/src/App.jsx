@@ -25,6 +25,11 @@ import Feedbacks from './pages/Feedbacks';
 import ForgotPassword from './pages/ForgotPassword';
 import SetPassword from './pages/SetPassword';
 import Reports from './pages/Reports';
+import Exams from './pages/Exams';
+import ExamCreator from './pages/ExamCreator';
+import ExamCenter from './pages/ExamCenter';
+import ExamSubmissions from './pages/ExamSubmissions';
+import ExamSubmissionDetail from './pages/ExamSubmissionDetail';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -252,6 +257,47 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/exams"
+        element={
+          <PrivateRoute>
+            <Exams />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/exams/create"
+        element={
+          <PrivateRoute>
+            <ExamCreator />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/exams/edit/:id"
+        element={
+          <PrivateRoute>
+            <ExamCreator />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/exams/:id/submissions"
+        element={
+          <PrivateRoute>
+            <ExamSubmissions />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/exams/submissions/detail/:id"
+        element={
+          <PrivateRoute>
+            <ExamSubmissionDetail />
+          </PrivateRoute>
+        }
+      />
+      <Route path="/exam-center/:token" element={<ExamCenter />} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
     </Routes>

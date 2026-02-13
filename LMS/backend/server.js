@@ -31,6 +31,8 @@ require('./models/School');
 require('./models/Tutorial');
 require('./models/SubscriptionPlan');
 require('./models/UserSubscription');
+require('./models/Exam');
+require('./models/ExamSubmission');
 
 // Security Middlewares
 app.use(helmet({
@@ -106,6 +108,7 @@ app.use('/api/disbursements', require('./routes/disbursements'));
 const googleAuthRouter = require('./routes/googleAuth');
 app.use('/api/google-auth', googleAuthRouter);
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/exams', require('./routes/exams'));
 
 // Connect to MongoDB
 const connectDB = async () => {

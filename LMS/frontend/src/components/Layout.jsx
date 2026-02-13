@@ -134,6 +134,7 @@ const Layout = ({ children }) => {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/classrooms', icon: Book, label: 'Classrooms' },
     ...(['student', 'root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/payments', icon: DollarSign, label: 'Payments' }] : []),
+    { path: '/exams', icon: FileText, label: 'Exams' },
     ...(user?.role === 'student' ? [{ path: '/assignments', icon: FileText, label: 'Assignments' }] : []),
     ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
     { path: '/reports', icon: BarChart2, label: 'Reports' },
