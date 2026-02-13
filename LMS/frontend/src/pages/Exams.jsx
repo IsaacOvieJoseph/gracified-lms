@@ -24,6 +24,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatDisplayDate } from '../utils/timezone';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const Exams = () => {
     const { user } = useAuth();
@@ -31,6 +32,9 @@ const Exams = () => {
     const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [examToDelete, setExamToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         fetchExams();
@@ -48,14 +52,24 @@ const Exams = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this exam? All submissions will be lost.')) return;
+    const handleDelete = (id) => {
+        setExamToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!examToDelete) return;
+        setIsDeleting(true);
         try {
-            await api.delete(`/exams/${id}`);
+            await api.delete(`/exams/${examToDelete}`);
             toast.success('Exam deleted');
             fetchExams();
+            setShowDeleteModal(false);
         } catch (error) {
             toast.error('Failed to delete exam');
+        } finally {
+            setIsDeleting(false);
+            setExamToDelete(null);
         }
     };
 
@@ -241,6 +255,17 @@ const Exams = () => {
                         </div>
                     )}
                 </div>
+
+                <ConfirmationModal
+                    show={showDeleteModal}
+                    onClose={() => setShowDeleteModal(false)}
+                    onConfirm={confirmDelete}
+                    title="Delete Exam"
+                    message="Are you sure you want to delete this exam? All captured submissions and results for this assessment will be permanently lost. This action cannot be undone."
+                    confirmText="Permanently Delete"
+                    confirmButtonColor="bg-rose-600 hover:bg-rose-700"
+                    isLoading={isDeleting}
+                />
             </div>
         </Layout>
     );

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const ExamCenter = () => {
     const { token } = useParams();
@@ -38,6 +39,7 @@ const ExamCenter = () => {
 
     const [submissionStatus, setSubmissionStatus] = useState(null);
     const [showAccessModal, setShowAccessModal] = useState(false);
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
@@ -113,8 +115,12 @@ const ExamCenter = () => {
     };
 
     const submitExam = async (isAuto = false) => {
-        if (!isAuto && !window.confirm('Are you sure you want to submit your exam?')) return;
+        if (!isAuto && !showSubmitModal) {
+            setShowSubmitModal(true);
+            return;
+        }
 
+        setShowSubmitModal(false);
         setLoading(true);
         clearInterval(timerRef.current);
 
@@ -173,88 +179,90 @@ const ExamCenter = () => {
         }
 
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-950 flex items-center justify-center p-6 font-sans">
-                <div className="max-w-2xl w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all">
-                    <div className="bg-indigo-600 px-10 py-12 text-white relative overflow-hidden">
+            <div className="min-h-screen bg-[#E5E7EB] relative overflow-hidden flex items-center justify-center p-6 font-sans">
+                {/* Mesh Gradient Background Elements */}
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/50 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-200/50 rounded-full blur-[120px]"></div>
+                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-100/40 rounded-full blur-[100px]"></div>
+
+                <div className="max-w-2xl w-full bg-white rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden transform transition-all relative z-10 border border-white/20">
+                    {/* Card Header */}
+                    <div className="bg-[#41414E] px-12 py-12 text-white relative">
                         <div className="relative z-10">
                             <div className="flex items-center space-x-6">
-                                <div className="bg-white/20 backdrop-blur-md w-20 h-20 rounded-2xl flex items-center justify-center p-3 shadow-inner">
+                                <div className="bg-white/10 backdrop-blur-md w-24 h-24 rounded-3xl flex items-center justify-center p-4 shadow-xl border border-white/20">
                                     {exam?.logoUrl ? (
-                                        <img src={exam.logoUrl} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                                        <img src={exam.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                                     ) : (
-                                        <GraduationCap className="w-12 h-12" />
+                                        <GraduationCap className="w-12 h-12 text-white" />
                                     )}
                                 </div>
                                 <div className="flex-1">
                                     {exam?.classroomName && (
-                                        <div className="text-indigo-200 text-xs font-black uppercase tracking-[0.2em] mb-1 drop-shadow-sm">
+                                        <div className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-2">
                                             {exam.classroomName}
                                         </div>
                                     )}
-                                    <h1 className="text-4xl font-black mb-1 leading-tight drop-shadow-lg">{exam?.title}</h1>
-                                    <p className="text-indigo-100 text-sm font-medium opacity-90 line-clamp-2">{exam?.description}</p>
+                                    <h1 className="text-5xl font-black mb-1 leading-none tracking-tight">{exam?.title}</h1>
+                                    <p className="text-gray-400 text-sm font-medium mt-2">{exam?.description}</p>
                                 </div>
                             </div>
                         </div>
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     </div>
 
-                    <div className="p-10 space-y-8">
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                                <div className="flex items-center text-indigo-600 mb-2">
-                                    <Clock className="w-5 h-5 mr-2" />
-                                    <span className="text-xs font-black uppercase tracking-widest">Duration</span>
+                    {/* Card Content */}
+                    <div className="p-12 space-y-10">
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="bg-[#F9FAFB] p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                                <div className="flex items-center text-[#5E5E6E] mb-3">
+                                    <Clock className="w-5 h-5 mr-3" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Duration</span>
                                 </div>
-                                <div className="text-2xl font-black text-gray-900">{exam?.duration} Minutes</div>
+                                <div className="text-3xl font-black text-[#1F1F2F]">{exam?.duration} Minutes</div>
                             </div>
-                            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                                <div className="flex items-center text-indigo-600 mb-2">
-                                    <Layout className="w-5 h-5 mr-2" />
-                                    <span className="text-xs font-black uppercase tracking-widest">Questions</span>
+                            <div className="bg-[#F9FAFB] p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                                <div className="flex items-center text-[#5E5E6E] mb-3">
+                                    <Layout className="w-5 h-5 mr-3" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Questions</span>
                                 </div>
-                                <div className="text-2xl font-black text-gray-900">Standard Mode</div>
+                                <div className="text-3xl font-black text-[#1F1F2F]">Standard Mode</div>
                             </div>
                         </div>
 
                         {exam?.accessMode === 'open' ? (
                             <div className="space-y-4">
-                                <div className="relative group">
-                                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+                                <div className="relative">
+                                    <User className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                     <input
                                         type="text"
-                                        placeholder="Enter your full name"
+                                        placeholder="Full Name"
                                         value={candidateInfo.name}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, name: e.target.value })}
-                                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-indigo-600 focus:bg-white transition-all outline-none font-bold"
+                                        className="w-full pl-14 pr-6 py-5 bg-[#F3F4F6] border-none rounded-2xl focus:ring-2 focus:ring-[#41414E] transition-all outline-none font-bold text-gray-900"
                                     />
                                 </div>
-                                <div className="relative group">
-                                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+                                <div className="relative">
+                                    <Mail className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                     <input
                                         type="email"
-                                        placeholder="Email Address (Optional)"
+                                        placeholder="Email (Optional)"
                                         value={candidateInfo.email}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, email: e.target.value })}
-                                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-indigo-600 focus:bg-white transition-all outline-none font-bold"
+                                        className="w-full pl-14 pr-6 py-5 bg-[#F3F4F6] border-none rounded-2xl focus:ring-2 focus:ring-[#41414E] transition-all outline-none font-bold text-gray-900"
                                     />
                                 </div>
                             </div>
                         ) : (
-                            <div className={`rounded-2xl p-6 border-l-4 flex items-start ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'bg-rose-50 border-rose-400' : 'bg-amber-50 border-amber-400'}`}>
-                                {user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? (
-                                    <AlertCircle className="w-6 h-6 text-rose-500 mr-4 flex-shrink-0" />
-                                ) : (
-                                    <AlertCircle className="w-6 h-6 text-amber-500 mr-4 flex-shrink-0" />
-                                )}
+                            <div className={`rounded-3xl p-8 border border-l-[12px] flex items-start ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'bg-rose-50 border-rose-400' : 'bg-[#FFF9E5] border-[#FFD54F]'}`}>
+                                <AlertCircle className={`w-8 h-8 mr-6 flex-shrink-0 ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-500' : 'text-[#FFA000]'}`} />
                                 <div className="flex-1">
-                                    <h4 className={`font-bold text-lg ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-800' : 'text-amber-800'}`}>
+                                    <h4 className={`font-black text-xl ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-900' : 'text-[#7A5A00]'}`}>
                                         {user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'Access Restricted' : 'Secure Access Only'}
                                     </h4>
-                                    <p className={`text-sm mt-1 font-medium ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-700' : 'text-amber-700'}`}>
+                                    <p className={`text-sm mt-2 font-bold leading-relaxed ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-700' : 'text-[#927100]'}`}>
                                         {user ? (
                                             exam?.isEnrolled ? (
-                                                <>Logged in as <strong className="text-amber-900">{user.name}</strong>. You are eligible to take this exam.</>
+                                                <>Logged in as <strong className="text-[#1F1F2F]">{user.name}</strong>. You are eligible to take this exam.</>
                                             ) : (
                                                 <>Logged in as <strong className="text-rose-900">{user.name}</strong>. However, you are not enrolled in the classroom associated with this exam.</>
                                             )
@@ -269,30 +277,30 @@ const ExamCenter = () => {
                         {exam?.accessMode === 'registered' && !user ? (
                             <button
                                 onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
-                                className="w-full py-5 bg-gray-900 text-white rounded-[1.5rem] font-black text-xl hover:bg-black transition-all shadow-xl shadow-gray-200 flex items-center justify-center space-x-3 overflow-hidden group"
+                                className="w-full py-6 bg-[#1F1F2F] text-white rounded-[2rem] font-black text-xl hover:bg-black transition-all shadow-2xl flex items-center justify-center space-x-4 shadow-gray-300"
                             >
-                                <LogOut className="w-6 h-6 rotate-180 group-hover:-translate-x-1 transition-transform" />
+                                <LogOut className="w-6 h-6 rotate-180" />
                                 <span>Sign In to Start</span>
                             </button>
                         ) : (
                             <button
                                 onClick={startExam}
                                 disabled={exam?.accessMode === 'registered' && user && !exam?.isEnrolled}
-                                className={`w-full py-5 text-white rounded-[1.5rem] font-black text-xl transition-all shadow-xl flex items-center justify-center space-x-3 ${exam?.accessMode === 'registered' && user && !exam?.isEnrolled
-                                    ? 'bg-gray-400 cursor-not-allowed opacity-60 shadow-none'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
+                                className={`w-full py-6 text-white rounded-[2.5rem] font-black text-2xl transition-all shadow-2xl flex items-center justify-center space-x-4 ${exam?.accessMode === 'registered' && user && !exam?.isEnrolled
+                                    ? 'bg-gray-300 cursor-not-allowed shadow-none'
+                                    : 'bg-[#4F4F5B] hover:bg-[#3D3D47] shadow-[#4F4F5B]/20 transform hover:-translate-y-1'
                                     }`}
                             >
                                 <span>Begin Examination</span>
-                                {!(exam?.accessMode === 'registered' && user && !exam?.isEnrolled) && <Play className="w-6 h-6 fill-current" />}
+                                {!(exam?.accessMode === 'registered' && user && !exam?.isEnrolled) && <Play className="w-7 h-7 fill-current ml-2" />}
                             </button>
                         )}
                     </div>
 
-                    <div className="bg-gray-50/50 px-10 py-8 border-t border-gray-100 flex flex-col items-center justify-center space-y-3 opacity-60 hover:opacity-100 transition-all cursor-default">
+                    <div className="bg-[#F9FAFB] px-12 py-8 border-t border-gray-100 flex flex-col items-center justify-center space-y-3 opacity-60 hover:opacity-100 transition-all cursor-default">
                         <div className="flex items-center space-x-2">
-                            <img src="/logo.jpg" alt="Gracified" className="w-5 h-5 rounded-sm object-cover" />
-                            <span className="text-xs font-black text-gray-700 tracking-tight">Powered by Gracified LMS</span>
+                            <img src="/logo.jpg" alt="Gracified" className="w-4 h-4 rounded-sm object-cover" />
+                            <span className="text-[10px] font-black text-gray-700 tracking-tighter uppercase">Powered by Gracified LMS</span>
                         </div>
                         <div className="text-[10px] font-bold text-gray-400">
                             &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
@@ -542,6 +550,20 @@ const ExamCenter = () => {
                     </div>
                 </div>
             )}
+            {/* Submit Confirmation Modal */}
+            <ConfirmationModal
+                show={showSubmitModal}
+                onClose={() => setShowSubmitModal(false)}
+                onConfirm={() => submitExam(false)}
+                title="Submit Examination"
+                message="Are you sure you want to finalize and submit your assessment? Once submitted, you will not be able to change your answers."
+                confirmText="Submit Now"
+                confirmButtonColor="bg-indigo-600 hover:bg-indigo-700"
+                isLoading={loading}
+                icon={Send}
+                iconBg="bg-indigo-100"
+                iconColor="text-indigo-600"
+            />
         </div>
     );
 };
