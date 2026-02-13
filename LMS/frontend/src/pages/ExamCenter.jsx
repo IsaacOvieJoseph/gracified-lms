@@ -37,6 +37,8 @@ const ExamCenter = () => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
     const [submissionStatus, setSubmissionStatus] = useState(null);
+    const [showAccessModal, setShowAccessModal] = useState(false);
+    const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
 
@@ -98,7 +100,13 @@ const ExamCenter = () => {
             }, 1000);
 
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to start exam');
+            const message = error.response?.data?.message || 'Failed to start exam';
+            if (error.response?.status === 403) {
+                setAccessError(message);
+                setShowAccessModal(true);
+            } else {
+                toast.error(message);
+            }
         } finally {
             setLoading(false);
         }
@@ -220,25 +228,27 @@ const ExamCenter = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-amber-50 rounded-2xl p-6 border-l-4 border-amber-400 flex items-start">
-                                <AlertCircle className="w-6 h-6 text-amber-500 mr-4 flex-shrink-0" />
+                            <div className={`rounded-2xl p-6 border-l-4 flex items-start ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'bg-rose-50 border-rose-400' : 'bg-amber-50 border-amber-400'}`}>
+                                {user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? (
+                                    <AlertCircle className="w-6 h-6 text-rose-500 mr-4 flex-shrink-0" />
+                                ) : (
+                                    <AlertCircle className="w-6 h-6 text-amber-500 mr-4 flex-shrink-0" />
+                                )}
                                 <div className="flex-1">
-                                    <h4 className="font-bold text-amber-800 text-lg">Secure Access Only</h4>
-                                    <p className="text-sm text-amber-700 mt-1 font-medium">
+                                    <h4 className={`font-bold text-lg ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-800' : 'text-amber-800'}`}>
+                                        {user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'Access Restricted' : 'Secure Access Only'}
+                                    </h4>
+                                    <p className={`text-sm mt-1 font-medium ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-700' : 'text-amber-700'}`}>
                                         {user ? (
-                                            <>Logged in as <strong className="text-amber-900">{user.name}</strong>. You are eligible to take this exam.</>
+                                            exam?.isEnrolled ? (
+                                                <>Logged in as <strong className="text-amber-900">{user.name}</strong>. You are eligible to take this exam.</>
+                                            ) : (
+                                                <>Logged in as <strong className="text-rose-900">{user.name}</strong>. However, you are not enrolled in the classroom associated with this exam.</>
+                                            )
                                         ) : (
                                             <>This exam requires an LMS account. Please login to proceed.</>
                                         )}
                                     </p>
-                                    {!user && (
-                                        <button
-                                            onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
-                                            className="mt-4 text-xs font-black uppercase tracking-widest text-amber-900 border-b-2 border-amber-900 hover:text-black hover:border-black transition-all pb-0.5"
-                                        >
-                                            Go to Login Page →
-                                        </button>
-                                    )}
                                 </div>
                             </div>
                         )}
@@ -254,10 +264,14 @@ const ExamCenter = () => {
                         ) : (
                             <button
                                 onClick={startExam}
-                                className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black text-xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center justify-center space-x-3"
+                                disabled={exam?.accessMode === 'registered' && user && !exam?.isEnrolled}
+                                className={`w-full py-5 text-white rounded-[1.5rem] font-black text-xl transition-all shadow-xl flex items-center justify-center space-x-3 ${exam?.accessMode === 'registered' && user && !exam?.isEnrolled
+                                    ? 'bg-gray-400 cursor-not-allowed opacity-60 shadow-none'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
+                                    }`}
                             >
                                 <span>Begin Examination</span>
-                                <Play className="w-6 h-6 fill-current" />
+                                {!(exam?.accessMode === 'registered' && user && !exam?.isEnrolled) && <Play className="w-6 h-6 fill-current" />}
                             </button>
                         )}
                     </div>
@@ -475,6 +489,36 @@ const ExamCenter = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Access Denied Modal */}
+            {showAccessModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 text-center border border-gray-100 animate-in slide-in-from-bottom-8 duration-500">
+                        <div className="bg-rose-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-600 shadow-inner">
+                            <AlertCircle className="w-10 h-10" />
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">Access Restricted</h3>
+                        <p className="text-gray-500 font-medium mb-8 leading-relaxed">
+                            {accessError || "You don't have permission to access this assessment. Please check your enrollment status or contact your instructor."}
+                        </p>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center space-x-2"
+                            >
+                                <LogOut className="w-4 h-4 rotate-180" />
+                                <span>Go to Dashboard</span>
+                            </button>
+                            <button
+                                onClick={() => setShowAccessModal(false)}
+                                className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

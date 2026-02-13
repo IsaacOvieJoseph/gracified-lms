@@ -6,6 +6,7 @@ const { sendEmail } = require('../utils/email');
 const mongoose = require('mongoose');
 const Classroom = require('../models/Classroom');
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 
 // Helper to check school access
@@ -177,7 +178,7 @@ router.get('/public/:token', async (req, res) => {
         }
 
         if (exam) {
-            exam = await Exam.findById(exam._id).select('title description duration accessMode startTime endTime isPublished resultsPublished resultPublishTime');
+            exam = await Exam.findById(exam._id).select('title description duration accessMode startTime endTime isPublished resultsPublished resultPublishTime classId creatorId schoolId');
         }
 
         if (!exam) return res.status(404).json({ message: 'Exam link invalid' });
@@ -188,7 +189,40 @@ router.get('/public/:token', async (req, res) => {
             return res.status(410).json({ message: 'Exam is no longer available (Due date passed)' });
         }
 
-        res.json(exam);
+        // Optional Auth check for enrollment feedback
+        let isEnrolled = false;
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                const user = await User.findById(decoded.userId);
+
+                if (user) {
+                    const userId = user._id.toString();
+
+                    // Standalone exam: Any authenticated user has access
+                    if (!exam.classId) {
+                        isEnrolled = true;
+                    }
+                    // Class exam: Check enrollment or roles
+                    else {
+                        const classroom = await Classroom.findById(exam.classId);
+                        const isEnrolledInClass = classroom && classroom.students.some(id => id.toString() === userId);
+                        const isTeacher = (classroom && classroom.teacherId.toString() === userId) || (exam.creatorId.toString() === userId);
+                        const isAdmin = ['root_admin', 'school_admin'].includes(user.role);
+
+                        if (isEnrolledInClass || isTeacher || isAdmin) {
+                            isEnrolled = true;
+                        }
+                    }
+                }
+            } catch (err) {
+                // Ignore auth errors for public info
+            }
+        }
+
+        res.json({ ...exam.toObject(), isEnrolled });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -229,20 +263,29 @@ router.post('/public/:token/start', async (req, res) => {
             const authHeader = req.headers.authorization;
             if (!authHeader) return res.status(401).json({ message: 'Login required for this exam' });
 
-            const jwt = require('jsonwebtoken');
             try {
                 const token = authHeader.split(' ')[1];
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                studentId = decoded.userId;
+                const user = await User.findById(decoded.userId);
+                if (!user) return res.status(401).json({ message: 'User not found' });
 
-                // If tied to class, verify enrollment
-                if (exam.classId) {
+                studentId = user._id;
+
+                // Admin bypass
+                if (user.role === 'root_admin' || user.role === 'school_admin') {
+                    // Admins have access
+                } else if (exam.classId) {
                     const classroom = await Classroom.findById(exam.classId);
-                    if (!classroom.students.includes(studentId)) {
+                    const userIdStr = studentId.toString();
+                    const isEnrolledInClass = classroom.students.some(id => id.toString() === userIdStr);
+                    const isTeacher = classroom.teacherId.toString() === userIdStr;
+
+                    if (!isEnrolledInClass && !isTeacher) {
                         return res.status(403).json({ message: 'Access denied: You are not enrolled in this class.' });
                     }
                 }
             } catch (err) {
+                console.error('Exam Start Auth Error:', err.message);
                 return res.status(401).json({ message: 'Invalid session. Please login again.' });
             }
         } else {

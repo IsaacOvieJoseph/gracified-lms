@@ -43,7 +43,14 @@ const Login = () => {
       const result = await login(email, password);
 
       if (result.success) {
-        navigate('/dashboard');
+        const queryParams = new URLSearchParams(window.location.search);
+        const redirectPath = queryParams.get('redirect');
+        if (redirectPath) {
+          window.open(redirectPath, '_blank');
+          navigate('/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else if (result.redirectToVerify && result.email) {
         navigate('/verify-email', { state: { email: result.email } });
       } else if (result.trialExpired) {

@@ -1836,7 +1836,7 @@ const ClassroomDetail = () => {
 
                             {user?.role === 'student' && (
                               <button
-                                onClick={() => navigate(`/exams/take/${exam.token}`)}
+                                onClick={() => navigate(`/exam-center/${exam.linkToken}`)}
                                 disabled={isPastDue || !exam.isPublished}
                                 className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${isPastDue || !exam.isPublished
                                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
