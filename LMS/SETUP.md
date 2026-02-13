@@ -116,6 +116,20 @@ Frontend will run on http://localhost:3000
    SMTP_PASS=your-app-password
    ```
 
+## Optional: Configure WebRTC (Voice/Video)
+
+For production environments where users are on different networks (hotspots, firewalls), you should configure a TURN server to ensure voice and video connection stability.
+
+1. Get TURN server credentials (e.g., from [Twilio](https://www.twilio.com/en-us/stun-turn), [Metered.ca](https://www.metered.ca/stun-turn), or your own [Coturn](https://github.com/coturn/coturn) server).
+2. Add to `frontend/.env`:
+   ```env
+   VITE_TURN_SERVER_URL=turn:your-turn-server.com:3478
+   VITE_TURN_SERVER_USERNAME=your-username
+   VITE_TURN_SERVER_PASSWORD=your-password
+   ```
+
+Note: STUN servers are already hardcoded for basic NAT traversal, but TURN is required for about 20% of network conditions (symmetric NATs).
+
 ## Troubleshooting
 
 ### MongoDB Connection Error

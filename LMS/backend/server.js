@@ -31,6 +31,8 @@ require('./models/School');
 require('./models/Tutorial');
 require('./models/SubscriptionPlan');
 require('./models/UserSubscription');
+require('./models/Exam');
+require('./models/ExamSubmission');
 
 // Security Middlewares
 app.use(helmet({
@@ -106,6 +108,7 @@ app.use('/api/disbursements', require('./routes/disbursements'));
 const googleAuthRouter = require('./routes/googleAuth');
 app.use('/api/google-auth', googleAuthRouter);
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/exams', require('./routes/exams'));
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -208,8 +211,18 @@ io.on('connection', (socket) => {
 
       // assign a display color for presence cursor
       const color = `hsl(${Math.floor(Math.abs(hashCode(socket.data.user._id.toString())) % 360)},70%,40%)`;
-      socket.data = { ...socket.data, classId, sessionId, isTeacher: !!isTeacher, color };
-      io.to(sessionId).emit('wb:user-joined', { socketId: socket.id, active: whiteboardSessions.getActiveCount(classId) });
+      const name = socket.data.user ? (socket.data.user.name || socket.data.user.email || 'User') : 'User';
+      socket.data = { ...socket.data, classId, sessionId, isTeacher: !!isTeacher, color, name };
+
+      io.to(sessionId).emit('wb:user-joined', {
+        socketId: socket.id,
+        name,
+        color,
+        muted: true, // Default to muted on join
+        videoEnabled: false,
+        handRaised: false,
+        active: whiteboardSessions.getActiveCount(classId)
+      });
       const locked = whiteboardSessions.isLocked(classId);
       const follow = whiteboardSessions.isFollow(classId);
       socket.emit('wb:lock-state', { locked });
@@ -224,6 +237,26 @@ io.on('connection', (socket) => {
       } catch (err) {
         console.error('Error fetching whiteboard history', err.message);
       }
+
+      // Final step: Send the joiner a list of all currently active participants
+      // This ensures the teacher's list is populated even if students joined earlier
+      const participants = [];
+      const roomSockets = Array.from(io.sockets.adapter.rooms.get(sessionId) || []);
+      for (const sId of roomSockets) {
+        const s = io.sockets.sockets.get(sId);
+        if (s && s.data) {
+          participants.push({
+            socketId: s.id,
+            name: s.data.name || 'User',
+            color: s.data.color,
+            muted: s.data.muted ?? true,
+            videoEnabled: s.data.videoEnabled ?? false,
+            handRaised: s.data.handRaised ?? false
+          });
+        }
+      }
+      socket.emit('wb:participants', participants);
+
     } catch (err) {
       console.error('wb:join error', err);
     }
@@ -278,7 +311,7 @@ io.on('connection', (socket) => {
     const { classId, sessionId } = socket.data || {};
     if (!classId || !sessionId) return;
     if (whiteboardSessions.isLocked(classId) && !socket.data.isTeacher) return;
-    socket.to(sessionId).emit('wb:draw', data);
+    socket.to(sessionId).emit('wb:draw', { ...data, userId: socket.id });
     // persist stroke unless client marks it as ephemeral (we support client-side batching)
     if (!data || data.persist !== false) {
       (async () => {
@@ -433,7 +466,74 @@ io.on('connection', (socket) => {
     const { classId, sessionId } = socket.data || {};
     if (!classId || !sessionId) return;
     console.log(`User ${socket.id} ${muted ? 'muted' : 'unmuted'}`);
+    socket.data.muted = !!muted;
     socket.to(sessionId).emit('voice:speaking', { userId: socket.id, speaking: !muted });
+    // Also broadcast explicit mute state for UI icons
+    io.to(sessionId).emit('wb:user-mute-state', { userId: socket.id, muted: !!muted });
+  });
+
+  socket.on('wb:video-status', ({ enabled }) => {
+    const { sessionId } = socket.data || {};
+    if (!sessionId) return;
+    console.log(`User ${socket.id} video ${enabled ? 'enabled' : 'disabled'}`);
+    socket.data.videoEnabled = !!enabled;
+    io.to(sessionId).emit('wb:user-video-state', { userId: socket.id, enabled: !!enabled });
+  });
+
+  socket.on('wb:raise-hand', ({ raised }) => {
+    const { sessionId } = socket.data || {};
+    if (!sessionId) return;
+    socket.data.handRaised = !!raised;
+    io.to(sessionId).emit('wb:hand-state', { userId: socket.id, raised: !!raised });
+  });
+
+  socket.on('wb:force-mute', ({ targetUserId, muteAll, force, lock }) => {
+    const { sessionId, isTeacher, classId } = socket.data || {};
+    if (!isTeacher || !sessionId) return;
+
+    // 'force' can be true (mute) or false (unmute)
+    const state = force !== undefined ? !!force : true;
+
+    if (muteAll) {
+      console.log(`Teacher ${socket.id} mass setting: forceMute=${state}, lock=${!!lock}`);
+
+      // If muting: Force everyone's hardware OFF. 
+      // If unmuting: DO NOT force hardware ON (per request), just release lock.
+      if (state === true) {
+        socket.to(sessionId).emit('wb:force-mute', { force: true });
+      }
+
+      // Always broadcast lock state if requested
+      if (lock !== undefined) {
+        io.to(sessionId).emit('wb:mic-lock-state', { locked: !!lock });
+      }
+
+      const roomSockets = io.sockets.adapter.rooms.get(sessionId);
+      if (roomSockets) {
+        for (const sId of roomSockets) {
+          if (sId === socket.id) continue;
+          const s = io.sockets.sockets.get(sId);
+          if (s) {
+            // Only force track 'true' (muted) on server.
+            // If releasing, we don't know their state yet until they click.
+            if (state === true) {
+              s.data.muted = true;
+              io.to(sessionId).emit('wb:user-mute-state', { userId: s.id, muted: true });
+            }
+          }
+        }
+      }
+    } else if (targetUserId) {
+      console.log(`Teacher ${socket.id} force setting student ${targetUserId} mute to ${state}`);
+      io.to(targetUserId).emit('wb:force-mute', { force: state });
+
+      // Update state and broadcast UI sync
+      const targetSocket = io.sockets.sockets.get(targetUserId);
+      if (targetSocket) {
+        targetSocket.data.muted = state;
+        io.to(sessionId).emit('wb:user-mute-state', { userId: targetUserId, muted: state });
+      }
+    }
   });
 
   socket.on('disconnect', () => {

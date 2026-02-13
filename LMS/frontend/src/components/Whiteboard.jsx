@@ -1,9 +1,10 @@
 import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut, Video, VideoOff } from 'lucide-react';
 import VoiceControls from './VoiceControls';
+import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const DEFAULT_SOCKET_URL = API_URL.replace(/\/api$/, '');
@@ -11,6 +12,7 @@ const SOCKET_URL = import.meta.env.VITE_API_WS_URL || DEFAULT_SOCKET_URL;
 
 export default function Whiteboard() {
   const { classId: paramClassId } = useParams();
+  const navigate = useNavigate();
   const classId = paramClassId;
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -25,6 +27,8 @@ export default function Whiteboard() {
   const strokeHistoryRef = useRef([]); // local authoritative history for redraws
   const inputRef = useRef(null);
   const panStartRef = useRef({ clientX: 0, clientY: 0, scrollTop: 0, scrollLeft: 0 });
+  const isSubmittingTextRef = useRef(false);
+  const lastPosRef = useRef(null);
   const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: '', fontSize: 18 });
   const [otherCursors, setOtherCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
@@ -38,10 +42,30 @@ export default function Whiteboard() {
   const [width, setWidth] = useState(2);
   const shapeStartRef = useRef(null);
 
-  // Voice communication state
+  // Media communication state
   const [isMuted, setIsMuted] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [remoteStreams, setRemoteStreams] = useState({}); // userId -> MediaStream
+  const [isHandRaised, setIsHandRaised] = useState(false);
   const [activeSpeakers, setActiveSpeakers] = useState(new Set());
+  const [activeDrawers, setActiveDrawers] = useState(new Set());
+  const activeDrawersRef = useRef({}); // userId -> timeoutId
+  const [micLocked, setMicLocked] = useState(false);
+  const [, setCursorVisibilityTick] = useState(0);
+
+  // Auto-focus text input when it appears
+  useEffect(() => {
+    if (textInput.visible && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [textInput.visible]);
+
+  // Trigger re-render every second to update cursor visibility based on activity
+  useEffect(() => {
+    const timer = setInterval(() => setCursorVisibilityTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [localVolume, setLocalVolume] = useState(0);
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef({});
@@ -108,6 +132,23 @@ export default function Whiteboard() {
       overlayRef.current.style.width = '100%';
     }
 
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const parent = canvas.parentElement;
+      if (parent) {
+        const width = parent.clientWidth || parent.getBoundingClientRect().width;
+        if (width > 0 && canvas.width !== width) {
+          canvas.width = width;
+          if (overlayRef.current) overlayRef.current.width = width;
+          redrawAll();
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    const initialTimeout = setTimeout(handleResize, 100);
+
     const ensureCanvasHeight = (minHeight) => {
       if (minHeight <= canvas.height) return;
       // copy existing content
@@ -139,6 +180,39 @@ export default function Whiteboard() {
       renderStroke(data, false);
       // record to local history if it has an id
       if (data && (data._id || data.id)) strokeHistoryRef.current.push(data);
+
+      // Track active drawers for sorting and cursor visibility
+      if (data.userId) {
+        setOtherCursors(prev => {
+          if (!prev[data.userId]) return prev;
+          // Only update state if it's been more than 2s to avoid spamming re-renders
+          if (Date.now() - prev[data.userId].lastSeen < 2000) return prev;
+          return { ...prev, [data.userId]: { ...prev[data.userId], lastSeen: Date.now() } };
+        });
+
+        setActiveDrawers(prev => {
+          const next = new Set(prev);
+          next.add(data.userId);
+          return next;
+        });
+        if (activeDrawersRef.current[data.userId]) clearTimeout(activeDrawersRef.current[data.userId]);
+        activeDrawersRef.current[data.userId] = setTimeout(() => {
+          setActiveDrawers(prev => {
+            const next = new Set(prev);
+            next.delete(data.userId);
+            return next;
+          });
+          delete activeDrawersRef.current[data.userId];
+        }, 2000);
+      }
+    });
+
+    socket.on('wb:user-joined', (payload) => {
+      if (payload.socketId === socket.id) return;
+      setOtherCursors((prev) => ({
+        ...prev,
+        [payload.socketId]: { ...payload, xNorm: 0, yNorm: 0, lastSeen: Date.now() }
+      }));
     });
 
     socket.on('wb:cursor', (payload) => {
@@ -169,18 +243,62 @@ export default function Whiteboard() {
     });
 
     socket.on('wb:voice-state', async ({ enabled }) => {
+      // Use ref to check up-to-date state inside the listener
       if (!!enabled === isVoiceEnabledRef.current) return;
 
       setIsVoiceEnabled(!!enabled);
       if (enabled) {
         if (!localStreamRef.current) {
-          await startVoiceChat();
+          await startMediaChat(false);
         }
       } else {
         if (localStreamRef.current) {
-          await stopVoiceChat(false);
+          // Pass false to avoid emitting another wb:voice-stop which causes loops
+          stopVoiceChat(false);
         }
       }
+    });
+
+    socket.on('wb:force-mute', ({ force }) => {
+      // Teachers can force mute OR unmute (active/inactive states)
+      handleToggleMute(!!force);
+    });
+
+    socket.on('wb:mic-lock-state', ({ locked }) => {
+      setMicLocked(!!locked);
+    });
+
+    socket.on('wb:user-video-state', ({ userId, enabled }) => {
+      if (userId === socket.id) return;
+      setOtherCursors(prev => {
+        if (!prev[userId]) return prev;
+        return { ...prev, [userId]: { ...prev[userId], videoEnabled: !!enabled } };
+      });
+      // If video is disabled, we might want to clean up the stream if we're also not getting audio, 
+      // but WebRTC usually handles this via track enabled/disable or removal.
+    });
+
+    socket.on('wb:user-mute-state', ({ userId, muted }) => {
+      if (userId === socket.id) return;
+      setOtherCursors(prev => {
+        if (!prev[userId]) return prev;
+        return { ...prev, [userId]: { ...prev[userId], muted: !!muted } };
+      });
+    });
+
+    socket.on('wb:hand-state', ({ userId, raised }) => {
+      setOtherCursors(prev => {
+        if (!prev[userId]) return prev;
+        const person = prev[userId];
+        if (isTeacher && raised && userId !== socket.id) {
+          toast(`${person.name} raised their hand!`, { icon: '✋', duration: 4000 });
+          // Play a gentle 'pop' sound
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+          audio.volume = 0.5;
+          audio.play().catch(e => console.debug("Audio play blocked by browser policy"));
+        }
+        return { ...prev, [userId]: { ...prev[userId], handRaised: !!raised } };
+      });
     });
 
     socket.on('wb:history', (strokes) => {
@@ -196,27 +314,45 @@ export default function Whiteboard() {
       }
     });
 
-    // when a stroke is removed (undo by owner or teacher), remove locally and redraw
     socket.on('wb:remove-stroke', ({ strokeId }) => {
       if (!strokeId) return;
       strokeHistoryRef.current = strokeHistoryRef.current.filter(s => (s._id || s.id) !== strokeId);
-      // redraw all
       redrawAll();
-      // also remove from undo stack if present
       undoStackRef.current = undoStackRef.current.filter(s => (s._id || s.id) !== strokeId);
     });
 
-    // cleanup stale cursors periodically
-    const cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      setOtherCursors((prev) => {
+    socket.on('wb:participants', (list) => {
+      setOtherCursors(prev => {
         const next = { ...prev };
-        Object.keys(next).forEach((k) => {
-          if (now - next[k].lastSeen > 8000) delete next[k];
+        list.forEach(p => {
+          if (p.socketId !== socket.id) {
+            next[p.socketId] = { ...p, xNorm: 0, yNorm: 0, lastSeen: Date.now() };
+          }
         });
         return next;
       });
-    }, 3000);
+    });
+
+    socket.on('wb:user-left', ({ socketId }) => {
+      setOtherCursors(prev => {
+        const next = { ...prev };
+        delete next[socketId];
+        return next;
+      });
+      setRemoteStreams(prev => {
+        const next = { ...prev };
+        delete next[socketId];
+        return next;
+      });
+      // also cleanup peer connection if voice was on
+      if (peerConnectionsRef.current[socketId]) {
+        peerConnectionsRef.current[socketId].close();
+        delete peerConnectionsRef.current[socketId];
+      }
+    });
+
+    // removed stale cursor cleanup interval to keep users in list until they leave
+
 
     // setup periodic flush of buffered strokes
     flushIntervalRef.current = setInterval(() => {
@@ -229,7 +365,10 @@ export default function Whiteboard() {
       const pc = createPeerConnection(userId);
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socket.emit('wb:sdp-offer', { targetUserId: userId, sdp: pc.localDescription });
+      socket.emit('wb:sdp-offer', {
+        targetUserId: userId,
+        sdp: { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+      });
     });
 
     socket.on('wb:sdp-offer', async ({ senderUserId, sdp }) => {
@@ -238,7 +377,10 @@ export default function Whiteboard() {
       await pc.setRemoteDescription(new RTCSessionDescription(sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socket.emit('wb:sdp-answer', { targetUserId: senderUserId, sdp: pc.localDescription });
+      socket.emit('wb:sdp-answer', {
+        targetUserId: senderUserId,
+        sdp: { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+      });
     });
 
     socket.on('wb:sdp-answer', async ({ senderUserId, sdp }) => {
@@ -260,6 +402,16 @@ export default function Whiteboard() {
         peerConnectionsRef.current[userId].close();
         delete peerConnectionsRef.current[userId];
       }
+      setRemoteStreams(prev => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+      setOtherCursors(prev => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
     });
 
     socket.on('voice:speaking', ({ userId, speaking }) => {
@@ -272,7 +424,8 @@ export default function Whiteboard() {
     });
 
     return () => {
-      clearInterval(cleanupInterval);
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(initialTimeout);
       if (flushIntervalRef.current) clearInterval(flushIntervalRef.current);
       try { flushBuffer(); } catch (e) { }
       stopVoiceChat();
@@ -410,7 +563,7 @@ export default function Whiteboard() {
     const ctx = ctxRef.current;
     if (!ctx || !canvas) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (emit) socketRef.current.emit('wb:clear');
+    if (emit) socketRef.current?.emit('wb:clear');
   }
 
   function getPointerPos(e) {
@@ -424,10 +577,16 @@ export default function Whiteboard() {
 
   const handlePointerDown = (e) => {
     if (locked && !isTeacher) return;
+
+    // If we were typing text, commit it before starting a new action
+    if (textInput.visible) {
+      submitTextInput();
+    }
+
     const pos = getPointerPos(e);
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(true);
-      socketRef.current._lastPos = pos;
+      lastPosRef.current = pos;
     } else if (tool === 'hand') {
       setIsPanning(true);
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -467,18 +626,18 @@ export default function Whiteboard() {
     }
     if (tool === 'pen') {
       if (!isDrawing) return;
-      const prev = socketRef.current._lastPos || pos;
+      const prev = lastPosRef.current || pos;
       drawLine(prev, pos, color, width, true);
-      socketRef.current._lastPos = pos;
+      lastPosRef.current = pos;
     } else if (tool === 'eraser') {
       if (!isDrawing) return;
-      const prev = socketRef.current._lastPos || pos;
+      const prev = lastPosRef.current || pos;
       // draw erase locally
       const eraseStroke = { type: 'erase', prev: { x: prev.x / canvasRef.current.width, y: prev.y / canvasRef.current.height }, curr: { x: pos.x / canvasRef.current.width, y: pos.y / canvasRef.current.height }, width: width * 8 };
       renderStroke(eraseStroke, false);
-      socketRef.current.emit('wb:draw', { ...eraseStroke, persist: false });
+      socketRef.current?.emit('wb:draw', { ...eraseStroke, persist: false });
       pushToBuffer(eraseStroke);
-      socketRef.current._lastPos = pos;
+      lastPosRef.current = pos;
     } else if (tool === 'rect' || tool === 'circle') {
       // draw preview on overlay
       const start = shapeStartRef.current;
@@ -509,7 +668,7 @@ export default function Whiteboard() {
         const canvas = canvasRef.current;
         const xNorm = pos.x / canvas.width;
         const yNorm = pos.y / canvas.height;
-        socketRef.current.emit('wb:cursor', { xNorm, yNorm });
+        socketRef.current?.emit('wb:cursor', { xNorm, yNorm });
         lastCursorEmitRef.current = now;
       }
     } catch (err) {
@@ -523,7 +682,7 @@ export default function Whiteboard() {
     }
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(false);
-      if (socketRef.current) socketRef.current._lastPos = null;
+      lastPosRef.current = null;
     } else if (tool === 'rect' || tool === 'circle') {
       const start = shapeStartRef.current;
       const end = getPointerPos(e);
@@ -549,65 +708,96 @@ export default function Whiteboard() {
 
   // WebRTC Voice Communication Functions
 
-  const startVoiceChat = async () => {
+  const startMediaChat = async (withVideo = isVideoEnabled) => {
     try {
-      if (localStreamRef.current) return true;
+      if (localStreamRef.current) {
+        // If we already have a stream, check if we need to add video
+        const currentVideoTracks = localStreamRef.current.getVideoTracks();
+        let changed = false;
+        if (withVideo && currentVideoTracks.length === 0) {
+          const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const videoTrack = videoStream.getVideoTracks()[0];
+          localStreamRef.current.addTrack(videoTrack);
+          changed = true;
+        } else if (!withVideo && currentVideoTracks.length > 0) {
+          currentVideoTracks.forEach(track => {
+            track.stop();
+            localStreamRef.current.removeTrack(track);
+          });
+          changed = true;
+        }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (changed) {
+          // If we added/removed tracks, we need to update all existing peer connections
+          const tracks = localStreamRef.current.getTracks();
+          Object.values(peerConnectionsRef.current).forEach(pc => {
+            const senders = pc.getSenders();
+            tracks.forEach(track => {
+              // Only add if not already there
+              if (!senders.find(s => s.track === track)) {
+                pc.addTrack(track, localStreamRef.current);
+              }
+            });
+            // Also remove tracks that are no longer in the stream
+            senders.forEach(sender => {
+              if (sender.track && !tracks.includes(sender.track)) {
+                pc.removeTrack(sender);
+              }
+            });
+          });
+
+          // Trigger re-negotiation for all participants
+          socketRef.current?.emit('wb:voice-start');
+        }
+        return true;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo });
       localStreamRef.current = stream;
 
-      // Apply initial mute state
+      // Apply initial mute/video state
       const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !isMuted;
-      }
+      if (audioTrack) audioTrack.enabled = !isMuted;
 
-      // Initialize AudioContext and Analyser for visualization
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) videoTrack.enabled = withVideo;
+
+      // Initialize AudioContext and Analyser
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioContextRef.current = new AudioContextClass();
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContextClass();
+          const source = audioContextRef.current.createMediaStreamSource(stream);
+          analyserRef.current = audioContextRef.current.createAnalyser();
+          analyserRef.current.fftSize = 256;
+          source.connect(analyserRef.current);
 
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 256;
+          volumeIntervalRef.current = setInterval(() => {
+            if (!analyserRef.current || isMuted) {
+              setLocalVolume(0);
+              return;
+            }
+            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+            analyserRef.current.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            const average = sum / dataArray.length;
+            setLocalVolume(average);
 
-        source.connect(analyserRef.current);
+            if (average > 15 !== activeSpeakers.has(socketRef.current?.id)) {
+              socketRef.current?.emit('wb:mute-status', { muted: average <= 15 });
+            }
+          }, 100);
+        }
+      } catch (e) { console.warn('AudioContext failed', e); }
 
-        const bufferLength = analyserRef.current.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        volumeIntervalRef.current = setInterval(() => {
-          if (!analyserRef.current || isMuted) {
-            setLocalVolume(0);
-            return;
-          }
-          analyserRef.current.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < bufferLength; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / bufferLength;
-          setLocalVolume(average); // 0 to 255
-
-          // Auto-update speaking status for others if volume is significant
-          const threshold = 15;
-          const isActuallySpeaking = average > threshold;
-          if (isActuallySpeaking !== activeSpeakers.has(socketRef.current?.id)) {
-            socketRef.current?.emit('wb:mute-status', { muted: !isActuallySpeaking });
-          }
-        }, 100);
-
-        gainNodeRef.current = audioContextRef.current.createGain();
-        gainNodeRef.current.connect(audioContextRef.current.destination);
-      } catch (e) {
-        console.warn('AudioContext not supported or blocked', e);
-      }
-
-      socketRef.current.emit('wb:voice-start');
+      socketRef.current?.emit('wb:voice-start');
+      if (withVideo) socketRef.current?.emit('wb:video-status', { enabled: true });
       return true;
     } catch (error) {
-      console.error('Error starting voice chat:', error);
+      console.error('Error starting media chat:', error);
       setIsVoiceEnabled(false);
+      setIsVideoEnabled(false);
       return false;
     }
   };
@@ -644,29 +834,75 @@ export default function Whiteboard() {
   };
 
   const createPeerConnection = (userId) => {
+    // Reuse existing connection for this user if it's still alive
+    if (peerConnectionsRef.current[userId] &&
+      peerConnectionsRef.current[userId].signalingState !== 'closed') {
+      return peerConnectionsRef.current[userId];
+    }
+
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // Add support for custom TURN servers if provided in env
+        ...(import.meta.env.VITE_TURN_SERVER_URL ? [
+          {
+            urls: import.meta.env.VITE_TURN_SERVER_URL,
+            username: import.meta.env.VITE_TURN_SERVER_USERNAME,
+            credential: import.meta.env.VITE_TURN_SERVER_PASSWORD
+          }
+        ] : [])
       ],
+      iceTransportPolicy: 'all',
+      iceCandidatePoolSize: 10
     });
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socketRef.current.emit('wb:ice-candidate', { targetUserId: userId, candidate: event.candidate });
+        socketRef.current?.emit('wb:ice-candidate', {
+          targetUserId: userId,
+          candidate: event.candidate.toJSON()
+        });
       }
     };
 
     pc.ontrack = (event) => {
-      const [remoteStream] = event.streams;
-      const audio = new Audio();
-      audio.srcObject = remoteStream;
-      audio.autoplay = true;
-      // We don't append to DOM, just play it
-      audio.play().catch(e => {
-        console.warn("Autoplay blocked, user might need to interact first:", e);
-        // Fallback: play on next click or interaction if needed
-      });
+      console.log(`Received remote track (${event.track.kind}) from ${userId}`);
+      let remoteStream = event.streams[0];
+
+      if (!remoteStream) {
+        // If track has no stream (common in some renegotiation cases), use/create one from Ref
+        if (!remoteStreamsRef.current[userId]) {
+          remoteStreamsRef.current[userId] = new MediaStream();
+        }
+        remoteStream = remoteStreamsRef.current[userId];
+        remoteStream.addTrack(event.track);
+      } else {
+        remoteStreamsRef.current[userId] = remoteStream;
+      }
+
+      // Update remote streams state for UI rendering
+      setRemoteStreams(prev => ({
+        ...prev,
+        [userId]: remoteStream
+      }));
+
+      // Audio specific: Ensure audio is playing if it's an audio track
+      if (event.track.kind === 'audio') {
+        const audio = new Audio();
+        audio.srcObject = remoteStream;
+        audio.autoplay = true;
+        // Set slightly higher volume for remote audio
+        audio.volume = 1.0;
+        audio.play().catch(e => console.warn("Audio autoplay blocked:", e));
+      } else if (event.track.kind === 'video') {
+        console.log("Received remote video track");
+        // Re-trigger remote streams update to ensure UI re-renders
+        setRemoteStreams(prev => ({ ...prev }));
+      }
     };
 
     if (localStreamRef.current) {
@@ -681,17 +917,39 @@ export default function Whiteboard() {
 
   // handler for submitting text input
   const submitTextInput = () => {
+    if (isSubmittingTextRef.current) return;
+    if (!textInput.visible) return;
+
     if (!textInput.value) {
       setTextInput({ visible: false, x: 0, y: 0, value: '' });
       return;
     }
-    const canvas = canvasRef.current;
-    const posNorm = { x: textInput.x / canvas.width, y: textInput.y / canvas.height };
-    const stroke = { type: 'text', pos: posNorm, text: textInput.value, color, fontSize: textInput.fontSize };
-    renderStroke(stroke, false);
-    socketRef.current.emit('wb:draw', { ...stroke, persist: false });
-    pushToBuffer(stroke);
-    setTextInput({ visible: false, x: 0, y: 0, value: '' });
+    isSubmittingTextRef.current = true;
+    try {
+      const canvas = canvasRef.current;
+      const posNorm = { x: textInput.x / canvas.width, y: textInput.y / canvas.height };
+      const stroke = { type: 'text', pos: posNorm, text: textInput.value, color, fontSize: textInput.fontSize };
+      renderStroke(stroke, false);
+      socketRef.current?.emit('wb:draw', { ...stroke, persist: false });
+      pushToBuffer(stroke);
+      setTextInput({ visible: false, x: 0, y: 0, value: '' });
+    } finally {
+      isSubmittingTextRef.current = false;
+    }
+  };
+
+  const handleRaiseHand = () => {
+    const newState = !isHandRaised;
+    setIsHandRaised(newState);
+    socketRef.current?.emit('wb:raise-hand', { raised: newState });
+  };
+
+  const handleExit = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    stopVoiceChat(true);
+    navigate(`/classrooms/${classId}`);
   };
 
   const onExportPNG = () => {
@@ -737,17 +995,53 @@ export default function Whiteboard() {
   const handleToggleVoice = async () => {
     if (isVoiceEnabled) {
       setIsVoiceEnabled(false);
+      setIsVideoEnabled(false);
       await stopVoiceChat(true);
     } else {
-      const success = await startVoiceChat();
+      const success = await startMediaChat(false);
       if (success) {
         setIsVoiceEnabled(true);
       }
     }
   };
 
-  const handleToggleMute = () => {
-    const newMuteState = !isMuted;
+  const handleToggleVideo = async () => {
+    const newState = !isVideoEnabled;
+    if (!isVoiceEnabled && newState) {
+      const success = await startMediaChat(true);
+      if (success) {
+        setIsVoiceEnabled(true);
+        setIsVideoEnabled(true);
+      }
+    } else if (isVoiceEnabled) {
+      const success = await startMediaChat(newState);
+      if (success) {
+        setIsVideoEnabled(newState);
+        socketRef.current?.emit('wb:video-status', { enabled: newState });
+        // Toggle local track visibility if already in stream
+        if (localStreamRef.current) {
+          const videoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (videoTrack) videoTrack.enabled = newState;
+        }
+      }
+    }
+  };
+
+  const handleToggleMute = (forceState = null) => {
+    // If called from onClick, forceState will be an event object or null.
+    // If called from backend, it will be a boolean.
+    const isExplicit = typeof forceState === 'boolean';
+    const newMuteState = isExplicit ? forceState : !isMuted;
+
+    // Prevent unmuting if mic is locked, unless it's a teacher's explicit command OR the teacher themselves
+    if (!isExplicit && !newMuteState && micLocked && !isTeacher) {
+      toast.error("Microphone is currently locked by teacher");
+      return;
+    }
+
+    // If we're already in the desired state, skip (unless it's an explicit command we want to re-enforce)
+    if (!isExplicit && newMuteState === isMuted) return;
+
     setIsMuted(newMuteState);
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
@@ -756,6 +1050,26 @@ export default function Whiteboard() {
         // Notify other users about mute status (for UI indicators)
         socketRef.current?.emit('wb:mute-status', { muted: newMuteState });
       }
+    }
+  };
+
+  const handleForceMute = (targetUserId = 'all', forceState = true) => {
+    if (!isTeacher) return;
+
+    // If unmuting an individual student, mute all others first (Exclusive mode)
+    if (targetUserId !== 'all' && forceState === false) {
+      socketRef.current?.emit('wb:force-mute', { muteAll: true, force: true, lock: true });
+    }
+
+    socketRef.current?.emit('wb:force-mute', {
+      targetUserId: targetUserId === 'all' ? null : targetUserId,
+      muteAll: targetUserId === 'all',
+      force: forceState,
+      lock: targetUserId === 'all' ? forceState : undefined // Lock if muting all, Unlock if unmuting all
+    });
+
+    if (targetUserId === 'all') {
+      setMicLocked(forceState);
     }
   };
 
@@ -835,12 +1149,43 @@ export default function Whiteboard() {
         {/* Voice Communication Controls */}
         <VoiceControls
           isVoiceEnabled={isVoiceEnabled}
+          isVideoEnabled={isVideoEnabled}
           isMuted={isMuted}
           onToggleVoice={handleToggleVoice}
           onToggleMute={handleToggleMute}
+          onToggleVideo={handleToggleVideo}
           isTeacher={isTeacher}
           localVolume={localVolume}
+          participants={{
+            ...otherCursors,
+            [socketRef.current?.id]: {
+              name: user?.name || user?.email || 'Me',
+              color: '#4f46e5',
+              muted: isMuted,
+              videoEnabled: isVideoEnabled,
+              handRaised: isHandRaised
+            }
+          }}
+          onForceMute={handleForceMute}
+          activeSpeakers={activeSpeakers}
+          activeDrawers={activeDrawers}
+          localId={socketRef.current?.id}
+          micLocked={micLocked}
+          remoteStreams={remoteStreams}
+          localStream={localStreamRef.current}
         />
+
+        {/* Raise Hand (Student only, show when voice is enabled) */}
+        {!isTeacher && isVoiceEnabled && (
+          <button
+            onClick={handleRaiseHand}
+            className={`p-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm ${isHandRaised ? 'bg-yellow-500 text-white shadow-lg scale-110' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            title={isHandRaised ? 'Lower Hand' : 'Raise Hand'}
+          >
+            <Hand className={`w-4 h-4 ${isHandRaised ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline">{isHandRaised ? 'Hand Raised' : 'Raise Hand'}</span>
+          </button>
+        )}
 
         {/* Drawing Tools */}
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
@@ -912,35 +1257,39 @@ export default function Whiteboard() {
 
         {/* History & Export */}
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => {
-              if (undoStackRef.current.length > 0) {
-                const s = undoStackRef.current.pop();
-                redoStackRef.current.push(s);
-                socketRef.current.emit('wb:remove-stroke', { strokeId: s._id || s.id });
-                strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
-                redrawAll();
-              }
-            }}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Undo"
-          >
-            <Undo className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => {
-              if (redoStackRef.current.length > 0) {
-                const s = redoStackRef.current.pop();
-                renderStroke(s, false);
-                pushToBuffer(s);
-                socketRef.current.emit('wb:draw', { ...s, persist: false });
-              }
-            }}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Redo"
-          >
-            <Redo className="w-4 h-4" />
-          </button>
+          {isTeacher && (
+            <>
+              <button
+                onClick={() => {
+                  if (undoStackRef.current.length > 0) {
+                    const s = undoStackRef.current.pop();
+                    redoStackRef.current.push(s);
+                    socketRef.current?.emit('wb:remove-stroke', { strokeId: s._id || s.id });
+                    strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
+                    redrawAll();
+                  }
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Undo"
+              >
+                <Undo className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  if (redoStackRef.current.length > 0) {
+                    const s = redoStackRef.current.pop();
+                    renderStroke(s, false);
+                    pushToBuffer(s);
+                    socketRef.current?.emit('wb:draw', { ...s, persist: false });
+                  }
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Redo"
+              >
+                <Redo className="w-4 h-4" />
+              </button>
+            </>
+          )}
           <button
             onClick={onExportPNG}
             className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors hidden sm:flex items-center gap-2 font-medium text-sm"
@@ -955,6 +1304,17 @@ export default function Whiteboard() {
             title="Export Image"
           >
             <Download className="w-4 h-4" />
+          </button>
+
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+
+          <button
+            onClick={handleExit}
+            className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2 font-medium text-sm"
+            title="Exit Whiteboard"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Exit</span>
           </button>
         </div>
       </div>
@@ -1009,7 +1369,7 @@ export default function Whiteboard() {
         {/* render other users' cursors */}
         {Object.keys(otherCursors).map((id) => {
           const c = otherCursors[id];
-          if (!c) return null;
+          if (!c || (Date.now() - (c.lastSeen || 0) > 8000)) return null;
           const canvas = canvasRef.current;
           const container = containerRef.current;
           if (!canvas || !container) return null;
