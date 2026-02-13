@@ -98,7 +98,7 @@ const Exams = () => {
                         className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 group"
                     >
                         <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                        <span className="font-semibold">Create New Exam</span>
+                        <span className="font-semibold text-sm sm:text-base">New Exam</span>
                     </button>
                 </div>
 
@@ -139,10 +139,10 @@ const Exams = () => {
                         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                             type="text"
-                            placeholder="Search exams by title or description..."
+                            placeholder="Search exams..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-gray-400"
+                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-gray-400 text-sm"
                         />
                     </div>
                 </div>
@@ -262,7 +262,7 @@ const Exams = () => {
                     onConfirm={confirmDelete}
                     title="Delete Exam"
                     message="Are you sure you want to delete this exam? All captured submissions and results for this assessment will be permanently lost. This action cannot be undone."
-                    confirmText="Permanently Delete"
+                    confirmText="Delete"
                     confirmButtonColor="bg-rose-600 hover:bg-rose-700"
                     isLoading={isDeleting}
                 />
