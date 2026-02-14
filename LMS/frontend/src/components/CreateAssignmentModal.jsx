@@ -211,8 +211,8 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-        <h3 className="text-xl font-bold mb-4">{editAssignment ? 'Edit Assignment' : 'Create New Assignment'}</h3>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 overflow-y-auto max-h-[90vh]">
+        <h3 className="text-2xl font-bold mb-6 text-gray-900">{editAssignment ? 'Edit Assignment' : 'Create New Assignment'}</h3>
         <form onSubmit={(e) => { setIsSubmitting(true); handleSubmit(e); }} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -303,108 +303,170 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
           </div>
 
           {/* Questions Section */}
-          <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+          <div className="space-y-4 border-2 border-gray-200 p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-white">
             <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold text-gray-800">Questions</h4>
+              <h4 className="text-lg font-bold text-gray-800 flex items-center">
+                <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-lg mr-3 text-sm font-extrabold">
+                  {createForm.questions.length}
+                </span>
+                Questions
+              </h4>
               {createForm.assignmentType === 'theory' && (
-                <label className="inline-flex items-center">
+                <label className="inline-flex items-center bg-white px-3 py-2 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-all cursor-pointer">
                   <input
                     type="checkbox"
-                    className="form-checkbox"
+                    className="form-checkbox h-4 w-4 text-indigo-600 rounded"
                     checked={isEvenlyDistributed}
                     onChange={(e) => setIsEvenlyDistributed(e.target.checked)}
                   />
-                  <span className="ml-2">Same Weight Per Question</span>
+                  <span className="ml-2 text-sm font-medium text-gray-700">Same Weight Per Question</span>
                 </label>
               )}
             </div>
             {createForm.assignmentType === 'theory' && isEvenlyDistributed && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Overall Max Score (for even distribution)</label>
+              <div className="mb-4 p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
+                <label className="block text-sm font-bold text-indigo-700 mb-2">Overall Max Score (for even distribution)</label>
                 <input
                   type="number"
                   value={overallMaxScoreInput}
                   onChange={(e) => setOverallMaxScoreInput(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-900"
                   min="1"
                 />
               </div>
             )}
             {createForm.questions.map((question, qIndex) => (
-              <div key={qIndex} className="space-y-3 p-4 border rounded-lg bg-white shadow-sm">
+              <div key={qIndex} className="space-y-4 p-5 border-2 border-gray-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+                      {qIndex + 1}
+                    </span>
+                    <h5 className="text-sm font-bold text-gray-700">Question {qIndex + 1}</h5>
+                  </div>
+                  {createForm.questions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeQuestion(qIndex)}
+                      className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Question {qIndex + 1} Text</label>
+                  <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Question Text</label>
                   <input
                     type="text"
                     value={question.questionText}
                     onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    placeholder="What is alphabet before any cluster of t"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-900 placeholder:text-gray-300"
                     required
                   />
                 </div>
 
                 {createForm.assignmentType === 'mcq' && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Options</label>
-                    {question.options.map((option, oIndex) => (
-                      <div key={oIndex} className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={option}
-                          onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                          className="flex-1 px-4 py-2 border rounded-lg"
-                          required
-                        />
-                        <input
-                          type="radio"
-                          name={`correctOption-${qIndex}`}
-                          value={option}
-                          checked={question.correctOption === option}
-                          onChange={() => handleCorrectOptionChange(qIndex, option)}
-                          className="form-radio text-green-600"
-                        />
-                        <label className="text-sm text-gray-600">Correct</label>
-                        {question.options.length > 2 && (
-                          <button
-                            type="button"
-                            onClick={() => removeOption(qIndex, oIndex)}
-                            className="text-red-500 hover:text-red-700 text-sm"
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-black uppercase tracking-widest text-gray-500">Answer Options</label>
+                      <span className="text-xs text-gray-400 font-medium italic">Select correct answer</span>
+                    </div>
+                    <div className="space-y-2">
+                      {question.options.map((option, oIndex) => {
+                        const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                        const isCorrect = question.correctOption === option;
+
+                        return (
+                          <div
+                            key={oIndex}
+                            className={`flex items-center gap-3 p-3 rounded-xl transition-all border-2 ${isCorrect
+                              ? 'border-green-400 bg-green-50'
+                              : 'border-gray-200 bg-white hover:border-indigo-200'
+                              }`}
                           >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                            {/* Option Label */}
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-sm transition-all ${isCorrect
+                              ? 'bg-green-500 text-white shadow-md'
+                              : 'bg-gray-100 text-gray-600'
+                              }`}>
+                              {optionLabels[oIndex]}
+                            </div>
+
+                            {/* Option Input */}
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
+                              placeholder={optionLabels[oIndex]}
+                              className={`flex-1 px-3 py-2 bg-transparent border-none outline-none font-medium focus:ring-0 ${isCorrect ? 'text-green-900' : 'text-gray-800'
+                                }`}
+                              required
+                            />
+
+                            {/* Correct Radio Button */}
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`correctOption-${qIndex}`}
+                                value={option}
+                                checked={isCorrect}
+                                onChange={() => handleCorrectOptionChange(qIndex, option)}
+                                className="w-5 h-5 text-green-600 focus:ring-green-500"
+                              />
+                              <label className={`text-sm font-medium ${isCorrect ? 'text-green-700' : 'text-gray-500'}`}>
+                                Correct
+                              </label>
+                            </div>
+
+                            {/* Remove Option Button */}
+                            {question.options.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => removeOption(qIndex, oIndex)}
+                                className="text-rose-400 hover:text-rose-600 text-sm font-medium px-2"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                     <button
                       type="button"
                       onClick={() => addOption(qIndex)}
-                      className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600"
+                      className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2 font-medium text-sm"
                     >
+                      <Plus className="w-4 h-4" />
                       Add Option
                     </button>
                   </div>
                 )}
 
                 {createForm.assignmentType === 'theory' && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Marking Preference</label>
-                    <select
-                      value={question.markingPreference}
-                      onChange={(e) => handleMarkingPreferenceChange(qIndex, e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      required
-                    >
-                      <option value="manual">Manual</option>
-                      <option value="ai">AI Marking</option>
-                    </select>
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Marking Preference</label>
+                      <select
+                        value={question.markingPreference}
+                        onChange={(e) => handleMarkingPreferenceChange(qIndex, e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium appearance-none cursor-pointer"
+                        required
+                      >
+                        <option value="manual">Manual</option>
+                        <option value="ai">AI Marking</option>
+                      </select>
+                    </div>
                     {!isEvenlyDistributed && (
-                      <div className="mt-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Max Score for Q{qIndex + 1}</label>
+                      <div>
+                        <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Max Score for Q{qIndex + 1}</label>
                         <input
                           type="number"
                           value={question.maxScore}
                           onChange={(e) => handleQuestionMaxScoreChange(qIndex, e.target.value)}
-                          className="w-full px-4 py-2 border rounded-lg"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700"
                           min="0"
                           required
                         />
@@ -412,24 +474,14 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                     )}
                   </div>
                 )}
-
-                {createForm.questions.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeQuestion(qIndex)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Remove Question
-                  </button>
-                )}
               </div>
             ))}
             <button
               type="button"
               onClick={addQuestion}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center justify-center space-x-2"
+              className="w-full px-4 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center space-x-2 font-bold shadow-lg hover:shadow-xl"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               <span>Add Another Question</span>
             </button>
           </div>

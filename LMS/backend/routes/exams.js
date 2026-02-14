@@ -218,7 +218,7 @@ router.get('/public/:token', async (req, res) => {
         }
 
         if (exam) {
-            exam = await Exam.findById(exam._id).select('title description duration accessMode startTime endTime dueDate isPublished resultsPublished resultPublishTime classId creatorId schoolId');
+            exam = await Exam.findById(exam._id).select('title description duration accessMode startTime endTime dueDate isPublished resultsPublished resultPublishTime classId creatorId schoolId questions');
         }
 
         if (!exam) return res.status(404).json({ message: 'Exam link invalid' });
