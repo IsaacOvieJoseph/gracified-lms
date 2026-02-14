@@ -14,7 +14,10 @@ import {
     User,
     Mail,
     Play,
-    LogOut
+    LogOut,
+    CheckCircle,
+    XCircle,
+    HelpCircle
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -57,8 +60,17 @@ const ExamCenter = () => {
     const fetchExamInfo = async () => {
         try {
             const response = await api.get(`/exams/public/${token}`);
-            setExam(response.data);
-            setTimeLeft(response.data.duration * 60);
+            const data = response.data;
+            setExam(data);
+            setTimeLeft(data.duration * 60);
+
+            if (data.resultData) {
+                setScore(data.resultData.score);
+                setSubmissionStatus(data.resultData.status);
+                setSubmissionId(data.existingSubmissionId);
+                setQuestions(data.questions);
+                setFinished(true);
+            }
         } catch (error) {
             if (error.response?.status === 410) {
                 setExam({ error: 'expired', title: 'Assessment Unavailable' });
@@ -290,7 +302,7 @@ const ExamCenter = () => {
                                     : 'bg-[#4F4F5B] hover:bg-[#3D3D47] shadow-[#4F4F5B]/20 transform hover:-translate-y-1'
                                     }`}
                             >
-                                <span>Start Exam</span>
+                                <span>{exam?.submissionStatus === 'in-progress' ? 'Resume Exam' : 'Start Exam'}</span>
                                 {!(exam?.accessMode === 'registered' && user && !exam?.isEnrolled) && <Play className="w-6 h-6 md:w-8 md:h-8 fill-current" />}
                             </button>
                         )}
@@ -312,45 +324,93 @@ const ExamCenter = () => {
 
     // --- Final/Result Screen ---
     if (finished) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-                <div className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl p-12 text-center">
-                    <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-green-600 shadow-lg shadow-green-100">
-                        <CheckCircle2 className="w-12 h-12" />
-                    </div>
-                    <h2 className="text-4xl font-black text-gray-900 mb-2">Well Done!</h2>
-                    <p className="text-gray-500 font-medium mb-10">Your assessment has been successfully submitted and stored in our secure database.</p>
+        const totalPossible = questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);
+        const resultsHidden = (exam?.resultPublishTime && new Date(exam.resultPublishTime) > new Date()) ||
+            (questions.some(q => q.questionType === 'theory') && submissionStatus !== 'graded');
 
-                    <div className="bg-indigo-50 rounded-[2rem] p-8 mb-10 border-2 border-indigo-100">
-                        <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block mb-2">Final Performance</span>
-                        {((!exam?.resultPublishTime || new Date(exam.resultPublishTime) <= new Date()) &&
-                            (!questions.some(q => q.questionType === 'theory') || submissionStatus === 'graded')) ? (
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+                <div className="max-w-3xl w-full bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl p-6 md:p-12 text-center my-10">
+                    <div className="bg-green-100 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 text-green-600 shadow-lg shadow-green-100">
+                        <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-2">
+                        {resultsHidden ? 'Submission Received' : 'Well Done!'}
+                    </h2>
+                    <p className="text-gray-500 font-medium mb-8 md:mb-10 text-sm md:text-base">
+                        Your assessment has been successfully processed and stored in our secure database.
+                    </p>
+
+                    <div className="bg-indigo-50 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 mb-8 md:mb-10 border-2 border-indigo-100">
+                        <span className="text-[10px] md:text-xs font-black text-indigo-400 uppercase tracking-widest block mb-2 text-nowrap">Performance Summary</span>
+                        {!resultsHidden ? (
                             <>
-                                <div className="text-6xl font-black text-indigo-600">
-                                    {Math.round((score / questions.reduce((acc, q) => acc + (q.maxScore || 1), 0)) * 100)}%
+                                <div className="text-5xl md:text-6xl font-black text-indigo-600">
+                                    {totalPossible > 0 ? Math.round((score / totalPossible) * 100) : 0}%
                                 </div>
-                                <p className="text-sm font-bold text-indigo-400 mt-4 uppercase tracking-tighter">
-                                    {score} Points Earned
+                                <p className="text-xs md:text-sm font-bold text-indigo-400 mt-4 uppercase tracking-tighter">
+                                    {score} / {totalPossible} Points Earned
                                 </p>
                             </>
                         ) : (
-                            <div className="py-6">
-                                <div className="text-2xl font-black text-indigo-600 mb-2">Review Pending</div>
-                                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest leading-relaxed">
+                            <div className="py-4 md:py-6">
+                                <div className="text-xl md:text-2xl font-black text-indigo-600 mb-2 uppercase">Result Restricted</div>
+                                <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase tracking-widest leading-relaxed">
                                     {questions.some(q => q.questionType === 'theory') && submissionStatus !== 'graded'
-                                        ? "Detailed results will be released after manual grading."
-                                        : `Results will be published on ${new Date(exam.resultPublishTime).toLocaleString()}`}
+                                        ? "Manual grading in progress. Please check back later."
+                                        : `Results will be released on ${new Date(exam.resultPublishTime).toLocaleString()}`}
                                 </p>
                             </div>
                         )}
                     </div>
 
+                    {/* Breakdown Section */}
+                    {!resultsHidden && exam?.resultData?.answers && (
+                        <div className="mt-12 text-left space-y-8">
+                            <h3 className="text-2xl font-black text-gray-900 border-b-2 border-gray-100 pb-4">Detailed Breakdown</h3>
+                            <div className="space-y-6">
+                                {questions.map((q, idx) => {
+                                    const studentAns = exam.resultData.answers.find(a => a.questionIndex === idx);
+                                    const isCorrect = q.questionType === 'mcq' && studentAns?.answer === q.correctOption;
+
+                                    return (
+                                        <div key={idx} className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100 transition-all hover:bg-white hover:shadow-md">
+                                            <div className="flex items-start justify-between gap-4 mb-4">
+                                                <div className="flex-1">
+                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest block mb-1">Question {idx + 1}</span>
+                                                    <h4 className="font-bold text-gray-900 text-lg leading-snug">{q.questionText}</h4>
+                                                </div>
+                                                <div className={`flex-shrink-0 px-3 py-1 rounded-full flex items-center space-x-2 ${isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                    {isCorrect ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                                    <span className="text-xs font-black uppercase text-nowrap">{studentAns?.score} / {q.maxScore || 1} Pts</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 rounded-xl bg-white border border-gray-100">
+                                                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-wider block mb-1">Your Response</span>
+                                                    <p className="font-bold text-gray-800 text-sm">{studentAns?.answer || 'No response provided'}</p>
+                                                </div>
+                                                {q.questionType === 'mcq' && (
+                                                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                                                        <span className="text-[8px] font-black text-emerald-500 uppercase tracking-wider block mb-1">Correct Answer</span>
+                                                        <p className="font-bold text-emerald-700 text-sm">{q.correctOption}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center space-x-2"
+                        className="mt-10 w-full py-4 md:py-5 bg-gray-900 text-white rounded-2xl font-black text-base md:text-lg hover:bg-black transition-all flex items-center justify-center space-x-2 shadow-xl shadow-gray-200"
                     >
-                        <LogOut className="w-5 h-5" />
-                        <span>Exit Center</span>
+                        <LogOut className="w-4 h-4 md:w-5 md:h-5 rotate-180" />
+                        <span>Return to Dashboard</span>
                     </button>
                 </div>
             </div>

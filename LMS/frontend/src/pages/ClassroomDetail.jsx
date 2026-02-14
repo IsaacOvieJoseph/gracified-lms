@@ -828,7 +828,7 @@ const ClassroomDetail = () => {
             </div>
 
             {canEdit && (
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2 mt-2 lg:mt-0">
                 <button
                   onClick={handlePublishToggle}
                   disabled={publishing}
@@ -1168,7 +1168,7 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleStartZoom}
-                        className="flex items-center space-x-2 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-bold"
                       >
                         <Video className="w-5 h-5" />
                         <span>{label}</span>
@@ -1181,7 +1181,7 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleJoinCall}
-                        className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-bold"
                       >
                         <Video className="w-5 h-5" />
                         <span>Attend Lecture</span>
@@ -1203,10 +1203,10 @@ const ClassroomDetail = () => {
                         onClick={handleOpenWhiteboard}
                         disabled={!enabled}
                         title={!enabled ? 'Whiteboard not launched yet by the teacher' : 'Open whiteboard'}
-                        className={`flex items-center space-x-2 px-6 py-2 rounded-lg transition ${enabled ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 rounded-lg transition font-bold ${enabled ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
                       >
                         <Edit className="w-5 h-5" />
-                        <span>{isTeacherUser || isAdmin ? 'Whiteboard' : 'Whiteboard'}</span>
+                        <span>Whiteboard</span>
                       </button>
                     );
                   })()
@@ -1217,7 +1217,7 @@ const ClassroomDetail = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-hidden mt-6">
+        <div className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto mt-6 no-scrollbar">
           {[
             { id: 'topics', label: 'Topics', icon: Book },
             { id: 'assignments', label: 'Assignments', icon: FileText },
@@ -1769,7 +1769,7 @@ const ClassroomDetail = () => {
         {activeTab === 'exams' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Class Examinations</h3>
                   <p className="text-sm text-gray-500 mt-1">Access scheduled assessments and final exams.</p>
@@ -1777,7 +1777,7 @@ const ClassroomDetail = () => {
                 {canEdit && (
                   <button
                     onClick={() => navigate(`/exams/create?classId=${id}`)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md"
+                    className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 font-bold"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Create Exam</span>

@@ -6,13 +6,14 @@ import {
     Users,
     Globe,
     Lock,
+    Eye,
+    Copy,
+    Share2,
+    Play,
     Plus,
     Search,
     Edit,
     Trash2,
-    Share2,
-    Eye,
-    Copy,
     BarChart2,
     ChevronRight,
     TrendingUp,
@@ -90,16 +91,24 @@ const Exams = () => {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">External Exam Center</h1>
-                        <p className="text-gray-500 mt-1">Manage standard timed assessments and sharable links.</p>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                            {user.role === 'student' ? 'My Assessments' : 'External Exam Center'}
+                        </h1>
+                        <p className="text-gray-500 mt-1">
+                            {user.role === 'student'
+                                ? 'View and participate in exams assigned to your classes.'
+                                : 'Manage standard timed assessments and sharable links.'}
+                        </p>
                     </div>
-                    <button
-                        onClick={() => navigate('/exams/create')}
-                        className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 group"
-                    >
-                        <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                        <span className="font-semibold text-sm sm:text-base">New Exam</span>
-                    </button>
+                    {user.role !== 'student' && (
+                        <button
+                            onClick={() => navigate('/exams/create')}
+                            className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 group"
+                        >
+                            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                            <span className="font-semibold text-sm sm:text-base">New Exam</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Stats Summary */}
@@ -109,8 +118,14 @@ const Exams = () => {
                             <BookOpen className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Total Exams</p>
-                            <h3 className="text-2xl font-bold text-gray-900">{exams.length}</h3>
+                            <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
+                                {user.role === 'student' ? 'Unfinished' : 'Total Exams'}
+                            </p>
+                            <h3 className="text-2xl font-bold text-gray-900">
+                                {user.role === 'student'
+                                    ? exams.filter(e => e.submissionStatus === 'not-started').length
+                                    : exams.length}
+                            </h3>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
@@ -118,8 +133,14 @@ const Exams = () => {
                             <TrendingUp className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Active Links</p>
-                            <h3 className="text-2xl font-bold text-gray-900">{exams.filter(e => e.isPublished).length}</h3>
+                            <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
+                                {user.role === 'student' ? 'Completed' : 'Active Links'}
+                            </p>
+                            <h3 className="text-2xl font-bold text-gray-900">
+                                {user.role === 'student'
+                                    ? exams.filter(e => e.submissionStatus !== 'not-started').length
+                                    : exams.filter(e => e.isPublished).length}
+                            </h3>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
@@ -127,8 +148,14 @@ const Exams = () => {
                             <Users className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Access Modes</p>
-                            <h3 className="text-2xl font-bold text-gray-900">Multi-Channel</h3>
+                            <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
+                                {user.role === 'student' ? 'Average Score' : 'Access Modes'}
+                            </p>
+                            <h3 className="text-2xl font-bold text-gray-900">
+                                {user.role === 'student'
+                                    ? (exams.filter(e => e.score !== null).reduce((acc, curr) => acc + curr.score, 0) / Math.max(exams.filter(e => e.score !== null).length, 1)).toFixed(1) + '%'
+                                    : 'Multi-Channel'}
+                            </h3>
                         </div>
                     </div>
                 </div>
@@ -161,7 +188,7 @@ const Exams = () => {
                                     <tr>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Exam Details</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Mode & Duration</th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">{user.role === 'student' ? 'Result' : 'Status'}</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -194,44 +221,83 @@ const Exams = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
-                                                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${exam.isPublished
-                                                    ? 'bg-indigo-100 text-indigo-700'
-                                                    : 'bg-gray-100 text-gray-600'
-                                                    }`}>
-                                                    <span className={`w-2 h-2 rounded-full mr-2 ${exam.isPublished ? 'bg-indigo-500 animate-pulse' : 'bg-gray-400'}`}></span>
-                                                    {exam.isPublished ? 'Published' : 'Draft'}
-                                                </div>
+                                                {user.role === 'student' ? (
+                                                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${exam.submissionStatus === 'graded'
+                                                        ? 'bg-emerald-100 text-emerald-700'
+                                                        : exam.submissionStatus === 'submitted'
+                                                            ? 'bg-indigo-100 text-indigo-700'
+                                                            : 'bg-gray-100 text-gray-600'
+                                                        }`}>
+                                                        <span className={`w-2 h-2 rounded-full mr-2 ${exam.submissionStatus === 'graded' ? 'bg-emerald-500' :
+                                                            exam.submissionStatus === 'submitted' ? 'bg-indigo-500' : 'bg-gray-400'
+                                                            }`}></span>
+                                                        {exam.submissionStatus === 'graded' ? `${exam.score}% Score` :
+                                                            exam.submissionStatus === 'submitted' ? 'Submitted' : 'Not Started'}
+                                                    </div>
+                                                ) : (
+                                                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${exam.isPublished
+                                                        ? 'bg-indigo-100 text-indigo-700'
+                                                        : 'bg-gray-100 text-gray-600'
+                                                        }`}>
+                                                        <span className={`w-2 h-2 rounded-full mr-2 ${exam.isPublished ? 'bg-indigo-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                                                        {exam.isPublished ? 'Published' : 'Draft'}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-5 text-right">
                                                 <div className="flex items-center justify-end space-x-2">
-                                                    <button
-                                                        onClick={() => copyLink(exam.linkToken)}
-                                                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors group/btn"
-                                                        title="Copy Exam Link"
-                                                    >
-                                                        <Share2 className="w-5 h-5" />
-                                                    </button>
-                                                    <Link
-                                                        to={`/exams/edit/${exam._id}`}
-                                                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                                                        title="Edit Exam"
-                                                    >
-                                                        <Edit className="w-5 h-5" />
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => handleDelete(exam._id)}
-                                                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                                        title="Delete Exam"
-                                                    >
-                                                        <Trash2 className="w-5 h-5" />
-                                                    </button>
-                                                    <Link
-                                                        to={`/exams/${exam._id}/submissions`}
-                                                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                                        title="View Submissions"
-                                                    >
-                                                        <BarChart2 className="w-5 h-5" />
-                                                    </Link>
+                                                    {user.role === 'student' ? (
+                                                        <>
+                                                            {exam.submissionStatus === 'not-started' ? (
+                                                                <Link
+                                                                    to={`/exam-center/${exam.linkToken}`}
+                                                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 transition-all flex items-center space-x-2 shadow-md shadow-indigo-100"
+                                                                >
+                                                                    <span>Start Exam</span>
+                                                                    <Play className="w-4 h-4 fill-current" />
+                                                                </Link>
+                                                            ) : (
+                                                                <Link
+                                                                    to={`/exam-center/${exam.linkToken}`} // Redirects to result screen if already done
+                                                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-200 transition-all flex items-center space-x-2"
+                                                                >
+                                                                    <Eye className="w-4 h-4" />
+                                                                    <span>View Details</span>
+                                                                </Link>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => copyLink(exam.linkToken)}
+                                                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors group/btn"
+                                                                title="Copy Exam Link"
+                                                            >
+                                                                <Share2 className="w-5 h-5" />
+                                                            </button>
+                                                            <Link
+                                                                to={`/exams/edit/${exam._id}`}
+                                                                className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                                                title="Edit Exam"
+                                                            >
+                                                                <Edit className="w-5 h-5" />
+                                                            </Link>
+                                                            <button
+                                                                onClick={() => handleDelete(exam._id)}
+                                                                className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                                title="Delete Exam"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                            <Link
+                                                                to={`/exams/${exam._id}/submissions`}
+                                                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                                title="View Submissions"
+                                                            >
+                                                                <BarChart2 className="w-5 h-5" />
+                                                            </Link>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -244,14 +310,22 @@ const Exams = () => {
                             <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
                                 <Users className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">No exams yet</h3>
-                            <p className="text-gray-500 mt-2 max-w-sm mx-auto">Create your first exam and share the link with students for a standardized assessment experience.</p>
-                            <button
-                                onClick={() => navigate('/exams/create')}
-                                className="mt-6 px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg"
-                            >
-                                Create First Exam
-                            </button>
+                            <h3 className="text-xl font-bold text-gray-900">
+                                {user.role === 'student' ? 'No exams available' : 'No exams yet'}
+                            </h3>
+                            <p className="text-gray-500 mt-2 max-w-sm mx-auto">
+                                {user.role === 'student'
+                                    ? 'You haven\'t been assigned any exams yet. Assigned exams will appear here.'
+                                    : 'Create your first exam and share the link with students for a standardized assessment experience.'}
+                            </p>
+                            {user.role !== 'student' && (
+                                <button
+                                    onClick={() => navigate('/exams/create')}
+                                    className="mt-8 px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200"
+                                >
+                                    Create First Exam
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

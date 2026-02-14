@@ -80,10 +80,48 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 });
 
 // @route   GET /api/exams
-// @desc    Get exams created by user or for their school
-// @access  Teacher/Admin
-router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
+// @desc    Get exams (Student: assigned/taken, Teacher/Admin: created/school-wide)
+// @access  Authenticated Users
+router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher', 'student'), async (req, res) => {
     try {
+        let exams = [];
+
+        if (req.user.role === 'student') {
+            // 1. Get exams from classrooms student is enrolled in
+            const classrooms = await Classroom.find({ students: req.user._id }).select('_id');
+            const classroomIds = classrooms.map(c => c._id);
+
+            // 2. Get exams the student has already submitted (even public ones)
+            const submissions = await ExamSubmission.find({ studentId: req.user._id }).select('examId');
+            const submittedExamIds = submissions.map(s => s.examId);
+
+            // 3. Query: Assigned to class OR already submitted
+            exams = await Exam.find({
+                $or: [
+                    { classId: { $in: classroomIds }, isPublished: true },
+                    { _id: { $in: submittedExamIds } }
+                ]
+            }).sort({ createdAt: -1 });
+
+            // Attach submission status for each exam for the student
+            const enhancedExams = await Promise.all(exams.map(async (exam) => {
+                const submission = await ExamSubmission.findOne({
+                    examId: exam._id,
+                    studentId: req.user._id
+                }).sort({ submittedAt: -1 });
+
+                return {
+                    ...exam.toObject(),
+                    submissionStatus: submission ? (submission.status === 'graded' ? 'graded' : 'submitted') : 'not-started',
+                    submissionId: submission ? submission._id : null,
+                    score: submission && submission.status === 'graded' ? submission.totalScore : null
+                };
+            }));
+
+            return res.json(enhancedExams);
+        }
+
+        // Teacher/Admin Logic (Unchanged but cleaned)
         let query = {};
         if (req.user.role !== 'root_admin') {
             if (req.user.role === 'school_admin') {
@@ -94,7 +132,7 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'person
             }
         }
 
-        const exams = await Exam.find(query).sort({ createdAt: -1 });
+        exams = await Exam.find(query).sort({ createdAt: -1 });
         res.json(exams);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -180,16 +218,11 @@ router.get('/public/:token', async (req, res) => {
         }
 
         if (exam) {
-            exam = await Exam.findById(exam._id).select('title description duration accessMode startTime endTime isPublished resultsPublished resultPublishTime classId creatorId schoolId');
+            exam = await Exam.findById(exam._id).select('title description duration accessMode startTime endTime dueDate isPublished resultsPublished resultPublishTime classId creatorId schoolId');
         }
 
         if (!exam) return res.status(404).json({ message: 'Exam link invalid' });
         if (!exam.isPublished) return res.status(403).json({ message: 'Exam is not yet published' });
-
-        // Check Due Date
-        if (exam.dueDate && new Date(exam.dueDate) < new Date()) {
-            return res.status(410).json({ message: 'Exam is no longer available (Due date passed)' });
-        }
 
         // Fetch Branding and context
         let classroomName = null;
@@ -213,8 +246,11 @@ router.get('/public/:token', async (req, res) => {
             }
         }
 
-        // Optional Auth check for enrollment feedback
+        // --- Sophisticated Due Date and Participation Check ---
         let isEnrolled = false;
+        let submissionStatus = null;
+        let existingSubmissionId = null;
+
         const authHeader = req.headers.authorization;
         if (authHeader) {
             try {
@@ -225,33 +261,74 @@ router.get('/public/:token', async (req, res) => {
                 if (user) {
                     const userId = user._id.toString();
 
-                    // Standalone exam: Any authenticated user has access
-                    if (!exam.classId) {
-                        isEnrolled = true;
-                    }
-                    // Class exam: Check enrollment or roles
+                    // Enrollment check
+                    if (!exam.classId) isEnrolled = true;
                     else {
                         const classroom = await Classroom.findById(exam.classId);
                         const isEnrolledInClass = classroom && classroom.students.some(id => id.toString() === userId);
                         const isTeacher = (classroom && classroom.teacherId.toString() === userId) || (exam.creatorId.toString() === userId);
                         const isAdmin = ['root_admin', 'school_admin'].includes(user.role);
+                        if (isEnrolledInClass || isTeacher || isAdmin) isEnrolled = true;
+                    }
 
-                        if (isEnrolledInClass || isTeacher || isAdmin) {
-                            isEnrolled = true;
-                        }
+                    // Submission check
+                    const submission = await ExamSubmission.findOne({
+                        examId: exam._id,
+                        studentId: user._id
+                    }).sort({ createdAt: -1 });
+
+                    if (submission) {
+                        submissionStatus = submission.status;
+                        existingSubmissionId = submission._id;
                     }
                 }
             } catch (err) {
-                // Ignore auth errors for public info
+                // Ignore auth errors
             }
         }
 
-        res.json({
+        // Block if due date passed AND no active submission exists
+        const isPastDue = exam.dueDate && new Date(exam.dueDate) < new Date();
+        if (isPastDue && submissionStatus !== 'in-progress' && submissionStatus !== 'submitted' && submissionStatus !== 'graded') {
+            return res.status(410).json({ message: 'Exam is no longer available (Due date passed)' });
+        }
+
+        // --- Results Logic for Students ---
+        let resultData = null;
+        const resultsArePublic = exam.resultsPublished || (exam.resultPublishTime && new Date(exam.resultPublishTime) <= new Date());
+
+        if (existingSubmissionId && (submissionStatus === 'submitted' || submissionStatus === 'graded')) {
+            const submission = await ExamSubmission.findById(existingSubmissionId);
+            resultData = {
+                score: submission.totalScore,
+                status: submission.status,
+                answers: resultsArePublic ? submission.answers : null, // Show breakdown only if published
+                submittedAt: submission.submittedAt
+            };
+        }
+
+        const responseData = {
             ...exam.toObject(),
             isEnrolled,
+            submissionStatus,
+            existingSubmissionId,
             classroomName,
-            logoUrl
-        });
+            logoUrl,
+            resultData
+        };
+
+        // If results are public, include correct options in questions for the breakdown view
+        if (resultsArePublic && resultData) {
+            responseData.questions = exam.questions; // Send full questions including correctOption
+        } else {
+            // strip correct options for safety even if it's the public info route
+            responseData.questions = exam.questions.map(q => {
+                const { correctOption, ...rest } = q.toObject();
+                return rest;
+            });
+        }
+
+        res.json(responseData);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -275,57 +352,80 @@ router.post('/public/:token/start', async (req, res) => {
 
         if (!exam || !exam.isPublished) return res.status(404).json({ message: 'Exam not available' });
 
-        // Check Due Date
-        if (exam.dueDate && new Date(exam.dueDate) < new Date()) {
-            return res.status(410).json({ message: 'Exam is no longer available' });
-        }
-
         let studentId = null;
         let candidateName = req.body.candidateName;
         let candidateEmail = req.body.candidateEmail;
 
-        if (exam.accessMode === 'registered') {
-            // For registered, attempt to use token if provided in header
-            // We can manually check authorization header here if we want to allow guest start with token
-            // or we can just say "you must be logged in" and let frontend handle auth.
-            // If frontend sends the token, we should decode it.
-            const authHeader = req.headers.authorization;
-            if (!authHeader) return res.status(401).json({ message: 'Login required for this exam' });
-
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
             try {
                 const token = authHeader.split(' ')[1];
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 const user = await User.findById(decoded.userId);
-                if (!user) return res.status(401).json({ message: 'User not found' });
+                if (user) {
+                    studentId = user._id;
+                    candidateName = user.name; // Use user's name if logged in
+                    candidateEmail = user.email; // Use user's email if logged in
 
-                studentId = user._id;
+                    // Auth check for class exams
+                    if (exam.classId) {
+                        const classroom = await Classroom.findById(exam.classId);
+                        if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
 
-                // Admin bypass
-                if (user.role === 'root_admin' || user.role === 'school_admin') {
-                    // Admins have access
-                } else if (exam.classId) {
-                    const classroom = await Classroom.findById(exam.classId);
-                    const userIdStr = studentId.toString();
-                    const isEnrolledInClass = classroom.students.some(id => id.toString() === userIdStr);
-                    const isTeacher = classroom.teacherId.toString() === userIdStr;
+                        const userIdStr = studentId.toString();
+                        const isEnrolledInClass = classroom.students.some(id => id.toString() === userIdStr);
+                        const isTeacher = classroom.teacherId.toString() === userIdStr;
+                        const isAdmin = ['root_admin', 'school_admin'].includes(user.role);
 
-                    if (!isEnrolledInClass && !isTeacher) {
-                        return res.status(403).json({ message: 'Access denied: You are not enrolled in this class.' });
+                        if (!isEnrolledInClass && !isTeacher && !isAdmin) {
+                            return res.status(403).json({ message: 'Access denied: You are not enrolled in this class.' });
+                        }
                     }
                 }
             } catch (err) {
-                console.error('Exam Start Auth Error:', err.message);
-                return res.status(401).json({ message: 'Invalid session. Please login again.' });
+                // Ignore auth errors
             }
-        } else {
-            // For open mode
-            if (!candidateName) return res.status(400).json({ message: 'Name is required' });
         }
 
-        // Check if already submitted (if registered)
+        if (exam.accessMode === 'registered' && !studentId) {
+            return res.status(401).json({ message: 'Login required for this exam' });
+        }
+
+        if (exam.accessMode === 'open' && !studentId && !candidateName) {
+            return res.status(400).json({ message: 'Name is required' });
+        }
+
+        // Check for existing attempt to allow RESUME
         if (studentId) {
-            const existing = await ExamSubmission.findOne({ examId: exam._id, studentId, status: 'submitted' });
+            const activeSubmission = await ExamSubmission.findOne({
+                examId: exam._id,
+                studentId,
+                status: 'in-progress'
+            });
+
+            if (activeSubmission) {
+                return res.json({
+                    submissionId: activeSubmission._id,
+                    questions: exam.questions.map(q => {
+                        const { correctOption, ...rest } = q.toObject();
+                        return rest;
+                    }),
+                    duration: exam.duration,
+                    isResume: true
+                });
+            }
+
+            const existing = await ExamSubmission.findOne({ examId: exam._id, studentId, status: { $in: ['submitted', 'graded'] } });
             if (existing) return res.status(400).json({ message: 'You have already submitted this exam' });
+        } else if (candidateEmail) { // For anonymous users, check by email if provided
+            const existing = await ExamSubmission.findOne({ examId: exam._id, candidateEmail, status: { $in: ['submitted', 'graded'] } });
+            if (existing) return res.status(400).json({ message: 'An attempt with this email has already been submitted' });
+        }
+
+
+        // Block NEW attempts after due date
+        if (exam.dueDate && new Date(exam.dueDate) < new Date()) {
+            return res.status(410).json({ message: 'Exam is no longer available (Due date passed)' });
         }
 
         const submission = new ExamSubmission({
@@ -333,7 +433,8 @@ router.post('/public/:token/start', async (req, res) => {
             studentId,
             candidateName,
             candidateEmail,
-            status: 'in-progress'
+            status: 'in-progress',
+            startedAt: new Date()
         });
 
         await submission.save();

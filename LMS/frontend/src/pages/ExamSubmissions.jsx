@@ -8,12 +8,14 @@ import {
     Clock,
     Award,
     Search,
+    Globe,
+    FileText,
     Download,
-    Filter,
-    BarChart,
     UserCheck,
-    Globe
+    BarChart
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
@@ -76,6 +78,72 @@ const ExamSubmissions = () => {
         return `${mins}m ${secs}s`;
     };
 
+    const exportToCSV = () => {
+        if (submissions.length === 0) return toast.error('No submissions to export');
+
+        const headers = ['Candidate Name', 'Email', 'Mode', 'Submitted At', 'Time Spent', 'Score', 'Total Points', 'Percentage'];
+        const csvData = filteredSubmissions.map(s => [
+            s.studentId?.name || s.candidateName,
+            s.studentId?.email || s.candidateEmail || 'N/A',
+            s.studentId ? 'Registered' : 'Guest',
+            new Date(s.submittedAt).toLocaleString(),
+            formatDuration(s.startedAt, s.submittedAt),
+            s.totalScore,
+            totalMaxScore,
+            Math.round((s.totalScore / totalMaxScore) * 100) + '%'
+        ]);
+
+        const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `submissions_${exam?.title.replace(/\s+/g, '_')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const exportToPDF = () => {
+        if (submissions.length === 0) return toast.error('No submissions to export');
+
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(20);
+        doc.setTextColor(79, 70, 229); // Indigo-600
+        doc.text('Examination Performance Report', 14, 22);
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Exam Title: ${exam?.title}`, 14, 30);
+        doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 35);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+
+        // Table
+        const tableColumn = ["Candidate", "Email", "Mode", "Submitted At", "Time Spent", "Score (%)"];
+        const tableRows = filteredSubmissions.map(s => [
+            s.studentId?.name || s.candidateName,
+            s.studentId?.email || s.candidateEmail || 'N/A',
+            s.studentId ? 'Registered' : 'Guest',
+            formatDisplayDate(s.submittedAt),
+            formatDuration(s.startedAt, s.submittedAt),
+            `${Math.round((s.totalScore / totalMaxScore) * 100)}% (${s.totalScore}/${totalMaxScore})`
+        ]);
+
+        doc.autoTable({
+            startY: 50,
+            head: [tableColumn],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+            bodyStyles: { fontSize: 9 },
+            alternateRowStyles: { fillColor: [249, 250, 251] },
+        });
+
+        doc.save(`report_${exam?.title.replace(/\s+/g, '_')}.pdf`);
+    };
+
     return (
         <Layout>
             <div className="max-w-7xl mx-auto space-y-8 pb-20">
@@ -95,9 +163,19 @@ const ExamSubmissions = () => {
                     </div>
 
                     <div className="flex items-center space-x-3">
-                        <button className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm">
+                        <button
+                            onClick={exportToCSV}
+                            className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+                        >
                             <Download className="w-4 h-4" />
                             <span>Export CSV</span>
+                        </button>
+                        <button
+                            onClick={exportToPDF}
+                            className="flex items-center space-x-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                        >
+                            <FileText className="w-4 h-4" />
+                            <span>Export PDF</span>
                         </button>
                     </div>
                 </div>
