@@ -1819,7 +1819,7 @@ const ClassroomDetail = () => {
                             {canEdit && (
                               <>
                                 <button
-                                  onClick={() => navigate(`/exams/submissions?examId=${exam._id}`)}
+                                  onClick={() => navigate(`/exams/${exam._id}/submissions`)}
                                   className="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-50 transition"
                                 >
                                   Submissions

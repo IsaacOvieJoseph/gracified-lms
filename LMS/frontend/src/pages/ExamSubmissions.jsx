@@ -14,8 +14,8 @@ import {
     UserCheck,
     BarChart
 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
@@ -109,70 +109,139 @@ const ExamSubmissions = () => {
 
         const doc = new jsPDF();
 
-        // Header
-        doc.setFontSize(20);
-        doc.setTextColor(79, 70, 229); // Indigo-600
-        doc.text('Examination Performance Report', 14, 22);
+        const addHeaderAndFooter = (data) => {
+            const pageSize = doc.internal.pageSize;
+            const pageHeight = pageSize.height || pageSize.getHeight();
+            const pageWidth = pageSize.width || pageSize.getWidth();
 
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Exam Title: ${exam?.title}`, 14, 30);
-        doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 35);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text('Powered by Gracified LMS', pageWidth / 2, pageHeight - 10, { align: 'center' });
+        };
 
-        // Table
-        const tableColumn = ["Candidate", "Email", "Mode", "Submitted At", "Time Spent", "Score (%)"];
+        const tableColumn = ['Candidate Name', 'Email', 'Mode', 'Submitted At', 'Time Spent', 'Score', 'Total Points', 'Percentage'];
         const tableRows = filteredSubmissions.map(s => [
             s.studentId?.name || s.candidateName,
             s.studentId?.email || s.candidateEmail || 'N/A',
             s.studentId ? 'Registered' : 'Guest',
-            formatDisplayDate(s.submittedAt),
+            new Date(s.submittedAt).toLocaleString(),
             formatDuration(s.startedAt, s.submittedAt),
-            `${Math.round((s.totalScore / totalMaxScore) * 100)}% (${s.totalScore}/${totalMaxScore})`
+            s.totalScore,
+            totalMaxScore,
+            Math.round((s.totalScore / totalMaxScore) * 100) + '%'
         ]);
 
-        doc.autoTable({
-            startY: 50,
-            head: [tableColumn],
-            body: tableRows,
-            theme: 'grid',
-            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
-            bodyStyles: { fontSize: 9 },
-            alternateRowStyles: { fillColor: [249, 250, 251] },
-        });
+        const generatePDF = (logoData = null) => {
+            // Header with Logo
+            if (logoData) {
+                try {
+                    doc.addImage(logoData, 'PNG', 14, 15, 20, 20); // x, y, w, h
+                    doc.setFontSize(20);
+                    doc.setTextColor(79, 70, 229);
+                    doc.text('Examination Performance Report', 40, 22);
 
-        doc.save(`report_${exam?.title.replace(/\s+/g, '_')}.pdf`);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(`Exam Title: ${exam?.title}`, 40, 30);
+                    doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 40, 35);
+                    doc.text(`Generated on: ${new Date().toLocaleString()}`, 40, 40);
+                } catch (e) {
+                    console.error("Error adding logo to PDF", e);
+                    // Fallback header (Duplicate code to ensure it renders if addImage fails)
+                    doc.setFontSize(20);
+                    doc.setTextColor(79, 70, 229);
+                    doc.text('Examination Performance Report', 14, 22);
+
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(`Exam Title: ${exam?.title}`, 14, 30);
+                    doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 35);
+                    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+                }
+            } else {
+                // Standard Header (No Logo)
+                doc.setFontSize(20);
+                doc.setTextColor(79, 70, 229);
+                doc.text('Examination Performance Report', 14, 22);
+
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(`Exam Title: ${exam?.title}`, 14, 30);
+                doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 35);
+                doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+            }
+
+            autoTable(doc, {
+                startY: 50,
+                head: [tableColumn],
+                body: tableRows,
+                theme: 'grid',
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+                bodyStyles: { fontSize: 9 },
+                alternateRowStyles: { fillColor: [249, 250, 251] },
+                didDrawPage: addHeaderAndFooter
+            });
+
+            doc.save(`report_${exam?.title.replace(/\s+/g, '_')}.pdf`);
+        };
+
+        if (exam?.logoUrl) {
+            const img = new Image();
+            img.src = exam.logoUrl;
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const dataURL = canvas.toDataURL('image/png');
+                    generatePDF(dataURL);
+                } catch (error) {
+                    console.error("Error processing logo image", error);
+                    generatePDF(null);
+                }
+            };
+            img.onerror = () => {
+                generatePDF(null);
+            };
+        } else {
+            generatePDF(null);
+        }
     };
 
     return (
         <Layout>
             <div className="max-w-7xl mx-auto space-y-8 pb-20">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-4">
                     <div className="flex items-center space-x-4">
                         <button
                             onClick={() => navigate('/exams')}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors font-bold"
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors font-bold shrink-0"
                         >
                             <ArrowLeft className="w-6 h-6 text-gray-600" />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-black text-gray-900 leading-tight">Exam Submissions</h1>
-                            <p className="text-gray-500 font-medium">Results for: {exam?.title}</p>
+                            <h1 className="text-xl md:text-2xl font-black text-gray-900 leading-tight">Exam Submissions</h1>
+                            <p className="text-sm md:text-base text-gray-500 font-medium line-clamp-1">Results for: {exam?.title}</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-3 w-full md:w-auto">
                         <button
                             onClick={exportToCSV}
-                            className="flex items-center space-x-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+                            className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm whitespace-nowrap"
                         >
                             <Download className="w-4 h-4" />
                             <span>Export CSV</span>
                         </button>
                         <button
                             onClick={exportToPDF}
-                            className="flex items-center space-x-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                            className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 whitespace-nowrap"
                         >
                             <FileText className="w-4 h-4" />
                             <span>Export PDF</span>
