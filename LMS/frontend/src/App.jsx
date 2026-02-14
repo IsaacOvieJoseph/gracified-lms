@@ -30,6 +30,7 @@ import ExamCreator from './pages/ExamCreator';
 import ExamCenter from './pages/ExamCenter';
 import ExamSubmissions from './pages/ExamSubmissions';
 import ExamSubmissionDetail from './pages/ExamSubmissionDetail';
+import Profile from './pages/Profile';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -246,6 +247,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Feedbacks />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <PrivateRoute>
+            <Profile />
           </PrivateRoute>
         }
       />

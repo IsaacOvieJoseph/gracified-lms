@@ -337,7 +337,9 @@ router.post('/verify-otp', async (req, res) => {
         role: user.role,
         isVerified: user.isVerified,
         schoolId: user.schoolId,
-        tutorialId: user.tutorialId
+        tutorialId: user.tutorialId,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference
       }
     });
   } catch (error) {
@@ -444,8 +446,8 @@ router.get('/me', auth, async (req, res) => {
     const user = await User.findById(req.user._id)
       .select('-password')
       .populate('enrolledClasses', 'name schedule')
-      .populate('schoolId', 'name') // Populate school name
-      .populate('tutorialId', 'name'); // Populate tutorial name
+      .populate('schoolId', 'name logoUrl') // Populate school name and logo
+      .populate('tutorialId', 'name logoUrl'); // Populate tutorial name and logo
 
     // Check subscription status for School Admin and Personal Teacher
     let trialExpired = false;
@@ -877,29 +879,102 @@ router.get('/verify-invite/:token', async (req, res) => {
 // Update profile settings
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { defaultPricingType } = req.body;
+    const {
+      name,
+      defaultPricingType,
+      bankName,
+      bankCode,
+      accountNumber,
+      accountName,
+      payoutFrequency,
+      paystackRecipientCode,
+      profilePicture,
+      schoolLogoUrl, // Expected if school admin wants to change logo
+      tutorialLogoUrl, // Expected if personal teacher wants to change logo
+      currentPassword,
+      newPassword,
+      confirmNewPassword
+    } = req.body;
 
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (defaultPricingType) {
-      user.defaultPricingType = defaultPricingType;
+    // 1. Password Change Logic
+    if (newPassword || currentPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required.' });
+      }
+      const isMatch = await user.matchPassword(currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Incorrect current password.' });
+      }
+
+      if (newPassword) {
+        if (newPassword !== confirmNewPassword) {
+          return res.status(400).json({ message: 'New passwords do not match.' });
+        }
+        if (newPassword.length < 6) {
+          return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+        }
+        user.password = newPassword; // Will be hashed by pre-save hook
+      }
+    }
+
+    // 2. Profile Updates
+    if (name) user.name = name;
+    if (defaultPricingType) user.defaultPricingType = defaultPricingType;
+    if (profilePicture) user.profilePicture = profilePicture;
+
+    // 3. Bank Details
+    if (bankName || bankCode || accountNumber || accountName || paystackRecipientCode) {
+      user.bankDetails = {
+        ...user.bankDetails,
+        ...(bankName && { bankName }),
+        ...(bankCode && { bankCode }),
+        ...(accountNumber && { accountNumber }),
+        ...(accountName && { accountName }),
+        ...(paystackRecipientCode && { paystackRecipientCode })
+      };
+    }
+
+    // 4. Payout Preference
+    if (payoutFrequency) {
+      if (!user.payoutPreference) user.payoutPreference = {};
+      user.payoutPreference.frequency = payoutFrequency;
+    }
+
+    // 5. School/Tutorial Logo Updates
+    if (schoolLogoUrl && user.role === 'school_admin' && user.schoolId && user.schoolId.length > 0) {
+      // Update all schools managed by this admin (or specific one if passed, but keeping it simple)
+      await School.updateMany(
+        { _id: { $in: user.schoolId } },
+        { $set: { logoUrl: schoolLogoUrl } }
+      );
+    }
+
+    if (tutorialLogoUrl && user.role === 'personal_teacher' && user.tutorialId) {
+      await Tutorial.findByIdAndUpdate(user.tutorialId, { logoUrl: tutorialLogoUrl });
     }
 
     await user.save();
+
+    // Return full user object (excluding password)
+    const userObj = user.toObject();
+    delete userObj.password;
+    delete userObj.otp;
+
+    // If we updated logos, we might want to refetch school/tutorial to return updated data if user object contains populated fields,
+    // but typically user obj just has IDs. The frontend will have to handle the school logo update separately or we return it.
+    // For now, let's just return the user. The logo URL for school/tutorial isn't directly on user (except maybe if we synced it, which we don't).
+
     res.json({
-      message: 'Profile updated successfully', user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        defaultPricingType: user.defaultPricingType
-      }
+      message: 'Profile updated successfully',
+      user: userObj
     });
   } catch (error) {
+    console.error("Profile update error:", error);
     res.status(500).json({ message: error.message });
   }
 });
-
 module.exports = router;
 

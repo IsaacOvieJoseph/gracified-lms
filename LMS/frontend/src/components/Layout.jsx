@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { Book, LogOut, Users, DollarSign, FileText, LayoutDashboard, Landmark, Bell, Menu, X, MessageSquare, BarChart2 } from 'lucide-react';
+import { Book, LogOut, Users, User, DollarSign, FileText, LayoutDashboard, Landmark, Bell, Menu, X, MessageSquare, BarChart2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import SubscriptionBlockBanner from './SubscriptionBlockBanner';
@@ -142,6 +142,7 @@ const Layout = ({ children }) => {
     ...(user?.role === 'root_admin' ? [{ path: '/disbursements', icon: Landmark, label: 'Disbursements' }] : []),
     ...(user?.role === 'root_admin' ? [{ path: '/feedbacks', icon: MessageSquare, label: 'Feedbacks' }] : []),
     ...(user?.role === 'root_admin' ? [{ path: '/platform-settings', icon: Landmark, label: 'Platform Settings' }] : []),
+    { path: '/profile', icon: User, label: 'Profile' },
   ];
 
   const isDashboard = location.pathname === '/dashboard';

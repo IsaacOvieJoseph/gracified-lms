@@ -12,10 +12,6 @@ const RegisterSchoolAdmin = () => {
     password: '',
     confirmPassword: '',
     schoolName: '',
-    bankName: '',
-    accountNumber: '',
-    accountName: '',
-    payoutFrequency: 'weekly',
     logoUrl: '',
   });
   const [logoFile, setLogoFile] = useState(null);
@@ -223,67 +219,6 @@ const RegisterSchoolAdmin = () => {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-gray-100">
-            <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Payout Details</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label htmlFor="bankName" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Bank Name</label>
-                <input
-                  type="text"
-                  id="bankName"
-                  name="bankName"
-                  value={formData.bankName}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
-                />
-              </div>
-              <div>
-                <label htmlFor="accountNumber" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Account No.</label>
-                <input
-                  type="text"
-                  id="accountNumber"
-                  name="accountNumber"
-                  value={formData.accountNumber}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
-                />
-              </div>
-            </div>
-            <div className="mb-4">
-              <label htmlFor="accountName" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Account Name</label>
-              <input
-                type="text"
-                id="accountName"
-                name="accountName"
-                value={formData.accountName}
-                onChange={handleChange}
-                required
-                placeholder="As it appears on your bank account"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="payoutFrequency" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Payout Frequency</label>
-              <div className="relative">
-                <select
-                  id="payoutFrequency"
-                  name="payoutFrequency"
-                  value={formData.payoutFrequency}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none appearance-none"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {error && (
             <div className="p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
