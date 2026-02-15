@@ -19,6 +19,7 @@ import autoTable from 'jspdf-autotable';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
+import logo from '../assets/logo.jpg';
 
 const ExamSubmissions = () => {
     const { id } = useParams();
@@ -109,7 +110,7 @@ const ExamSubmissions = () => {
 
         const doc = new jsPDF();
 
-        const addHeaderAndFooter = (data) => {
+        const addHeaderAndFooter = (data, gracifiedLogoData = null) => {
             const pageSize = doc.internal.pageSize;
             const pageHeight = pageSize.height || pageSize.getHeight();
             const pageWidth = pageSize.width || pageSize.getWidth();
@@ -117,7 +118,14 @@ const ExamSubmissions = () => {
             // Footer
             doc.setFontSize(8);
             doc.setTextColor(150);
-            doc.text('Powered by Gracified LMS', pageWidth / 2, pageHeight - 10, { align: 'center' });
+            const footerY = pageHeight - 10;
+
+            if (gracifiedLogoData) {
+                doc.addImage(gracifiedLogoData, 'PNG', pageWidth / 2 - 22, footerY - 4, 6, 6);
+                doc.text('Powered by Gracified LMS', pageWidth / 2 + 3, footerY, { align: 'center' });
+            } else {
+                doc.text('Powered by Gracified LMS', pageWidth / 2, footerY, { align: 'center' });
+            }
         };
 
         const tableColumn = ['Candidate Name', 'Email', 'Mode', 'Submitted At', 'Time Spent', 'Score', 'Total Points', 'Percentage'];
@@ -132,84 +140,103 @@ const ExamSubmissions = () => {
             Math.round((s.totalScore / totalMaxScore) * 100) + '%'
         ]);
 
-        const generatePDF = (logoData = null) => {
+        const generatePDF = (schoolLogoData = null, gracifiedLogoData = null) => {
+            let startY = 45;
+
             // Header with Logo
-            if (logoData) {
+            if (schoolLogoData) {
                 try {
-                    doc.addImage(logoData, 'PNG', 14, 15, 20, 20); // x, y, w, h
+                    doc.addImage(schoolLogoData, 'PNG', 14, 15, 20, 20); // school logo
                     doc.setFontSize(20);
                     doc.setTextColor(79, 70, 229);
                     doc.text('Examination Performance Report', 40, 22);
 
                     doc.setFontSize(10);
                     doc.setTextColor(100);
-                    doc.text(`Exam Title: ${exam?.title}`, 40, 30);
-                    doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 40, 35);
-                    doc.text(`Generated on: ${new Date().toLocaleString()}`, 40, 40);
+                    doc.text(`Exam Title: ${exam?.title}`, 40, 28);
+                    if (exam?.classroomName) {
+                        doc.text(`Class: ${exam.classroomName}`, 40, 33);
+                        doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 40, 38);
+                        doc.text(`Generated on: ${new Date().toLocaleString()}`, 40, 43);
+                        startY = 48;
+                    } else {
+                        doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 40, 33);
+                        doc.text(`Generated on: ${new Date().toLocaleString()}`, 40, 38);
+                        startY = 43;
+                    }
                 } catch (e) {
                     console.error("Error adding logo to PDF", e);
-                    // Fallback header (Duplicate code to ensure it renders if addImage fails)
+                    // Fallback
                     doc.setFontSize(20);
                     doc.setTextColor(79, 70, 229);
                     doc.text('Examination Performance Report', 14, 22);
-
                     doc.setFontSize(10);
                     doc.setTextColor(100);
-                    doc.text(`Exam Title: ${exam?.title}`, 14, 30);
-                    doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 35);
-                    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+                    doc.text(`Exam Title: ${exam?.title}`, 14, 28);
+                    if (exam?.classroomName) doc.text(`Class: ${exam.classroomName}`, 14, 33);
+                    startY = 43;
                 }
             } else {
-                // Standard Header (No Logo)
                 doc.setFontSize(20);
                 doc.setTextColor(79, 70, 229);
                 doc.text('Examination Performance Report', 14, 22);
-
                 doc.setFontSize(10);
                 doc.setTextColor(100);
-                doc.text(`Exam Title: ${exam?.title}`, 14, 30);
-                doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 35);
-                doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+                doc.text(`Exam Title: ${exam?.title}`, 14, 28);
+                if (exam?.classroomName) {
+                    doc.text(`Class: ${exam.classroomName}`, 14, 33);
+                    doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 38);
+                    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 43);
+                    startY = 48;
+                } else {
+                    doc.text(`Total Participants: ${submissions.length} | Average Score: ${averageScore}`, 14, 33);
+                    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 38);
+                    startY = 43;
+                }
             }
 
             autoTable(doc, {
-                startY: 50,
+                startY: startY + 5,
                 head: [tableColumn],
                 body: tableRows,
                 theme: 'grid',
                 headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
                 bodyStyles: { fontSize: 9 },
                 alternateRowStyles: { fillColor: [249, 250, 251] },
-                didDrawPage: addHeaderAndFooter
+                didDrawPage: (data) => addHeaderAndFooter(data, gracifiedLogoData)
             });
 
             doc.save(`report_${exam?.title.replace(/\s+/g, '_')}.pdf`);
         };
 
-        if (exam?.logoUrl) {
-            const img = new Image();
-            img.src = exam.logoUrl;
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => {
-                try {
+        const loadImageAsBase64 = (url) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = url;
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => {
                     const canvas = document.createElement('canvas');
                     canvas.width = img.width;
                     canvas.height = img.height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
-                    const dataURL = canvas.toDataURL('image/png');
-                    generatePDF(dataURL);
-                } catch (error) {
-                    console.error("Error processing logo image", error);
-                    generatePDF(null);
-                }
-            };
-            img.onerror = () => {
-                generatePDF(null);
-            };
-        } else {
-            generatePDF(null);
-        }
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => resolve(null);
+            });
+        };
+
+        const processPreload = async () => {
+            const logoPromises = [
+                loadImageAsBase64(logo), // Preload Gracified Logo
+                exam?.logoUrl ? loadImageAsBase64(exam.logoUrl) : Promise.resolve(null) // Preload School Logo
+            ];
+
+            const [gracifiedBase64, schoolBase64] = await Promise.all(logoPromises);
+            generatePDF(schoolBase64, gracifiedBase64);
+        };
+
+        processPreload();
     };
 
     return (

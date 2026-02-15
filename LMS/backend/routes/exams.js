@@ -144,7 +144,10 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'person
 // @access  Teacher/Admin
 router.get('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
-        const exam = await Exam.findById(req.params.id);
+        const exam = await Exam.findById(req.params.id)
+            .populate('schoolId', 'name logoUrl textSecondary')
+            .populate('classId', 'name');
+
         if (!exam) return res.status(404).json({ message: 'Exam not found' });
 
         // Auth check
@@ -154,7 +157,23 @@ router.get('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
 
         if (!canAccess) return res.status(403).json({ message: 'Access denied' });
 
-        res.json(exam);
+        // Fetch additional branding if needed
+        let logoUrl = exam.schoolId?.logoUrl || null;
+        const classroomName = exam.classId?.name || null;
+
+        if (!logoUrl) {
+            const creator = await User.findById(exam.creatorId).select('tutorialId role');
+            if (creator && creator.tutorialId) {
+                const tutorial = await Tutorial.findById(creator.tutorialId).select('logoUrl');
+                if (tutorial) logoUrl = tutorial.logoUrl;
+            }
+        }
+
+        res.json({
+            ...exam.toObject(),
+            logoUrl,
+            classroomName
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
