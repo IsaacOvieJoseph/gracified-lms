@@ -224,35 +224,37 @@ const Profile = () => {
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                     <form onSubmit={handleSubmit} className="p-8 space-y-10">
 
-                        {/* Profile Picture Section */}
-                        <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b pb-8">
-                            <div className="relative group">
-                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-inner bg-gray-50">
-                                    {profilePicPreview ? (
-                                        <img src={profilePicPreview} alt="Profile" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                            <User className="w-10 h-10" />
-                                        </div>
-                                    )}
+                        {/* Profile Picture Section - Hidden for School Admin and Personal Teacher */}
+                        {!(user?.role === 'school_admin' || user?.role === 'personal_teacher') && (
+                            <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b pb-8">
+                                <div className="relative group">
+                                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-inner bg-gray-50">
+                                        {profilePicPreview ? (
+                                            <img src={profilePicPreview} alt="Profile" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                <User className="w-10 h-10" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <label className="absolute bottom-0 right-0 p-2 bg-indigo-600 text-white rounded-full cursor-pointer hover:bg-indigo-700 transition shadow-lg">
+                                        <Camera className="w-4 h-4" />
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={(e) => handleFileChange(e, 'profile')}
+                                        />
+                                    </label>
                                 </div>
-                                <label className="absolute bottom-0 right-0 p-2 bg-indigo-600 text-white rounded-full cursor-pointer hover:bg-indigo-700 transition shadow-lg">
-                                    <Camera className="w-4 h-4" />
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={(e) => handleFileChange(e, 'profile')}
-                                    />
-                                </label>
+                                <div className="flex-1 text-center sm:text-left">
+                                    <h3 className="text-lg font-bold text-gray-900">Profile Picture</h3>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        Upload a new profile picture. Recommended size: 400x400px.
+                                    </p>
+                                </div>
                             </div>
-                            <div className="flex-1 text-center sm:text-left">
-                                <h3 className="text-lg font-bold text-gray-900">Profile Picture</h3>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    Upload a new profile picture. Recommended size: 400x400px.
-                                </p>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Logo Upload Section (for Admins/Teachers) */}
                         {canEditLogo && (

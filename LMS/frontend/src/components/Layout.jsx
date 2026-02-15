@@ -11,6 +11,17 @@ import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
   const { user, logout, refreshUser } = useAuth();
+
+  const schoolLogo = (user?.schoolId?.[0]?.logoUrl)
+    ? user.schoolId[0].logoUrl
+    : (user?.tutorialId?.logoUrl)
+      ? user.tutorialId.logoUrl
+      : (user?.schoolId?.logoUrl) // Fallback for populated single object
+        ? user.schoolId.logoUrl
+        : null;
+
+  const displayLogo = schoolLogo || logo;
+
   const [selectedSchools, setSelectedSchools] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('selectedSchools')) || [];
@@ -23,9 +34,11 @@ const Layout = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const notificationsRef = useRef(null);
   const mobileNotificationsRef = useRef(null);
+  const profileRef = useRef(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const loadingCountRef = useRef(0);
@@ -82,9 +95,13 @@ const Layout = ({ children }) => {
     const handleClickOutside = (event) => {
       const isDesktopClick = notificationsRef.current && notificationsRef.current.contains(event.target);
       const isMobileClick = mobileNotificationsRef.current && mobileNotificationsRef.current.contains(event.target);
+      const isProfileClick = profileRef.current && profileRef.current.contains(event.target);
 
       if (!isDesktopClick && !isMobileClick) {
         setShowNotifications(false);
+      }
+      if (!isProfileClick) {
+        setShowProfileDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -225,8 +242,18 @@ const Layout = ({ children }) => {
             {/* Bottom Section */}
             <div className="pt-6 border-t border-gray-100 mt-auto">
               <div className="flex items-center space-x-3 mb-6 p-2">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                  {user?.name?.charAt(0).toUpperCase()}
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold overflow-hidden border border-gray-100">
+                  {(user?.role === 'school_admin' || user?.role === 'personal_teacher') ? (
+                    schoolLogo ? (
+                      <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.name?.charAt(0).toUpperCase()
+                    )
+                  ) : user?.profilePicture ? (
+                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name?.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-gray-800 truncate">{user?.name}</p>
@@ -235,7 +262,7 @@ const Layout = ({ children }) => {
               </div>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-semibold"
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-semibold shadow-lg shadow-red-100"
               >
                 <LogOut className="w-5 h-5" />
                 <span>Logout</span>
@@ -248,23 +275,33 @@ const Layout = ({ children }) => {
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img
-                src={logo}
-                alt="Gracified LMS"
-                className={`w-10 h-10 object-contain rounded-full transition-transform ${isLoading ? 'animate-spin' : ''}`}
-              />
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">Gracified LMS</h1>
-                <p className="text-xs text-gray-500">
-                  {user?.role?.replace('_', ' ').toUpperCase()}
-                </p>
+            {/* Left Section: Platform Branding (Desktop) / Hamburger (Mobile) */}
+            <div className="flex items-center">
+              {/* Desktop Branding */}
+              <div className="hidden md:flex items-center space-x-3">
+                <img
+                  src={logo}
+                  alt="Gracified LMS"
+                  className={`w-10 h-10 object-contain rounded-full border-2 border-gray-50 shadow-sm transition-transform ${isLoading ? 'animate-spin' : ''}`}
+                />
+                <div className="text-left">
+                  <h1 className="text-lg font-bold text-gray-800 leading-tight">Gracified LMS</h1>
+                </div>
               </div>
+
+              {/* Mobile Hamburger - Left side */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 transition"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6 text-gray-600" /> : <Menu className="w-6 h-6 text-gray-600" />}
+              </button>
             </div>
 
-            {/* Desktop Actions */}
-            <div className="hidden md:flex items-center space-x-4">
+            {/* User Profile and Global Controls on the Right */}
+            <div className="hidden md:flex items-center space-x-6">
               <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
+
               {user && (
                 <div className="relative" ref={notificationsRef}>
                   <button
@@ -330,14 +367,59 @@ const Layout = ({ children }) => {
                   )}
                 </div>
               )}
-              <span className="text-sm text-gray-600">{user?.name}</span>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
-              </button>
+
+              <div className="relative border-l pl-6" ref={profileRef}>
+                <button
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="flex items-center space-x-3 p-1.5 hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-gray-100"
+                >
+                  <div className="hidden sm:block text-right">
+                    <p className="text-sm font-bold text-gray-800 leading-tight">{user?.name}</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
+                      {user?.role?.replace('_', ' ')}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold overflow-hidden border-2 border-white shadow-sm">
+                    {(user?.role === 'school_admin' || user?.role === 'personal_teacher') ? (
+                      schoolLogo ? (
+                        <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        user?.name?.charAt(0).toUpperCase()
+                      )
+                    ) : user?.profilePicture ? (
+                      <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.name?.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                </button>
+
+                {/* Profile Dropdown */}
+                {showProfileDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-[60] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Link
+                      to="/profile"
+                      onClick={() => setShowProfileDropdown(false)}
+                      className="flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="p-1.5 bg-gray-100 rounded-lg text-gray-500">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">My Profile</span>
+                    </Link>
+                    <div className="my-1 border-t border-gray-50"></div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <div className="p-1.5 bg-red-100 rounded-lg text-red-500">
+                        <LogOut className="w-4 h-4" />
+                      </div>
+                      <span className="font-bold">Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Mobile Actions */}
@@ -403,12 +485,50 @@ const Layout = ({ children }) => {
                 </div>
               )}
 
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition"
-              >
-                {isMobileMenuOpen ? <X className="w-6 h-6 text-gray-600" /> : <Menu className="w-6 h-6 text-gray-600" />}
-              </button>
+              {/* Mobile Profile Dropdown Toggle */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold overflow-hidden border border-gray-200"
+                >
+                  {(user?.role === 'school_admin' || user?.role === 'personal_teacher') ? (
+                    schoolLogo ? (
+                      <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.name?.charAt(0).toUpperCase()
+                    )
+                  ) : user?.profilePicture ? (
+                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name?.charAt(0).toUpperCase()
+                  )}
+                </button>
+
+                {showProfileDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-[60] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Link
+                      to="/profile"
+                      onClick={() => setShowProfileDropdown(false)}
+                      className="flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="p-1.5 bg-gray-100 rounded-lg text-gray-500">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">My Profile</span>
+                    </Link>
+                    <div className="my-1 border-t border-gray-50"></div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <div className="p-1.5 bg-red-100 rounded-lg text-red-500">
+                        <LogOut className="w-4 h-4" />
+                      </div>
+                      <span className="font-bold">Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -417,7 +537,7 @@ const Layout = ({ children }) => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Desktop Navigation */}
         <nav className="hidden md:flex space-x-2 mb-6 bg-white p-2 rounded-lg shadow-sm">
-          {navItems.map((item) => {
+          {navItems.filter(item => item.label !== 'Profile').map((item) => {
             const Icon = item.icon;
             return (
               <Link

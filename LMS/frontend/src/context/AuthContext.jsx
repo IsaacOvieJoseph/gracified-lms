@@ -27,11 +27,11 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me');
       const { user: fetchedUser, trialExpired, subscriptionExpired } = response.data; // Extract flags
 
-      // Ensure schoolId and tutorialId are stored as plain IDs
+      // Keep populated fields if they exist to access logo URLs
       const cleanedUser = {
         ...fetchedUser,
-        schoolId: fetchedUser.schoolId?._id || fetchedUser.schoolId || null,
-        tutorialId: fetchedUser.tutorialId?._id || fetchedUser.tutorialId || null,
+        schoolId: fetchedUser.schoolId || [],
+        tutorialId: fetchedUser.tutorialId || null,
       };
 
       // Use existing token
@@ -75,11 +75,11 @@ export const AuthProvider = ({ children }) => {
         return { success: false, redirectToVerify: true, email: email, message: response.data.message };
       }
 
-      // Ensure schoolId and tutorialId are stored as plain IDs
+      // Keep populated fields if they exist
       const cleanedUser = {
         ...user,
-        schoolId: user.schoolId?._id || user.schoolId || null,
-        tutorialId: user.tutorialId?._id || user.tutorialId || null,
+        schoolId: user.schoolId || [],
+        tutorialId: user.tutorialId || null,
       };
 
       setAuthData(token, cleanedUser, trialExpired, subscriptionExpired);
@@ -111,8 +111,8 @@ export const AuthProvider = ({ children }) => {
       const { user: fetchedUser, trialExpired, subscriptionExpired } = response.data;
       const cleanedUser = {
         ...fetchedUser,
-        schoolId: fetchedUser.schoolId?._id || fetchedUser.schoolId || null,
-        tutorialId: fetchedUser.tutorialId?._id || fetchedUser.tutorialId || null,
+        schoolId: fetchedUser.schoolId || [],
+        tutorialId: fetchedUser.tutorialId || null,
       };
       setAuthData(null, cleanedUser, trialExpired, subscriptionExpired);
       return true;

@@ -339,7 +339,8 @@ router.post('/verify-otp', async (req, res) => {
         schoolId: user.schoolId,
         tutorialId: user.tutorialId,
         bankDetails: user.bankDetails,
-        payoutPreference: user.payoutPreference
+        payoutPreference: user.payoutPreference,
+        profilePicture: user.profilePicture
       }
     });
   } catch (error) {
@@ -430,7 +431,10 @@ router.post('/login', async (req, res) => {
         subscriptionStatus: user.subscriptionStatus,
         trialEndDate: user.trialEndDate,
         subscriptionEndDate: user.subscriptionEndDate,
-        defaultPricingType: user.defaultPricingType
+        defaultPricingType: user.defaultPricingType,
+        profilePicture: user.profilePicture,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference
       },
       trialExpired,
       subscriptionExpired,
@@ -475,7 +479,10 @@ router.get('/me', auth, async (req, res) => {
         subscriptionStatus: user.subscriptionStatus,
         trialEndDate: user.trialEndDate,
         subscriptionEndDate: user.subscriptionEndDate,
-        defaultPricingType: user.defaultPricingType
+        defaultPricingType: user.defaultPricingType,
+        profilePicture: user.profilePicture,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference
       },
       trialExpired,
       subscriptionExpired,
@@ -708,43 +715,6 @@ router.post('/test-email', async (req, res) => {
   }
 });
 
-// Update profile (Bank details, Payout preference)
-router.put('/profile', auth, async (req, res) => {
-  try {
-    const { name, email, bankDetails, payoutPreference } = req.body;
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (name) user.name = name;
-    if (email) user.email = email.toLowerCase();
-
-    // Only allow personal teachers and school admins to set bank details
-    if (['personal_teacher', 'school_admin'].includes(user.role)) {
-      if (bankDetails) {
-        user.bankDetails = {
-          bankName: bankDetails.bankName || user.bankDetails?.bankName,
-          bankCode: bankDetails.bankCode || user.bankDetails?.bankCode,
-          accountNumber: bankDetails.accountNumber || user.bankDetails?.accountNumber,
-          accountName: bankDetails.accountName || user.bankDetails?.accountName,
-        };
-      }
-      if (payoutPreference) {
-        user.payoutPreference = {
-          frequency: payoutPreference.frequency || user.payoutPreference?.frequency,
-          lastPayoutDate: user.payoutPreference?.lastPayoutDate,
-        };
-      }
-    }
-
-    await user.save();
-    res.json({ message: 'Profile updated successfully', user });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
 
 // ========== OLD NODEMAILER TEST ENDPOINT (COMMENTED OUT) ==========
 // // Test email configuration endpoint (for debugging) - Old nodemailer version
@@ -957,6 +927,12 @@ router.put('/profile', auth, async (req, res) => {
     }
 
     await user.save();
+
+    // Explicitly populate for the response so frontend UI (logos, etc.) updates immediately
+    await user.populate([
+      { path: 'schoolId', select: 'name logoUrl' },
+      { path: 'tutorialId', select: 'name logoUrl' }
+    ]);
 
     // Return full user object (excluding password)
     const userObj = user.toObject();
