@@ -29,7 +29,7 @@ const Login = () => {
   }, []);
 
   const handleSubmit = async (e) => {
-    // e.preventDefault(); // No longer needed as button type is 'button'
+    e.preventDefault();
     setError('');
     setLoading(true);
 
@@ -43,6 +43,7 @@ const Login = () => {
       const result = await login(email, password);
 
       if (result.success) {
+        // ... (rest of the logic)
         const queryParams = new URLSearchParams(window.location.search);
         const redirectPath = queryParams.get('redirect');
         if (redirectPath) {
@@ -85,7 +86,7 @@ const Login = () => {
           <p className="text-gray-600">Empowering education with seamless management and interactive learning</p>
         </div>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Email Address</label>
             <input
@@ -136,8 +137,7 @@ const Login = () => {
           )}
 
           <button
-            type="button"
-            onClick={() => { handleTestClick(); handleSubmit(); }}
+            type="submit"
             disabled={loading}
             className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
           >
