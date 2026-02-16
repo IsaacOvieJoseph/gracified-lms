@@ -1341,8 +1341,10 @@ const ClassroomDetail = () => {
         <div className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto mt-6 no-scrollbar">
           {[
             { id: 'topics', label: 'Topics', icon: Book },
-            { id: 'assignments', label: 'Assignments', icon: FileText },
-            { id: 'exams', label: 'Exams', icon: GraduationCap },
+            ...((isEnrolled || canEdit) ? [
+              { id: 'assignments', label: 'Assignments', icon: FileText },
+              { id: 'exams', label: 'Exams', icon: GraduationCap }
+            ] : []),
             ...(canViewStudents ? [{ id: 'students', label: 'Students', icon: Users }] : [])
           ].map(tab => (
             <button
@@ -1374,7 +1376,7 @@ const ClassroomDetail = () => {
 
             {/* Topic Management Section */}
             {
-              (isEnrolled || canEdit) && (
+              (isEnrolled || canEdit || (!isEnrolled && user?.role === 'student')) && (
                 <div className="bg-white rounded-lg shadow-md p-6">
                   <div className="flex justify-between items-center mb-4">
                     <div>
@@ -1462,6 +1464,12 @@ const ClassroomDetail = () => {
                                   {topic.description && (
                                     <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
                                   )}
+                                  {topic.lessonsOutline && (
+                                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                                      <p className="font-medium text-gray-700 mb-1">Lesson Outline:</p>
+                                      <p className="line-clamp-3 whitespace-pre-wrap">{topic.lessonsOutline}</p>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1479,8 +1487,8 @@ const ClassroomDetail = () => {
                     )}
                   </div>
                 </div>
-              )}
-          </div>
+              )
+            }</div>
         )}
 
         {activeTab === 'assignments' && (
