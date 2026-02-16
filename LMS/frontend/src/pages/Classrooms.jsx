@@ -25,6 +25,12 @@ const levelOptions = [
   { value: 'Other', label: 'Other' },
 ];
 
+const defaultSubjects = [
+  'Mathematics', 'English', 'Physics', 'Chemistry', 'Biology',
+  'Computer Science', 'History', 'Geography', 'Economics',
+  'Literature', 'Art', 'Music', 'Physical Education'
+];
+
 const Classrooms = () => {
   const { user } = useAuth();
   const [classrooms, setClassrooms] = useState([]);
@@ -33,7 +39,7 @@ const Classrooms = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [subjectOptions, setSubjectOptions] = useState([]); // Dynamic subjects
+  const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s }))); // Initialize with defaults
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -56,7 +62,11 @@ const Classrooms = () => {
       try {
         const res = await api.get('/settings');
         if (res.data && res.data.subjects) {
-          setSubjectOptions(res.data.subjects.map(s => ({ value: s, label: s })));
+          // Merge default subjects with fetched subjects and remove duplicates
+          const uniqueSubjects = Array.from(new Set([...defaultSubjects, ...res.data.subjects]));
+          // Sort alphabetically
+          uniqueSubjects.sort();
+          setSubjectOptions(uniqueSubjects.map(s => ({ value: s, label: s })));
         }
       } catch (err) {
         console.error('Error fetching subjects:', err);

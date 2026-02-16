@@ -33,6 +33,12 @@ const levelOptions = [
   { value: 'Other', label: 'Other' },
 ];
 
+const defaultSubjects = [
+  'Mathematics', 'English', 'Physics', 'Chemistry', 'Biology',
+  'Computer Science', 'History', 'Geography', 'Economics',
+  'Literature', 'Art', 'Music', 'Physical Education'
+];
+
 const ClassroomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -43,7 +49,7 @@ const ClassroomDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [subjectOptions, setSubjectOptions] = useState([]); // Dynamic subjects
+  const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s }))); // Dynamic subjects
   const [editForm, setEditForm] = useState({ name: '', description: '', learningOutcomes: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false });
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
 
@@ -53,7 +59,11 @@ const ClassroomDetail = () => {
       try {
         const res = await api.get('/settings');
         if (res.data && res.data.subjects) {
-          setSubjectOptions(res.data.subjects.map(s => ({ value: s, label: s })));
+          // Merge default subjects with fetched subjects and remove duplicates
+          const uniqueSubjects = Array.from(new Set([...defaultSubjects, ...res.data.subjects]));
+          // Sort alphabetically
+          uniqueSubjects.sort();
+          setSubjectOptions(uniqueSubjects.map(s => ({ value: s, label: s })));
         }
       } catch (err) {
         console.error('Error fetching subjects:', err);

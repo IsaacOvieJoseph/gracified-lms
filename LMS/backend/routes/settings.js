@@ -7,14 +7,27 @@ const { auth } = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
     try {
         let settings = await Settings.findOne();
+
+        const defaultSubjects = [
+            'Mathematics', 'English', 'Physics', 'Chemistry', 'Biology',
+            'Computer Science', 'History', 'Geography', 'Economics',
+            'Literature', 'Art', 'Music', 'Physical Education'
+        ];
+
         if (!settings) {
             // Create default settings if not exists
             settings = await Settings.create({
                 taxRate: 0,
                 vatRate: 0,
-                serviceFeeRate: 0
+                serviceFeeRate: 0,
+                subjects: defaultSubjects
             });
+        } else if (!settings.subjects || settings.subjects.length === 0) {
+            // If settings exist but subjects are missing/empty, populate defaults
+            settings.subjects = defaultSubjects;
+            await settings.save();
         }
+
         res.json(settings);
     } catch (error) {
         res.status(500).json({ message: error.message });
