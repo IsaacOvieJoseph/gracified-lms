@@ -15,6 +15,15 @@ const classroomSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  subject: {
+    type: String,
+    trim: true
+  },
+  level: {
+    type: String,
+    enum: ['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other'],
+    default: 'Other'
+  },
   schoolId: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'School',

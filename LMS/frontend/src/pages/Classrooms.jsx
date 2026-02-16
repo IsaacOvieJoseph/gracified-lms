@@ -4,10 +4,26 @@ import { Link } from 'react-router-dom';
 import { Plus, Calendar, Users, Book, Video, Edit, Eye, EyeOff, Search, Trash2, Loader2, ChevronDown, ChevronRight, Clock, School } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal } from '../utils/timezone';
 import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatAmount } from '../utils/currency';
+
+// subjectOptions converted to dynamic state inside component
+
+
+const levelOptions = [
+  { value: 'Pre-Primary', label: 'Pre-Primary' },
+  { value: 'Primary', label: 'Primary' },
+  { value: 'High School', label: 'High School' },
+  { value: 'Pre-University', label: 'Pre-University' },
+  { value: 'Undergraduate', label: 'Undergraduate' },
+  { value: 'Postgraduate', label: 'Postgraduate' },
+  { value: 'Professional', label: 'Professional' },
+  { value: 'Vocational', label: 'Vocational' },
+  { value: 'Other', label: 'Other' },
+];
 
 const Classrooms = () => {
   const { user } = useAuth();
@@ -17,9 +33,12 @@ const Classrooms = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [subjectOptions, setSubjectOptions] = useState([]); // Dynamic subjects
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    subject: '',
+    level: 'Other',
     schedule: [],   // Changed from '' to []
     capacity: 30,
     pricing: { type: user?.defaultPricingType || 'monthly', amount: 0 },
@@ -29,6 +48,21 @@ const Classrooms = () => {
     published: false,
     isPrivate: false
   });
+
+  useEffect(() => {
+    // Fetch dynamic subjects
+    const fetchSubjects = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data && res.data.subjects) {
+          setSubjectOptions(res.data.subjects.map(s => ({ value: s, label: s })));
+        }
+      } catch (err) {
+        console.error('Error fetching subjects:', err);
+      }
+    };
+    fetchSubjects();
+  }, []);
 
   const [openMySchool, setOpenMySchool] = useState(true);
   const [openOthers, setOpenOthers] = useState(true);
@@ -199,6 +233,8 @@ const Classrooms = () => {
       setFormData({
         name: '',
         description: '',
+        subject: '',
+        level: 'Other',
         schedule: [],
         capacity: 30,
         pricing: { type: user?.defaultPricingType || 'monthly', amount: 0 },
@@ -585,6 +621,46 @@ const Classrooms = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                   rows="3"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <CreatableSelect
+                  isClearable
+                  options={subjectOptions}
+                  value={formData.subject ? { value: formData.subject, label: formData.subject } : null}
+                  onChange={(selected) => setFormData({ ...formData, subject: selected ? selected.value : '' })}
+                  onCreateOption={async (inputValue) => {
+                    // Optimistically set the value
+                    setFormData({ ...formData, subject: inputValue });
+                    // Add to options locally
+                    const newOption = { value: inputValue, label: inputValue };
+                    setSubjectOptions((prev) => [...prev, newOption]);
+                    // Save to backend
+                    try {
+                      await api.post('/settings/add-subject', { subject: inputValue });
+                      toast.success(`Subject "${inputValue}" added to global list`);
+                    } catch (error) {
+                      console.error('Error adding subject:', error);
+                      toast.error('Failed to save new subject to global list');
+                    }
+                  }}
+                  placeholder="Select or type a subject..."
+                  classNamePrefix="react-select"
+                  menuPortalTarget={document.body}
+                  styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                <Select
+                  options={levelOptions}
+                  value={levelOptions.find(opt => opt.value === formData.level)}
+                  onChange={(selected) => setFormData({ ...formData, level: selected.value })}
+                  placeholder="Select class level..."
+                  classNamePrefix="react-select"
+                  menuPortalTarget={document.body}
+                  styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                 />
               </div>
               <div>

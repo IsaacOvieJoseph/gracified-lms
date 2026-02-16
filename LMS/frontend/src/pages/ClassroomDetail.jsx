@@ -3,6 +3,8 @@ import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone, Flag, CreditCard, School, GraduationCap } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal, formatDisplayDate } from '../utils/timezone';
+import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +18,21 @@ import GoogleMeetAuth from '../components/GoogleMeetAuth';
 import PaymentRequiredModal from '../components/PaymentRequiredModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 
+// subjectOptions converted to dynamic state inside component
+
+
+const levelOptions = [
+  { value: 'Pre-Primary', label: 'Pre-Primary' },
+  { value: 'Primary', label: 'Primary' },
+  { value: 'High School', label: 'High School' },
+  { value: 'Pre-University', label: 'Pre-University' },
+  { value: 'Undergraduate', label: 'Undergraduate' },
+  { value: 'Postgraduate', label: 'Postgraduate' },
+  { value: 'Professional', label: 'Professional' },
+  { value: 'Vocational', label: 'Vocational' },
+  { value: 'Other', label: 'Other' },
+];
+
 const ClassroomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -26,13 +43,32 @@ const ClassroomDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', description: '', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false });
+  const [subjectOptions, setSubjectOptions] = useState([]); // Dynamic subjects
+  const [editForm, setEditForm] = useState({ name: '', description: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false });
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
+
+  useEffect(() => {
+    // Fetch dynamic subjects
+    const fetchSubjects = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data && res.data.subjects) {
+          setSubjectOptions(res.data.subjects.map(s => ({ value: s, label: s })));
+        }
+      } catch (err) {
+        console.error('Error fetching subjects:', err);
+      }
+    };
+    fetchSubjects();
+  }, []);
+
   // Open edit modal and prefill form
   const handleOpenEdit = () => {
     setEditForm({
       name: classroom.name || '',
       description: classroom.description || '',
+      subject: classroom.subject || '',
+      level: classroom.level || 'Other',
       capacity: classroom.capacity || 30,
       pricingType: classroom.pricing?.type || 'per_lecture',
       pricingAmount: classroom.pricing?.amount || 0,
@@ -62,6 +98,8 @@ const ClassroomDetail = () => {
       const updateData = {
         name: editForm.name,
         description: editForm.description,
+        subject: editForm.subject,
+        level: editForm.level,
         capacity: editForm.capacity,
         pricing: { type: editForm.pricingType, amount: editForm.pricingAmount },
         isPaid: editForm.isPaid,
@@ -825,6 +863,20 @@ const ClassroomDetail = () => {
               {classroom.description && (
                 <p className="text-gray-600 text-sm md:text-base">{classroom.description}</p>
               )}
+              <div className="flex flex-wrap gap-4 mt-2">
+                {classroom.subject && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Book className="w-4 h-4 mr-2" />
+                    <span className="font-medium">Subject:</span> <span className="ml-1">{classroom.subject}</span>
+                  </div>
+                )}
+                {classroom.level && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <GraduationCap className="w-4 h-4 mr-2" />
+                    <span className="font-medium">Level:</span> <span className="ml-1">{classroom.level}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {canEdit && (
@@ -901,6 +953,46 @@ const ClassroomDetail = () => {
                       onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                       className="w-full px-4 py-2 border rounded-lg"
                       rows="3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                    <CreatableSelect
+                      isClearable
+                      options={subjectOptions}
+                      value={editForm.subject ? { value: editForm.subject, label: editForm.subject } : null}
+                      onChange={(selected) => setEditForm({ ...editForm, subject: selected ? selected.value : '' })}
+                      onCreateOption={async (inputValue) => {
+                        // Optimistically set the value
+                        setEditForm({ ...editForm, subject: inputValue });
+                        // Add to options locally
+                        const newOption = { value: inputValue, label: inputValue };
+                        setSubjectOptions((prev) => [...prev, newOption]);
+                        // Save to backend
+                        try {
+                          await api.post('/settings/add-subject', { subject: inputValue });
+                          toast.success(`Subject "${inputValue}" added to global list`);
+                        } catch (error) {
+                          console.error('Error adding subject:', error);
+                          toast.error('Failed to save new subject to global list');
+                        }
+                      }}
+                      placeholder="Select or type a subject..."
+                      classNamePrefix="react-select"
+                      menuPortalTarget={document.body}
+                      styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                    <Select
+                      options={levelOptions}
+                      value={levelOptions.find(opt => opt.value === editForm.level)}
+                      onChange={(selected) => setEditForm({ ...editForm, level: selected.value })}
+                      placeholder="Select class level..."
+                      classNamePrefix="react-select"
+                      menuPortalTarget={document.body}
+                      styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                     />
                   </div>
                   <div>

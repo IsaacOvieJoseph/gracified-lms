@@ -13,6 +13,14 @@ const settingsSchema = new mongoose.Schema({
         type: Number,
         default: 0 // percentage
     },
+    subjects: {
+        type: [String],
+        default: [
+            'Mathematics', 'English', 'Physics', 'Chemistry', 'Biology',
+            'Computer Science', 'History', 'Geography', 'Economics',
+            'Literature', 'Art', 'Music', 'Physical Education'
+        ]
+    },
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
