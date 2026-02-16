@@ -140,7 +140,12 @@ const Layout = ({ children }) => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setShowProfileDropdown(false);
     logout();
     navigate('/login');
   };
@@ -396,21 +401,32 @@ const Layout = ({ children }) => {
 
                 {/* Profile Dropdown */}
                 {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-[60] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <Link
-                      to="/profile"
-                      onClick={() => setShowProfileDropdown(false)}
-                      className="flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  <div
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-[60] py-2 animate-in fade-in slide-in-from-top-2 duration-200"
+                  >
+                    <button
+                      onMouseDown={(e) => {
+                        console.log('Profile Clicked');
+                        e.stopPropagation();
+                        setShowProfileDropdown(false);
+                        navigate('/profile');
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
                     >
                       <div className="p-1.5 bg-gray-100 rounded-lg text-gray-500">
                         <User className="w-4 h-4" />
                       </div>
                       <span className="font-medium">My Profile</span>
-                    </Link>
+                    </button>
                     <div className="my-1 border-t border-gray-50"></div>
                     <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      type="button"
+                      onMouseDown={(e) => {
+                        console.log('Logout Clicked');
+                        handleLogout(e);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
                     >
                       <div className="p-1.5 bg-red-100 rounded-lg text-red-500">
                         <LogOut className="w-4 h-4" />
