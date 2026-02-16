@@ -657,6 +657,7 @@ router.post('/reset-password', async (req, res) => {
 
     // Reset password
     user.password = newPassword; // Will be hashed by pre-save hook
+    user.isVerified = true;
     user.passwordResetOTP = undefined;
     user.passwordResetOTPExpires = undefined;
     await user.save();

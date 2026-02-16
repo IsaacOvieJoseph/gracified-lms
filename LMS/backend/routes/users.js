@@ -139,7 +139,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
       password,
       role,
       schoolId: finalSchoolId,
-      createdBy: req.user._id
+      createdBy: req.user._id,
+      isVerified: true
     });
 
     await user.save();
