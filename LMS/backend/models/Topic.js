@@ -10,6 +10,10 @@ const topicSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  lessonsOutline: {
+    type: String,
+    trim: true
+  },
   classroomId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Classroom',

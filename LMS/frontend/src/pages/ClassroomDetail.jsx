@@ -44,7 +44,7 @@ const ClassroomDetail = () => {
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState([]); // Dynamic subjects
-  const [editForm, setEditForm] = useState({ name: '', description: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false });
+  const [editForm, setEditForm] = useState({ name: '', description: '', learningOutcomes: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false });
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
 
   useEffect(() => {
@@ -67,6 +67,7 @@ const ClassroomDetail = () => {
     setEditForm({
       name: classroom.name || '',
       description: classroom.description || '',
+      learningOutcomes: classroom.learningOutcomes || '',
       subject: classroom.subject || '',
       level: classroom.level || 'Other',
       capacity: classroom.capacity || 30,
@@ -98,6 +99,8 @@ const ClassroomDetail = () => {
       const updateData = {
         name: editForm.name,
         description: editForm.description,
+        learningOutcomes: editForm.learningOutcomes,
+        subject: editForm.subject,
         subject: editForm.subject,
         level: editForm.level,
         capacity: editForm.capacity,
@@ -863,6 +866,12 @@ const ClassroomDetail = () => {
               {classroom.description && (
                 <p className="text-gray-600 text-sm md:text-base">{classroom.description}</p>
               )}
+              {classroom.learningOutcomes && (
+                <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
+                  <h4 className="font-semibold text-indigo-900 mb-2">Expected Learning Outcomes</h4>
+                  <p className="text-gray-700 text-sm md:text-base whitespace-pre-wrap">{classroom.learningOutcomes}</p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-4 mt-2">
                 {classroom.subject && (
                   <div className="flex items-center text-sm text-gray-600">
@@ -953,6 +962,16 @@ const ClassroomDetail = () => {
                       onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                       className="w-full px-4 py-2 border rounded-lg"
                       rows="3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Expected Learning Outcomes</label>
+                    <textarea
+                      value={editForm.learningOutcomes}
+                      onChange={e => setEditForm({ ...editForm, learningOutcomes: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      rows="3"
+                      placeholder="Outline what students will learn..."
                     />
                   </div>
                   <div>

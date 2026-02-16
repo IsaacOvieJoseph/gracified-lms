@@ -242,6 +242,13 @@ const TopicDisplay = ({ classroomId }) => {
                             <p className="text-gray-600 mb-3">{currentTopic.description}</p>
                         )}
 
+                        {currentTopic.lessonsOutline && (
+                            <div className="mb-3 p-3 bg-indigo-50 border border-indigo-100 rounded-md">
+                                <h5 className="text-sm font-semibold text-indigo-900 mb-1">Lesson Outline</h5>
+                                <p className="text-gray-700 text-sm whitespace-pre-wrap">{currentTopic.lessonsOutline}</p>
+                            </div>
+                        )}
+
                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                             {getDurationText(currentTopic.duration) && (
                                 <div className="flex items-center space-x-1">

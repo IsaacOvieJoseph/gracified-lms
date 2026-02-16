@@ -14,6 +14,7 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        lessonsOutline: '',
         duration: {
             mode: 'not_sure',
             value: 1
@@ -216,6 +217,7 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
         setFormData({
             name: '',
             description: '',
+            lessonsOutline: '',
             duration: { mode: 'not_sure', value: 1 },
             isPaid: false,
             price: 0
@@ -228,6 +230,7 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
         setFormData({
             name: topic.name,
             description: topic.description || '',
+            lessonsOutline: topic.lessonsOutline || '',
             duration: topic.duration || { mode: 'not_sure', value: 1 },
             isPaid: topic.isPaid || false,
             price: topic.price || 0
@@ -316,6 +319,17 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                         rows="3"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Lesson Outline</label>
+                                    <textarea
+                                        value={formData.lessonsOutline}
+                                        onChange={(e) => setFormData({ ...formData, lessonsOutline: e.target.value })}
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                        rows="3"
+                                        placeholder="Briefly outline the lessons in this topic..."
                                     />
                                 </div>
 

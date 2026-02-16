@@ -37,6 +37,7 @@ const Classrooms = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    learningOutcomes: '',
     subject: '',
     level: 'Other',
     schedule: [],   // Changed from '' to []
@@ -233,6 +234,7 @@ const Classrooms = () => {
       setFormData({
         name: '',
         description: '',
+        learningOutcomes: '',
         subject: '',
         level: 'Other',
         schedule: [],
@@ -621,6 +623,16 @@ const Classrooms = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                   rows="3"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Learning Outcomes</label>
+                <textarea
+                  value={formData.learningOutcomes}
+                  onChange={(e) => setFormData({ ...formData, learningOutcomes: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  rows="3"
+                  placeholder="Outline what students will learn..."
                 />
               </div>
               <div>
