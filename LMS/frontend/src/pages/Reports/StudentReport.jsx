@@ -52,53 +52,53 @@ const StudentReport = () => {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-                <div className="bg-blue-50 p-3 sm:p-4 rounded-xl border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                    <div className="p-2 sm:p-3 bg-blue-100 rounded-lg text-blue-600">
+                <div className="card-premium p-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary">
                         <BookOpen size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Total Assignments</p>
-                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.totalAssignments}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Total Assignments</p>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900">{summary.totalAssignments}</p>
                     </div>
                 </div>
 
-                <div className="bg-green-50 p-3 sm:p-4 rounded-xl border border-green-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                    <div className="p-2 sm:p-3 bg-green-100 rounded-lg text-green-600">
+                <div className="card-premium p-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600">
                         <CheckCircle size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Submitted</p>
-                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.submittedCount}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Submitted</p>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900">{summary.submittedCount}</p>
                     </div>
                 </div>
 
-                <div className="bg-yellow-50 p-3 sm:p-4 rounded-xl border border-yellow-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                    <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg text-yellow-600">
+                <div className="card-premium p-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-3 bg-amber-100 rounded-xl text-amber-600">
                         <Clock size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Pending</p>
-                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.pendingCount}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Pending</p>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900">{summary.pendingCount}</p>
                     </div>
                 </div>
 
-                <div className="bg-purple-50 p-3 sm:p-4 rounded-xl border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                    <div className="p-2 sm:p-3 bg-purple-100 rounded-lg text-purple-600">
+                <div className="card-premium p-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="p-3 bg-indigo-100 rounded-xl text-indigo-600">
                         <Award size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Overall Score</p>
-                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.overallPercentage}%</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Score</p>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900">{summary.overallPercentage}%</p>
                     </div>
                 </div>
 
-                <div className="bg-indigo-50 p-3 sm:p-4 rounded-xl border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 col-span-2 md:col-span-1">
-                    <div className="p-2 sm:p-3 bg-indigo-100 rounded-lg text-indigo-600">
+                <div className="card-premium p-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 col-span-2 md:col-span-1">
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary">
                         <Users size={20} className="sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] sm:text-sm text-gray-500 font-medium">Attendance</p>
-                        <p className="text-lg sm:text-2xl font-bold text-gray-800">{summary.attendancePercentage}%</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Attendance</p>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900">{summary.attendancePercentage}%</p>
                     </div>
                 </div>
             </div>
@@ -185,10 +185,10 @@ const StudentReport = () => {
                                         {assign.dueDate ? new Date(assign.dueDate).toLocaleDateString() : 'No Due Date'}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${assign.status === 'graded' ? 'bg-green-100 text-green-700 border-green-200' :
-                                            assign.status === 'submitted' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                                assign.status === 'missing' ? 'bg-red-100 text-red-700 border-red-200' :
-                                                    'bg-gray-100 text-gray-600 border-gray-200'
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${assign.status === 'graded' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                            assign.status === 'submitted' ? 'bg-primary/5 text-primary border border-primary/10' :
+                                                assign.status === 'missing' ? 'bg-red-50 text-red-700 border border-red-100' :
+                                                    'bg-slate-50 text-slate-600 border border-slate-100'
                                             }`}>
                                             {assign.status === 'graded' ? 'Graded' :
                                                 assign.status === 'submitted' ? 'Submitted' :

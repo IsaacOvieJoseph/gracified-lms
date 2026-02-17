@@ -333,9 +333,9 @@ const Assignments = () => {
           {canCreateAssignment && (
             <button
               onClick={() => setShowCreateAssignmentModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="btn-premium"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               <span>Create Assignment</span>
             </button>
           )}
@@ -379,7 +379,7 @@ const Assignments = () => {
               };
 
               return (
-                <div key={assignment._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div key={assignment._id} className="card-premium overflow-hidden">
                   <div
                     className="flex justify-between items-start p-6 cursor-pointer hover:bg-gray-50 transition"
                     onClick={toggleAssignmentExpanded}
@@ -407,19 +407,19 @@ const Assignments = () => {
                     <div className="flex items-center space-x-2 flex-shrink-0">
                       {/* Show "Graded" only if graded AND (theory OR MCQ with results published) */}
                       {isGraded && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                           Graded
                         </span>
                       )}
                       {/* Show "Submitted" only if submitted AND NOT graded (or MCQ graded but results not published yet) */}
                       {isSubmitted && !isGraded && (
-                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                           Submitted
                         </span>
                       )}
                       {/* Show "Submitted" for MCQ that is graded but results not published yet */}
                       {isSubmitted && isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt) && (
-                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                           Submitted
                         </span>
                       )}
@@ -614,10 +614,7 @@ const Assignments = () => {
                                 setShowSubmitAssignmentModal(true);
                               }}
                               disabled={isPastDue}
-                              className={`px-4 py-2 rounded-lg transition ${isPastDue
-                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
+                              className={isPastDue ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-premium'}
                             >
                               {isPastDue ? 'Deadline Passed' : 'Submit Assignment'}
                             </button>
@@ -672,7 +669,7 @@ const Assignments = () => {
                                           setSubmissionToGrade(sub);
                                           setShowGradeModal(true);
                                         }}
-                                        className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+                                        className="btn-premium py-1.5 px-4 text-sm"
                                       >
                                         Grade
                                       </button>

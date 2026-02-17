@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 
-const SchoolSwitcher = ({ user, selectedSchools, setSelectedSchools }) => {
+const SchoolSwitcher = ({ user, selectedSchools = [], setSelectedSchools = () => { } }) => {
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
 

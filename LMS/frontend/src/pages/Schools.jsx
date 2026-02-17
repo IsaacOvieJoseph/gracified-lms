@@ -516,34 +516,34 @@ export default function SchoolsPage() {
 
         {/* HEADER */}
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">Schools</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Schools</h2>
 
           {canCreateSchool && (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="btn-premium"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               <span>Create School</span>
             </button>
           )}
         </div>
 
         {/* SEARCH */}
-        <div>
+        <div className="relative">
           <input
             type="text"
             placeholder="Search schools..."
-            className="px-4 py-2 border rounded-lg w-72 shadow-sm focus:ring focus:ring-blue-300 focus:outline-none"
+            className="w-full sm:w-80"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         {/* TABLE */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden overflow-x-auto">
+        <div className="card-premium overflow-hidden overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <HeaderCell label="School Name" field="name" sortData={sortData} sortField={sortField} sortDir={sortDir} />
                 <HeaderCell label="Admin Name" field="adminName" sortData={sortData} sortField={sortField} sortDir={sortDir} />
@@ -552,7 +552,7 @@ export default function SchoolsPage() {
                 <HeaderCell label="Students" field="studentCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
 
                 {canManage && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
                 )}
               </tr>
             </thead>
@@ -645,14 +645,14 @@ export default function SchoolsPage() {
 function HeaderCell({ label, field, sortData, sortField, sortDir, center }) {
   return (
     <th
-      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase cursor-pointer select-none ${center ? "text-center" : "text-left"
+      className={`px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer select-none transition-colors hover:text-primary ${center ? "text-center" : "text-left"
         }`}
       onClick={() => sortData(field)}
     >
-      <div className="flex items-center space-x-1">
+      <div className={`flex items-center space-x-1 ${center ? "justify-center" : ""}`}>
         <span>{label}</span>
         <ArrowUpDown
-          className={`w-4 h-4 ${sortField === field ? "text-gray-700" : "text-gray-400"
+          className={`w-4 h-4 transition-colors ${sortField === field ? "text-primary" : "text-slate-300"
             }`}
         />
       </div>

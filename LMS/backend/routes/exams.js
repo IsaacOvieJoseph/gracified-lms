@@ -516,7 +516,7 @@ router.post('/submissions/:id/submit', async (req, res) => {
         submission.answers = processedAnswers;
         submission.totalScore = totalScore;
         submission.submittedAt = new Date();
-        submission.status = 'submitted';
+        submission.status = hasTheory ? 'submitted' : 'graded';
 
         await submission.save();
 

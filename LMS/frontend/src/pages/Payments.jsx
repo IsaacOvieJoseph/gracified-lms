@@ -215,11 +215,11 @@ const Payments = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-emerald-600" />;
       case 'failed':
         return <XCircle className="w-4 h-4 text-red-600" />;
       case 'pending':
-        return <Clock className="w-4 h-4 text-yellow-600" />;
+        return <Clock className="w-4 h-4 text-amber-600" />;
       default:
         return null;
     }
@@ -233,56 +233,59 @@ const Payments = () => {
     <Layout>
       {/* Payment modal shown when navigating to payments?classroomId=... */}
       {showPaymentModal && classroomForPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-            <h3 className="text-lg font-bold mb-2">
-              {topicId ? 'Pay for Topic Access' : 'Pay to Enroll'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 animate-slide-up">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6">
+              <DollarSign className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">
+              {topicId ? 'Topic Access' : 'Enrollment'}
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-slate-500 mb-6">
               {topicId
                 ? <span>You're about to purchase access to the topic in <strong>{classroomForPayment.name}</strong>.</span>
                 : <span>You're about to enroll in <strong>{classroomForPayment.name}</strong>.</span>
               }
             </p>
-            <div className="mb-4">
-              <div className="text-sm text-gray-500">Amount</div>
-              <div className="text-2xl font-semibold">
+            <div className="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Amount Due</div>
+              <div className="text-3xl font-black text-slate-900">
                 {formatAmount(topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0), classroomForPayment.pricing?.currency || 'NGN')}
               </div>
             </div>
-            <div className="flex justify-end gap-3">
-              <button className="px-4 py-2 border rounded" onClick={() => { setShowPaymentModal(false); setClassroomForPayment(null); window.history.replaceState({}, document.title, '/payments'); }}>Cancel</button>
+            <div className="flex gap-4">
+              <button className="flex-1 btn-secondary" onClick={() => { setShowPaymentModal(false); setClassroomForPayment(null); window.history.replaceState({}, document.title, '/payments'); }}>Cancel</button>
               <button
                 disabled={isPaying}
-                className={`px-4 py-2 ${isPaying ? 'bg-gray-400' : 'bg-blue-600'} text-white rounded`}
+                className="flex-1 btn-premium"
                 onClick={() => handlePayment(classroomForPayment._id, topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0))}
               >
                 {isPaying ? 'Processing...' : 'Pay Now'}
               </button>
             </div>
-            {payError && <div className="mt-3 text-sm text-red-600">{payError}</div>}
+            {payError && <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">{payError}</div>}
           </div>
         </div>
       )}
 
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Payment History</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Payment History</h2>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="card-premium overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Date / Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Class/Topic</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payment Ref</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">{user?.role === 'student' ? 'Amount' : 'Total Paid'}</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Date / Time</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Payer</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Type</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Class/Topic</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Payment Ref</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">{user?.role === 'student' ? 'Amount' : 'Total Paid'}</th>
                   {user?.role !== 'student' && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Net Payout</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Net Payout</th>
                   )}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -319,13 +322,13 @@ const Payments = () => {
                             displayStatus = payment.payoutStatus === 'paid' ? 'completed' : 'pending';
                           }
                           return (
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${displayStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                                displayStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                  displayStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-800'
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${displayStatus === 'completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                              displayStatus === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                displayStatus === 'failed' ? 'bg-red-50 text-red-700 border border-red-100' :
+                                  'bg-slate-50 text-slate-600 border border-slate-100'
                               }`}>
                               {getStatusIcon(displayStatus)}
-                              <span className="ml-1 capitalize">{displayStatus}</span>
+                              <span className="ml-1.5">{displayStatus}</span>
                             </span>
                           );
                         })()}

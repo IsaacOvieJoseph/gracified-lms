@@ -173,47 +173,55 @@ const Dashboard = () => {
         <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
 
         <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'student' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card-premium p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Classrooms</p>
-                <p className="text-3xl font-bold text-gray-800">{stats.classrooms}</p>
+                <p className="text-slate-500 text-sm font-semibold mb-1">Classrooms</p>
+                <p className="text-3xl font-bold text-slate-900">{stats.classrooms}</p>
               </div>
-              <Book className="w-12 h-12 text-blue-500" />
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                <Book className="w-6 h-6" />
+              </div>
             </div>
           </div>
 
           {user?.role !== 'student' && (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="card-premium p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Students</p>
-                  <p className="text-3xl font-bold text-gray-800">{stats.students}</p>
+                  <p className="text-slate-500 text-sm font-semibold mb-1">Students</p>
+                  <p className="text-3xl font-bold text-slate-900">{stats.students}</p>
                 </div>
-                <Users className="w-12 h-12 text-green-500" />
+                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                  <Users className="w-6 h-6" />
+                </div>
               </div>
             </div>
           )}
 
           {user?.role === 'student' && (
             <>
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="card-premium p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm">Payments</p>
-                    <p className="text-3xl font-bold text-gray-800">{stats.payments}</p>
+                    <p className="text-slate-500 text-sm font-semibold mb-1">Payments</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.payments}</p>
                   </div>
-                  <DollarSign className="w-12 h-12 text-yellow-500" />
+                  <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+                    <DollarSign className="w-6 h-6" />
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="card-premium p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm">Assignments</p>
-                    <p className="text-3xl font-bold text-gray-800">{stats.assignments}</p>
+                    <p className="text-slate-500 text-sm font-semibold mb-1">Assignments</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.assignments}</p>
                   </div>
-                  <FileText className="w-12 h-12 text-purple-500" />
+                  <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                    <FileText className="w-6 h-6" />
+                  </div>
                 </div>
               </div>
             </>
