@@ -52,23 +52,34 @@ const ExamSubmissions = () => {
 
     const totalMaxScore = exam?.questions?.reduce((acc, q) => acc + (q.maxScore || 1), 0) || 1;
 
+    const hasTheory = exam?.questions?.some(q => q.questionType === 'theory');
+
     const filteredSubmissions = submissions
         .filter(s => {
             const name = (s.studentId?.name || s.candidateName || '').toLowerCase();
             const email = (s.studentId?.email || s.candidateEmail || '').toLowerCase();
             const matchesSearch = name.includes(searchQuery.toLowerCase()) || email.includes(searchQuery.toLowerCase());
 
-            const needsReview = exam?.questions.some(q => q.questionType === 'theory') && s.status !== 'graded';
+            const isObjectiveOnly = !hasTheory;
+            const needsReview = !isObjectiveOnly && s.status === 'submitted';
+            const isFinished = s.status === 'graded' || (isObjectiveOnly && s.status === 'submitted');
+
             const matchesStatus = statusFilter === 'all' ||
-                (statusFilter === 'graded' && s.status === 'graded') ||
+                (statusFilter === 'graded' && isFinished) ||
                 (statusFilter === 'pending' && needsReview);
 
             return matchesSearch && matchesStatus;
         })
         .sort((a, b) => b.totalScore - a.totalScore);
 
-    const averageScore = submissions.length > 0
-        ? (submissions.reduce((acc, curr) => acc + curr.totalScore, 0) / submissions.length).toFixed(1)
+    const gradedSubmissions = submissions.filter(s => s.status === 'graded' || (!hasTheory && s.status === 'submitted'));
+    const averageScore = gradedSubmissions.length > 0
+        ? (gradedSubmissions.reduce((acc, curr) => acc + curr.totalScore, 0) / gradedSubmissions.length).toFixed(1)
+        : 0;
+
+    const finishedCount = submissions.filter(s => ['submitted', 'graded'].includes(s.status)).length;
+    const completionRate = submissions.length > 0
+        ? Math.round((finishedCount / submissions.length) * 100)
         : 0;
 
     const formatDuration = (start, end) => {
@@ -288,7 +299,7 @@ const ExamSubmissions = () => {
                     </div>
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                         <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Completion Rate</div>
-                        <div className="text-3xl font-black text-emerald-500">100%</div>
+                        <div className="text-3xl font-black text-emerald-500">{completionRate}%</div>
                     </div>
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                         <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Max Possible</div>
@@ -395,9 +406,13 @@ const ExamSubmissions = () => {
                                                     </div>
                                                     {s.status === 'graded' ? (
                                                         <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest bg-violet-50 px-2 py-0.5 rounded-md mt-1">Graded</span>
-                                                    ) : exam?.questions.some(q => q.questionType === 'theory') ? (
+                                                    ) : hasTheory && s.status === 'submitted' ? (
                                                         <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-md mt-1">Needs Review</span>
-                                                    ) : null}
+                                                    ) : s.status === 'submitted' ? (
+                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-md mt-1">Finalized</span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-md mt-1">In Progress</span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">

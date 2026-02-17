@@ -137,9 +137,13 @@ const ExamSubmissionDetail = () => {
                                         <span className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center">
                                             <CheckCircle2 className="w-3 h-3 mr-1" /> Graded & Published
                                         </span>
-                                    ) : (
+                                    ) : exam.questions.some(q => q.questionType === 'theory') ? (
                                         <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center">
                                             <AlertCircle className="w-3 h-3 mr-1" /> Pending Review
+                                        </span>
+                                    ) : (
+                                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center">
+                                            <CheckCircle2 className="w-3 h-3 mr-1" /> Finalized
                                         </span>
                                     )}
                                 </div>

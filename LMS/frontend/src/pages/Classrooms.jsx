@@ -61,6 +61,7 @@ const Classrooms = () => {
     pricing: { type: user?.defaultPricingType || 'monthly', amount: 0 },
     isPaid: false, teacherId: '', schoolIds: [], published: false, isPrivate: false
   });
+  const [selectedSubject, setSelectedSubject] = useState('All Subjects');
 
   const [openMySchool, setOpenMySchool] = useState(true);
   const [openOthers, setOpenOthers] = useState(true);
@@ -98,17 +99,24 @@ const Classrooms = () => {
   }, [user]);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredClassrooms(classrooms);
-    } else {
+    let filtered = [...classrooms];
+
+    if (selectedSubject !== 'All Subjects') {
+      filtered = filtered.filter(c => c.subject === selectedSubject);
+    }
+
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      setFilteredClassrooms(classrooms.filter(c =>
+      filtered = filtered.filter(c =>
         c.name?.toLowerCase().includes(query) ||
         c.description?.toLowerCase().includes(query) ||
-        c.teacherId?.name?.toLowerCase().includes(query)
-      ));
+        c.teacherId?.name?.toLowerCase().includes(query) ||
+        c.subject?.toLowerCase().includes(query)
+      );
     }
-  }, [searchQuery, classrooms]);
+
+    setFilteredClassrooms(filtered);
+  }, [searchQuery, selectedSubject, classrooms]);
 
   const fetchClassrooms = async () => {
     if (classrooms.length === 0) setLoading(true);
@@ -302,9 +310,25 @@ const Classrooms = () => {
               className="w-full pl-12 pr-4 bg-white border-slate-200 h-12 shadow-sm focus:shadow-md"
             />
           </div>
-          <button className="flex items-center gap-2 h-12 px-6 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 transition w-full md:w-auto justify-center">
-            <Filter className="w-4 h-4" /> All Subjects
-          </button>
+          <div className="w-full md:w-64">
+            <Select
+              options={[{ value: 'All Subjects', label: 'All Subjects' }, ...subjectOptions]}
+              value={{ value: selectedSubject, label: selectedSubject }}
+              onChange={(sel) => setSelectedSubject(sel?.value || 'All Subjects')}
+              className="modern-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  height: '48px',
+                  borderRadius: '0.75rem',
+                })
+              }}
+              components={{
+                DropdownIndicator: () => <Filter className="w-4 h-4 text-slate-400 mr-4" />,
+                IndicatorSeparator: () => null
+              }}
+            />
+          </div>
         </div>
 
         <div className="space-y-10">
@@ -352,15 +376,32 @@ const Classrooms = () => {
               <h2 className="text-2xl font-bold text-slate-900">New Classroom</h2>
               <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"><X className="w-6 h-6" /></button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-6">
-              {/* Reuse logic but with modernized UI components below */}
+            <form onSubmit={handleCreate} className="space-y-8 pb-4">
+              {/* Basic Info */}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label>Class Name</label>
-                  <input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Mastering UI Design..." required />
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Class Title</label>
+                  <input
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Advanced Mathematics Masterclass"
+                    className="w-full"
+                    required
+                  />
                 </div>
+
                 <div className="space-y-1.5">
-                  <label>Subject</label>
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Academic Level</label>
+                  <Select
+                    options={levelOptions}
+                    value={levelOptions.find(opt => opt.value === formData.level)}
+                    onChange={sel => setFormData({ ...formData, level: sel?.value })}
+                    className="modern-select"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Subject</label>
                   <CreatableSelect
                     options={subjectOptions}
                     value={formData.subject ? { value: formData.subject, label: formData.subject } : null}
@@ -368,11 +409,195 @@ const Classrooms = () => {
                     className="modern-select"
                   />
                 </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Tell students what this class is about..."
+                    className="w-full min-h-[100px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Learning Outcomes</label>
+                  <textarea
+                    value={formData.learningOutcomes}
+                    onChange={e => setFormData({ ...formData, learningOutcomes: e.target.value })}
+                    placeholder="List what students will achieve (comma separated)..."
+                    className="w-full min-h-[80px]"
+                  />
+                </div>
               </div>
-              {/* ... More fields can follow similar pattern ... */}
-              <div className="pt-4 flex gap-4">
+
+              {/* Roles & Visibility */}
+              <div className="grid md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign Teacher</label>
+                    <Select
+                      options={teachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
+                      value={teachers.find(t => t._id === formData.teacherId) ? { value: formData.teacherId, label: teachers.find(t => t._id === formData.teacherId).name } : null}
+                      onChange={sel => setFormData({ ...formData, teacherId: sel?.value })}
+                      placeholder="Select a teacher..."
+                      className="modern-select"
+                    />
+                  </div>
+                )}
+
+                {user?.role === 'school_admin' && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign to Schools</label>
+                    <Select
+                      isMulti
+                      options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
+                      value={formData.schoolIds?.map(id => {
+                        const s = [{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].find(sch => sch._id === id);
+                        return { value: id, label: s?.name || id };
+                      })}
+                      onChange={sels => setFormData({ ...formData, schoolIds: sels ? sels.map(s => s.value) : [] })}
+                      className="modern-select"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Max Capacity</label>
+                  <input
+                    type="number"
+                    value={formData.capacity}
+                    onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 30 })}
+                    className="w-full"
+                    min="1"
+                  />
+                </div>
+
+                <div className="flex items-center gap-6 pt-4">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <div
+                      className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      onClick={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
+                    >
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPrivate ? 'translate-x-4' : ''}`} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700 uppercase">Private</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <div
+                      className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
+                    >
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700 uppercase">Paid Class</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Pricing details if paid */}
+              {formData.isPaid && (
+                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-bold text-primary uppercase tracking-wider">Billing Cycle</label>
+                      <Select
+                        options={[
+                          { value: 'per_lecture', label: 'Per Lecture' },
+                          { value: 'per_topic', label: 'Per Topic' },
+                          { value: 'weekly', label: 'Weekly' },
+                          { value: 'monthly', label: 'Monthly' }
+                        ]}
+                        value={{ value: formData.pricing.type, label: formData.pricing.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                        onChange={sel => setFormData({ ...formData, pricing: { ...formData.pricing, type: sel?.value } })}
+                        className="modern-select"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-bold text-primary uppercase tracking-wider">Amount (NGN)</label>
+                      <input
+                        type="number"
+                        value={formData.pricing.amount}
+                        onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 } })}
+                        className="w-full border-primary/20 focus:ring-primary/20"
+                        placeholder="0.00"
+                        required={formData.isPaid}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Schedule Builder */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Weekly Schedule</label>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, schedule: [...formData.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
+                    className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Session
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {formData.schedule.map((s, idx) => (
+                    <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-slide-up">
+                      <select
+                        value={s.dayOfWeek}
+                        onChange={e => {
+                          const newSched = [...formData.schedule];
+                          newSched[idx].dayOfWeek = e.target.value;
+                          setFormData({ ...formData, schedule: newSched });
+                        }}
+                        className="flex-1 min-w-[120px] bg-white border-slate-200 rounded-lg text-sm"
+                      >
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d}>{d}</option>)}
+                      </select>
+                      <input
+                        type="time"
+                        value={s.startTime}
+                        onChange={e => {
+                          const newSched = [...formData.schedule];
+                          newSched[idx].startTime = e.target.value;
+                          setFormData({ ...formData, schedule: newSched });
+                        }}
+                        className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                      />
+                      <span className="text-slate-400">to</span>
+                      <input
+                        type="time"
+                        value={s.endTime}
+                        onChange={e => {
+                          const newSched = [...formData.schedule];
+                          newSched[idx].endTime = e.target.value;
+                          setFormData({ ...formData, schedule: newSched });
+                        }}
+                        className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSched = formData.schedule.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, schedule: newSched });
+                        }}
+                        className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {formData.schedule.length === 0 && (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No sessions scheduled yet.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-8 flex gap-4 sticky bottom-0 bg-white pb-2 border-t border-slate-50">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">Discard</button>
-                <button type="submit" className="btn-premium flex-1">Launch Class</button>
+                <button type="submit" className="btn-premium flex-1">Launch Classroom</button>
               </div>
             </form>
           </div>
