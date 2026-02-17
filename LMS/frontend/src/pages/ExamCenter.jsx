@@ -17,7 +17,13 @@ import {
     LogOut,
     CheckCircle,
     XCircle,
-    HelpCircle
+    HelpCircle,
+    ShieldCheck,
+    Zap,
+    Monitor,
+    Info,
+    ListChecks,
+    Wifi
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -191,94 +197,149 @@ const ExamCenter = () => {
         }
 
         return (
-            <div className="min-h-screen bg-[#E5E7EB] relative overflow-hidden flex items-center justify-center p-4 md:p-6 font-sans">
-                {/* Mesh Gradient Background Elements */}
-                <div className="absolute top-[-10%] left-[-10%] w-[60%] md:w-[40%] h-[40%] bg-indigo-200/50 rounded-full blur-[80px] md:blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[60%] md:w-[40%] h-[40%] bg-blue-200/50 rounded-full blur-[80px] md:blur-[120px]"></div>
+            <div className="min-h-screen bg-[#0F172A] relative overflow-hidden flex items-center justify-center p-4 md:p-8 font-sans">
+                {/* Dynamic Mesh Background - Pure Indigo/Blue */}
+                <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse"></div>
+                <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-[20%] right-[-5%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-                <div className="max-w-2xl w-full bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden transform transition-all relative z-10 border border-white/20">
-                    {/* Card Header */}
-                    <div className="bg-[#41414E] px-6 py-8 md:px-12 md:py-12 text-white relative">
-                        <div className="relative z-10">
-                            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left space-y-4 md:space-y-0 md:space-x-6">
-                                <div className="bg-white/10 backdrop-blur-md w-20 h-20 md:w-24 md:h-24 rounded-2xl md:rounded-3xl flex items-center justify-center p-3 md:p-4 shadow-xl border border-white/20">
-                                    {exam?.logoUrl ? (
-                                        <img src={exam.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                                    ) : (
-                                        <GraduationCap className="w-10 h-10 md:w-12 md:h-12 text-white" />
-                                    )}
+                <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.4)] relative z-10 border border-white/10 glass-dark">
+
+                    {/* Left Sidebar: Briefing & Prep */}
+                    <div className="lg:col-span-5 bg-white/5 p-6 md:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-6 md:mb-8">
+                                <div className="p-1.5 md:p-2 bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/30">
+                                    <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-indigo-400" />
                                 </div>
-                                <div className="flex-1">
-                                    {exam?.classroomName && (
-                                        <div className="text-gray-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] mb-1 md:mb-2">
-                                            {exam.classroomName}
-                                        </div>
-                                    )}
-                                    <h1 className="text-3xl md:text-5xl font-black mb-1 leading-tight tracking-tight">{exam?.title}</h1>
-                                    <p className="text-gray-400 text-xs md:text-sm font-medium mt-1 md:mt-2 line-clamp-2 md:line-clamp-none">{exam?.description}</p>
+                                <span className="text-[8px] md:text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] md:tracking-[0.3em]">Authorized Entry Only</span>
+                            </div>
+
+                            <h2 className="text-xl md:text-2xl font-black text-white mb-6 md:mb-8 flex items-center">
+                                <ListChecks className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-indigo-400" />
+                                Preparation
+                            </h2>
+
+                            <div className="space-y-4 md:space-y-6">
+                                <div className="flex items-start space-x-3 md:space-x-4 group">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
+                                        <Wifi className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs md:text-sm font-bold text-white mb-1">Stable Connection</h4>
+                                        <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed">Ensure you have a reliable internet source before starting the session.</p>
+                                    </div>
                                 </div>
+
+                                <div className="flex items-start space-x-3 md:space-x-4 group">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
+                                        <Clock className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs md:text-sm font-bold text-white mb-1">Duration Check</h4>
+                                        <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed">The timer starts immediately. It will auto-submit when the window closes.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start space-x-3 md:space-x-4 group">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
+                                        <Monitor className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs md:text-sm font-bold text-white mb-1">Device Ready</h4>
+                                        <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed">Stay on this tab. Frequent tab switching may be flagged as suspicious activity.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-white/10 flex items-center space-x-3 grayscale opacity-30">
+                            <img src="/logo.jpg" alt="Gracified" className="w-5 h-5 md:w-6 md:h-6 rounded-md object-cover" />
+                            <div className="flex flex-col">
+                                <span className="text-[8px] md:text-[9px] font-black text-white tracking-widest uppercase leading-none mb-1">Gracified LMS</span>
+                                <span className="text-[7px] md:text-[8px] font-bold text-gray-500 leading-none">Security Deployment</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Card Content */}
-                    <div className="p-6 md:p-12 space-y-6 md:space-y-10">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8">
-                            <div className="bg-[#F9FAFB] p-6 md:p-8 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-center">
-                                <div className="flex items-center text-[#5E5E6E] mb-2 md:mb-3">
-                                    <Clock className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
-                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Duration</span>
+                    {/* Right Content: Main Entry */}
+                    <div className="lg:col-span-7 bg-white p-6 md:p-12 flex flex-col justify-center">
+                        <div className="mb-6 md:mb-10">
+                            <div className="flex items-center justify-between mb-2 md:mb-4">
+                                <div className="px-2 py-0.5 md:px-3 md:py-1 bg-indigo-50 text-indigo-600 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none">
+                                    {exam?.classroomName || 'Portal'}
                                 </div>
-                                <div className="text-2xl md:text-3xl font-black text-[#1F1F2F]">{exam?.duration} Mins</div>
+                                <div className="flex items-center space-x-1 text-gray-300">
+                                    <Zap className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-wider">Live</span>
+                                </div>
                             </div>
-                            <div className="bg-[#F9FAFB] p-6 md:p-8 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-center">
-                                <div className="flex items-center text-[#5E5E6E] mb-2 md:mb-3">
-                                    <Layout className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
-                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Format</span>
+                            <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-3 md:mb-4 tracking-tight leading-tight">
+                                {exam?.title}
+                            </h1>
+                            <p className="text-xs md:text-sm text-gray-500 font-medium leading-relaxed italic border-l-4 border-indigo-100 pl-3 md:pl-4 py-0.5">
+                                {exam?.description}
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-10">
+                            <div className="p-4 md:p-5 bg-gray-50 rounded-xl md:rounded-2xl border border-gray-100">
+                                <div className="flex items-center text-gray-400 mb-1 md:mb-2">
+                                    <Timer className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                                    <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Limit</span>
                                 </div>
-                                <div className="text-2xl md:text-3xl font-black text-[#1F1F2F]">Standard</div>
+                                <div className="text-lg md:text-2xl font-black text-gray-900 uppercase leading-none">
+                                    {exam?.duration} <span className="text-[10px] md:text-sm font-bold text-gray-400">MINS</span>
+                                </div>
+                            </div>
+                            <div className="p-4 md:p-5 bg-gray-50 rounded-xl md:rounded-2xl border border-gray-100">
+                                <div className="flex items-center text-gray-400 mb-1 md:mb-2">
+                                    <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                                    <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Protocol</span>
+                                </div>
+                                <div className="text-lg md:text-2xl font-black text-gray-900 uppercase leading-none">SECURE</div>
                             </div>
                         </div>
 
                         {exam?.accessMode === 'open' ? (
-                            <div className="space-y-3 md:space-y-4">
-                                <div className="relative">
-                                    <User className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
+                            <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
+                                <div className="relative group">
+                                    <User className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-indigo-500 transition-colors" />
                                     <input
                                         type="text"
                                         placeholder="Full Name"
                                         value={candidateInfo.name}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, name: e.target.value })}
-                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-[#F3F4F6] border-none rounded-xl md:rounded-2xl focus:ring-2 focus:ring-[#41414E] transition-all outline-none font-bold text-sm md:text-base text-gray-900"
+                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-gray-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-xl md:rounded-2xl transition-all outline-none font-bold text-sm md:text-base text-gray-900"
                                     />
                                 </div>
-                                <div className="relative">
-                                    <Mail className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
+                                <div className="relative group">
+                                    <Mail className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-indigo-500 transition-colors" />
                                     <input
                                         type="email"
-                                        placeholder="Email (Optional)"
+                                        placeholder="Email Address (Optional)"
                                         value={candidateInfo.email}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, email: e.target.value })}
-                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-[#F3F4F6] border-none rounded-xl md:rounded-2xl focus:ring-2 focus:ring-[#41414E] transition-all outline-none font-bold text-sm md:text-base text-gray-900"
+                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-gray-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-xl md:rounded-2xl transition-all outline-none font-bold text-sm md:text-base text-gray-900"
                                     />
                                 </div>
                             </div>
                         ) : (
-                            <div className={`rounded-2xl md:rounded-3xl p-6 md:p-8 border-l-[8px] md:border-l-[12px] flex items-start ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'bg-rose-50 border-rose-400' : 'bg-[#FFF9E5] border-[#FFD54F]'}`}>
-                                <AlertCircle className={`w-6 h-6 md:w-8 md:h-8 mr-4 md:mr-6 flex-shrink-0 ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-500' : 'text-[#FFA000]'}`} />
-                                <div className="flex-1">
-                                    <h4 className={`font-black text-lg md:text-xl ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-900' : 'text-[#7A5A00]'}`}>
-                                        {user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'Access Restricted' : 'Secure Only'}
+                            <div className={`rounded-xl md:rounded-2xl p-4 md:p-6 mb-6 md:mb-8 border-2 flex items-start ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-indigo-50 border-indigo-100 text-indigo-700'}`}>
+                                <AlertCircle className="w-5 h-5 md:w-6 md:h-6 mr-3 md:mr-4 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <h4 className="font-black text-[10px] md:text-xs uppercase tracking-wider mb-0.5 md:mb-1">
+                                        {user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'Unauthorized' : 'Verified Entry'}
                                     </h4>
-                                    <p className={`text-xs md:text-sm mt-1 md:mt-2 font-bold leading-relaxed ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'text-rose-700' : 'text-[#927100]'}`}>
+                                    <p className="text-[10px] md:text-xs font-bold leading-tight opacity-90">
                                         {user ? (
                                             exam?.isEnrolled ? (
-                                                <>Ready to start, <strong className="text-[#1F1F2F]">{user.name}</strong>.</>
+                                                <>Logged in as <strong className="text-gray-900 underline decoration-indigo-300">{user.name}</strong>.</>
                                             ) : (
-                                                <>Not enrolled in this classroom.</>
+                                                <>Enrollment check failed for this classroom roster.</>
                                             )
                                         ) : (
-                                            <>Sign in required to proceed.</>
+                                            <>Authentication required to proceed.</>
                                         )}
                                     </p>
                                 </div>
@@ -288,34 +349,28 @@ const ExamCenter = () => {
                         {exam?.accessMode === 'registered' && !user ? (
                             <button
                                 onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
-                                className="w-full py-5 md:py-6 bg-[#1F1F2F] text-white rounded-xl md:rounded-[2rem] font-black md:text-xl hover:bg-black transition-all shadow-2xl flex items-center justify-center space-x-3 md:space-x-4 shadow-gray-300"
+                                className="w-full py-4 md:py-6 bg-gray-900 text-white rounded-xl md:rounded-[2rem] font-black md:text-xl hover:bg-black transition-all shadow-xl flex items-center justify-center space-x-3 md:space-x-4"
                             >
                                 <LogOut className="w-5 h-5 md:w-6 md:h-6 rotate-180" />
-                                <span>Sign In to Start</span>
+                                <span>Sign In</span>
                             </button>
                         ) : (
                             <button
                                 onClick={startExam}
                                 disabled={exam?.accessMode === 'registered' && user && !exam?.isEnrolled}
-                                className={`w-full py-5 md:py-6 text-white rounded-xl md:rounded-[2.5rem] font-black text-xl md:text-2xl transition-all shadow-2xl flex items-center justify-center space-x-3 md:space-x-4 ${exam?.accessMode === 'registered' && user && !exam?.isEnrolled
-                                    ? 'bg-gray-300 cursor-not-allowed shadow-none'
-                                    : 'bg-[#4F4F5B] hover:bg-[#3D3D47] shadow-[#4F4F5B]/20 transform hover:-translate-y-1'
+                                className={`w-full py-4 md:py-6 text-white rounded-xl md:rounded-[2rem] font-black text-lg md:text-2xl transition-all shadow-xl flex items-center justify-center space-x-2 md:space-x-4 ${exam?.accessMode === 'registered' && user && !exam?.isEnrolled
+                                    ? 'bg-gray-200 cursor-not-allowed shadow-none text-gray-400'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100 transform active:scale-[0.98]'
                                     }`}
                             >
-                                <span>{exam?.submissionStatus === 'in-progress' ? 'Resume Exam' : 'Start Exam'}</span>
-                                {!(exam?.accessMode === 'registered' && user && !exam?.isEnrolled) && <Play className="w-6 h-6 md:w-8 md:h-8 fill-current" />}
+                                <span>{exam?.submissionStatus === 'in-progress' ? 'Resume' : 'Begin'}</span>
+                                {!(exam?.accessMode === 'registered' && user && !exam?.isEnrolled) && <Play className="w-5 h-5 md:w-8 md:h-8 fill-current" />}
                             </button>
                         )}
-                    </div>
 
-                    <div className="bg-[#F9FAFB] px-6 py-6 md:px-12 md:py-8 border-t border-gray-100 flex flex-col items-center justify-center space-y-2 md:space-y-3 opacity-60 hover:opacity-100 transition-all cursor-default text-center">
-                        <div className="flex items-center space-x-2">
-                            <img src="/logo.jpg" alt="Gracified" className="w-3.5 h-3.5 md:w-4 md:h-4 rounded-sm object-cover" />
-                            <span className="text-[9px] md:text-[10px] font-black text-gray-700 tracking-tighter uppercase">Powered by Gracified LMS</span>
-                        </div>
-                        <div className="text-[8px] md:text-[10px] font-bold text-gray-400">
-                            &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
-                        </div>
+                        <p className="text-center text-[8px] md:text-[10px] font-bold text-gray-400 mt-4 md:mt-6 uppercase tracking-[0.2em] md:tracking-[0.3em]">
+                            Session Encrypted & Secure
+                        </p>
                     </div>
                 </div>
             </div>
