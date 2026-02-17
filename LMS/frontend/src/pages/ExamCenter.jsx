@@ -207,7 +207,7 @@ const ExamCenter = () => {
                 <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.4)] relative z-10 border border-white/10 glass-dark">
 
                     {/* Left Sidebar: Briefing & Prep */}
-                    <div className={`lg:col-span-5 bg-white/5 p-6 md:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10 ${onPrepStep === 1 ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`lg:col-span-5 bg-white/5 p-6 md:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10 min-h-[550px] md:min-h-0 ${onPrepStep === 1 ? 'flex' : 'hidden lg:flex'}`}>
                         <div>
                             <div className="flex items-center space-x-3 mb-6 md:mb-8">
                                 <div className="p-1.5 md:p-2 bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/30">
@@ -275,7 +275,7 @@ const ExamCenter = () => {
                     </div>
 
                     {/* Right Content: Main Entry */}
-                    <div className={`lg:col-span-7 bg-white p-6 md:p-12 flex flex-col justify-center relative ${onPrepStep === 2 ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`lg:col-span-7 bg-white p-6 md:p-12 flex flex-col justify-center relative min-h-[550px] md:min-h-0 ${onPrepStep === 2 ? 'flex' : 'hidden lg:flex'}`}>
                         {/* Mobile Back Button */}
                         <button
                             onClick={() => setOnPrepStep(1)}
