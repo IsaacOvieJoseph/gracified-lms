@@ -14,6 +14,8 @@ import {
   Sparkles,
   Menu,
   X,
+  Mail,
+  MessageCircle,
 } from 'lucide-react';
 import logo from '../assets/logo.jpg';
 
@@ -104,7 +106,7 @@ const Landing = () => {
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-3 flex-shrink-0">
               <a
-                href="mailto:gracifiedlms@gmail.com"
+                href="#contact"
                 className="px-4 py-2 text-slate-600 font-semibold hover:text-primary transition-colors"
               >
                 Contact Us
@@ -137,7 +139,7 @@ const Landing = () => {
           {mobileMenuOpen && (
             <div className="md:hidden py-4 border-t border-slate-200/60 flex flex-col gap-2 animate-slide-up">
               <a
-                href="mailto:gracifiedlms@gmail.com"
+                href="#contact"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-3 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-colors"
               >
@@ -326,6 +328,31 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Contact Us */}
+      <section id="contact" className="relative z-10 py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-white/60 border-t border-slate-200/60">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary mb-6">
+            <MessageCircle className="w-8 h-8" />
+          </div>
+          <h2 className="font-outfit text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+            We&apos;d Love to Hear From You
+          </h2>
+          <p className="text-slate-600 mb-2">
+            Your thoughts, questions, and feedback matter to us. We&apos;re here and eager to help—whether you have an enquiry about our platform, need support, or simply want to share how we can serve you better.
+          </p>
+          <p className="text-slate-600 mb-8">
+            Reach out anytime. We&apos;re open to your ideas and committed to responding promptly.
+          </p>
+          <a
+            href="mailto:gracifiedlms@gmail.com"
+            className="inline-flex items-center gap-2 btn-premium px-6 py-3 rounded-xl text-base font-semibold"
+          >
+            <Mail className="w-5 h-5" />
+            Send us an email
+          </a>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="relative z-10 border-t border-slate-200/60 bg-white/80 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
@@ -334,7 +361,7 @@ const Landing = () => {
             <span className="font-outfit font-bold text-slate-900 text-sm sm:text-base text-center md:text-left">Gracified Learning Platform</span>
           </div>
           <div className="flex items-center gap-4 sm:gap-6 text-sm text-slate-600 flex-wrap justify-center md:justify-end">
-            <a href="mailto:gracifiedlms@gmail.com" className="hover:text-primary font-medium transition-colors">Contact Us</a>
+            <a href="#contact" className="hover:text-primary font-medium transition-colors">Contact Us</a>
             <Link to="/login" className="hover:text-primary font-medium transition-colors">Sign In</Link>
             <Link to="/register" className="hover:text-primary font-medium transition-colors">Register</Link>
           </div>
