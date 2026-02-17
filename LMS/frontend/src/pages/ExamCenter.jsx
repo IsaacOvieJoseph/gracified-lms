@@ -198,16 +198,16 @@ const ExamCenter = () => {
         }
 
         return (
-            <div className="min-h-screen bg-[#0F172A] relative overflow-hidden flex items-center justify-center p-4 md:p-8 font-sans">
+            <div className="min-h-screen bg-[#0F172A] relative overflow-hidden flex items-stretch md:items-center md:justify-center p-0 md:p-8 font-sans">
                 {/* Dynamic Mesh Background - Pure Indigo/Blue */}
                 <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse"></div>
                 <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
                 <div className="absolute top-[20%] right-[-5%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-                <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.4)] relative z-10 border border-white/10 glass-dark">
+                <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden md:rounded-[2.5rem] md:shadow-[0_0_80px_rgba(0,0,0,0.4)] relative z-10 md:border border-white/10 glass-dark">
 
                     {/* Left Sidebar: Briefing & Prep */}
-                    <div className={`lg:col-span-5 bg-white/5 p-6 md:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10 min-h-[550px] md:min-h-0 ${onPrepStep === 1 ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`lg:col-span-5 bg-white/5 p-6 md:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10 min-h-screen md:min-h-0 ${onPrepStep === 1 ? 'flex' : 'hidden lg:flex'}`}>
                         <div>
                             <div className="flex items-center space-x-3 mb-6 md:mb-8">
                                 <div className="p-1.5 md:p-2 bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/30">
@@ -275,7 +275,7 @@ const ExamCenter = () => {
                     </div>
 
                     {/* Right Content: Main Entry */}
-                    <div className={`lg:col-span-7 bg-white p-6 md:p-12 flex flex-col justify-center relative min-h-[550px] md:min-h-0 ${onPrepStep === 2 ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`lg:col-span-7 bg-white p-6 md:p-12 flex flex-col justify-center relative min-h-screen md:min-h-0 ${onPrepStep === 2 ? 'flex' : 'hidden lg:flex'}`}>
                         {/* Mobile Back Button */}
                         <button
                             onClick={() => setOnPrepStep(1)}
