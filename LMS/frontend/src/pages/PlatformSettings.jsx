@@ -53,21 +53,23 @@ const PlatformSettings = () => {
 
     return (
         <Layout>
-            <div className="max-w-2xl mx-auto space-y-6">
+            <div className="max-w-2xl mx-auto space-y-8 py-4">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Settings className="w-6 h-6" />
+                    <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                            <Settings className="w-6 h-6" />
+                        </div>
                         Platform Settings
                     </h2>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 bg-gray-50">
-                        <h3 className="text-lg font-semibold text-gray-700">Financial Rates (%)</h3>
-                        <p className="text-sm text-gray-500">Set the default rates for all transactions. Payouts will be calculated after deducting these percentages.</p>
+                <div className="card-premium overflow-hidden">
+                    <div className="p-8 border-b border-slate-100 bg-slate-50/50">
+                        <h3 className="text-xl font-bold text-slate-900 mb-1">Financial Rates (%)</h3>
+                        <p className="text-sm text-slate-500 font-medium">Set the default rates for all transactions. Payouts will be calculated after deducting these percentages.</p>
                     </div>
 
-                    <form onSubmit={handleSave} className="p-6 space-y-6">
+                    <form onSubmit={handleSave} className="p-8 space-y-8">
                         <div className="grid grid-cols-1 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -127,25 +129,27 @@ const PlatformSettings = () => {
                             </div>
                         </div>
 
-                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                            <h4 className="text-sm font-semibold text-blue-800 mb-1">Calculation Example:</h4>
-                            <p className="text-xs text-blue-700">
-                                If a user pays <b>₦10,000</b>: <br />
-                                - Tax ({settings.taxRate}%): ₦{(10000 * settings.taxRate / 100).toLocaleString()} <br />
-                                - VAT ({settings.vatRate}%): ₦{(10000 * settings.vatRate / 100).toLocaleString()} <br />
-                                - Service Fee ({settings.serviceFeeRate}%): ₦{(10000 * settings.serviceFeeRate / 100).toLocaleString()} <br />
-                                <span className="font-bold">- Payable to Subscriber: ₦{(10000 - (10000 * (settings.taxRate + settings.vatRate + settings.serviceFeeRate) / 100)).toLocaleString()}</span>
-                            </p>
+                        <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10">
+                            <h4 className="text-sm font-bold text-primary uppercase tracking-wider mb-2">Calculation Example:</h4>
+                            <div className="space-y-1 text-sm text-slate-600">
+                                <p>If a user pays <span className="font-bold text-slate-900">₦10,000</span>:</p>
+                                <p>- Tax ({settings.taxRate}%): <span className="text-slate-900">₦{(10000 * settings.taxRate / 100).toLocaleString()}</span></p>
+                                <p>- VAT ({settings.vatRate}%): <span className="text-slate-900">₦{(10000 * settings.vatRate / 100).toLocaleString()}</span></p>
+                                <p>- Service Fee ({settings.serviceFeeRate}%): <span className="text-slate-900">₦{(10000 * settings.serviceFeeRate / 100).toLocaleString()}</span></p>
+                                <div className="mt-3 pt-3 border-t border-primary/10">
+                                    <p className="text-primary font-bold">Payable to Subscriber: ₦{(10000 - (10000 * (settings.taxRate + settings.vatRate + settings.serviceFeeRate) / 100)).toLocaleString()}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-end pt-4">
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-blue-400"
+                                className="btn-premium min-w-[200px]"
                             >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save Changes
+                                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                Save Settings
                             </button>
                         </div>
                     </form>

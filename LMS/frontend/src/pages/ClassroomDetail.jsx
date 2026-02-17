@@ -111,7 +111,6 @@ const ClassroomDetail = () => {
         description: editForm.description,
         learningOutcomes: editForm.learningOutcomes,
         subject: editForm.subject,
-        subject: editForm.subject,
         level: editForm.level,
         capacity: editForm.capacity,
         pricing: { type: editForm.pricingType, amount: editForm.pricingAmount },
@@ -1251,7 +1250,7 @@ const ClassroomDetail = () => {
             {!isEnrolled && user?.role === 'student' && classroom.published && (
               <button
                 onClick={handleEnroll}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                className="btn-premium"
               >
                 {classroom.isPaid && classroom.pricing?.amount > 0 ? `Enroll - ${formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}` : 'Enroll (Free)'}
               </button>
@@ -1264,7 +1263,7 @@ const ClassroomDetail = () => {
             {isEnrolled && user?.role === 'student' && (
               <button
                 onClick={() => setShowLeaveClassModal(true)}
-                className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                className="btn-danger"
               >
                 Leave Class
               </button>
@@ -1289,7 +1288,7 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleStartZoom}
-                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-bold"
+                        className="btn-premium flex-1 sm:flex-none shadow-indigo-200"
                       >
                         <Video className="w-5 h-5" />
                         <span>{label}</span>
@@ -1302,7 +1301,7 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleJoinCall}
-                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-bold"
+                        className="btn-premium flex-1 sm:flex-none shadow-indigo-200"
                       >
                         <Video className="w-5 h-5" />
                         <span>Attend Lecture</span>
@@ -1324,7 +1323,7 @@ const ClassroomDetail = () => {
                         onClick={handleOpenWhiteboard}
                         disabled={!enabled}
                         title={!enabled ? 'Whiteboard not launched yet by the teacher' : 'Open whiteboard'}
-                        className={`flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 rounded-lg transition font-bold ${enabled ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                        className={`flex-1 sm:flex-none ${enabled ? 'btn-success' : 'btn-secondary opacity-50 cursor-not-allowed'}`}
                       >
                         <Edit className="w-5 h-5" />
                         <span>Whiteboard</span>
