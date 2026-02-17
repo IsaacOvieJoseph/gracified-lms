@@ -6,6 +6,8 @@ import {
     Send,
     ChevronRight,
     ChevronLeft,
+    ChevronDown,
+    ChevronUp,
     AlertCircle,
     CheckCircle2,
     GraduationCap,
@@ -50,6 +52,7 @@ const ExamCenter = () => {
     const [submissionStatus, setSubmissionStatus] = useState(null);
     const [showAccessModal, setShowAccessModal] = useState(false);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [mobileMapExpanded, setMobileMapExpanded] = useState(false);
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
@@ -543,29 +546,8 @@ const ExamCenter = () => {
 
                 {/* Question Card Area */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 items-stretch">
-                    {/* Navigation Sidebar / Question Map */}
-                    <div className="w-full lg:w-48 flex flex-col">
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Question Map</h3>
-                        <div className="grid grid-cols-6 xs:grid-cols-8 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-4 gap-1.5 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-y-auto lg:max-h-[400px]">
-                            {questions.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setCurrentQuestionIndex(idx)}
-                                    className={`aspect-square rounded-lg flex items-center justify-center text-[10px] md:text-xs font-black transition-all ${idx === currentQuestionIndex
-                                        ? 'bg-indigo-600 text-white shadow-md scale-105'
-                                        : answers[idx] !== undefined
-                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-100'
-                                        }`}
-                                >
-                                    {idx + 1}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="flex-1 flex flex-col h-full">
+                    {/* Content Section - Order first on mobile so question + nav visible without scroll */}
+                    <div className="flex-1 flex flex-col h-full order-1 lg:order-2 min-w-0">
                         <div className="flex-1 bg-white rounded-2xl md:rounded-[2rem] shadow-lg shadow-gray-100 p-4 md:p-8 border border-gray-50 relative overflow-hidden flex flex-col">
                             <div className="relative z-10 flex-1 flex flex-col">
                                 <div className="flex items-center justify-between mb-4">
@@ -621,7 +603,7 @@ const ExamCenter = () => {
                         </div>
 
                         {/* Navigation Controls */}
-                        <div className="mt-4 flex items-center justify-between gap-4">
+                        <div className="mt-4 flex items-center justify-between gap-4 flex-shrink-0">
                             <button
                                 disabled={currentQuestionIndex === 0}
                                 onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
@@ -648,6 +630,47 @@ const ExamCenter = () => {
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Navigation Sidebar / Question Map - Below content on mobile (order-2), left sidebar on desktop */}
+                    <div className="w-full lg:w-48 flex flex-col order-2 lg:order-1 lg:flex-shrink-0">
+                        {/* Mobile: collapsible header */}
+                        <button
+                            type="button"
+                            onClick={() => setMobileMapExpanded(!mobileMapExpanded)}
+                            className="lg:hidden flex items-center justify-between w-full p-3 bg-white rounded-xl border border-gray-100 shadow-sm mb-2"
+                            aria-expanded={mobileMapExpanded}
+                        >
+                            <span className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                                Question map · {currentQuestionIndex + 1} of {questions.length}
+                            </span>
+                            {mobileMapExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-gray-400" />
+                            ) : (
+                                <ChevronDown className="w-4 h-4 text-gray-400" />
+                            )}
+                        </button>
+                        {/* Desktop: always-visible label */}
+                        <h3 className="hidden lg:block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Question Map</h3>
+                        <div className={`grid grid-cols-6 xs:grid-cols-8 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-4 gap-1.5 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-y-auto lg:max-h-[400px] ${!mobileMapExpanded ? 'hidden lg:grid' : ''}`}>
+                            {questions.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        setCurrentQuestionIndex(idx);
+                                        setMobileMapExpanded(false);
+                                    }}
+                                    className={`aspect-square rounded-lg flex items-center justify-center text-[10px] md:text-xs font-black transition-all ${idx === currentQuestionIndex
+                                        ? 'bg-indigo-600 text-white shadow-md scale-105'
+                                        : answers[idx] !== undefined
+                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-100'
+                                        }`}
+                                >
+                                    {idx + 1}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
