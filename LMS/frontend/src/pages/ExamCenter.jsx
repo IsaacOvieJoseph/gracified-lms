@@ -56,6 +56,7 @@ const ExamCenter = () => {
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
+    const STORAGE_KEY = `exam_state_${token}`;
 
     // Sync submissionId to ref
     useEffect(() => {
@@ -66,6 +67,56 @@ const ExamCenter = () => {
         fetchExamInfo();
         return () => clearInterval(timerRef.current);
     }, [token]);
+
+    // Restore persisted exam state on mount (if any)
+    useEffect(() => {
+        if (!exam || finished) return;
+        if (typeof window === 'undefined') return;
+
+        try {
+            const stored = window.localStorage.getItem(STORAGE_KEY);
+            if (!stored) return;
+
+            const parsed = JSON.parse(stored);
+            if (!parsed?.started || !parsed?.submissionId) return;
+
+            setSubmissionId(parsed.submissionId);
+            setQuestions(parsed.questions || []);
+            setAnswers(parsed.answers || {});
+            setCurrentQuestionIndex(parsed.currentQuestionIndex || 0);
+            setCandidateInfo(parsed.candidateInfo || { name: '', email: '' });
+            setStarted(true);
+
+            const restoredTimeLeft = typeof parsed.timeLeft === 'number' ? parsed.timeLeft : exam.duration * 60;
+            // Resume countdown from restored remaining time
+            startTimer(restoredTimeLeft);
+        } catch (err) {
+            // Ignore corrupted or invalid stored state
+        }
+    }, [exam, finished, STORAGE_KEY]);
+
+    // Persist exam progress and timer while in progress
+    useEffect(() => {
+        if (!started || finished || !exam) return;
+        if (typeof window === 'undefined') return;
+
+        try {
+            const payload = {
+                started: true,
+                submissionId,
+                answers,
+                currentQuestionIndex,
+                timeLeft,
+                candidateInfo,
+                questions,
+                examId: exam._id || exam.id || null,
+                token
+            };
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch (err) {
+            // Ignore storage errors (e.g., quota exceeded, private mode)
+        }
+    }, [answers, currentQuestionIndex, timeLeft, started, finished, submissionId, exam, candidateInfo, questions, STORAGE_KEY, token]);
 
     const fetchExamInfo = async () => {
         try {
@@ -80,6 +131,10 @@ const ExamCenter = () => {
                 setSubmissionId(data.existingSubmissionId);
                 setQuestions(data.questions);
                 setFinished(true);
+                // Clear any stale in-progress state if exam is already finished
+                if (typeof window !== 'undefined') {
+                    window.localStorage.removeItem(STORAGE_KEY);
+                }
             }
         } catch (error) {
             if (error.response?.status === 410) {
@@ -88,6 +143,56 @@ const ExamCenter = () => {
                 toast.error(error.response?.data?.message || 'Failed to fetch exam');
                 navigate('/dashboard');
             }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const startTimer = (initialSeconds) => {
+        clearInterval(timerRef.current);
+
+        if (initialSeconds <= 0) {
+            setTimeLeft(0);
+            submitExam(true);
+            return;
+        }
+
+        setTimeLeft(initialSeconds);
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    submitExam(true);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const submitExam = async (isAuto = false) => {
+        if (!isAuto && !showSubmitModal) {
+            setShowSubmitModal(true);
+            return;
+        }
+
+        setShowSubmitModal(false);
+        setLoading(true);
+        clearInterval(timerRef.current);
+
+        try {
+            const response = await api.post(`/exams/submissions/${submissionIdRef.current}/submit`, { answers });
+            setScore(response.data.score);
+            setSubmissionStatus(response.data.status);
+            setFinished(true);
+            // Clear persisted state after successful submission
+            if (typeof window !== 'undefined') {
+                window.localStorage.removeItem(STORAGE_KEY);
+            }
+            if (isAuto) toast.error('Time expired! Your exam has been auto-submitted.');
+            else toast.success('Exam submitted successfully!');
+        } catch (error) {
+            toast.error('Failed to submit exam. Please contact support.');
         } finally {
             setLoading(false);
         }
@@ -111,17 +216,8 @@ const ExamCenter = () => {
             setQuestions(response.data.questions);
             setStarted(true);
 
-            // Start Timer
-            timerRef.current = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current);
-                        submitExam(true);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
+            // Start timer from full duration on fresh start
+            startTimer(exam.duration * 60);
 
         } catch (error) {
             const message = error.response?.data?.message || 'Failed to start exam';
@@ -131,30 +227,6 @@ const ExamCenter = () => {
             } else {
                 toast.error(message);
             }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const submitExam = async (isAuto = false) => {
-        if (!isAuto && !showSubmitModal) {
-            setShowSubmitModal(true);
-            return;
-        }
-
-        setShowSubmitModal(false);
-        setLoading(true);
-        clearInterval(timerRef.current);
-
-        try {
-            const response = await api.post(`/exams/submissions/${submissionIdRef.current}/submit`, { answers });
-            setScore(response.data.score);
-            setSubmissionStatus(response.data.status);
-            setFinished(true);
-            if (isAuto) toast.error('Time expired! Your exam has been auto-submitted.');
-            else toast.success('Exam submitted successfully!');
-        } catch (error) {
-            toast.error('Failed to submit exam. Please contact support.');
         } finally {
             setLoading(false);
         }
