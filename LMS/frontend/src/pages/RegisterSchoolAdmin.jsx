@@ -110,138 +110,182 @@ const RegisterSchoolAdmin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md transform transition-all hover:scale-[1.01]">
-        <div className="text-center mb-8">
-          <div className="bg-indigo-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-            <School className="w-10 h-10 text-indigo-600" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-blue-50 flex items-center justify-center p-4 md:p-6 font-inter relative overflow-hidden">
+      {/* Ambient background shapes */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-400/5 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10 animate-slide-up">
+        <div className="card-premium p-8 md:p-10 bg-white/95 backdrop-blur-xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex p-3 rounded-2xl bg-primary/10 mb-4">
+              <School className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="font-outfit text-3xl font-bold text-slate-900 mb-2">School Admin</h1>
+            <p className="text-slate-500">Register your school and start managing</p>
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">School Admin</h2>
-          <p className="text-gray-600">Register your school to get started</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name */}
+            <div className="space-y-1.5">
+              <label htmlFor="name" className="block text-sm font-semibold text-slate-600 ml-1">Full Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                required
+                className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-600 ml-1">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="admin@school.com"
+                required
+                className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+            </div>
+
+            {/* School Name */}
+            <div className="space-y-1.5">
+              <label htmlFor="schoolName" className="block text-sm font-semibold text-slate-600 ml-1">School Name</label>
+              <input
+                type="text"
+                id="schoolName"
+                name="schoolName"
+                value={formData.schoolName}
+                onChange={handleChange}
+                placeholder="Excellence Academy"
+                required
+                className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+            </div>
+
+            {/* Logo Upload */}
+            <div className="space-y-1.5">
+              <label htmlFor="logo" className="block text-sm font-semibold text-slate-600 ml-1">School Logo (Optional)</label>
+              <input
+                type="file"
+                id="logo"
+                name="logo"
+                onChange={handleLogoChange}
+                accept="image/*"
+                className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-500 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-semibold file:cursor-pointer"
+              />
+              <p className="text-xs text-slate-400 ml-1">Recommended: Square image, max 2MB</p>
+            </div>
+
+            {/* Passwords */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="block text-sm font-semibold text-slate-600 ml-1">Password</label>
+                <div className="relative group">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    required
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-600 ml-1">Confirm</label>
+                <div className="relative group">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    required
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Error & Message Alerts */}
+            {error && (
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
+                {message}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading || isUploading}
+              className="w-full btn-premium mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isUploading ? 'Uploading logo...' : loading ? 'Creating account...' : 'Complete Registration'}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <p className="text-sm text-slate-600 text-center">
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+                Sign in here
+              </Link>
+            </p>
+          </div>
+
+          {/* Other Account Types */}
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <p className="text-xs text-slate-500 text-center mb-4">Other account types</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Link
+                to="/register/student"
+                className="btn-secondary text-sm py-2 justify-center"
+              >
+                Student
+              </Link>
+              <Link
+                to="/register/personal-teacher"
+                className="btn-secondary text-sm py-2 justify-center"
+              >
+                Teacher
+              </Link>
+            </div>
+          </div>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Full Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
-              placeholder="John Doe"
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
-              placeholder="admin@school.com"
-            />
-          </div>
-          <div>
-            <label htmlFor="schoolName" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">School Name</label>
-            <input
-              type="text"
-              id="schoolName"
-              name="schoolName"
-              value={formData.schoolName}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
-              placeholder="Excellence Academy"
-            />
-          </div>
-          <div>
-            <label htmlFor="logo" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">School Logo (Optional)</label>
-            <input
-              type="file"
-              id="logo"
-              name="logo"
-              onChange={handleLogoChange}
-              accept="image/*"
-              className="w-full px-4 py-2 border border-none rounded-xl bg-gray-50 focus:bg-white transition-all duration-200 outline-none"
-            />
-            <p className="text-[10px] text-gray-500 mt-1 ml-1">Recommended: Square image, max 2MB</p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none pr-10"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Confirm</label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none pr-10"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-
-          {error && (
-            <div className="p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-          {message && (
-            <div className="p-4 rounded-xl bg-green-50 border-l-4 border-green-500 text-green-700 text-sm">
-              {message}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || isUploading}
-            className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isUploading ? 'Uploading logo...' : loading ? 'Registering...' : 'Complete Registration'}
-          </button>
-        </form>
-        <p className="mt-8 text-center text-gray-600">
-          Already have an account? <Link to="/login" className="font-bold text-indigo-600 hover:text-indigo-500 transition-colors">Log In</Link>
-        </p>
       </div>
     </div>
   );

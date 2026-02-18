@@ -87,109 +87,171 @@ const RegisterStudent = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-900">Register as Student</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-            <div className="relative mt-1">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10"
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-            <div className="relative mt-1">
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10"
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-blue-50 flex items-center justify-center p-4 md:p-6 font-inter relative overflow-hidden">
+      {/* Ambient background shapes */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-400/5 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10 animate-slide-up">
+        <div className="card-premium p-8 md:p-10 bg-white/95 backdrop-blur-xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="font-outfit text-3xl font-bold text-slate-900 mb-2">Join as Student</h1>
+            <p className="text-slate-500">Create your learning account</p>
           </div>
 
-          <div>
-            <label htmlFor="schoolId" className="block text-sm font-medium text-gray-700">School / Tutorial Center</label>
-            <select
-              id="schoolId"
-              name="schoolId"
-              value={formData.schoolId}
-              onChange={handleChange}
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name */}
+            <div className="space-y-1.5">
+              <label htmlFor="name" className="block text-sm font-semibold text-slate-600 ml-1">Full Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                required
+                className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-600 ml-1">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                required
+                className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="block text-sm font-semibold text-slate-600 ml-1">Password</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Create a strong password"
+                  required
+                  className="w-full pl-4 pr-12 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-1.5">
+              <label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-600 ml-1">Confirm Password</label>
+              <div className="relative group">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm your password"
+                  required
+                  className="w-full pl-4 pr-12 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* School Selection */}
+            <div className="space-y-1.5">
+              <label htmlFor="schoolId" className="block text-sm font-semibold text-slate-600 ml-1">School / Tutorial Center</label>
+              <select
+                id="schoolId"
+                name="schoolId"
+                value={formData.schoolId}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none appearance-none"
+              >
+                <option value="">Select a school (Optional)</option>
+                <option value="none">None</option>
+                {schools.map(school => (
+                  <option key={school._id} value={school._id}>{school.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-400 ml-1 mt-1">Select "None" if you don't belong to any specific school.</p>
+            </div>
+
+            {/* Error & Message Alerts */}
+            {error && (
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
+                {message}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-premium mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <option value="">Select a school (Optional)</option>
-              <option value="none">None</option>
-              {schools.map(school => (
-                <option key={school._id} value={school._id}>{school.name}</option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">Select "None" if you don't belong to any specific school.</p>
+              {loading ? 'Creating account...' : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <p className="text-sm text-slate-600 text-center">
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+                Sign in here
+              </Link>
+            </p>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {message && <p className="text-green-500 text-sm">{message}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {loading ? 'Registering...' : 'Register'}
-          </button>
-        </form>
-        <p className="text-sm text-center text-gray-600">
-          Already have an account? <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">Login</Link>
-        </p>
-      </div >
-    </div >
+
+          {/* Sign Up Options */}
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <p className="text-xs text-slate-500 text-center mb-4">Other account types</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Link
+                to="/register/school-admin"
+                className="btn-secondary text-sm py-2 justify-center"
+              >
+                School Admin
+              </Link>
+              <Link
+                to="/register/personal-teacher"
+                className="btn-secondary text-sm py-2 justify-center"
+              >
+                Teacher
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
