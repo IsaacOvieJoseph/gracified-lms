@@ -6,9 +6,10 @@ import {
     Send,
     ChevronRight,
     ChevronLeft,
+    ChevronDown,
+    ChevronUp,
     AlertCircle,
     CheckCircle2,
-    GraduationCap,
     Layout,
     Clock,
     User,
@@ -28,6 +29,7 @@ import {
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
+import gracifiedLogo from '../assets/logo.jpg';
 
 const ExamCenter = () => {
     const { token } = useParams();
@@ -50,6 +52,7 @@ const ExamCenter = () => {
     const [submissionStatus, setSubmissionStatus] = useState(null);
     const [showAccessModal, setShowAccessModal] = useState(false);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [mobileMapExpanded, setMobileMapExpanded] = useState(false);
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
@@ -319,6 +322,19 @@ const ExamCenter = () => {
                             <div className="flex items-center space-x-4 mb-8 md:mb-8">
                                 <div className="p-2 md:p-2 bg-indigo-500/20 rounded-xl md:rounded-xl border border-indigo-500/30">
                                     <ShieldCheck className="w-6 h-6 md:w-5 md:h-5 text-indigo-400" />
+                            {/* School/Tutorial branding - top left */}
+                            {exam?.logoUrl && (
+                                <div className="flex items-center gap-2 md:gap-3 mb-6 md:mb-8">
+                                    <img src={exam.logoUrl} alt="" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-contain flex-shrink-0 border border-white/10" onError={(e) => { e.target.style.display = 'none'; }} />
+                                    <div>
+                                        <span className="text-sm md:text-base font-black text-white uppercase tracking-wide block leading-tight">{exam?.classroomName || 'Assessment'}</span>
+                                        <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-wider">Powered by Gracified</span>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-center space-x-3 mb-6 md:mb-8">
+                                <div className="p-1.5 md:p-2 bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/30">
+                                    <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-indigo-400" />
                                 </div>
                                 <span className="text-[10px] md:text-[10px] font-black text-indigo-300 uppercase tracking-[0.3em]">Authorized Entry Only</span>
                             </div>
@@ -374,6 +390,8 @@ const ExamCenter = () => {
 
                         <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-white/10 flex items-center space-x-4 grayscale opacity-30">
                             <img src="/logo.jpg" alt="Gracified" className="w-8 h-8 md:w-6 md:h-6 rounded-md object-cover" />
+                        <div className="mt-4 lg:mt-8 md:mt-12 pt-4 lg:pt-6 md:pt-8 border-t border-white/10 flex items-center space-x-3 grayscale opacity-30 flex-shrink-0">
+                            <img src={gracifiedLogo} alt="Gracified" className="w-5 h-5 md:w-6 md:h-6 rounded-md object-cover flex-shrink-0" />
                             <div className="flex flex-col">
                                 <span className="text-[10px] md:text-[9px] font-black text-white tracking-widest uppercase leading-none mb-1">Gracified LMS</span>
                                 <span className="text-[9px] md:text-[8px] font-bold text-gray-500 leading-none">Security Deployment</span>
@@ -395,6 +413,13 @@ const ExamCenter = () => {
                             <div className="flex items-center justify-between mb-4 md:mb-4">
                                 <div className="px-3 py-1 md:px-3 md:py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] md:text-[10px] font-black uppercase tracking-widest leading-none">
                                     {exam?.classroomName || 'Portal'}
+                        <div className="mb-6 md:mb-10">
+                            <div className="flex items-center justify-between mb-2 md:mb-4">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <img src={exam?.logoUrl || gracifiedLogo} alt="Institution" className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-contain flex-shrink-0 border border-gray-100" onError={(e) => { e.target.src = gracifiedLogo; }} />
+                                    <div className="px-2 py-0.5 md:px-3 md:py-1 bg-indigo-50 text-indigo-600 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none">
+                                        {exam?.classroomName || 'Portal'}
+                                    </div>
                                 </div>
                                 <div className="flex items-center space-x-2 text-gray-300">
                                     <Zap className="w-4 h-4 md:w-3.5 md:h-3.5" />
@@ -513,6 +538,7 @@ const ExamCenter = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
                 <div className="max-w-3xl w-full bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl p-6 md:p-12 text-center my-10">
+                    <img src={exam?.logoUrl || gracifiedLogo} alt="Institution" className="w-14 h-14 md:w-16 md:h-16 rounded-xl object-contain mx-auto mb-4 border border-gray-100" onError={(e) => { e.target.src = gracifiedLogo; }} />
                     <div className="bg-green-100 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 text-green-600 shadow-lg shadow-green-100">
                         <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />
                     </div>
@@ -608,9 +634,7 @@ const ExamCenter = () => {
             <header className="bg-white px-4 md:px-8 py-2 md:py-3 shadow-sm border-b border-gray-100 sticky top-0 z-50 flex items-center justify-between">
                 <div className="flex items-center space-x-4 md:space-x-8">
                     <div className="flex items-center space-x-2 md:space-x-3">
-                        <div className="bg-indigo-600 text-white p-1.5 md:p-2 rounded-lg">
-                            <GraduationCap className="w-4 h-4 md:w-5 md:h-5" />
-                        </div>
+                        <img src={exam?.logoUrl || gracifiedLogo} alt="Institution" className="w-9 h-9 md:w-10 md:h-10 rounded-lg object-contain flex-shrink-0 border border-gray-100" onError={(e) => { e.target.src = gracifiedLogo; }} />
                         <div className="hidden sm:block">
                             <h2 className="text-sm md:text-base font-black text-gray-900 leading-none truncate max-w-[150px] md:max-w-xs">{exam?.title}</h2>
                         </div>
@@ -650,29 +674,8 @@ const ExamCenter = () => {
 
                 {/* Question Card Area */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 items-stretch">
-                    {/* Navigation Sidebar / Question Map */}
-                    <div className="w-full lg:w-48 flex flex-col">
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Question Map</h3>
-                        <div className="grid grid-cols-6 xs:grid-cols-8 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-4 gap-1.5 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-y-auto lg:max-h-[400px]">
-                            {questions.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setCurrentQuestionIndex(idx)}
-                                    className={`aspect-square rounded-lg flex items-center justify-center text-[10px] md:text-xs font-black transition-all ${idx === currentQuestionIndex
-                                        ? 'bg-indigo-600 text-white shadow-md scale-105'
-                                        : answers[idx] !== undefined
-                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-100'
-                                        }`}
-                                >
-                                    {idx + 1}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="flex-1 flex flex-col h-full">
+                    {/* Content Section - Order first on mobile so question + nav visible without scroll */}
+                    <div className="flex-1 flex flex-col h-full order-1 lg:order-2 min-w-0">
                         <div className="flex-1 bg-white rounded-2xl md:rounded-[2rem] shadow-lg shadow-gray-100 p-4 md:p-8 border border-gray-50 relative overflow-hidden flex flex-col">
                             <div className="relative z-10 flex-1 flex flex-col">
                                 <div className="flex items-center justify-between mb-4">
@@ -728,7 +731,7 @@ const ExamCenter = () => {
                         </div>
 
                         {/* Navigation Controls */}
-                        <div className="mt-4 flex items-center justify-between gap-4">
+                        <div className="mt-4 flex items-center justify-between gap-4 flex-shrink-0">
                             <button
                                 disabled={currentQuestionIndex === 0}
                                 onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
@@ -755,6 +758,47 @@ const ExamCenter = () => {
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Navigation Sidebar / Question Map - Below content on mobile (order-2), left sidebar on desktop */}
+                    <div className="w-full lg:w-48 flex flex-col order-2 lg:order-1 lg:flex-shrink-0">
+                        {/* Mobile: collapsible header */}
+                        <button
+                            type="button"
+                            onClick={() => setMobileMapExpanded(!mobileMapExpanded)}
+                            className="lg:hidden flex items-center justify-between w-full p-3 bg-white rounded-xl border border-gray-100 shadow-sm mb-2"
+                            aria-expanded={mobileMapExpanded}
+                        >
+                            <span className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                                Question map · {currentQuestionIndex + 1} of {questions.length}
+                            </span>
+                            {mobileMapExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-gray-400" />
+                            ) : (
+                                <ChevronDown className="w-4 h-4 text-gray-400" />
+                            )}
+                        </button>
+                        {/* Desktop: always-visible label */}
+                        <h3 className="hidden lg:block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Question Map</h3>
+                        <div className={`grid grid-cols-6 xs:grid-cols-8 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-4 gap-1.5 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-y-auto lg:max-h-[400px] ${!mobileMapExpanded ? 'hidden lg:grid' : ''}`}>
+                            {questions.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        setCurrentQuestionIndex(idx);
+                                        setMobileMapExpanded(false);
+                                    }}
+                                    className={`aspect-square rounded-lg flex items-center justify-center text-[10px] md:text-xs font-black transition-all ${idx === currentQuestionIndex
+                                        ? 'bg-indigo-600 text-white shadow-md scale-105'
+                                        : answers[idx] !== undefined
+                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-100'
+                                        }`}
+                                >
+                                    {idx + 1}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>

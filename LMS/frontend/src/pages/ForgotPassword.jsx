@@ -119,96 +119,101 @@ const ForgotPassword = () => {
   }, [step]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md transform transition-all hover:scale-[1.01]">
-        <div className="text-center mb-8">
-          <div className="bg-indigo-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-            <Lock className="w-10 h-10 text-indigo-600" />
-          </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Reset Password</h1>
-          <p className="text-gray-600">
-            {step === 1 && 'Enter your email to receive a reset code'}
-            {step === 2 && 'Enter the OTP sent to your email'}
-            {step === 3 && 'Create your new password'}
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-blue-50 flex items-center justify-center p-4 md:p-6 font-inter relative overflow-hidden">
+      {/* Ambient background shapes */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-400/5 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Step 1: Email Input */}
-        {step === 1 && (
-          <form onSubmit={handleRequestOTP} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 ml-1">
-                <Mail className="w-4 h-4 inline mr-2 text-indigo-500" />
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none"
-                placeholder="name@example.com"
-                required
-              />
+      <div className="w-full max-w-md relative z-10 animate-slide-up">
+        <div className="card-premium p-8 md:p-10 bg-white/95 backdrop-blur-xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex p-3 rounded-2xl bg-primary/10 mb-4">
+              <Lock className="w-8 h-8 text-primary" />
             </div>
-            {error && (
-              <div className="p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
-                {error}
+            <h1 className="font-outfit text-3xl font-bold text-slate-900 mb-2">Reset Password</h1>
+            <p className="text-slate-500">
+              {step === 1 && 'Enter your email to receive a reset code'}
+              {step === 2 && 'Enter the OTP sent to your email'}
+              {step === 3 && 'Create your new password'}
+            </p>
+          </div>
+
+          {/* Step 1: Email Input */}
+          {step === 1 && (
+            <form onSubmit={handleRequestOTP} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-slate-600 ml-1">Email Address</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-11 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    placeholder="name@example.com"
+                    required
+                  />
+                </div>
               </div>
-            )}
-            {message && (
-              <div className="p-4 rounded-xl bg-green-50 border-l-4 border-green-500 text-green-700 text-sm">
-                {message}
-              </div>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Sending...' : 'Send Reset Code'}
-            </button>
-          </form>
-        )}
+              {error && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+                  {error}
+                </div>
+              )}
+              {message && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
+                  {message}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full btn-premium mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Sending...' : 'Send Reset Code'}
+              </button>
+            </form>
+          )}
 
         {/* Step 2: OTP Verification */}
         {step === 2 && (
-          <form onSubmit={handleVerifyOTP} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 ml-1">
-                <Key className="w-4 h-4 inline mr-2 text-indigo-500" />
-                Enter OTP
-              </label>
-              <div className="flex justify-center mb-2">
+          <form onSubmit={handleVerifyOTP} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-slate-600 ml-1">Enter OTP</label>
+              <div className="flex justify-center mb-4">
                 <OTPInput
                   length={6}
                   value={otp}
                   onChange={setOtp}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-2 text-center">OTP sent to {email || sessionStorage.getItem('resetPasswordEmail')}</p>
+              <p className="text-xs text-slate-400 text-center ml-1">OTP sent to {email || sessionStorage.getItem('resetPasswordEmail')}</p>
             </div>
             {error && (
-              <div className="p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
                 {error}
               </div>
             )}
             {message && (
-              <div className="p-4 rounded-xl bg-green-50 border-l-4 border-green-500 text-green-700 text-sm">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
                 {message}
               </div>
             )}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full btn-premium mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
-            <div className="flex justify-between items-center mt-4">
+            <div className="flex justify-between items-center mt-4 pt-2 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium transition-colors"
+                className="text-primary hover:text-primary/80 text-xs font-semibold transition-colors"
               >
                 Change Email
               </button>
@@ -229,7 +234,7 @@ const ForgotPassword = () => {
                   }
                 }}
                 disabled={loading}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium disabled:opacity-50 transition-colors"
+                className="text-primary hover:text-primary/80 text-xs font-semibold disabled:opacity-50 transition-colors"
               >
                 Resend OTP
               </button>
@@ -239,83 +244,89 @@ const ForgotPassword = () => {
 
         {/* Step 3: New Password */}
         {step === 3 && (
-          <form onSubmit={handleResetPassword} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 ml-1">
-                New Password
-              </label>
-              <div className="relative">
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-slate-600 ml-1">New Password</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
                 <input
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none pr-10"
+                  className="w-full pl-11 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
                   placeholder="Enter new password"
                   required
                   minLength="6"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                   onClick={() => setShowNewPassword(!showNewPassword)}
                 >
-                  {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 ml-1">
-                Confirm Password
-              </label>
-              <div className="relative">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-slate-600 ml-1">Confirm Password</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none pr-10"
+                  className="w-full pl-11 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
                   placeholder="Confirm new password"
                   required
                   minLength="6"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
             {error && (
-              <div className="p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
                 {error}
               </div>
             )}
             {message && (
-              <div className="p-4 rounded-xl bg-green-50 border-l-4 border-green-500 text-green-700 text-sm">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
                 {message}
               </div>
             )}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full btn-premium mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>
             {message && (
-              <p className="text-sm text-gray-600 text-center animate-pulse">
+              <p className="text-xs text-slate-500 text-center animate-pulse">
                 Redirecting to login page...
               </p>
             )}
           </form>
         )}
 
-        <p className="mt-8 text-center text-gray-600">
-          <Link to="/login" className="font-bold text-indigo-600 hover:text-indigo-500 transition-colors flex items-center justify-center">
-            ← Back to Login
-          </Link>
-        </p>
+        {/* Footer */}
+        <div className="mt-8 pt-6 border-t border-slate-200">
+          <p className="text-center text-slate-500 text-sm">
+            <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1">
+              ← Back to Login
+            </Link>
+          </p>
+        </div>
+        </div>
       </div>
     </div>
   );

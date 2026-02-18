@@ -31,6 +31,7 @@ import ExamCenter from './pages/ExamCenter';
 import ExamSubmissions from './pages/ExamSubmissions';
 import ExamSubmissionDetail from './pages/ExamSubmissionDetail';
 import Profile from './pages/Profile';
+import Landing from './pages/Landing';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -308,7 +309,7 @@ const AppRoutes = () => {
       />
       <Route path="/exam-center/:token" element={<ExamCenter />} />
       <Route path="/set-password" element={<SetPassword />} />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
     </Routes>
   );
 };
