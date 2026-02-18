@@ -44,7 +44,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex font-inter relative overflow-hidden">
+    <div className="h-screen bg-[#F8FAFC] flex font-inter relative overflow-hidden">
       {/* Abstract Background Shapes */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-[120px]" />
@@ -73,14 +73,14 @@ const Login = () => {
       </div>
 
       {/* Right Form */}
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+      <div className="flex-1 flex justify-center p-6 pt-10 pb-10 relative z-10">
         <div className="w-full max-w-md animate-slide-up">
           <div className="lg:hidden text-center mb-8">
             <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-2xl shadow-lg mb-4" />
             <h1 className="text-2xl font-bold text-slate-900">Gracified LMS</h1>
           </div>
 
-          <div className="card-premium p-8 md:p-10 bg-white">
+          <div className="card-premium p-8 md:p-10 bg-white max-h-[calc(100vh-7rem)] overflow-y-auto">
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome back</h1>
               <p className="text-slate-500">Enter your credentials to access your account</p>
