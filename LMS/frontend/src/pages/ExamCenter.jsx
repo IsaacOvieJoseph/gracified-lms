@@ -53,6 +53,7 @@ const ExamCenter = () => {
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
+    const storageKey = `exam-session-${token}`;
 
     // Sync submissionId to ref
     useEffect(() => {
@@ -63,6 +64,100 @@ const ExamCenter = () => {
         fetchExamInfo();
         return () => clearInterval(timerRef.current);
     }, [token]);
+
+    const persistSession = (override = {}) => {
+        if (typeof window === 'undefined') return;
+        if (!exam || !submissionIdRef.current) return;
+
+        const baseSession = {
+            examId: exam._id,
+            submissionId: submissionIdRef.current,
+            answers,
+            currentQuestionIndex,
+            timeLeft,
+            started,
+            finished
+        };
+
+        const sessionToSave = { ...baseSession, ...override };
+
+        if (!sessionToSave.started || sessionToSave.finished) return;
+
+        try {
+            window.localStorage.setItem(storageKey, JSON.stringify(sessionToSave));
+        } catch {
+            // Ignore storage errors
+        }
+    };
+
+    const startTimer = (initialSeconds) => {
+        clearInterval(timerRef.current);
+        setTimeLeft(initialSeconds);
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    submitExam(true);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    useEffect(() => {
+        if (!exam || finished || started) return;
+        if (typeof window === 'undefined') return;
+
+        try {
+            const raw = window.localStorage.getItem(storageKey);
+            if (!raw) return;
+
+            const savedSession = JSON.parse(raw);
+
+            if (savedSession.examId && exam._id && savedSession.examId !== exam._id.toString()) {
+                return;
+            }
+
+            if (savedSession.finished) {
+                window.localStorage.removeItem(storageKey);
+                return;
+            }
+
+            if (savedSession.submissionId) {
+                setSubmissionId(savedSession.submissionId);
+            }
+
+            if (exam.questions && exam.questions.length > 0) {
+                setQuestions(exam.questions);
+            }
+
+            setAnswers(savedSession.answers || {});
+            setCurrentQuestionIndex(savedSession.currentQuestionIndex || 0);
+
+            const initialTime = savedSession.timeLeft && savedSession.timeLeft > 0
+                ? savedSession.timeLeft
+                : (exam.duration ? exam.duration * 60 : timeLeft || 0);
+
+            if (initialTime > 0) {
+                startTimer(initialTime);
+                setStarted(true);
+            } else {
+                window.localStorage.removeItem(storageKey);
+            }
+        } catch {
+            try {
+                window.localStorage.removeItem(storageKey);
+            } catch {
+                // Ignore cleanup errors
+            }
+        }
+    }, [exam, finished, started, storageKey, timeLeft]);
+
+    useEffect(() => {
+        if (!started || finished) return;
+        persistSession();
+    }, [answers, currentQuestionIndex, timeLeft]);
 
     const fetchExamInfo = async () => {
         try {
@@ -108,17 +203,19 @@ const ExamCenter = () => {
             setQuestions(response.data.questions);
             setStarted(true);
 
-            // Start Timer
-            timerRef.current = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current);
-                        submitExam(true);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
+            const durationSeconds = ((response.data.duration || exam.duration) || 0) * 60;
+            const initialTime = durationSeconds > 0 ? durationSeconds : timeLeft;
+            if (initialTime > 0) {
+                startTimer(initialTime);
+            }
+
+            persistSession({
+                started: true,
+                finished: false,
+                answers: {},
+                currentQuestionIndex: 0,
+                timeLeft: initialTime
+            });
 
         } catch (error) {
             const message = error.response?.data?.message || 'Failed to start exam';
@@ -156,6 +253,16 @@ const ExamCenter = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (!finished) return;
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.removeItem(storageKey);
+        } catch {
+            // Ignore storage errors
+        }
+    }, [finished, storageKey]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
