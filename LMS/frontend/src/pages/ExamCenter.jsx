@@ -6,9 +6,10 @@ import {
     Send,
     ChevronRight,
     ChevronLeft,
+    ChevronDown,
+    ChevronUp,
     AlertCircle,
     CheckCircle2,
-    GraduationCap,
     Layout,
     Clock,
     User,
@@ -28,6 +29,7 @@ import {
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
+import gracifiedLogo from '../assets/logo.jpg';
 
 const ExamCenter = () => {
     const { token } = useParams();
@@ -50,6 +52,7 @@ const ExamCenter = () => {
     const [submissionStatus, setSubmissionStatus] = useState(null);
     const [showAccessModal, setShowAccessModal] = useState(false);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [mobileMapExpanded, setMobileMapExpanded] = useState(false);
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
@@ -207,48 +210,58 @@ const ExamCenter = () => {
                 <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden md:rounded-[2.5rem] md:shadow-[0_0_80px_rgba(0,0,0,0.4)] relative z-10 md:border border-white/10 glass-dark">
 
                     {/* Left Sidebar: Briefing & Prep */}
-                    <div className={`lg:col-span-5 bg-white/5 p-6 md:p-10 flex flex-col justify-start lg:justify-between border-b lg:border-b-0 lg:border-r border-white/10 min-h-screen md:min-h-0 ${onPrepStep === 1 ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`lg:col-span-5 bg-white/5 p-6 md:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10 min-h-screen md:min-h-0 ${onPrepStep === 1 ? 'flex' : 'hidden lg:flex'}`}>
                         <div>
-                            <div className="flex items-center space-x-4 mb-8 md:mb-8">
-                                <div className="p-2 md:p-2 bg-indigo-500/20 rounded-xl md:rounded-xl border border-indigo-500/30">
-                                    <ShieldCheck className="w-6 h-6 md:w-5 md:h-5 text-indigo-400" />
+                            {/* School/Tutorial branding - top left */}
+                            {exam?.logoUrl && (
+                                <div className="flex items-center gap-2 md:gap-3 mb-6 md:mb-8">
+                                    <img src={exam.logoUrl} alt="" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-contain flex-shrink-0 border border-white/10" onError={(e) => { e.target.style.display = 'none'; }} />
+                                    <div>
+                                        <span className="text-sm md:text-base font-black text-white uppercase tracking-wide block leading-tight">{exam?.classroomName || 'Assessment'}</span>
+                                        <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-wider">Powered by Gracified</span>
+                                    </div>
                                 </div>
-                                <span className="text-[10px] md:text-[10px] font-black text-indigo-300 uppercase tracking-[0.3em]">Authorized Entry Only</span>
+                            )}
+                            <div className="flex items-center space-x-3 mb-6 md:mb-8">
+                                <div className="p-1.5 md:p-2 bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/30">
+                                    <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-indigo-400" />
+                                </div>
+                                <span className="text-[8px] md:text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] md:tracking-[0.3em]">Authorized Entry Only</span>
                             </div>
 
-                            <h2 className="text-3xl md:text-2xl font-black text-white mb-10 md:mb-8 flex items-center">
-                                <ListChecks className="w-8 h-8 md:w-6 md:h-6 mr-3 md:mr-3 text-indigo-400" />
+                            <h2 className="text-xl md:text-2xl font-black text-white mb-6 md:mb-8 flex items-center">
+                                <ListChecks className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-indigo-400" />
                                 Preparation
                             </h2>
 
-                            <div className="space-y-8 md:space-y-6">
-                                <div className="flex items-start space-x-5 md:space-x-4 group">
-                                    <div className="w-12 h-12 md:w-10 md:h-10 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
-                                        <Wifi className="w-6 h-6 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
+                            <div className="space-y-4 md:space-y-6">
+                                <div className="flex items-start space-x-3 md:space-x-4 group">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
+                                        <Wifi className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <h4 className="text-lg md:text-sm font-bold text-white mb-1.5 md:mb-1">Stable Connection</h4>
-                                        <p className="text-xs md:text-xs text-gray-400 leading-relaxed">Ensure you have a reliable internet source before starting the session.</p>
+                                        <h4 className="text-xs md:text-sm font-bold text-white mb-1">Stable Connection</h4>
+                                        <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed">Ensure you have a reliable internet source before starting the session.</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-start space-x-5 md:space-x-4 group">
-                                    <div className="w-12 h-12 md:w-10 md:h-10 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
-                                        <Clock className="w-6 h-6 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
+                                <div className="flex items-start space-x-3 md:space-x-4 group">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
+                                        <Clock className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <h4 className="text-lg md:text-sm font-bold text-white mb-1.5 md:mb-1">Duration Check</h4>
-                                        <p className="text-xs md:text-xs text-gray-400 leading-relaxed">The timer starts immediately. It will auto-submit when the window closes.</p>
+                                        <h4 className="text-xs md:text-sm font-bold text-white mb-1">Duration Check</h4>
+                                        <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed">The timer starts immediately. It will auto-submit when the window closes.</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-start space-x-5 md:space-x-4 group">
-                                    <div className="w-12 h-12 md:w-10 md:h-10 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
-                                        <Monitor className="w-6 h-6 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
+                                <div className="flex items-start space-x-3 md:space-x-4 group">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-all border border-white/5">
+                                        <Monitor className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <h4 className="text-lg md:text-sm font-bold text-white mb-1.5 md:mb-1">Device Ready</h4>
-                                        <p className="text-xs md:text-xs text-gray-400 leading-relaxed">Stay on this tab. Frequent tab switching may be flagged as suspicious activity.</p>
+                                        <h4 className="text-xs md:text-sm font-bold text-white mb-1">Device Ready</h4>
+                                        <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed">Stay on this tab. Frequent tab switching may be flagged as suspicious activity.</p>
                                     </div>
                                 </div>
                             </div>
@@ -257,101 +270,104 @@ const ExamCenter = () => {
                             <div className="lg:hidden mt-8">
                                 <button
                                     onClick={() => setOnPrepStep(2)}
-                                    className="w-full py-6 md:py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl md:text-lg shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-3 active:scale-95"
+                                    className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-3 active:scale-95"
                                 >
                                     <span>Proceed to Portal</span>
-                                    <ChevronRight className="w-6 h-6 md:w-5 md:h-5" />
+                                    <ChevronRight className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-white/10 flex items-center space-x-4 grayscale opacity-30">
-                            <img src="/logo.jpg" alt="Gracified" className="w-8 h-8 md:w-6 md:h-6 rounded-md object-cover" />
+                        <div className="mt-4 lg:mt-8 md:mt-12 pt-4 lg:pt-6 md:pt-8 border-t border-white/10 flex items-center space-x-3 grayscale opacity-30 flex-shrink-0">
+                            <img src={gracifiedLogo} alt="Gracified" className="w-5 h-5 md:w-6 md:h-6 rounded-md object-cover flex-shrink-0" />
                             <div className="flex flex-col">
-                                <span className="text-[10px] md:text-[9px] font-black text-white tracking-widest uppercase leading-none mb-1">Gracified LMS</span>
-                                <span className="text-[9px] md:text-[8px] font-bold text-gray-500 leading-none">Security Deployment</span>
+                                <span className="text-[8px] md:text-[9px] font-black text-white tracking-widest uppercase leading-none mb-1">Gracified LMS</span>
+                                <span className="text-[7px] md:text-[8px] font-bold text-gray-500 leading-none">Security Deployment</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Right Content: Main Entry */}
-                    <div className={`lg:col-span-7 bg-white p-6 md:p-12 flex flex-col justify-start lg:justify-center relative min-h-screen md:min-h-0 ${onPrepStep === 2 ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`lg:col-span-7 bg-white p-6 md:p-12 flex flex-col justify-center relative min-h-screen md:min-h-0 ${onPrepStep === 2 ? 'flex' : 'hidden lg:flex'}`}>
                         {/* Mobile Back Button */}
                         <button
                             onClick={() => setOnPrepStep(1)}
-                            className="lg:hidden absolute top-8 left-8 p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
+                            className="lg:hidden absolute top-6 left-6 p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
                         >
-                            <ChevronLeft className="w-6 h-6" />
+                            <ChevronLeft className="w-5 h-5" />
                         </button>
 
-                        <div className="mb-10 md:mb-10 mt-16 md:mt-0">
-                            <div className="flex items-center justify-between mb-4 md:mb-4">
-                                <div className="px-3 py-1 md:px-3 md:py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] md:text-[10px] font-black uppercase tracking-widest leading-none">
-                                    {exam?.classroomName || 'Portal'}
+                        <div className="mb-6 md:mb-10">
+                            <div className="flex items-center justify-between mb-2 md:mb-4">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <img src={exam?.logoUrl || gracifiedLogo} alt="Institution" className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-contain flex-shrink-0 border border-gray-100" onError={(e) => { e.target.src = gracifiedLogo; }} />
+                                    <div className="px-2 py-0.5 md:px-3 md:py-1 bg-indigo-50 text-indigo-600 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none">
+                                        {exam?.classroomName || 'Portal'}
+                                    </div>
                                 </div>
-                                <div className="flex items-center space-x-2 text-gray-300">
-                                    <Zap className="w-4 h-4 md:w-3.5 md:h-3.5" />
-                                    <span className="text-[10px] md:text-[10px] font-black uppercase tracking-wider">Live</span>
+                                <div className="flex items-center space-x-1 text-gray-300">
+                                    <Zap className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-wider">Live</span>
                                 </div>
                             </div>
-                            <h1 className="text-4xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-6 md:mb-4 tracking-tight leading-tight">
+                            <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-3 md:mb-4 tracking-tight leading-tight">
                                 {exam?.title}
                             </h1>
-                            <p className="text-sm md:text-sm text-gray-500 font-medium leading-relaxed italic border-l-4 border-indigo-100 pl-4 md:pl-4 py-1">
+                            <p className="text-xs md:text-sm text-gray-500 font-medium leading-relaxed italic border-l-4 border-indigo-100 pl-3 md:pl-4 py-0.5">
                                 {exam?.description}
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 md:gap-4 mb-10 md:mb-10">
-                            <div className="p-6 md:p-5 bg-gray-50 rounded-2xl md:rounded-2xl border border-gray-100">
-                                <div className="flex items-center text-gray-400 mb-2 md:mb-2">
-                                    <Timer className="w-4 h-4 md:w-4 md:h-4 mr-2 md:mr-2" />
-                                    <span className="text-[10px] md:text-[9px] font-black uppercase tracking-widest">Limit</span>
+                        <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-10">
+                            <div className="p-4 md:p-5 bg-gray-50 rounded-xl md:rounded-2xl border border-gray-100">
+                                <div className="flex items-center text-gray-400 mb-1 md:mb-2">
+                                    <Timer className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                                    <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Limit</span>
                                 </div>
-                                <div className="text-3xl md:text-2xl font-black text-gray-900 uppercase leading-none">
-                                    {exam?.duration} <span className="text-sm md:text-sm font-bold text-gray-400">MINS</span>
+                                <div className="text-lg md:text-2xl font-black text-gray-900 uppercase leading-none">
+                                    {exam?.duration} <span className="text-[10px] md:text-sm font-bold text-gray-400">MINS</span>
                                 </div>
                             </div>
-                            <div className="p-6 md:p-5 bg-gray-50 rounded-2xl md:rounded-2xl border border-gray-100">
-                                <div className="flex items-center text-gray-400 mb-2 md:mb-2">
-                                    <ShieldCheck className="w-4 h-4 md:w-4 md:h-4 mr-2 md:mr-2" />
-                                    <span className="text-[10px] md:text-[9px] font-black uppercase tracking-widest">Protocol</span>
+                            <div className="p-4 md:p-5 bg-gray-50 rounded-xl md:rounded-2xl border border-gray-100">
+                                <div className="flex items-center text-gray-400 mb-1 md:mb-2">
+                                    <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                                    <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Protocol</span>
                                 </div>
-                                <div className="text-3xl md:text-2xl font-black text-gray-900 uppercase leading-none">SECURE</div>
+                                <div className="text-lg md:text-2xl font-black text-gray-900 uppercase leading-none">SECURE</div>
                             </div>
                         </div>
 
                         {exam?.accessMode === 'open' ? (
-                            <div className="space-y-4 md:space-y-4 mb-10 md:mb-8">
+                            <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
                                 <div className="relative group">
-                                    <User className="absolute left-5 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 md:w-5 md:h-5 group-focus-within:text-indigo-500 transition-colors" />
+                                    <User className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-indigo-500 transition-colors" />
                                     <input
                                         type="text"
                                         placeholder="Full Name"
                                         value={candidateInfo.name}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, name: e.target.value })}
-                                        className="w-full pl-14 md:pl-14 pr-8 py-6 md:py-5 bg-gray-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl md:rounded-2xl transition-all outline-none font-bold text-base md:text-base text-gray-900"
+                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-gray-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-xl md:rounded-2xl transition-all outline-none font-bold text-sm md:text-base text-gray-900"
                                     />
                                 </div>
                                 <div className="relative group">
-                                    <Mail className="absolute left-5 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 md:w-5 md:h-5 group-focus-within:text-indigo-500 transition-colors" />
+                                    <Mail className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-indigo-500 transition-colors" />
                                     <input
                                         type="email"
                                         placeholder="Email Address (Optional)"
                                         value={candidateInfo.email}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, email: e.target.value })}
-                                        className="w-full pl-14 md:pl-14 pr-8 py-6 md:py-5 bg-gray-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl md:rounded-2xl transition-all outline-none font-bold text-base md:text-base text-gray-900"
+                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-gray-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-xl md:rounded-2xl transition-all outline-none font-bold text-sm md:text-base text-gray-900"
                                     />
                                 </div>
                             </div>
                         ) : (
-                            <div className={`rounded-2xl md:rounded-2xl p-6 md:p-6 mb-10 md:mb-8 border-2 flex items-start ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-indigo-50 border-indigo-100 text-indigo-700'}`}>
-                                <AlertCircle className="w-6 h-6 md:w-6 md:h-6 mr-4 md:mr-4 flex-shrink-0 mt-0.5" />
+                            <div className={`rounded-xl md:rounded-2xl p-4 md:p-6 mb-6 md:mb-8 border-2 flex items-start ${user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-indigo-50 border-indigo-100 text-indigo-700'}`}>
+                                <AlertCircle className="w-5 h-5 md:w-6 md:h-6 mr-3 md:mr-4 flex-shrink-0 mt-0.5" />
                                 <div>
-                                    <h4 className="font-black text-xs md:text-xs uppercase tracking-wider mb-1 md:mb-1">
+                                    <h4 className="font-black text-[10px] md:text-xs uppercase tracking-wider mb-0.5 md:mb-1">
                                         {user && !exam?.isEnrolled && exam?.accessMode === 'registered' ? 'Unauthorized' : 'Verified Entry'}
                                     </h4>
-                                    <p className="text-xs md:text-xs font-bold leading-tight opacity-90">
+                                    <p className="text-[10px] md:text-xs font-bold leading-tight opacity-90">
                                         {user ? (
                                             exam?.isEnrolled ? (
                                                 <>Logged in as <strong className="text-gray-900 underline decoration-indigo-300">{user.name}</strong>.</>
@@ -388,7 +404,7 @@ const ExamCenter = () => {
                             </button>
                         )}
 
-                        <p className="text-center text-[10px] md:text-[10px] font-bold text-gray-400 mt-8 md:mt-6 uppercase tracking-[0.3em]">
+                        <p className="text-center text-[8px] md:text-[10px] font-bold text-gray-400 mt-4 md:mt-6 uppercase tracking-[0.2em] md:tracking-[0.3em]">
                             Session Encrypted & Secure
                         </p>
                     </div>
@@ -406,6 +422,7 @@ const ExamCenter = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
                 <div className="max-w-3xl w-full bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl p-6 md:p-12 text-center my-10">
+                    <img src={exam?.logoUrl || gracifiedLogo} alt="Institution" className="w-14 h-14 md:w-16 md:h-16 rounded-xl object-contain mx-auto mb-4 border border-gray-100" onError={(e) => { e.target.src = gracifiedLogo; }} />
                     <div className="bg-green-100 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 text-green-600 shadow-lg shadow-green-100">
                         <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />
                     </div>
@@ -501,9 +518,7 @@ const ExamCenter = () => {
             <header className="bg-white px-4 md:px-8 py-2 md:py-3 shadow-sm border-b border-gray-100 sticky top-0 z-50 flex items-center justify-between">
                 <div className="flex items-center space-x-4 md:space-x-8">
                     <div className="flex items-center space-x-2 md:space-x-3">
-                        <div className="bg-indigo-600 text-white p-1.5 md:p-2 rounded-lg">
-                            <GraduationCap className="w-4 h-4 md:w-5 md:h-5" />
-                        </div>
+                        <img src={exam?.logoUrl || gracifiedLogo} alt="Institution" className="w-9 h-9 md:w-10 md:h-10 rounded-lg object-contain flex-shrink-0 border border-gray-100" onError={(e) => { e.target.src = gracifiedLogo; }} />
                         <div className="hidden sm:block">
                             <h2 className="text-sm md:text-base font-black text-gray-900 leading-none truncate max-w-[150px] md:max-w-xs">{exam?.title}</h2>
                         </div>
@@ -543,29 +558,8 @@ const ExamCenter = () => {
 
                 {/* Question Card Area */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 items-stretch">
-                    {/* Navigation Sidebar / Question Map */}
-                    <div className="w-full lg:w-48 flex flex-col">
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Question Map</h3>
-                        <div className="grid grid-cols-6 xs:grid-cols-8 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-4 gap-1.5 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-y-auto lg:max-h-[400px]">
-                            {questions.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setCurrentQuestionIndex(idx)}
-                                    className={`aspect-square rounded-lg flex items-center justify-center text-[10px] md:text-xs font-black transition-all ${idx === currentQuestionIndex
-                                        ? 'bg-indigo-600 text-white shadow-md scale-105'
-                                        : answers[idx] !== undefined
-                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-100'
-                                        }`}
-                                >
-                                    {idx + 1}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="flex-1 flex flex-col h-full">
+                    {/* Content Section - Order first on mobile so question + nav visible without scroll */}
+                    <div className="flex-1 flex flex-col h-full order-1 lg:order-2 min-w-0">
                         <div className="flex-1 bg-white rounded-2xl md:rounded-[2rem] shadow-lg shadow-gray-100 p-4 md:p-8 border border-gray-50 relative overflow-hidden flex flex-col">
                             <div className="relative z-10 flex-1 flex flex-col">
                                 <div className="flex items-center justify-between mb-4">
@@ -621,7 +615,7 @@ const ExamCenter = () => {
                         </div>
 
                         {/* Navigation Controls */}
-                        <div className="mt-4 flex items-center justify-between gap-4">
+                        <div className="mt-4 flex items-center justify-between gap-4 flex-shrink-0">
                             <button
                                 disabled={currentQuestionIndex === 0}
                                 onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
@@ -648,6 +642,47 @@ const ExamCenter = () => {
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Navigation Sidebar / Question Map - Below content on mobile (order-2), left sidebar on desktop */}
+                    <div className="w-full lg:w-48 flex flex-col order-2 lg:order-1 lg:flex-shrink-0">
+                        {/* Mobile: collapsible header */}
+                        <button
+                            type="button"
+                            onClick={() => setMobileMapExpanded(!mobileMapExpanded)}
+                            className="lg:hidden flex items-center justify-between w-full p-3 bg-white rounded-xl border border-gray-100 shadow-sm mb-2"
+                            aria-expanded={mobileMapExpanded}
+                        >
+                            <span className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                                Question map · {currentQuestionIndex + 1} of {questions.length}
+                            </span>
+                            {mobileMapExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-gray-400" />
+                            ) : (
+                                <ChevronDown className="w-4 h-4 text-gray-400" />
+                            )}
+                        </button>
+                        {/* Desktop: always-visible label */}
+                        <h3 className="hidden lg:block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Question Map</h3>
+                        <div className={`grid grid-cols-6 xs:grid-cols-8 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-4 gap-1.5 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-y-auto lg:max-h-[400px] ${!mobileMapExpanded ? 'hidden lg:grid' : ''}`}>
+                            {questions.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        setCurrentQuestionIndex(idx);
+                                        setMobileMapExpanded(false);
+                                    }}
+                                    className={`aspect-square rounded-lg flex items-center justify-center text-[10px] md:text-xs font-black transition-all ${idx === currentQuestionIndex
+                                        ? 'bg-indigo-600 text-white shadow-md scale-105'
+                                        : answers[idx] !== undefined
+                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-100'
+                                        }`}
+                                >
+                                    {idx + 1}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
