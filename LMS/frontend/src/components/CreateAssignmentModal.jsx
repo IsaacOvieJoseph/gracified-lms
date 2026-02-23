@@ -210,95 +210,95 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 overflow-y-auto max-h-[90vh]">
-        <h3 className="text-2xl font-bold mb-6 text-gray-900">{editAssignment ? 'Edit Assignment' : 'Create New Assignment'}</h3>
-        <form onSubmit={(e) => { setIsSubmitting(true); handleSubmit(e); }} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input
-              type="text"
-              value={createForm.title}
-              onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={createForm.description}
-              onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-              rows="3"
-            />
-          </div>
-          {/* Classroom selection is only shown if classroomId prop is NOT provided */}
-          {!classroomId && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Classroom</label>
-              <select
-                value={createForm.classroomId}
-                onChange={(e) => {
-                  setCreateForm({ ...createForm, classroomId: e.target.value, topicId: '' });
-                }}
-                className="w-full px-4 py-2 border rounded-lg"
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full p-8 overflow-y-auto max-h-[90vh] animate-slide-up">
+        <div className="flex justify-between items-center mb-8">
+          <h3 className="text-2xl font-bold text-slate-900">{editAssignment ? 'Edit Assignment' : 'New Assignment'}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={(e) => { setIsSubmitting(true); handleSubmit(e); }} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label>Assignment Title</label>
+              <input
+                type="text"
+                placeholder="e.g. Mid-term Assessment"
+                value={createForm.title}
+                onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+                className="w-full"
                 required
-              >
-                <option value="">Select a classroom</option>
-                {/* Assuming availableTopics has classroom info or we need a separate prop for classrooms */}
-                {/* For now, just show a placeholder, actual classroom fetching needs to be passed down or handled here */}
-                {/* This will be handled in Assignments.jsx, for ClassroomDetail.jsx, classroomId is already passed */}
-                {availableTopics?.length > 0 && availableTopics[0]?.classroomId && (
-                  <option value={availableTopics[0].classroomId._id}>
-                    {availableTopics[0].classroomId.name}
-                  </option>
-                )}
-              </select>
+              />
             </div>
-          )}
 
-          {availableTopics && availableTopics.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Topic (Optional)</label>
-              <select
-                value={createForm.topicId}
-                onChange={(e) => setCreateForm({ ...createForm, topicId: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="">Select a topic</option>
-                {availableTopics.map(t => (
-                  <option key={t._id} value={t._id}>{t.name}</option>
-                ))}
-              </select>
+            <div className="md:col-span-2">
+              <label>Description</label>
+              <textarea
+                placeholder="Instructions for students..."
+                value={createForm.description}
+                onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                className="w-full"
+                rows="2"
+              />
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Assignment Type</label>
-            <div className="flex space-x-4">
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio"
-                  name="assignmentType"
-                  value="theory"
-                  checked={createForm.assignmentType === 'theory'}
-                  onChange={(e) => setCreateForm({ ...createForm, assignmentType: e.target.value, questions: [{ questionText: '', markingPreference: 'manual', maxScore: 0 }], publishResultsAt: '' })}
-                />
-                <span className="ml-2">Theory</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio"
-                  name="assignmentType"
-                  value="mcq"
-                  checked={createForm.assignmentType === 'mcq'}
-                  onChange={(e) => setCreateForm({ ...createForm, assignmentType: e.target.value, questions: [{ questionText: '', options: ['', ''], correctOption: '' }] })}
-                />
-                <span className="ml-2">MCQ</span>
-              </label>
+            {!classroomId && (
+              <div>
+                <label>Classroom</label>
+                <select
+                  value={createForm.classroomId}
+                  onChange={(e) => {
+                    setCreateForm({ ...createForm, classroomId: e.target.value, topicId: '' });
+                  }}
+                  className="w-full"
+                  required
+                >
+                  <option value="">Select a classroom</option>
+                  {availableTopics?.length > 0 && availableTopics[0]?.classroomId && (
+                    <option value={availableTopics[0].classroomId._id}>
+                      {availableTopics[0].classroomId.name}
+                    </option>
+                  )}
+                </select>
+              </div>
+            )}
+
+            {availableTopics && availableTopics.length > 0 && (
+              <div className={classroomId ? "md:col-span-2" : ""}>
+                <label>Topic (Optional)</label>
+                <select
+                  value={createForm.topicId}
+                  onChange={(e) => setCreateForm({ ...createForm, topicId: e.target.value })}
+                  className="w-full"
+                >
+                  <option value="">Select a topic</option>
+                  {availableTopics.map(t => (
+                    <option key={t._id} value={t._id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="md:col-span-2">
+              <label>Assignment Type</label>
+              <div className="flex gap-4 p-1 bg-slate-100 rounded-xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setCreateForm({ ...createForm, assignmentType: 'theory', questions: [{ questionText: '', markingPreference: 'manual', maxScore: 0 }], publishResultsAt: '' })}
+                  className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'theory' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Theory
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateForm({ ...createForm, assignmentType: 'mcq', questions: [{ questionText: '', options: ['', ''], correctOption: '' }] })}
+                  className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'mcq' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  MCQ
+                </button>
+              </div>
             </div>
           </div>
 
@@ -485,67 +485,73 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               <span>Add Another Question</span>
             </button>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date (Optional)</label>
-            <input
-              type="date"
-              value={createForm.dueDate}
-              onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-            />
-          </div>
-          {createForm.assignmentType === 'mcq' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Publish Results At (Optional for MCQ)</label>
+              <label>Due Date</label>
               <input
-                type="datetime-local"
-                value={createForm.publishResultsAt}
-                onChange={(e) => setCreateForm({ ...createForm, publishResultsAt: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                type="date"
+                value={createForm.dueDate}
+                onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
+                className="w-full"
               />
             </div>
-          )}
-          <div>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={createForm.published}
-                onChange={(e) => setCreateForm({ ...createForm, published: e.target.checked })}
-                className="form-checkbox h-5 w-5 text-blue-600 rounded"
-              />
-              <span className="text-sm font-medium text-gray-700">Published (Visible to students)</span>
-            </label>
-            <p className="text-xs text-gray-500 mt-1 ml-7">
-              If published, students will be notified immediately.
-            </p>
-          </div>
-          {createForm.assignmentType === 'mcq' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max Score</label>
-              <input
-                type="number"
-                value={createForm.maxScore}
-                onChange={(e) => setCreateForm({ ...createForm, maxScore: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border rounded-lg"
-                min="1"
-              />
+            {createForm.assignmentType === 'mcq' && (
+              <>
+                <div>
+                  <label>Publish Results At</label>
+                  <input
+                    type="datetime-local"
+                    value={createForm.publishResultsAt}
+                    onChange={(e) => setCreateForm({ ...createForm, publishResultsAt: e.target.value })}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label>Max Score</label>
+                  <input
+                    type="number"
+                    value={createForm.maxScore}
+                    onChange={(e) => setCreateForm({ ...createForm, maxScore: parseInt(e.target.value) })}
+                    className="w-full"
+                    min="1"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="md:col-span-2 pt-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${createForm.published ? 'bg-primary' : 'bg-slate-200'}`}>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={createForm.published}
+                    onChange={(e) => setCreateForm({ ...createForm, published: e.target.checked })}
+                  />
+                  <div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${createForm.published ? 'translate-x-4' : ''}`} />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-700">Published</span>
+                  <p className="text-xs text-slate-400 font-medium">Assignment will be visible to students immediately</p>
+                </div>
+              </label>
             </div>
-          )}
-          <div className="flex space-x-3">
+          </div>
+
+          <div className="flex gap-4 mt-8 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
             >
-              Cancel
+              Discard
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center"
+              className="btn-premium flex-1"
             >
-              {editAssignment ? 'Update Assignment' : 'Create Assignment'}
-              {isSubmitting && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
+              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editAssignment ? 'Update Assignment' : 'Create Assignment')}
             </button>
           </div>
         </form>

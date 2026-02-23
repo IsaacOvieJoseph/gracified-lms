@@ -271,21 +271,24 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-slide-up">
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-indigo-50 to-purple-50">
+                <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Topic Management</h2>
+                        <h2 className="text-2xl font-bold text-slate-900">Topic Management</h2>
                         {currentTopic && (
-                            <p className="text-sm text-gray-600 mt-1">
-                                Current: <span className="font-semibold text-indigo-600">{currentTopic.name}</span>
-                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-sm text-slate-500">Current Topic</span>
+                                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-bold">
+                                    {currentTopic.name}
+                                </span>
+                            </div>
                         )}
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition"
+                        className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"
                     >
                         <X className="w-6 h-6" />
                     </button>
@@ -295,65 +298,66 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                 <div className="flex-1 overflow-y-auto p-6">
                     {/* Create/Edit Form */}
                     {showCreateForm ? (
-                        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-lg p-6 mb-6 border-2 border-indigo-200">
-                            <h3 className="text-lg font-semibold mb-4 text-gray-800">
-                                {editingTopic ? 'Edit Topic' : 'Create New Topic'}
+                        <form onSubmit={handleSubmit} className="bg-slate-50/50 rounded-3xl p-6 mb-8 border border-slate-100">
+                            <h3 className="text-lg font-bold mb-6 text-slate-900">
+                                {editingTopic ? 'Edit Topic' : 'New Topic'}
                             </h3>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Topic Name *</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        required
-                                    />
-                                </div>
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="md:col-span-2">
+                                        <label>Topic Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Introduction to Calculus"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            className="w-full"
+                                            required
+                                        />
+                                    </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        rows="3"
-                                    />
-                                </div>
+                                    <div className="md:col-span-2">
+                                        <label>Description</label>
+                                        <textarea
+                                            placeholder="What will students learn in this topic?"
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                            className="w-full"
+                                            rows="2"
+                                        />
+                                    </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Lesson Outline</label>
-                                    <textarea
-                                        value={formData.lessonsOutline}
-                                        onChange={(e) => setFormData({ ...formData, lessonsOutline: e.target.value })}
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        rows="3"
-                                        placeholder="Briefly outline the lessons in this topic..."
-                                    />
-                                </div>
+                                    <div className="md:col-span-2">
+                                        <label>Lesson Outline</label>
+                                        <textarea
+                                            placeholder="Briefly outline the lessons..."
+                                            value={formData.lessonsOutline}
+                                            onChange={(e) => setFormData({ ...formData, lessonsOutline: e.target.value })}
+                                            className="w-full"
+                                            rows="2"
+                                        />
+                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Duration Mode</label>
+                                        <label>Duration Mode</label>
                                         <select
                                             value={formData.duration.mode}
                                             onChange={(e) => setFormData({
                                                 ...formData,
                                                 duration: { ...formData.duration, mode: e.target.value }
                                             })}
-                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            className="w-full"
                                         >
                                             <option value="not_sure">Not Sure</option>
                                             <option value="day">Day(s)</option>
                                             <option value="week">Week(s)</option>
                                             <option value="month">Month(s)</option>
-                                            <option value="year">Year(s)</option>
                                         </select>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Duration Value</label>
+                                        <label>Duration Value</label>
                                         <input
                                             type="number"
                                             min="1"
@@ -362,51 +366,57 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                                 ...formData,
                                                 duration: { ...formData.duration, value: parseInt(e.target.value) || 1 }
                                             })}
-                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            className="w-full"
                                             disabled={formData.duration.mode === 'not_sure'}
                                         />
                                     </div>
-                                </div>
 
-                                <div className="flex items-center space-x-4">
                                     {showPaidTopics && (
-                                        <>
-                                            <label className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.isPaid}
-                                                    onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                                                />
-                                                <span className="text-sm font-medium text-gray-700">Paid Topic</span>
-                                            </label>
-                                            {formData.isPaid && (
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={formData.price}
-                                                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                                                    placeholder="Price"
-                                                    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                />
-                                            )}
-                                        </>
+                                        <div className="md:col-span-2 pt-2">
+                                            <div className="flex items-center gap-6 p-4 bg-white rounded-2xl border border-slate-100">
+                                                <label className="flex items-center gap-3 mb-0 ml-0 cursor-pointer">
+                                                    <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${formData.isPaid ? 'bg-primary' : 'bg-slate-200'}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="hidden"
+                                                            checked={formData.isPaid}
+                                                            onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                                                        />
+                                                        <div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                                                    </div>
+                                                    <span className="font-bold text-slate-700">Paid Topic</span>
+                                                </label>
+                                                {formData.isPaid && (
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        <span className="font-bold text-slate-400">₦</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={formData.price}
+                                                            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                                                            placeholder="Price"
+                                                            className="flex-1"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="flex space-x-3 mt-6">
+                            <div className="flex gap-4 mt-8">
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-white transition"
                                 >
-                                    Cancel
+                                    Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 flex items-center justify-center"
+                                    className="btn-premium flex-1"
                                 >
                                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingTopic ? 'Update Topic' : 'Create Topic')}
                                 </button>
@@ -415,10 +425,12 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                     ) : (
                         <button
                             onClick={() => setShowCreateForm(true)}
-                            className="w-full mb-6 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition flex items-center justify-center space-x-2 font-semibold"
+                            className="w-full mb-8 p-4 rounded-2xl border-2 border-dashed border-primary/20 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 font-bold group"
                         >
-                            <Plus className="w-5 h-5" />
-                            <span>Add New Topic</span>
+                            <div className="bg-primary/10 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+                                <Plus className="w-5 h-5" />
+                            </div>
+                            <span>New Course Topic</span>
                         </button>
                     )}
 
@@ -574,54 +586,54 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
-                        <span className="flex items-center space-x-2">
-                            <GripVertical className="w-4 h-4" />
-                            <span>Drag topics to reorder</span>
+                <div className="px-8 py-6 border-t border-slate-50 bg-slate-50/50">
+                    <div className="flex items-center justify-between text-sm text-slate-500 mb-6 font-medium">
+                        <span className="flex items-center gap-2">
+                            <GripVertical className="w-4 h-4 text-slate-300" />
+                            <span>Drag topics to reorder curriculum</span>
                         </span>
-                        <span>{topics.length} topic{topics.length !== 1 ? 's' : ''}</span>
+                        <span className="bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm text-xs font-bold uppercase tracking-wider">{topics.length} Total Topics</span>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                        className="w-full px-6 py-3.5 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all active:scale-[0.98] shadow-lg shadow-slate-200"
                     >
-                        Close
+                        Done Managing
                     </button>
                 </div>
             </div>
 
             {/* Progression Confirmation Modal */}
             {showProgressionModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-indigo-100">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <CheckCircle className="w-10 h-10 text-green-600" />
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up text-center">
+                        <div className="w-24 h-24 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                            <CheckCircle className="w-12 h-12 text-emerald-500" />
                         </div>
 
-                        <h3 className="text-2xl font-bold text-gray-900 text-center mb-2">Topic Completed!</h3>
-                        <p className="text-gray-600 text-center mb-8">
-                            Should the next topic <span className="font-bold text-indigo-600">"{nextTopic?.name}"</span> become active immediately?
+                        <h3 className="text-3xl font-black text-slate-900 mb-2">Topic Milestone!</h3>
+                        <p className="text-slate-500 font-medium mb-10 px-2 leading-relaxed">
+                            Should the next topic <span className="text-primary font-bold">"{nextTopic?.name}"</span> become active immediately for all students?
                         </p>
 
-                        <div className="flex flex-col space-y-3">
+                        <div className="space-y-3">
                             <button
                                 onClick={() => completeTopic(topicToComplete, true)}
-                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
+                                className="w-full py-4.5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 active:scale-[0.98]"
                             >
-                                <Play className="w-5 h-5" />
-                                <span>Yes, Activate Next Topic</span>
+                                <Play className="w-6 h-6 fill-current" />
+                                <span>Yes, Activate Next</span>
                             </button>
                             <button
                                 onClick={() => completeTopic(topicToComplete, false)}
-                                className="w-full py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center space-x-2"
+                                className="w-full py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                             >
-                                <Clock className="w-5 h-5 text-gray-400" />
-                                <span>No, Keep it Pending</span>
+                                <Clock className="w-5 h-5 text-slate-400" />
+                                <span>No, I'll Open Later</span>
                             </button>
                             <button
                                 onClick={() => setShowProgressionModal(false)}
-                                className="w-full py-2 text-gray-500 text-sm hover:text-gray-700 transition font-medium"
+                                className="w-full pt-4 text-slate-400 text-xs font-black uppercase tracking-widest hover:text-slate-600 transition"
                             >
                                 Cancel
                             </button>

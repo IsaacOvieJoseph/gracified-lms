@@ -160,22 +160,22 @@ const Feedbacks = () => {
 
             {/* Request Feedback Modal */}
             {showRequestModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-gray-900">Request Feedback</h3>
-                            <button onClick={() => setShowRequestModal(false)} className="text-gray-400 hover:text-gray-600">
-                                <span className="text-2xl">&times;</span>
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 animate-slide-up">
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 className="text-2xl font-bold text-slate-900">Request Feedback</h3>
+                            <button onClick={() => setShowRequestModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+                                <X className="w-6 h-6" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleRequestFeedback}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
+                        <form onSubmit={handleRequestFeedback} className="space-y-6">
+                            <div>
+                                <label>Target Audience</label>
                                 <select
                                     value={requestTarget}
                                     onChange={(e) => setRequestTarget(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                    required
                                 >
                                     <option value="all">All Users</option>
                                     <option value="student">Students Only</option>
@@ -184,33 +184,33 @@ const Feedbacks = () => {
                                 </select>
                             </div>
 
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Message / Question</label>
+                            <div>
+                                <label>Message / Question</label>
                                 <textarea
                                     value={requestMessage}
                                     onChange={(e) => setRequestMessage(e.target.value)}
-                                    rows="3"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
-                                    placeholder="e.g., How can we improve your platform experience?"
+                                    rows="4"
+                                    placeholder="e.g. How can we improve your learning experience?"
+                                    required
                                 />
+                                <p className="text-[10px] text-slate-400 mt-2">This will be sent as a notification to the selected users.</p>
                             </div>
 
-                            <div className="flex justify-end space-x-3">
+                            <div className="flex gap-4 pt-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowRequestModal(false)}
-                                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
                                     disabled={isRequesting}
                                 >
-                                    Cancel
+                                    Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isRequesting}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center"
+                                    className="btn-premium flex-1"
                                 >
-                                    {isRequesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                    Send Request
+                                    {isRequesting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Send Request'}
                                 </button>
                             </div>
                         </form>

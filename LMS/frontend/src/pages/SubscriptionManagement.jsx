@@ -207,88 +207,160 @@ const SubscriptionManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <div className="max-w-7xl w-full mx-auto bg-white p-8 rounded-lg shadow-md relative">
-        <div className="absolute top-4 right-4">
+    <div className="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <div className="max-w-7xl w-full mx-auto bg-white p-6 sm:p-12 rounded-[2.5rem] shadow-2xl relative border border-slate-100/50 animate-slide-up">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
+
+        <div className="absolute top-8 right-8 z-10">
           <button
             onClick={() => { logout(); navigate('/login'); }}
-            className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-all active:scale-95 group shadow-sm"
             title="Logout"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="hidden sm:inline">Logout</span>
+            <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+            <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-6 mt-2">Choose Your Subscription Plan</h2>
+
+        <div className="text-center mb-16 relative z-10">
+          <h2 className="text-4xl sm:text-5xl font-black text-slate-900 mb-4 tracking-tight">Choose Your Plan</h2>
+          <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto leading-relaxed">
+            Select the perfect subscription to power your educational institution. Scale as you grow.
+          </p>
+        </div>
 
         {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() &&
           !['student', 'teacher'].includes(user.role) && (
-            <p className="text-center text-sm text-gray-600 mb-4">
-              Your free trial ends on {new Date(user.trialEndDate).toLocaleDateString()}. Please select a plan before it expires.
-            </p>
+            <div className="max-w-xl mx-auto mb-10 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl flex items-center gap-4 animate-bounce">
+              <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-primary">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-indigo-900 font-bold text-sm">
+                Your free trial ends on <span className="underline decoration-indigo-300 decoration-2">{new Date(user.trialEndDate).toLocaleDateString()}</span>. Enjoy the full experience!
+              </p>
+            </div>
           )}
 
         {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) <= Date.now() &&
           !['student', 'teacher'].includes(user.role) && (
-            <p className="text-center text-red-500 text-lg font-semibold mb-4">
-              Your free trial has expired! Please choose a plan to continue.
-            </p>
+            <div className="max-w-xl mx-auto mb-10 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 animate-pulse">
+              <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-red-500">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+              <p className="text-red-900 font-black text-sm uppercase tracking-tight">
+                Your free trial has expired! Select a plan to regain full access.
+              </p>
+            </div>
           )}
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {error && (
+          <div className="max-w-md mx-auto mb-8 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-center font-bold text-sm">
+            {error}
+          </div>
+        )}
 
-        {/* Changed from Grid to Flex for better centering relative to content count */}
-        <div className="flex flex-wrap justify-center gap-8 mb-8">
+        <div className="flex flex-wrap justify-center gap-8 mb-12">
           {plans.map((plan) => (
             <div
               key={plan._id}
-              className={`w-full max-w-sm flex flex-col p-6 border rounded-lg shadow-sm text-center cursor-pointer transition-all ${selectedPlan?._id === plan._id ? 'border-indigo-600 ring-2 ring-indigo-500' : 'border-gray-200 hover:shadow-md'}`}
+              className={`w-full max-w-sm flex flex-col p-8 rounded-[2rem] cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedPlan?._id === plan._id
+                ? 'bg-slate-900 text-white shadow-2xl scale-[1.02] ring-4 ring-primary/20'
+                : 'bg-white text-slate-900 border-2 border-slate-100 hover:border-slate-200 hover:shadow-xl hover:-translate-y-1'
+                }`}
               onClick={() => handleSelectPlan(plan)}
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-2">{plan.name}</h3>
-              <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
-              {plan.price > 0 ? (
-                <p className="text-2xl font-bold text-indigo-600">{formatAmount(plan.price)}{plan.planType === 'monthly' ? '/month' : plan.planType === 'yearly' ? '/year' : ''}</p>
-              ) : (
-                <p className="text-2xl font-bold text-indigo-600">{plan.planType === 'trial' ? 'FREE' : 'Revenue Share'}</p>
+              {selectedPlan?._id === plan._id && (
+                <div className="absolute top-4 right-4 bg-primary text-white p-1 rounded-full animate-in zoom-in duration-300">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
               )}
-              {plan.planType === 'pay_as_you_go' && (
-                <p className="text-sm text-gray-500">{plan.revenueSharePercentage}% revenue share</p>
-              )}
-              <ul className="text-gray-700 text-left mt-4 space-y-1">
+
+              <h3 className={`text-2xl font-black mb-2 ${selectedPlan?._id === plan._id ? 'text-white' : 'text-slate-900'}`}>{plan.name}</h3>
+              <p className={`text-sm mb-6 font-medium ${selectedPlan?._id === plan._id ? 'text-slate-400' : 'text-slate-500'}`}>{plan.description}</p>
+
+              <div className="mb-8 p-6 bg-slate-50/10 rounded-2xl border border-white/5 backdrop-blur-sm">
+                {plan.price > 0 ? (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black">{formatAmount(plan.price)}</span>
+                    <span className="text-sm font-bold opacity-60">/{plan.planType === 'monthly' ? 'mo' : 'yr'}</span>
+                  </div>
+                ) : (
+                  <div className="text-3xl font-black text-primary">
+                    {plan.planType === 'trial' ? 'FREE TRIAL' : 'REV SHARE'}
+                  </div>
+                )}
+                {plan.planType === 'pay_as_you_go' && (
+                  <p className="text-xs font-black uppercase tracking-widest mt-2 opacity-60 text-primary">{plan.revenueSharePercentage}% Service Fee</p>
+                )}
+              </div>
+
+              <ul className="space-y-4 text-left flex-1 mb-10">
                 {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check-circle text-green-500 mr-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>{feature}</li>
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className={`mt-0.5 p-0.5 rounded-full ${selectedPlan?._id === plan._id ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-50 text-emerald-500'}`}>
+                      <CheckCircle className="w-4 h-4" />
+                    </div>
+                    <span className={`text-sm font-bold ${selectedPlan?._id === plan._id ? 'text-slate-300' : 'text-slate-600'}`}>{feature}</span>
+                  </li>
                 ))}
               </ul>
+
+              <div className={`mt-auto p-1 rounded-2xl transition-all ${selectedPlan?._id === plan._id ? 'bg-white/10' : 'bg-slate-50'}`}>
+                <div className={`py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all ${selectedPlan?._id === plan._id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 group-hover:text-slate-600'
+                  }`}>
+                  {selectedPlan?._id === plan._id ? 'Plan Selected' : 'Choose Plan'}
+                </div>
+              </div>
             </div>
           ))}
         </div>
 
-        <button
-          onClick={handleSubscribe}
-          disabled={submitting || !selectedPlan}
-          className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          {submitting ? 'Processing...' : `Subscribe to ${selectedPlan ? selectedPlan.name : 'Plan'}`}
-        </button>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <button
+            onClick={handleSubscribe}
+            disabled={submitting || !selectedPlan}
+            className="w-full py-5 bg-primary text-white font-black text-xl rounded-2xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-2xl shadow-primary/30 active:scale-[0.98] flex items-center justify-center gap-3"
+          >
+            {submitting ? (
+              <>
+                <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                <span>Processing Payment...</span>
+              </>
+            ) : (
+              <>
+                <span>Complete Subscription</span>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              </>
+            )}
+          </button>
 
-        {user?.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
-          <p className="text-center mt-4">
-            <button onClick={handleSkipTrial} className="text-gray-600 hover:underline disabled:opacity-50" disabled={submitting}>Skip for now (Trial Active)</button>
-          </p>
-        )}
-
+          {user?.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
+            <p className="text-center">
+              <button
+                onClick={handleSkipTrial}
+                className="text-slate-400 hover:text-slate-900 font-bold text-sm tracking-wide transition-colors uppercase"
+                disabled={submitting}
+              >
+                Maybe Later • Continue Trial
+              </button>
+            </p>
+          )}
+        </div>
       </div>
 
       {showPricingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[100]">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Set Default Class Fee</h3>
-            <p className="text-gray-600 mb-6">
-              As a Pay-As-You-Go user, how would you like to charge for your classes by default? You can change this individually for each class later.
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 animate-slide-up">
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">Class Fee Preference</h3>
+            <p className="text-slate-500 mb-8 leading-relaxed">
+              As a Pay-As-You-Go user, select your default billing model. You can customize this for specific classes later.
             </p>
 
-            <div className="space-y-3 mb-8">
+            <div className="grid grid-cols-1 gap-3 mb-8">
               {[
                 { id: 'monthly', label: 'Monthly' },
                 { id: 'weekly', label: 'Weekly' },
@@ -298,7 +370,7 @@ const SubscriptionManagement = () => {
               ].map((option) => (
                 <label
                   key={option.id}
-                  className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${defaultPricingType === option.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}
+                  className={`flex items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${defaultPricingType === option.id ? 'border-primary bg-primary/5' : 'border-slate-50 hover:border-slate-100 hover:bg-slate-50'}`}
                 >
                   <input
                     type="radio"
@@ -306,9 +378,9 @@ const SubscriptionManagement = () => {
                     value={option.id}
                     checked={defaultPricingType === option.id}
                     onChange={(e) => setDefaultPricingType(e.target.value)}
-                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
                   />
-                  <span className="ml-3 font-semibold text-gray-800">{option.label}</span>
+                  <span className={`ml-3 font-bold ${defaultPricingType === option.id ? 'text-primary' : 'text-slate-600'}`}>{option.label}</span>
                 </label>
               ))}
             </div>
@@ -316,9 +388,9 @@ const SubscriptionManagement = () => {
             <button
               onClick={handleSavePricingPreference}
               disabled={updatingProfile}
-              className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              className="btn-premium w-full flex items-center justify-center py-4"
             >
-              {updatingProfile ? 'Saving...' : 'Confirm Preference'}
+              {updatingProfile ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirm Preference'}
             </button>
           </div>
         </div>

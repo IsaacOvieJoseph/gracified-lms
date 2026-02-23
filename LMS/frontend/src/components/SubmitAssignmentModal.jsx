@@ -40,37 +40,40 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full p-6 space-y-4 overflow-y-auto max-h-[90vh]">
-        <h3 className="text-xl font-bold mb-4">Submit Assignment: {assignment.title}</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full p-8 space-y-6 overflow-y-auto max-h-[90vh] animate-slide-up">
+        <h3 className="text-2xl font-bold text-slate-900 border-b pb-4">Submit: {assignment.title}</h3>
+        <form onSubmit={handleSubmit} className="space-y-6">
           {assignment.questions.map((question, qIndex) => (
-            <div key={qIndex} className="border p-4 rounded-lg bg-gray-50">
-              <p className="font-medium text-gray-800 mb-2">Question {qIndex + 1}: {question.questionText}</p>
+            <div key={qIndex} className="p-6 rounded-3xl bg-slate-50 border border-slate-100">
+              <p className="font-bold text-slate-800 mb-4 tracking-tight leading-snug text-lg">Question {qIndex + 1}</p>
+              <div className="text-slate-600 mb-4 whitespace-pre-wrap">{question.questionText}</div>
+
               {assignment.assignmentType === 'mcq' && (
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-3">
                   {question.options.map((option, oIndex) => (
-                    <label key={oIndex} className="flex items-center space-x-2">
+                    <label key={oIndex} className={`flex items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${studentAnswers[qIndex] === option ? 'border-primary bg-primary/5' : 'border-white hover:border-slate-100 hover:bg-white bg-white/50'}`}>
                       <input
                         type="radio"
                         name={`mcq-question-${qIndex}`}
                         value={option}
                         checked={studentAnswers[qIndex] === option}
                         onChange={() => handleAnswerChange(qIndex, option)}
-                        className="form-radio text-blue-600"
+                        className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
                       />
-                      <span>{option}</span>
+                      <span className={`ml-3 font-medium ${studentAnswers[qIndex] === option ? 'text-primary font-bold' : 'text-slate-600'}`}>{option}</span>
                     </label>
                   ))}
                 </div>
               )}
               {assignment.assignmentType === 'theory' && (
                 <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Your Answer</label>
                   <textarea
                     value={studentAnswers[qIndex]}
                     onChange={(e) => handleAnswerChange(qIndex, e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg"
-                    rows="4"
+                    placeholder="Enter your detailed response here..."
+                    rows="6"
                     required
                   ></textarea>
                 </div>
@@ -78,21 +81,20 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
             </div>
           ))}
 
-          <div className="flex space-x-3 mt-6">
+          <div className="flex gap-4 pt-4 sticky bottom-0 bg-white/80 backdrop-blur-sm -mx-8 -mb-8 p-8">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center"
+              className="btn-premium flex-1"
             >
-              Submit Answers
-              {isSubmitting && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
+              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Submit Assignment'}
             </button>
           </div>
         </form>

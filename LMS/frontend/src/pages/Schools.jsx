@@ -59,30 +59,29 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-40">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm overflow-y-auto max-h-[90vh]">
-        <h2 className="text-xl font-bold mb-4">Create School</h2>
-        <form onSubmit={handleCreateSchool} className="space-y-4">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
+        <h2 className="text-2xl font-bold text-slate-900 mb-8">Establish New School</h2>
+        <form onSubmit={handleCreateSchool} className="space-y-6">
           <div>
-            <label className="block mb-1 font-medium text-sm">School Name</label>
+            <label>School Name</label>
             <input
               type="text"
+              placeholder="e.g. Gracified International"
               value={schoolName}
               onChange={(e) => setSchoolName(e.target.value)}
               required
-              className="w-full border px-3 py-2 rounded"
             />
           </div>
           {user?.role === 'root_admin' && (
             <div>
-              <label className="block mb-1 font-medium text-sm">School Admin</label>
+              <label>Assign Administrator</label>
               <select
                 value={adminId}
                 onChange={e => setAdminId(e.target.value)}
                 required
-                className="w-full border px-3 py-2 rounded"
               >
-                <option value="">Select Admin</option>
+                <option value="">Select an administrator</option>
                 {admins.map(a => (
                   <option key={a._id} value={a._id}>
                     {a.name} ({a.email})
@@ -91,20 +90,20 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
               </select>
             </div>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-4 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border px-3 py-2 rounded hover:bg-gray-50"
+              className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
             >
-              Cancel
+              Discard
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+              className="btn-premium flex-1"
             >
-              {loading ? "Creating..." : "Create"}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Create School"}
             </button>
           </div>
         </form>
@@ -163,33 +162,27 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-        <h3 className="text-xl font-bold mb-4">Edit School</h3>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
+        <h2 className="text-2xl font-bold text-slate-900 mb-8">Modify School</h2>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-6">
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              School Name
-            </label>
+            <label>School Name</label>
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
               required
             />
           </div>
 
           {user?.role === 'root_admin' ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                School Admin
-              </label>
+              <label>School Admin</label>
               <select
                 value={form.adminId}
                 onChange={e => setForm({ ...form, adminId: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
                 required
               >
                 <option value="">Select Admin</option>
@@ -201,34 +194,31 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
               </select>
             </div>
           ) : (
-            // For School Admin, display their own adminId as fixed
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Admin (Fixed)
-              </label>
+              <label>Administrator</label>
               <input
                 type="text"
-                value={school.admin?.name || 'N/A'} // Display admin's name
-                className="w-full px-4 py-2 border rounded-lg bg-gray-100 cursor-not-allowed"
+                value={school.admin?.name || 'N/A'}
+                className="bg-slate-50 cursor-not-allowed"
                 disabled
               />
             </div>
           )}
 
-          <div className="flex space-x-3 mt-6">
+          <div className="flex gap-4 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
             >
-              Cancel
+              Discard
             </button>
 
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="btn-premium flex-1"
             >
-              Save
+              Save Changes
             </button>
           </div>
 

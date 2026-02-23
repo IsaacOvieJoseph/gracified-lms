@@ -2149,16 +2149,21 @@ const ClassroomDetail = () => {
         {/* Add Student Modal */}
         {
           showAddStudentModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-                <h3 className="text-xl font-bold mb-4">Add Student to "{classroom.name}"</h3>
-                <form onSubmit={handleAddStudent} className="space-y-4">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up overflow-y-auto max-h-[90vh]">
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-2xl font-bold text-slate-900">Add Student</h3>
+                  <button onClick={() => setShowAddStudentModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <form onSubmit={handleAddStudent} className="space-y-8">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
+                    <label>Select Student</label>
                     <select
                       value={selectedStudentId}
                       onChange={(e) => setSelectedStudentId(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full"
                     >
                       <option value="">Select a student to add</option>
                       {availableStudents.map(student => (
@@ -2166,24 +2171,25 @@ const ClassroomDetail = () => {
                       ))}
                     </select>
                     {availableStudents.length === 0 && (
-                      <p className="text-sm text-gray-500 mt-2">No available students to add at this time.</p>
+                      <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                        <p className="text-sm text-slate-500">No available students to add at this time.</p>
+                      </div>
                     )}
                   </div>
-                  <div className="flex space-x-3">
+                  <div className="flex gap-4 pt-4">
                     <button
                       type="button"
                       onClick={() => setShowAddStudentModal(false)}
-                      className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                      className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
                     >
-                      Cancel
+                      Discard
                     </button>
                     <button
                       type="submit"
-                      disabled={!selectedStudentId || availableStudents.length === 0 || isAddingStudent} // Disable if no student selected or no available students
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                      disabled={!selectedStudentId || availableStudents.length === 0 || isAddingStudent}
+                      className="btn-premium flex-1"
                     >
-                      Add Student
-                      {isAddingStudent && <Loader2 className="w-4 h-4 ml-2 animate-spin" />}
+                      {isAddingStudent ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enroll Student'}
                     </button>
                   </div>
                 </form>
@@ -2192,19 +2198,24 @@ const ClassroomDetail = () => {
           )
         }
 
-        {/* Change Teacher Modal */}
+        {/* Assign Teacher Modal */}
         {
           showChangeTeacherModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-                <h3 className="text-xl font-bold mb-4">Change Teacher for "{classroom.name}"</h3>
-                <div className="space-y-3">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up overflow-y-auto max-h-[90vh]">
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-2xl font-bold text-slate-900">Assign Teacher</h3>
+                  <button onClick={() => setShowChangeTeacherModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="space-y-8">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select New Teacher</label>
+                    <label>Select New Teacher</label>
                     <select
                       value={selectedTeacherId}
                       onChange={(e) => setSelectedTeacherId(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full"
                     >
                       <option value="">Select a teacher</option>
                       {availableTeachers.map(teacher => (
@@ -2212,20 +2223,21 @@ const ClassroomDetail = () => {
                       ))}
                     </select>
                   </div>
-                  <div className="flex space-x-3">
+                  <div className="flex gap-4 pt-4">
                     <button
                       type="button"
                       onClick={() => setShowChangeTeacherModal(false)}
-                      className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                      className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
                     >
-                      Cancel
+                      Discard
                     </button>
                     <button
-                      type="submit"
-                      disabled={isChangingTeacher}
+                      type="button"
+                      disabled={!selectedTeacherId || isChangingTeacher}
                       onClick={handleChangeTeacher}
+                      className="btn-premium flex-1"
                     >
-                      Change Teacher
+                      {isChangingTeacher ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Assign Teacher'}
                     </button>
                   </div>
                 </div>
@@ -2246,52 +2258,49 @@ const ClassroomDetail = () => {
         {/* Enrollment Payment Modal */}
         {
           showEnrollmentPaymentModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
-              <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex justify-between items-center">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-yellow-300" />
-                    Enrollment Payment
-                  </h3>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+              <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
+                <div className="p-8 pb-0 flex justify-between items-center">
+                  <div className="bg-blue-50 p-3 rounded-2xl">
+                    <CreditCard className="w-6 h-6 text-blue-600" />
+                  </div>
                   <button
                     onClick={() => setShowEnrollmentPaymentModal(false)}
-                    className="text-white hover:text-gray-200 transition"
+                    className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"
                     disabled={isProcessingPayment}
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
-                <div className="p-6 text-center">
-                  <h4 className="text-lg font-semibold text-gray-800 mb-2">Join {classroom.name}</h4>
-                  <p className="text-gray-600 mb-6">Complete your payment to gain full access to this classroom.</p>
 
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                    <div className="text-sm text-gray-500 mb-1">Total Amount</div>
-                    <div className="text-3xl font-bold text-green-600">
+                <div className="p-8 pt-6 text-center">
+                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Join Classroom</h3>
+                  <p className="text-slate-500 mb-8 px-4">Complete your payment to gain full access to <span className="font-bold text-slate-700">"{classroom.name}"</span>.</p>
+
+                  <div className="bg-slate-50 rounded-[2rem] p-8 mb-8 border border-slate-100">
+                    <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Total Amount</div>
+                    <div className="text-4xl font-black text-slate-900">
                       {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-4">
                     <button
                       onClick={() => setShowEnrollmentPaymentModal(false)}
                       disabled={isProcessingPayment}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                      className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
                     >
-                      Cancel
+                      Discard
                     </button>
                     <button
                       onClick={handleEnrollmentPayment}
                       disabled={isProcessingPayment}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium shadow-md"
+                      className="btn-premium flex-1"
                     >
                       {isProcessingPayment ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Processing...
-                        </>
+                        <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
-                        'Pay Now'
+                        'Secure Checkout'
                       )}
                     </button>
                   </div>

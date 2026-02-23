@@ -743,33 +743,15 @@ const Assignments = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-8 h-8 text-red-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Delete Assignment?</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete this assignment? All student submissions and grades will be permanently removed.</p>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteAssignment}
-                disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:bg-red-400 flex items-center justify-center"
-              >
-                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        show={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteAssignment}
+        title="Delete Assignment"
+        message="Are you sure you want to delete this assignment? All student submissions and grades will be permanently removed."
+        confirmText="Delete"
+        isLoading={isDeleting}
+      />
 
       {/* Grade Assignment Modal */}
       {showGradeModal && (
