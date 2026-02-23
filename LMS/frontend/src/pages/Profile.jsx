@@ -224,7 +224,7 @@ const Profile = () => {
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                     <form onSubmit={handleSubmit} className="p-8 space-y-10">
 
-                        {/* Profile Picture Section - Hidden for School Admin and Personal Teacher */}
+                        {/* Profile Picture Section - Only for Students, Teachers and Root Admins */}
                         {!(user?.role === 'school_admin' || user?.role === 'personal_teacher') && (
                             <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b pb-8">
                                 <div className="relative group">
@@ -261,8 +261,8 @@ const Profile = () => {
                             <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b pb-8">
                                 <div className="relative group">
                                     <div className="w-24 h-24 rounded-xl overflow-hidden border-4 border-gray-100 shadow-inner bg-gray-50 flex items-center justify-center">
-                                        {logoPreview ? (
-                                            <img src={logoPreview} alt="Logo" className="max-w-full max-h-full object-contain" />
+                                        {logoPreview || profilePicPreview ? (
+                                            <img src={logoPreview || profilePicPreview} alt="Logo" className="max-w-full max-h-full object-contain" />
                                         ) : (
                                             <Building className="w-10 h-10 text-gray-400" />
                                         )}
@@ -278,9 +278,9 @@ const Profile = () => {
                                     </label>
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
-                                    <h3 className="text-lg font-bold text-gray-900">School / Tutorial Logo</h3>
+                                    <h3 className="text-lg font-bold text-gray-900">Brand Logo & Profile Image</h3>
                                     <p className="text-sm text-gray-500 mt-1">
-                                        Update your official logo. This will appear on documents and your public page.
+                                        Update your official logo. This will also be used as your profile image across the platform.
                                     </p>
                                 </div>
                             </div>

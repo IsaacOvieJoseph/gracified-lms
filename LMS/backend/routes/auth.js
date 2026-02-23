@@ -259,10 +259,12 @@ router.post('/register', async (req, res) => {
       const school = new School({ name: schoolName, adminId: user._id, logoUrl: logoUrl || null });
       await school.save();
       user.schoolId.push(school._id); // Push into array
+      if (logoUrl) user.profilePicture = logoUrl; // Sync logo with profile picture
     } else if (role === 'personal_teacher') {
       const tutorial = new Tutorial({ name: tutorialName, teacherId: user._id, logoUrl: logoUrl || null });
       await tutorial.save();
       user.tutorialId = tutorial._id;
+      if (logoUrl) user.profilePicture = logoUrl; // Sync logo with profile picture
     } else if (role === 'student' && schoolId) {
       // If student selects a school/tutorial center
       if (schoolId !== 'none') {
@@ -921,10 +923,12 @@ router.put('/profile', auth, async (req, res) => {
         { _id: { $in: user.schoolId } },
         { $set: { logoUrl: schoolLogoUrl } }
       );
+      user.profilePicture = schoolLogoUrl; // Sync school logo with profile picture
     }
 
     if (tutorialLogoUrl && user.role === 'personal_teacher' && user.tutorialId) {
       await Tutorial.findByIdAndUpdate(user.tutorialId, { logoUrl: tutorialLogoUrl });
+      user.profilePicture = tutorialLogoUrl; // Sync tutorial logo with profile picture
     }
 
     await user.save();
