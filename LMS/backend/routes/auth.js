@@ -530,10 +530,12 @@ const generateAndSendPasswordResetOTP = async (user) => {
           <h1 style="letter-spacing: 5px; color: #4f46e5; margin: 0; font-size: 32px;">${user.passwordResetOTP}</h1>
         </div>
         <p>This code is valid for 1 hour. If you did not request this, you can safely ignore this email.</p>
+        <!--
         <a href="${process.env.FRONTEND_URL}/reset-password?email=${user.email}" 
            style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold;">
           Reset Password
         </a>
+        -->
       `
     });
 
