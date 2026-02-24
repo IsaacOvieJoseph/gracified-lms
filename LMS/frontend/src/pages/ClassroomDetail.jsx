@@ -965,248 +965,250 @@ const ClassroomDetail = () => {
           </div>
           {/* Edit Classroom Modal */}
           {showEditModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl animate-slide-up">
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-2xl font-bold text-slate-900">Edit Classroom</h2>
-                  <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"><X className="w-6 h-6" /></button>
-                </div>
-                <form onSubmit={handleEditClassroom} className="space-y-8 pb-4">
-                  {/* Basic Info */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Class Title</label>
-                      <input
-                        value={editForm.name}
-                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                        placeholder="e.g. Advanced Mathematics Masterclass"
-                        className="w-full"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Academic Level</label>
-                      <Select
-                        options={levelOptions}
-                        value={levelOptions.find(opt => opt.value === editForm.level)}
-                        onChange={sel => setEditForm({ ...editForm, level: sel?.value })}
-                        className="modern-select"
-                        menuPortalTarget={document.body}
-                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Subject</label>
-                      <CreatableSelect
-                        options={subjectOptions}
-                        value={editForm.subject ? { value: editForm.subject, label: editForm.subject } : null}
-                        onChange={sel => setEditForm({ ...editForm, subject: sel?.value || '' })}
-                        className="modern-select"
-                        menuPortalTarget={document.body}
-                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Description</label>
-                      <textarea
-                        value={editForm.description}
-                        onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                        placeholder="Tell students what this class is about..."
-                        className="w-full min-h-[100px]"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Learning Outcomes</label>
-                      <textarea
-                        value={editForm.learningOutcomes}
-                        onChange={e => setEditForm({ ...editForm, learningOutcomes: e.target.value })}
-                        placeholder="List what students will achieve (comma separated)..."
-                        className="w-full min-h-[80px]"
-                      />
-                    </div>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4">
+                <div className="bg-white rounded-[2rem] w-full max-w-2xl overflow-y-auto p-8 shadow-2xl animate-slide-up">
+                  <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-2xl font-bold text-slate-900">Edit Classroom</h2>
+                    <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"><X className="w-6 h-6" /></button>
                   </div>
+                  <form onSubmit={handleEditClassroom} className="space-y-8 pb-4">
+                    {/* Basic Info */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Class Title</label>
+                        <input
+                          value={editForm.name}
+                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                          placeholder="e.g. Advanced Mathematics Masterclass"
+                          className="w-full"
+                          required
+                        />
+                      </div>
 
-                  {/* Roles & Visibility */}
-                  <div className="grid md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign Teacher</label>
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Academic Level</label>
                         <Select
-                          options={availableTeachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
-                          value={availableTeachers.find(t => t._id === editForm.teacherId) ? { value: editForm.teacherId, label: availableTeachers.find(t => t._id === editForm.teacherId).name } : null}
-                          onChange={sel => setEditForm({ ...editForm, teacherId: sel?.value })}
-                          placeholder="Select a teacher..."
+                          options={levelOptions}
+                          value={levelOptions.find(opt => opt.value === editForm.level)}
+                          onChange={sel => setEditForm({ ...editForm, level: sel?.value })}
                           className="modern-select"
                           menuPortalTarget={document.body}
                           styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                         />
                       </div>
-                    )}
 
-                    {user?.role === 'school_admin' && (
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign to Schools</label>
-                        <Select
-                          isMulti
-                          options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
-                          value={editForm.schoolIds?.map(id => {
-                            const s = [{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].find(sch => sch._id === id);
-                            return { value: id, label: s?.name || id };
-                          })}
-                          onChange={sels => setEditForm({ ...editForm, schoolIds: sels ? sels.map(s => s.value) : [] })}
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Subject</label>
+                        <CreatableSelect
+                          options={subjectOptions}
+                          value={editForm.subject ? { value: editForm.subject, label: editForm.subject } : null}
+                          onChange={sel => setEditForm({ ...editForm, subject: sel?.value || '' })}
                           className="modern-select"
                           menuPortalTarget={document.body}
                           styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                         />
                       </div>
-                    )}
 
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Max Capacity</label>
-                      <input
-                        type="number"
-                        value={editForm.capacity}
-                        onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) || 30 })}
-                        className="w-full"
-                        min="1"
-                      />
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Description</label>
+                        <textarea
+                          value={editForm.description}
+                          onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                          placeholder="Tell students what this class is about..."
+                          className="w-full min-h-[100px]"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Learning Outcomes</label>
+                        <textarea
+                          value={editForm.learningOutcomes}
+                          onChange={e => setEditForm({ ...editForm, learningOutcomes: e.target.value })}
+                          placeholder="List what students will achieve (comma separated)..."
+                          className="w-full min-h-[80px]"
+                        />
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-6 pt-4">
-                      <label className="flex items-center gap-2 cursor-pointer group">
-                        <div
-                          className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                          onClick={() => setEditForm({ ...editForm, isPrivate: !editForm.isPrivate })}
-                        >
-                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPrivate ? 'translate-x-4' : ''}`} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 uppercase">Private</span>
-                      </label>
-
-                      <label className="flex items-center gap-2 cursor-pointer group">
-                        <div
-                          className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                          onClick={() => setEditForm({ ...editForm, isPaid: !editForm.isPaid })}
-                        >
-                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPaid ? 'translate-x-4' : ''}`} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 uppercase">Paid Class</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Pricing details if paid */}
-                  {editForm.isPaid && (
-                    <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
-                      <div className="grid md:grid-cols-2 gap-6">
+                    {/* Roles & Visibility */}
+                    <div className="grid md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                      {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
                         <div className="space-y-1.5">
-                          <label className="text-sm font-bold text-primary uppercase tracking-wider">Billing Cycle</label>
+                          <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign Teacher</label>
                           <Select
-                            options={[
-                              { value: 'per_lecture', label: 'Per Lecture' },
-                              { value: 'per_topic', label: 'Per Topic' },
-                              { value: 'weekly', label: 'Weekly' },
-                              { value: 'monthly', label: 'Monthly' }
-                            ]}
-                            value={{ value: editForm.pricingType, label: editForm.pricingType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
-                            onChange={sel => setEditForm({ ...editForm, pricingType: sel?.value })}
+                            options={availableTeachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
+                            value={availableTeachers.find(t => t._id === editForm.teacherId) ? { value: editForm.teacherId, label: availableTeachers.find(t => t._id === editForm.teacherId).name } : null}
+                            onChange={sel => setEditForm({ ...editForm, teacherId: sel?.value })}
+                            placeholder="Select a teacher..."
                             className="modern-select"
                             menuPortalTarget={document.body}
                             styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                           />
                         </div>
+                      )}
+
+                      {user?.role === 'school_admin' && (
                         <div className="space-y-1.5">
-                          <label className="text-sm font-bold text-primary uppercase tracking-wider">Amount (NGN)</label>
-                          <input
-                            type="number"
-                            value={editForm.pricingAmount}
-                            onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
-                            className="w-full border-primary/20 focus:ring-primary/20"
-                            placeholder="0.00"
-                            required={editForm.isPaid}
+                          <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign to Schools</label>
+                          <Select
+                            isMulti
+                            options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
+                            value={editForm.schoolIds?.map(id => {
+                              const s = [{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].find(sch => sch._id === id);
+                              return { value: id, label: s?.name || id };
+                            })}
+                            onChange={sels => setEditForm({ ...editForm, schoolIds: sels ? sels.map(s => s.value) : [] })}
+                            className="modern-select"
+                            menuPortalTarget={document.body}
+                            styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                           />
                         </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Max Capacity</label>
+                        <input
+                          type="number"
+                          value={editForm.capacity}
+                          onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) || 30 })}
+                          className="w-full"
+                          min="1"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-6 pt-4">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <div
+                            className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                            onClick={() => setEditForm({ ...editForm, isPrivate: !editForm.isPrivate })}
+                          >
+                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPrivate ? 'translate-x-4' : ''}`} />
+                          </div>
+                          <span className="text-sm font-bold text-slate-700 uppercase">Private</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <div
+                            className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                            onClick={() => setEditForm({ ...editForm, isPaid: !editForm.isPaid })}
+                          >
+                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPaid ? 'translate-x-4' : ''}`} />
+                          </div>
+                          <span className="text-sm font-bold text-slate-700 uppercase">Paid Class</span>
+                        </label>
                       </div>
                     </div>
-                  )}
 
-                  {/* Schedule Builder */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Weekly Schedule</label>
-                      <button
-                        type="button"
-                        onClick={() => setEditForm({ ...editForm, schedule: [...editForm.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
-                        className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add Session
+                    {/* Pricing details if paid */}
+                    {editForm.isPaid && (
+                      <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-bold text-primary uppercase tracking-wider">Billing Cycle</label>
+                            <Select
+                              options={[
+                                { value: 'per_lecture', label: 'Per Lecture' },
+                                { value: 'per_topic', label: 'Per Topic' },
+                                { value: 'weekly', label: 'Weekly' },
+                                { value: 'monthly', label: 'Monthly' }
+                              ]}
+                              value={{ value: editForm.pricingType, label: editForm.pricingType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                              onChange={sel => setEditForm({ ...editForm, pricingType: sel?.value })}
+                              className="modern-select"
+                              menuPortalTarget={document.body}
+                              styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-bold text-primary uppercase tracking-wider">Amount (NGN)</label>
+                            <input
+                              type="number"
+                              value={editForm.pricingAmount}
+                              onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
+                              className="w-full border-primary/20 focus:ring-primary/20"
+                              placeholder="0.00"
+                              required={editForm.isPaid}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Schedule Builder */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Weekly Schedule</label>
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, schedule: [...editForm.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
+                          className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add Session
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {editForm.schedule.map((s, idx) => (
+                          <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-slide-up">
+                            <select
+                              value={s.dayOfWeek}
+                              onChange={e => {
+                                const newSched = [...editForm.schedule];
+                                newSched[idx].dayOfWeek = e.target.value;
+                                setEditForm({ ...editForm, schedule: newSched });
+                              }}
+                              className="flex-1 min-w-[120px] bg-white border-slate-200 rounded-lg text-sm"
+                            >
+                              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d}>{d}</option>)}
+                            </select>
+                            <input
+                              type="time"
+                              value={s.startTime}
+                              onChange={e => {
+                                const newSched = [...editForm.schedule];
+                                newSched[idx].startTime = e.target.value;
+                                setEditForm({ ...editForm, schedule: newSched });
+                              }}
+                              className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                            />
+                            <span className="text-slate-400">to</span>
+                            <input
+                              type="time"
+                              value={s.endTime}
+                              onChange={e => {
+                                const newSched = [...editForm.schedule];
+                                newSched[idx].endTime = e.target.value;
+                                setEditForm({ ...editForm, schedule: newSched });
+                              }}
+                              className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSched = editForm.schedule.filter((_, i) => i !== idx);
+                                setEditForm({ ...editForm, schedule: newSched });
+                              }}
+                              className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {editForm.schedule.length === 0 && (
+                          <p className="text-sm text-slate-400 italic text-center py-4">No sessions scheduled yet.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-8 flex gap-4 sticky bottom-0 bg-white pb-2 border-t border-slate-50">
+                      <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">Discard</button>
+                      <button type="submit" disabled={isEditing} className="btn-premium flex-1">
+                        {isEditing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Save Changes'}
                       </button>
                     </div>
-
-                    <div className="space-y-3">
-                      {editForm.schedule.map((s, idx) => (
-                        <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-slide-up">
-                          <select
-                            value={s.dayOfWeek}
-                            onChange={e => {
-                              const newSched = [...editForm.schedule];
-                              newSched[idx].dayOfWeek = e.target.value;
-                              setEditForm({ ...editForm, schedule: newSched });
-                            }}
-                            className="flex-1 min-w-[120px] bg-white border-slate-200 rounded-lg text-sm"
-                          >
-                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d}>{d}</option>)}
-                          </select>
-                          <input
-                            type="time"
-                            value={s.startTime}
-                            onChange={e => {
-                              const newSched = [...editForm.schedule];
-                              newSched[idx].startTime = e.target.value;
-                              setEditForm({ ...editForm, schedule: newSched });
-                            }}
-                            className="w-32 bg-white border-slate-200 rounded-lg text-sm"
-                          />
-                          <span className="text-slate-400">to</span>
-                          <input
-                            type="time"
-                            value={s.endTime}
-                            onChange={e => {
-                              const newSched = [...editForm.schedule];
-                              newSched[idx].endTime = e.target.value;
-                              setEditForm({ ...editForm, schedule: newSched });
-                            }}
-                            className="w-32 bg-white border-slate-200 rounded-lg text-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newSched = editForm.schedule.filter((_, i) => i !== idx);
-                              setEditForm({ ...editForm, schedule: newSched });
-                            }}
-                            className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                      {editForm.schedule.length === 0 && (
-                        <p className="text-sm text-slate-400 italic text-center py-4">No sessions scheduled yet.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-8 flex gap-4 sticky bottom-0 bg-white pb-2 border-t border-slate-50">
-                    <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">Discard</button>
-                    <button type="submit" disabled={isEditing} className="btn-premium flex-1">
-                      {isEditing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Save Changes'}
-                    </button>
-                  </div>
-                </form>
+                  </form>
+                </div>
               </div>
             </div>
           )}
@@ -2147,10 +2149,10 @@ const ClassroomDetail = () => {
         }
 
         {/* Add Student Modal */}
-        {
-          showAddStudentModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up overflow-y-auto max-h-[90vh]">
+        {showAddStudentModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up">
                 <div className="flex justify-between items-center mb-8">
                   <h3 className="text-2xl font-bold text-slate-900">Add Student</h3>
                   <button onClick={() => setShowAddStudentModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
@@ -2194,57 +2196,58 @@ const ClassroomDetail = () => {
                   </div>
                 </form>
               </div>
-            </div>
-          )
-        }
+            </div >
+          </div>
+        )}
 
         {/* Assign Teacher Modal */}
         {
           showChangeTeacherModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up overflow-y-auto max-h-[90vh]">
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-2xl font-bold text-slate-900">Assign Teacher</h3>
-                  <button onClick={() => setShowChangeTeacherModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-                <div className="space-y-8">
-                  <div>
-                    <label>Select New Teacher</label>
-                    <select
-                      value={selectedTeacherId}
-                      onChange={(e) => setSelectedTeacherId(e.target.value)}
-                      className="w-full"
-                    >
-                      <option value="">Select a teacher</option>
-                      {availableTeachers.map(teacher => (
-                        <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
-                      ))}
-                    </select>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4">
+                <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-bold text-slate-900">Assign Teacher</h3>
+                    <button onClick={() => setShowChangeTeacherModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+                      <X className="w-6 h-6" />
+                    </button>
                   </div>
-                  <div className="flex gap-4 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowChangeTeacherModal(false)}
-                      className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
-                    >
-                      Discard
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!selectedTeacherId || isChangingTeacher}
-                      onClick={handleChangeTeacher}
-                      className="btn-premium flex-1"
-                    >
-                      {isChangingTeacher ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Assign Teacher'}
-                    </button>
+                  <div className="space-y-8">
+                    <div>
+                      <label>Select New Teacher</label>
+                      <select
+                        value={selectedTeacherId}
+                        onChange={(e) => setSelectedTeacherId(e.target.value)}
+                        className="w-full"
+                      >
+                        <option value="">Select a teacher</option>
+                        {availableTeachers.map(teacher => (
+                          <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowChangeTeacherModal(false)}
+                        className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                      >
+                        Discard
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!selectedTeacherId || isChangingTeacher}
+                        onClick={handleChangeTeacher}
+                        className="btn-premium flex-1"
+                      >
+                        {isChangingTeacher ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Assign Teacher'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          )
-        }
+          )}
 
         {/* Payment Required Modal */}
         <PaymentRequiredModal
@@ -2256,13 +2259,13 @@ const ClassroomDetail = () => {
         />
 
         {/* Enrollment Payment Modal */}
-        {
-          showEnrollmentPaymentModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        {showEnrollmentPaymentModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
               <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
                 <div className="p-8 pb-0 flex justify-between items-center">
-                  <div className="bg-blue-50 p-3 rounded-2xl">
-                    <CreditCard className="w-6 h-6 text-blue-600" />
+                  <div className="bg-indigo-50 p-3 rounded-2xl">
+                    <CreditCard className="w-6 h-6 text-indigo-600" />
                   </div>
                   <button
                     onClick={() => setShowEnrollmentPaymentModal(false)}
@@ -2272,7 +2275,6 @@ const ClassroomDetail = () => {
                     <X className="w-6 h-6" />
                   </button>
                 </div>
-
                 <div className="p-8 pt-6 text-center">
                   <h3 className="text-2xl font-bold text-slate-900 mb-2">Join Classroom</h3>
                   <p className="text-slate-500 mb-8 px-4">Complete your payment to gain full access to <span className="font-bold text-slate-700">"{classroom.name}"</span>.</p>
@@ -2307,8 +2309,8 @@ const ClassroomDetail = () => {
                 </div>
               </div>
             </div>
-          )
-        }
+          </div>
+        )}
 
 
         {/* Delete Topic Confirmation Modal */}
@@ -2403,8 +2405,8 @@ const ClassroomDetail = () => {
           confirmText="Remove"
           isLoading={isRemovingStudent}
         />
-      </div>
-    </Layout>
+      </div >
+    </Layout >
   );
 };
 

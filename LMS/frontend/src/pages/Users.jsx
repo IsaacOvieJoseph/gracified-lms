@@ -720,164 +720,166 @@ Bob Johnson,bob@example.com,student,`;
 
       {
         showCreateModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
-              {/* Modal Header */}
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-                    <UserPlus className="w-6 h-6" />
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 md:p-8">
+              <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
+                {/* Modal Header */}
+                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                      <UserPlus className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-slate-900 leading-tight">Create User</h3>
+                      <p className="text-sm text-slate-500 font-medium mt-0.5">Add a new member to the system</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900 leading-tight">Create User</h3>
-                    <p className="text-sm text-slate-500 font-medium mt-0.5">Add a new member to the system</p>
-                  </div>
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-95"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-95"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
 
-              {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                <form onSubmit={(e) => { setIsCreating(true); handleCreate(e); }} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Isaac Ovie Joseph"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                    <input
-                      type="email"
-                      placeholder="email@example.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Initial Password</label>
-                    <div className="relative">
+                {/* Modal Body */}
+                <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                  <form onSubmit={(e) => { setIsCreating(true); handleCreate(e); }} className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                       <input
-                        type={showModalPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all pr-12"
+                        type="text"
+                        placeholder="e.g. Isaac Ovie Joseph"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all"
                         required
-                        minLength="6"
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                      <input
+                        type="email"
+                        placeholder="email@example.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Initial Password</label>
+                      <div className="relative">
+                        <input
+                          type={showModalPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all pr-12"
+                          required
+                          minLength="6"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200/50 rounded-lg transition-colors text-slate-400"
+                          onClick={() => setShowModalPassword(!showModalPassword)}
+                        >
+                          {showModalPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Account Role</label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all appearance-none"
+                        required
+                      >
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="personal_teacher">Personal Teacher</option>
+                        {user?.role === 'root_admin' && (
+                          <>
+                            <option value="school_admin">School Admin</option>
+                            <option value="root_admin">Root Admin</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    {user?.role === 'school_admin' && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Assigned School(s)</label>
+                        <Select
+                          isMulti
+                          options={[{ value: 'ALL', label: 'All Schools' }, ...schools.map(s => ({ value: s._id, label: s.name }))]}
+                          value={formData.schoolIds && formData.schoolIds.length > 0
+                            ? (formData.schoolIds.length === schools.length
+                              ? [{ value: 'ALL', label: 'All Schools' }]
+                              : formData.schoolIds.map(id => {
+                                if (id === 'ALL') return { value: 'ALL', label: 'All Schools' };
+                                const school = schools.find(s => s._id === id);
+                                return school ? { value: school._id, label: school.name } : null;
+                              }).filter(Boolean))
+                            : (selectedSchools.length > 0
+                              ? selectedSchools.map(id => {
+                                const school = schools.find(s => s._id === id);
+                                return school ? { value: school._id, label: school.name } : null;
+                              }).filter(Boolean)
+                              : [])
+                          }
+                          onChange={selected => {
+                            if (selected.some(opt => opt.value === 'ALL')) {
+                              setFormData({ ...formData, schoolIds: schools.map(s => s._id) });
+                            } else {
+                              setFormData({ ...formData, schoolIds: selected.map(opt => opt.value) });
+                            }
+                          }}
+                          classNamePrefix="react-select"
+                          placeholder="Search schools..."
+                          styles={{
+                            control: (base) => ({
+                              ...base,
+                              borderRadius: '1rem',
+                              padding: '4px',
+                              border: '2px solid #f8fafc',
+                              backgroundColor: '#f8fafc',
+                              '&:hover': { border: '2px solid #f8fafc' },
+                              boxShadow: 'none'
+                            }),
+                            placeholder: (base) => ({ ...base, color: '#94a3b8', fontWeight: 'bold' }),
+                          }}
+                        />
+                        <p className="text-[10px] font-bold text-slate-400 ml-1">
+                          {selectedSchools.length > 0
+                            ? `Default: ${schools.find(s => s._id === selectedSchools[0])?.name || 'Current School'}.`
+                            : 'Select one or more schools to grant access.'}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-4 pt-4">
                       <button
                         type="button"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200/50 rounded-lg transition-colors text-slate-400"
-                        onClick={() => setShowModalPassword(!showModalPassword)}
+                        onClick={() => setShowCreateModal(false)}
+                        className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all uppercase tracking-widest text-xs"
                       >
-                        {showModalPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        Discard
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isCreating}
+                        className="btn-premium flex-1 py-4 flex items-center justify-center shadow-xl shadow-primary/20"
+                      >
+                        {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
                       </button>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Account Role</label>
-                    <select
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all appearance-none"
-                      required
-                    >
-                      <option value="student">Student</option>
-                      <option value="teacher">Teacher</option>
-                      <option value="personal_teacher">Personal Teacher</option>
-                      {user?.role === 'root_admin' && (
-                        <>
-                          <option value="school_admin">School Admin</option>
-                          <option value="root_admin">Root Admin</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-
-                  {user?.role === 'school_admin' && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Assigned School(s)</label>
-                      <Select
-                        isMulti
-                        options={[{ value: 'ALL', label: 'All Schools' }, ...schools.map(s => ({ value: s._id, label: s.name }))]}
-                        value={formData.schoolIds && formData.schoolIds.length > 0
-                          ? (formData.schoolIds.length === schools.length
-                            ? [{ value: 'ALL', label: 'All Schools' }]
-                            : formData.schoolIds.map(id => {
-                              if (id === 'ALL') return { value: 'ALL', label: 'All Schools' };
-                              const school = schools.find(s => s._id === id);
-                              return school ? { value: school._id, label: school.name } : null;
-                            }).filter(Boolean))
-                          : (selectedSchools.length > 0
-                            ? selectedSchools.map(id => {
-                              const school = schools.find(s => s._id === id);
-                              return school ? { value: school._id, label: school.name } : null;
-                            }).filter(Boolean)
-                            : [])
-                        }
-                        onChange={selected => {
-                          if (selected.some(opt => opt.value === 'ALL')) {
-                            setFormData({ ...formData, schoolIds: schools.map(s => s._id) });
-                          } else {
-                            setFormData({ ...formData, schoolIds: selected.map(opt => opt.value) });
-                          }
-                        }}
-                        classNamePrefix="react-select"
-                        placeholder="Search schools..."
-                        styles={{
-                          control: (base) => ({
-                            ...base,
-                            borderRadius: '1rem',
-                            padding: '4px',
-                            border: '2px solid #f8fafc',
-                            backgroundColor: '#f8fafc',
-                            '&:hover': { border: '2px solid #f8fafc' },
-                            boxShadow: 'none'
-                          }),
-                          placeholder: (base) => ({ ...base, color: '#94a3b8', fontWeight: 'bold' }),
-                        }}
-                      />
-                      <p className="text-[10px] font-bold text-slate-400 ml-1">
-                        {selectedSchools.length > 0
-                          ? `Default: ${schools.find(s => s._id === selectedSchools[0])?.name || 'Current School'}.`
-                          : 'Select one or more schools to grant access.'}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-4 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateModal(false)}
-                      className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all uppercase tracking-widest text-xs"
-                    >
-                      Discard
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isCreating}
-                      className="btn-premium flex-1 py-4 flex items-center justify-center shadow-xl shadow-primary/20"
-                    >
-                      {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
-                    </button>
-                  </div>
-                </form>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
@@ -887,316 +889,318 @@ Bob Johnson,bob@example.com,student,`;
       {/* Bulk Upload Modal */}
       {
         showBulkUploadModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className={`bg-white rounded-[2.5rem] shadow-2xl ${uploadStep === 2 ? 'max-w-6xl' : 'max-w-2xl'} w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh]`}>
-              {/* Modal Header */}
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-                    <UsersIcon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900 leading-tight">Bulk Invitation</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex gap-1">
-                        {[1, 2, 3].map(step => (
-                          <div key={step} className={`w-4 h-1 rounded-full transition-colors ${uploadStep >= step ? 'bg-primary' : 'bg-slate-100'}`} />
-                        ))}
-                      </div>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest ml-1">Step {uploadStep} of 3</p>
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 md:p-8">
+              <div className={`bg-white rounded-[2.5rem] shadow-2xl ${uploadStep === 2 ? 'max-w-6xl' : 'max-w-2xl'} w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh]`}>
+                {/* Modal Header */}
+                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                      <UsersIcon className="w-6 h-6" />
                     </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowBulkUploadModal(false);
-                    setCsvFile(null);
-                    setUploadStep(1);
-                    setParsedData([]);
-                    setValidationErrors([]);
-                  }}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-95"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-slate-200">
-                {/* Step 1: Upload CSV */}
-                {uploadStep === 1 && (
-                  <div className="space-y-8">
-                    <div className="p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
-                        <FileText className="w-24 h-24" />
-                      </div>
-                      <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Requirements</p>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100">
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Required Headers</p>
-                            <div className="flex flex-wrap gap-2">
-                              <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">name</span>
-                              <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">email</span>
-                            </div>
-                          </div>
-                          <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100">
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Optional Headers</p>
-                            <div className="flex flex-wrap gap-2">
-                              <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">role</span>
-                              <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">school</span>
-                            </div>
-                          </div>
-                        </div>
-                        <ul className="space-y-2">
-                          {[
-                            'Each user receives a unique secure link',
-                            'Links expire automatically after 7 days',
-                            'Existing emails will be skipped'
-                          ].map((text, i) => (
-                            <li key={i} className="flex items-center gap-3 text-sm font-bold text-slate-600">
-                              <CheckCircle className="w-4 h-4 text-emerald-500" />
-                              {text}
-                            </li>
+                    <div>
+                      <h3 className="text-2xl font-black text-slate-900 leading-tight">Bulk Invitation</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map(step => (
+                            <div key={step} className={`w-4 h-1 rounded-full transition-colors ${uploadStep >= step ? 'bg-primary' : 'bg-slate-100'}`} />
                           ))}
-                        </ul>
+                        </div>
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest ml-1">Step {uploadStep} of 3</p>
                       </div>
                     </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowBulkUploadModal(false);
+                      setCsvFile(null);
+                      setUploadStep(1);
+                      setParsedData([]);
+                      setValidationErrors([]);
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-95"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
 
-                    <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-200 rounded-[2.5rem] bg-slate-50 hover:bg-white hover:border-primary transition-all group">
-                      <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:scale-110 transition-all mb-6">
-                        <Upload className="w-10 h-10" />
-                      </div>
-                      <h4 className="text-xl font-black text-slate-900 mb-2">Upload Data Source</h4>
-                      <p className="text-sm text-slate-500 font-medium mb-8">Select a .csv file to begin importing users</p>
-
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept=".csv"
-                          onChange={(e) => setCsvFile(e.target.files[0])}
-                          className="hidden"
-                        />
-                        <div className="px-8 py-3 bg-white border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:border-primary hover:text-primary transition-all shadow-sm">
-                          {csvFile ? csvFile.name : 'Choose CSV File'}
+                {/* Modal Body */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-slate-200">
+                  {/* Step 1: Upload CSV */}
+                  {uploadStep === 1 && (
+                    <div className="space-y-8">
+                      <div className="p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                          <FileText className="w-24 h-24" />
                         </div>
-                      </label>
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Requirements</p>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100">
+                              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Required Headers</p>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">name</span>
+                                <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">email</span>
+                              </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100">
+                              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Optional Headers</p>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">role</span>
+                                <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">school</span>
+                              </div>
+                            </div>
+                          </div>
+                          <ul className="space-y-2">
+                            {[
+                              'Each user receives a unique secure link',
+                              'Links expire automatically after 7 days',
+                              'Existing emails will be skipped'
+                            ].map((text, i) => (
+                              <li key={i} className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                {text}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
 
-                      {csvFile && (
-                        <div className="mt-4 flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 animate-in zoom-in">
-                          <CheckCircle className="w-4 h-4 text-emerald-500" />
-                          <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">Ready to Process</span>
+                      <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-200 rounded-[2.5rem] bg-slate-50 hover:bg-white hover:border-primary transition-all group">
+                        <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:scale-110 transition-all mb-6">
+                          <Upload className="w-10 h-10" />
+                        </div>
+                        <h4 className="text-xl font-black text-slate-900 mb-2">Upload Data Source</h4>
+                        <p className="text-sm text-slate-500 font-medium mb-8">Select a .csv file to begin importing users</p>
+
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={(e) => setCsvFile(e.target.files[0])}
+                            className="hidden"
+                          />
+                          <div className="px-8 py-3 bg-white border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:border-primary hover:text-primary transition-all shadow-sm">
+                            {csvFile ? csvFile.name : 'Choose CSV File'}
+                          </div>
+                        </label>
+
+                        {csvFile && (
+                          <div className="mt-4 flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 animate-in zoom-in">
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                            <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">Ready to Process</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-4 pt-4">
+                        <button
+                          onClick={downloadSampleCSV}
+                          className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Sample Template
+                        </button>
+                        <button
+                          onClick={handleBulkUpload}
+                          disabled={isUploading || !csvFile}
+                          className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 shadow-xl shadow-primary/20 disabled:grayscale"
+                        >
+                          {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                            <>
+                              <span>Validate Data Source</span>
+                              <ArrowRight className="w-5 h-5" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Validation Preview */}
+                  {uploadStep === 2 && (
+                    <div className="space-y-8 animate-in slide-in-from-right duration-500">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 text-center">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Records</p>
+                          <p className="text-3xl font-black text-slate-900">{parsedData.length}</p>
+                        </div>
+                        <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 text-center">
+                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">Pass Check</p>
+                          <p className="text-3xl font-black text-emerald-600">{parsedData.filter(u => u.valid).length}</p>
+                        </div>
+                        <div className="p-6 bg-red-50 rounded-3xl border border-red-100 text-center">
+                          <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-1">Failed Check</p>
+                          <p className="text-3xl font-black text-red-600">{validationErrors.length}</p>
+                        </div>
+                      </div>
+
+                      {validationErrors.length > 0 && (
+                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-3">
+                          <AlertCircle className="w-5 h-5 text-amber-500" />
+                          <p className="text-xs font-bold text-amber-700">Records with errors will be skipped automatically during the invite process.</p>
                         </div>
                       )}
-                    </div>
 
-                    <div className="flex gap-4 pt-4">
-                      <button
-                        onClick={downloadSampleCSV}
-                        className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Sample Template
-                      </button>
-                      <button
-                        onClick={handleBulkUpload}
-                        disabled={isUploading || !csvFile}
-                        className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 shadow-xl shadow-primary/20 disabled:grayscale"
-                      >
-                        {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
-                          <>
-                            <span>Validate Data Source</span>
-                            <ArrowRight className="w-5 h-5" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: Validation Preview */}
-                {uploadStep === 2 && (
-                  <div className="space-y-8 animate-in slide-in-from-right duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 text-center">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Records</p>
-                        <p className="text-3xl font-black text-slate-900">{parsedData.length}</p>
-                      </div>
-                      <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 text-center">
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">Pass Check</p>
-                        <p className="text-3xl font-black text-emerald-600">{parsedData.filter(u => u.valid).length}</p>
-                      </div>
-                      <div className="p-6 bg-red-50 rounded-3xl border border-red-100 text-center">
-                        <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-1">Failed Check</p>
-                        <p className="text-3xl font-black text-red-600">{validationErrors.length}</p>
-                      </div>
-                    </div>
-
-                    {validationErrors.length > 0 && (
-                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-amber-500" />
-                        <p className="text-xs font-bold text-amber-700">Records with errors will be skipped automatically during the invite process.</p>
-                      </div>
-                    )}
-
-                    <div className="rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm bg-white">
-                      <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
-                        <table className="w-full text-left border-collapse">
-                          <thead className="sticky top-0 z-20 bg-slate-900">
-                            <tr>
-                              {['#', 'Name', 'Email Address', 'Account Role', 'Schools', 'Status'].map(h => (
-                                <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-50">
-                            {parsedData.map((row, idx) => (
-                              <tr key={idx} className={`group hover:bg-slate-50 transition-colors ${!row.valid ? 'bg-red-50/30' : ''}`}>
-                                <td className="px-6 py-4 text-xs font-black text-slate-300">{row.rowNumber}</td>
-                                <td className="px-6 py-4">
-                                  <input
-                                    type="text"
-                                    value={row.name || ''}
-                                    onChange={(e) => handleFieldEdit(idx, 'name', e.target.value)}
-                                    className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 placeholder:text-slate-300"
-                                  />
-                                </td>
-                                <td className="px-6 py-4">
-                                  <input
-                                    type="email"
-                                    value={row.email || ''}
-                                    onChange={(e) => handleFieldEdit(idx, 'email', e.target.value)}
-                                    className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 placeholder:text-slate-300"
-                                  />
-                                </td>
-                                <td className="px-6 py-4">
-                                  <select
-                                    value={row.role || 'student'}
-                                    onChange={(e) => handleFieldEdit(idx, 'role', e.target.value)}
-                                    className="bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer"
-                                  >
-                                    <option value="student">Student</option>
-                                    <option value="teacher">Teacher</option>
-                                    <option value="personal_teacher">Personal Teacher</option>
-                                    {user?.role === 'root_admin' && <option value="school_admin">School Admin</option>}
-                                  </select>
-                                </td>
-                                <td className="px-6 py-4 min-w-[200px]">
-                                  <Select
-                                    isMulti
-                                    value={row.schools?.map(s => ({ value: s, label: s === 'ALL' ? 'All' : s })) || []}
-                                    onChange={(sel) => handleFieldEdit(idx, 'schools', sel ? sel.map(o => o.value) : [])}
-                                    options={[{ value: 'ALL', label: 'All' }, ...schools.map(s => ({ value: s.name, label: s.name }))]}
-                                    classNamePrefix="small-select"
-                                    styles={{
-                                      control: (base) => ({ ...base, minHeight: '30px', border: 'none', backgroundColor: 'transparent', boxShadow: 'none' }),
-                                      valueContainer: (base) => ({ ...base, padding: '0' }),
-                                      multiValue: (base) => ({ ...base, borderRadius: '4px', backgroundColor: '#f1f5f9' }),
-                                      multiValueLabel: (base) => ({ ...base, fontSize: '10px', fontWeight: 'bold' })
-                                    }}
-                                  />
-                                </td>
-                                <td className="px-6 py-4">
-                                  {row.valid ? (
-                                    <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full w-fit border border-emerald-100">
-                                      <CheckCircle className="w-3.5 h-3.5" />
-                                      <span className="text-[10px] font-black uppercase tracking-widest">Valid</span>
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-1">
-                                      <div className="flex items-center gap-1.5 text-red-500 bg-red-50 px-3 py-1 rounded-full w-fit border border-red-100">
-                                        <XCircle className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Invalid</span>
-                                      </div>
-                                      <div className="text-[10px] text-red-400 font-bold ml-1">{row.errors[0]}</div>
-                                    </div>
-                                  )}
-                                </td>
+                      <div className="rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm bg-white">
+                        <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
+                          <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 z-20 bg-slate-900">
+                              <tr>
+                                {['#', 'Name', 'Email Address', 'Account Role', 'Schools', 'Status'].map(h => (
+                                  <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{h}</th>
+                                ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-4 pt-4 sticky bottom-0 bg-white">
-                      <button
-                        onClick={() => { setUploadStep(1); setParsedData([]); setValidationErrors([]); }}
-                        className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all uppercase tracking-widest text-xs"
-                      >
-                        Reset Source
-                      </button>
-                      <button
-                        onClick={confirmBulkUpload}
-                        disabled={isUploading || parsedData.filter(u => u.valid).length === 0}
-                        className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 shadow-xl shadow-primary/20 disabled:grayscale"
-                      >
-                        {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
-                          <>
-                            <span>Broadcast {parsedData.filter(u => u.valid).length} Invitations</span>
-                            <Send className="w-5 h-5" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 3: Final Report */}
-                {uploadStep === 3 && uploadResults && (
-                  <div className="space-y-8 animate-in zoom-in duration-500 text-center py-10">
-                    <div className="relative inline-block">
-                      <div className="w-24 h-24 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-200 mx-auto relative z-10">
-                        <CheckCircle className="w-12 h-12" />
-                      </div>
-                      <div className="absolute top-0 left-0 w-24 h-24 bg-emerald-500 rounded-[2rem] animate-ping opacity-20" />
-                    </div>
-
-                    <div>
-                      <h4 className="text-3xl font-black text-slate-900 mb-2">Bravo! Import Successful.</h4>
-                      <p className="text-slate-500 font-medium">Invitation emails are now flying through outer space to their destinations.</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-                      <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Delivered</p>
-                        <p className="text-3xl font-black text-emerald-600">{uploadResults.successful}</p>
-                      </div>
-                      <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Bounced</p>
-                        <p className="text-3xl font-black text-red-600">{uploadResults.failed}</p>
-                      </div>
-                    </div>
-
-                    {uploadResults.errors?.length > 0 && (
-                      <div className="max-w-md mx-auto p-6 bg-red-50/50 rounded-[2rem] border border-red-100 text-left">
-                        <p className="text-xs font-black text-red-400 uppercase tracking-widest mb-4">Error Intelligence Report</p>
-                        <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin">
-                          {uploadResults.errors.map((err, idx) => (
-                            <div key={idx} className="flex gap-3 text-xs font-bold text-red-700">
-                              <span className="opacity-40">#{err.row}</span>
-                              <span>{err.email}: {err.error}</span>
-                            </div>
-                          ))}
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                              {parsedData.map((row, idx) => (
+                                <tr key={idx} className={`group hover:bg-slate-50 transition-colors ${!row.valid ? 'bg-red-50/30' : ''}`}>
+                                  <td className="px-6 py-4 text-xs font-black text-slate-300">{row.rowNumber}</td>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="text"
+                                      value={row.name || ''}
+                                      onChange={(e) => handleFieldEdit(idx, 'name', e.target.value)}
+                                      className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 placeholder:text-slate-300"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="email"
+                                      value={row.email || ''}
+                                      onChange={(e) => handleFieldEdit(idx, 'email', e.target.value)}
+                                      className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 placeholder:text-slate-300"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <select
+                                      value={row.role || 'student'}
+                                      onChange={(e) => handleFieldEdit(idx, 'role', e.target.value)}
+                                      className="bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer"
+                                    >
+                                      <option value="student">Student</option>
+                                      <option value="teacher">Teacher</option>
+                                      <option value="personal_teacher">Personal Teacher</option>
+                                      {user?.role === 'root_admin' && <option value="school_admin">School Admin</option>}
+                                    </select>
+                                  </td>
+                                  <td className="px-6 py-4 min-w-[200px]">
+                                    <Select
+                                      isMulti
+                                      value={row.schools?.map(s => ({ value: s, label: s === 'ALL' ? 'All' : s })) || []}
+                                      onChange={(sel) => handleFieldEdit(idx, 'schools', sel ? sel.map(o => o.value) : [])}
+                                      options={[{ value: 'ALL', label: 'All' }, ...schools.map(s => ({ value: s.name, label: s.name }))]}
+                                      classNamePrefix="small-select"
+                                      styles={{
+                                        control: (base) => ({ ...base, minHeight: '30px', border: 'none', backgroundColor: 'transparent', boxShadow: 'none' }),
+                                        valueContainer: (base) => ({ ...base, padding: '0' }),
+                                        multiValue: (base) => ({ ...base, borderRadius: '4px', backgroundColor: '#f1f5f9' }),
+                                        multiValueLabel: (base) => ({ ...base, fontSize: '10px', fontWeight: 'bold' })
+                                      }}
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {row.valid ? (
+                                      <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full w-fit border border-emerald-100">
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Valid</span>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-1.5 text-red-500 bg-red-50 px-3 py-1 rounded-full w-fit border border-red-100">
+                                          <XCircle className="w-3.5 h-3.5" />
+                                          <span className="text-[10px] font-black uppercase tracking-widest">Invalid</span>
+                                        </div>
+                                        <div className="text-[10px] text-red-400 font-bold ml-1">{row.errors[0]}</div>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
-                    )}
 
-                    <button
-                      onClick={() => {
-                        setShowBulkUploadModal(false);
-                        setCsvFile(null);
-                        setUploadResults(null);
-                        setParsedData([]);
-                        setValidationErrors([]);
-                        setUploadStep(1);
-                      }}
-                      className="w-full btn-premium py-5 text-xl shadow-2xl shadow-primary/30"
-                    >
-                      Dismiss Report
-                    </button>
-                  </div>
-                )}
+                      <div className="flex gap-4 pt-4 sticky bottom-0 bg-white">
+                        <button
+                          onClick={() => { setUploadStep(1); setParsedData([]); setValidationErrors([]); }}
+                          className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all uppercase tracking-widest text-xs"
+                        >
+                          Reset Source
+                        </button>
+                        <button
+                          onClick={confirmBulkUpload}
+                          disabled={isUploading || parsedData.filter(u => u.valid).length === 0}
+                          className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 shadow-xl shadow-primary/20 disabled:grayscale"
+                        >
+                          {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                            <>
+                              <span>Broadcast {parsedData.filter(u => u.valid).length} Invitations</span>
+                              <Send className="w-5 h-5" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Final Report */}
+                  {uploadStep === 3 && uploadResults && (
+                    <div className="space-y-8 animate-in zoom-in duration-500 text-center py-10">
+                      <div className="relative inline-block">
+                        <div className="w-24 h-24 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-200 mx-auto relative z-10">
+                          <CheckCircle className="w-12 h-12" />
+                        </div>
+                        <div className="absolute top-0 left-0 w-24 h-24 bg-emerald-500 rounded-[2rem] animate-ping opacity-20" />
+                      </div>
+
+                      <div>
+                        <h4 className="text-3xl font-black text-slate-900 mb-2">Bravo! Import Successful.</h4>
+                        <p className="text-slate-500 font-medium">Invitation emails are now flying through outer space to their destinations.</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Delivered</p>
+                          <p className="text-3xl font-black text-emerald-600">{uploadResults.successful}</p>
+                        </div>
+                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Bounced</p>
+                          <p className="text-3xl font-black text-red-600">{uploadResults.failed}</p>
+                        </div>
+                      </div>
+
+                      {uploadResults.errors?.length > 0 && (
+                        <div className="max-w-md mx-auto p-6 bg-red-50/50 rounded-[2rem] border border-red-100 text-left">
+                          <p className="text-xs font-black text-red-400 uppercase tracking-widest mb-4">Error Intelligence Report</p>
+                          <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin">
+                            {uploadResults.errors.map((err, idx) => (
+                              <div key={idx} className="flex gap-3 text-xs font-bold text-red-700">
+                                <span className="opacity-40">#{err.row}</span>
+                                <span>{err.email}: {err.error}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          setShowBulkUploadModal(false);
+                          setCsvFile(null);
+                          setUploadResults(null);
+                          setParsedData([]);
+                          setValidationErrors([]);
+                          setUploadStep(1);
+                        }}
+                        className="w-full btn-premium py-5 text-xl shadow-2xl shadow-primary/30"
+                      >
+                        Dismiss Report
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1212,7 +1216,7 @@ Bob Johnson,bob@example.com,student,`;
         confirmText="Delete"
         isLoading={isDeleting}
       />
-    </Layout >
+    </Layout>
   );
 };
 

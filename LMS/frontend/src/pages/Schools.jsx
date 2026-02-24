@@ -2,16 +2,15 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
-
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ConfirmationModal from "../components/ConfirmationModal";
-import { Plus, Pencil, Trash2, ArrowUpDown } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, Loader2, X } from "lucide-react";
 
 const CreateSchoolModal = ({ open, onClose, onCreated }) => {
   const { user } = useAuth();
   const [schoolName, setSchoolName] = useState('');
-  const [adminId, setAdminId] = useState(user?._id);
+  const [adminId, setAdminId] = useState(user?._id || '');
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -31,21 +30,15 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
       const payload = { name: schoolName };
 
       if (user.role === 'root_admin' && adminId) {
-        payload.adminId = adminId; // Root admin can explicitly assign an admin
-      } else if (user.role === 'school_admin') {
-        // School admin's adminId is handled by backend using req.user._id,
-        // but we can explicitly send it for clarity/robustness if needed.
-        // For now, relying on backend default for school_admin.
-        // If backend logic changes, uncomment: payload.adminId = user._id;
+        payload.adminId = adminId;
       }
 
       await api.post('/schools', payload, { skipLoader: true });
       setSchoolName('');
-      // Reset adminId to current user's ID only if it's a root_admin and they had selected someone else
       if (user.role === 'root_admin') {
-        setAdminId(''); // Clear selection for root_admin
+        setAdminId('');
       } else if (user.role === 'school_admin') {
-        setAdminId(user?._id); // Ensure it's reset to their own ID
+        setAdminId(user?._id);
       }
       onCreated && onCreated();
       onClose();
@@ -59,67 +52,75 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
-        <h2 className="text-2xl font-bold text-slate-900 mb-8">Establish New School</h2>
-        <form onSubmit={handleCreateSchool} className="space-y-6">
-          <div>
-            <label>School Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Gracified International"
-              value={schoolName}
-              onChange={(e) => setSchoolName(e.target.value)}
-              required
-            />
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-900">Establish New School</h2>
+            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          {user?.role === 'root_admin' && (
+          <form onSubmit={handleCreateSchool} className="space-y-6">
             <div>
-              <label>Assign Administrator</label>
-              <select
-                value={adminId}
-                onChange={e => setAdminId(e.target.value)}
+              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">School Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Gracified International"
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
                 required
-              >
-                <option value="">Select an administrator</option>
-                {admins.map(a => (
-                  <option key={a._id} value={a._id}>
-                    {a.name} ({a.email})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-          )}
-          <div className="flex gap-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
-            >
-              Discard
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-premium flex-1"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Create School"}
-            </button>
-          </div>
-        </form>
+            {user?.role === 'root_admin' && (
+              <div>
+                <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign Administrator</label>
+                <select
+                  value={adminId}
+                  onChange={e => setAdminId(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
+                  required
+                >
+                  <option value="">Select an administrator</option>
+                  {admins.map(a => (
+                    <option key={a._id} value={a._id}>
+                      {a.name} ({a.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-premium flex-1"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Create School"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 };
 
-
 const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
-  const { user } = useAuth(); // Access user from AuthContext
+  const { user } = useAuth();
   const [form, setForm] = useState({
     name: "",
     adminId: "",
   });
-  const [admins, setAdmins] = useState([]); // State to store list of admins for dropdown
+  const [admins, setAdmins] = useState([]);
 
   useEffect(() => {
     if (school) {
@@ -130,7 +131,6 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
     }
   }, [school]);
 
-  // Fetch admins if user is root_admin and modal is open
   useEffect(() => {
     if (user?.role === 'root_admin' && open) {
       api.get('/users').then(res => {
@@ -139,17 +139,14 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
     }
   }, [user, open]);
 
-  if (!open || !school) return null;
-
   const submit = async (e) => {
     e.preventDefault();
-
     try {
       const payload = { name: form.name };
       if (user.role === 'root_admin') {
-        payload.adminId = form.adminId; // Root admin can change adminId
+        payload.adminId = form.adminId;
       } else if (user.role === 'school_admin') {
-        payload.adminId = user._id; // School admin's adminId is fixed to themselves
+        payload.adminId = user._id;
       }
       await api.put(`/schools/${school._id}`, payload);
       toast.success('School updated successfully!');
@@ -161,220 +158,81 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
     }
   };
 
+  if (!open || !school) return null;
+
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
-        <h2 className="text-2xl font-bold text-slate-900 mb-8">Modify School</h2>
-
-        <form onSubmit={submit} className="space-y-6">
-
-          <div>
-            <label>School Name</label>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-900">Modify School</h2>
+            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+              <X className="w-6 h-6" />
+            </button>
           </div>
 
-          {user?.role === 'root_admin' ? (
+          <form onSubmit={submit} className="space-y-6">
             <div>
-              <label>School Admin</label>
-              <select
-                value={form.adminId}
-                onChange={e => setForm({ ...form, adminId: e.target.value })}
-                required
-              >
-                <option value="">Select Admin</option>
-                {admins.map(a => (
-                  <option key={a._id} value={a._id}>
-                    {a.name} ({a.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div>
-              <label>Administrator</label>
+              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">School Name</label>
               <input
-                type="text"
-                value={school.admin?.name || 'N/A'}
-                className="bg-slate-50 cursor-not-allowed"
-                disabled
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. Isaac Ovie Joseph Academy"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
+                required
               />
             </div>
-          )}
 
-          <div className="flex gap-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
-            >
-              Discard
-            </button>
+            {user?.role === 'root_admin' ? (
+              <div>
+                <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">School Admin</label>
+                <select
+                  value={form.adminId}
+                  onChange={e => setForm({ ...form, adminId: e.target.value })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
+                  required
+                >
+                  <option value="">Select Admin</option>
+                  {admins.map(a => (
+                    <option key={a._id} value={a._id}>
+                      {a.name} ({a.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Administrator</label>
+                <input
+                  type="text"
+                  value={school.admin?.name || 'N/A'}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl cursor-not-allowed"
+                  disabled
+                />
+              </div>
+            )}
 
-            <button
-              type="submit"
-              className="btn-premium flex-1"
-            >
-              Save Changes
-            </button>
-          </div>
-
-        </form>
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                className="btn-premium flex-1"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 };
-
-
-// export default function SchoolsPage() {
-//   const { user } = useAuth();
-//   const [modalOpen, setModalOpen] = useState(false);
-//   const [schools, setSchools] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [search, setSearch] = useState("");
-
-//   const canManage =
-//     user?.role === "root_admin" || user?.role === "school_admin";
-
-//   // Fetch schools
-//   const loadSchools = async () => {
-//     try {
-//       setLoading(true);
-//       const res = await api.get("/schools");
-//       setSchools(res.data);
-//     } catch (err) {
-//       console.error("Error loading schools:", err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     loadSchools();
-//   }, []);
-
-//   // Search filtering
-//   const filteredSchools = schools.filter((s) => {
-//     const q = search.toLowerCase();
-//     return (
-//       s.name?.toLowerCase().includes(q) ||
-//       s.admin?.name?.toLowerCase().includes(q) ||
-//       s.admin?.email?.toLowerCase().includes(q)
-//     );
-//   });
-
-//   return (
-//     <Layout>
-//       <div className="space-y-6">
-//         {/* ---------- HEADER ---------- */}
-//         <div className="flex justify-between items-center">
-//           <h2 className="text-2xl font-bold text-gray-800">Schools</h2>
-
-//           {canManage && (
-//             <button
-//               onClick={() => setModalOpen(true)}
-//               className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-//             >
-//               <Plus className="w-4 h-4" />
-//               <span>Create School</span>
-//             </button>
-//           )}
-//         </div>
-
-//         {/* ---------- SEARCH BAR ---------- */}
-//         <div>
-//           <input
-//             type="text"
-//             placeholder="Search schools..."
-//             className="px-4 py-2 border rounded-lg w-72 shadow-sm focus:ring focus:ring-blue-300 focus:outline-none"
-//             value={search}
-//             onChange={(e) => setSearch(e.target.value)}
-//           />
-//         </div>
-
-//         {/* ---------- TABLE ---------- */}
-//         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-//           <table className="w-full">
-//             <thead className="bg-gray-50">
-//               <tr>
-//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                   School Name
-//                 </th>
-//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                   Admin Name
-//                 </th>
-//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                   Admin Email
-//                 </th>
-//                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-//                   Teachers
-//                 </th>
-//                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-//                   Students
-//                 </th>
-//               </tr>
-//             </thead>
-
-//             <tbody className="divide-y divide-gray-200">
-//               {loading ? (
-//                 <tr>
-//                   <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-//                     Loading...
-//                   </td>
-//                 </tr>
-//               ) : filteredSchools.length === 0 ? (
-//                 <tr>
-//                   <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-//                     No matching schools found
-//                   </td>
-//                 </tr>
-//               ) : (
-//                 filteredSchools.map((school) => (
-//                   <tr key={school._id}>
-//                     <td className="px-6 py-4 text-sm font-medium text-gray-800">
-//                       {school.name}
-//                     </td>
-//                     <td className="px-6 py-4 text-sm text-gray-700">
-//                       {school.admin?.name ?? "N/A"}
-//                     </td>
-//                     <td className="px-6 py-4 text-sm text-gray-600">
-//                       {school.admin?.email ?? "N/A"}
-//                     </td>
-//                     <td className="px-6 py-4 text-center text-sm text-gray-700">
-//                       {school.teacherCount ?? 0}
-//                     </td>
-//                     <td className="px-6 py-4 text-center text-sm text-gray-700">
-//                       {school.studentCount ?? 0}
-//                     </td>
-//                   </tr>
-//                 ))
-//               )}
-//             </tbody>
-//           </table>
-//         </div>
-
-//         {/* ---------- EMPTY STATE ---------- */}
-//         {!loading && schools.length === 0 && (
-//           <div className="text-center py-12 bg-white rounded-lg shadow">
-//             <p className="text-gray-500">No schools found</p>
-//           </div>
-//         )}
-//       </div>
-
-//       {/* ---------- CREATE SCHOOL MODAL ---------- */}
-//       <CreateSchoolModal
-//         open={modalOpen}
-//         onClose={() => setModalOpen(false)}
-//         onCreated={loadSchools}
-//       />
-//     </Layout>
-//   );
-// }
-
-
 
 export default function SchoolsPage() {
   const { user } = useAuth();
@@ -392,24 +250,17 @@ export default function SchoolsPage() {
   const [schoolToDelete, setSchoolToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const canManage = ["root_admin", "school_admin"].includes(user?.role); // Root admin and school admin can manage (edit/delete) schools
-  const canCreateSchool = ["root_admin", "school_admin"].includes(user?.role); // Both root_admin and school_admin can create new schools
+  const canManage = ["root_admin", "school_admin"].includes(user?.role);
+  const canCreateSchool = ["root_admin", "school_admin"].includes(user?.role);
 
-  // Fetch schools
   const loadSchools = async () => {
     try {
       if (schools.length === 0) setLoading(true);
       let response;
-      if (user?.role === "school_admin") {
-        // School admin fetches all schools they administer
-        response = await api.get("/schools"); // Backend will filter by user.schoolId array
-        setSchools(response.data.schools); // Backend now returns { schools: [...] }
-      } else if (user?.role === "root_admin") {
-        // Root admin fetches all schools
+      if (user?.role === "school_admin" || user?.role === "root_admin") {
         response = await api.get("/schools");
-        setSchools(response.data.schools); // Now returns { schools: [...] }
+        setSchools(response.data.schools || []);
       } else {
-        // Other roles or no user - no schools to load
         setSchools([]);
       }
     } catch (err) {
@@ -421,29 +272,21 @@ export default function SchoolsPage() {
 
   useEffect(() => {
     if (user) {
-      // Only load schools if user is defined
       loadSchools();
     }
-  }, [user]); // Re-run when user object changes
+  }, [user]);
 
-  // -----------------------
-  // SEARCH FILTER
-  // -----------------------
-  const filteredSchools = schools.filter((s) => {
+  const filteredSchools = Array.isArray(schools) ? schools.filter((s) => {
     const q = search.toLowerCase();
     return (
       s.name?.toLowerCase().includes(q) ||
       s.admin?.name?.toLowerCase().includes(q) ||
       s.admin?.email?.toLowerCase().includes(q)
     );
-  });
+  }) : [];
 
-  // -----------------------
-  // SORTING LOGIC
-  // -----------------------
   const sortData = (field) => {
     let direction = sortDir;
-
     if (sortField === field) {
       direction = direction === "asc" ? "desc" : "asc";
       setSortDir(direction);
@@ -455,10 +298,8 @@ export default function SchoolsPage() {
 
   const sortedSchools = [...filteredSchools].sort((a, b) => {
     if (!sortField) return 0;
-
     let x = a[sortField];
     let y = b[sortField];
-
     if (sortField === "adminName") {
       x = a.admin?.name || "";
       y = b.admin?.name || "";
@@ -467,17 +308,12 @@ export default function SchoolsPage() {
       x = a.admin?.email || "";
       y = b.admin?.email || "";
     }
-
     if (typeof x === "string") x = x.toLowerCase();
     if (typeof y === "string") y = y.toLowerCase();
-
     if (sortDir === "asc") return x > y ? 1 : -1;
     return x < y ? 1 : -1;
   });
 
-  // -----------------------
-  // DELETE SCHOOL
-  // -----------------------
   const deleteSchool = (id) => {
     setSchoolToDelete(id);
     setShowDeleteModal(true);
@@ -503,11 +339,8 @@ export default function SchoolsPage() {
   return (
     <Layout>
       <div className="space-y-6">
-
-        {/* HEADER */}
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-slate-900">Schools</h2>
-
           {canCreateSchool && (
             <button
               onClick={() => setModalOpen(true)}
@@ -519,7 +352,6 @@ export default function SchoolsPage() {
           )}
         </div>
 
-        {/* SEARCH */}
         <div className="relative">
           <input
             type="text"
@@ -530,7 +362,6 @@ export default function SchoolsPage() {
           />
         </div>
 
-        {/* TABLE */}
         <div className="card-premium overflow-hidden overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-100">
@@ -540,25 +371,19 @@ export default function SchoolsPage() {
                 <HeaderCell label="Admin Email" field="adminEmail" sortData={sortData} sortField={sortField} sortDir={sortDir} />
                 <HeaderCell label="Teachers" field="teacherCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
                 <HeaderCell label="Students" field="studentCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
-
                 {canManage && (
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
                 )}
               </tr>
             </thead>
-
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-500">
-                    Loading...
-                  </td>
+                  <td colSpan="6" className="text-center py-4 text-gray-500">Loading...</td>
                 </tr>
               ) : sortedSchools.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-500">
-                    No schools found
-                  </td>
+                  <td colSpan="6" className="text-center py-4 text-gray-500">No schools found</td>
                 </tr>
               ) : (
                 sortedSchools.map((school) => (
@@ -572,11 +397,10 @@ export default function SchoolsPage() {
                     <td className="px-6 py-4 text-sm text-gray-700">{school.admin?.email || "N/A"}</td>
                     <td className="px-6 py-4 text-center text-sm text-gray-700">{school.teacherCount}</td>
                     <td className="px-6 py-4 text-center text-sm text-gray-700">{school.studentCount}</td>
-
                     {canManage && (
                       <td
                         className="px-6 py-4 flex space-x-4"
-                        onClick={(e) => e.stopPropagation()} // prevent navigation
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => { setSelectedSchool(school); setEditModalOpen(true); }}
@@ -584,7 +408,6 @@ export default function SchoolsPage() {
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
-
                         <button
                           onClick={() => deleteSchool(school._id)}
                           className="text-red-600 hover:text-red-800"
@@ -601,14 +424,12 @@ export default function SchoolsPage() {
         </div>
       </div>
 
-      {/* CREATE MODAL */}
       <CreateSchoolModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreated={loadSchools}
       />
 
-      {/* EDIT MODAL */}
       <EditSchoolModal
         open={editModalOpen}
         school={selectedSchool}
@@ -629,9 +450,6 @@ export default function SchoolsPage() {
   );
 }
 
-/* -----------------------
-   SORTABLE HEADER COMPONENT
------------------------- */
 function HeaderCell({ label, field, sortData, sortField, sortDir, center }) {
   return (
     <th
