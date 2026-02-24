@@ -54,6 +54,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
                     sendEmail({
                         to: student.email,
                         subject: `New Exam Assigned: ${title}`,
+                        classroomId: classId,
+                        schoolId: schoolId,
                         html: `
                             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                                 <h2 style="color: #4f46e5;">New Assessment Available</h2>
@@ -557,6 +559,8 @@ router.post('/submissions/:id/submit', async (req, res) => {
                 await sendEmail({
                     to: emailTo,
                     subject: `Exam Result: ${exam.title}`,
+                    classroomId: exam.classId,
+                    schoolId: exam.schoolId,
                     html: emailHtml
                 });
 
@@ -659,6 +663,8 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
                 await sendEmail({
                     to: emailTo,
                     subject: `Updated Exam Result: ${exam.title}`,
+                    classroomId: exam.classId,
+                    schoolId: exam.schoolId,
                     html: `
                         <h2 style="color: #4f46e5;">Exam Grading Complete</h2>
                         <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
