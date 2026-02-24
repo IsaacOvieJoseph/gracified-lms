@@ -131,6 +131,8 @@ const generateAndSendOTP = async (user) => {
       to: user.email,
       name: user.name,
       subject: 'Email Verification OTP',
+      userId: user._id,
+      isSystemEmail: true,
       html: `
         <h2 style="color: #4f46e5;">Email Verification</h2>
         <p>Hello <strong>${user.name}</strong>,</p>
@@ -518,6 +520,8 @@ const generateAndSendPasswordResetOTP = async (user) => {
       to: user.email,
       name: user.name,
       subject: 'Password Reset OTP',
+      userId: user._id,
+      isSystemEmail: true,
       html: `
         <h2 style="color: #4f46e5;">Password Reset Request</h2>
         <p>Hello <strong>${user.name}</strong>,</p>

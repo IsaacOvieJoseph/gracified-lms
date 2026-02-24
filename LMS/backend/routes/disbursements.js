@@ -81,6 +81,7 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
                     await sendEmail({
                         to: owner.email,
                         subject: `Payout Approved: ${classroomName}`,
+                        classroomId: payment.classroomId?._id || payment.classroomId,
                         html: `
             <div style="font-family: sans-serif; color: #333;">
                 <h2 style="color: #4f46e5;">Disbursement Notification</h2>
@@ -147,6 +148,7 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
                     await sendEmail({
                         to: rootEmails,
                         subject: `Disbursement Processed: ${classroomName}`,
+                        classroomId: payment.classroomId?._id || payment.classroomId,
                         html: `
             <div style="font-family: sans-serif; color: #333;">
                 <h2 style="color: #4f46e5;">Disbursement Report (Admin)</h2>

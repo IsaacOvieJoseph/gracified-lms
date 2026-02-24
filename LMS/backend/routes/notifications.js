@@ -216,6 +216,7 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
     await sendEmail({
       to: user.email,
       subject: `Payment ${status}: ${type}`,
+      userId: user._id,
       html: `
         <h2 style="color: ${status === 'success' ? '#10b981' : '#ef4444'}; text-transform: capitalize;">Payment ${status}</h2>
         <p>Hello <strong>${user.name}</strong>,</p>

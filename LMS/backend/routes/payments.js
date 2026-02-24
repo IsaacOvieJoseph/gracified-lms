@@ -148,6 +148,7 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
             to: user.email,
             subject: `Payment Processed: ${isSubscription ? 'Subscription' : 'Class Enrollment'}`,
             classroomId: classroom ? classroom._id : null,
+            isSystemEmail: isSubscription,
             html: `
               <h2 style="color: #4f46e5;">Payment Confirmation</h2>
               <p>Hello <strong>${user.name}</strong>,</p>

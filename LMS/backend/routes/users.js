@@ -287,6 +287,7 @@ router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), uploa
               await sendEmail({
                 to: newUser.email,
                 subject: 'Welcome to Gracified LMS - Set Your Password',
+                userId: newUser._id,
                 html: `
                   <h2>Welcome to Gracified LMS!</h2>
                   <p>Hello ${newUser.name},</p>
