@@ -56,12 +56,17 @@ const ExamCenter = () => {
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
+    const answersRef = useRef({});
     const STORAGE_KEY = `exam_state_${token}`;
 
-    // Sync submissionId to ref
+    // Sync submissionId and answers to refs to avoid stale closures in timer
     useEffect(() => {
         submissionIdRef.current = submissionId;
     }, [submissionId]);
+
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
 
     useEffect(() => {
         fetchExamInfo();
@@ -81,8 +86,10 @@ const ExamCenter = () => {
             if (!parsed?.started || !parsed?.submissionId) return;
 
             setSubmissionId(parsed.submissionId);
+            submissionIdRef.current = parsed.submissionId;
             setQuestions(parsed.questions || []);
             setAnswers(parsed.answers || {});
+            answersRef.current = parsed.answers || {};
             setCurrentQuestionIndex(parsed.currentQuestionIndex || 0);
             setCandidateInfo(parsed.candidateInfo || { name: '', email: '' });
             setStarted(true);
@@ -181,7 +188,9 @@ const ExamCenter = () => {
         clearInterval(timerRef.current);
 
         try {
-            const response = await api.post(`/exams/submissions/${submissionIdRef.current}/submit`, { answers });
+            const response = await api.post(`/exams/submissions/${submissionIdRef.current}/submit`, {
+                answers: answersRef.current
+            });
             setScore(response.data.score);
             setSubmissionStatus(response.data.status);
             setFinished(true);
@@ -213,6 +222,7 @@ const ExamCenter = () => {
 
             const response = await api.post(`/exams/public/${token}/start`, payload);
             setSubmissionId(response.data.submissionId);
+            submissionIdRef.current = response.data.submissionId;
             setQuestions(response.data.questions);
             setStarted(true);
 
