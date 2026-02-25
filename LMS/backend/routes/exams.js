@@ -527,26 +527,42 @@ router.post('/submissions/:id/submit', async (req, res) => {
 
         if (emailTo) {
             try {
-                const percentage = Math.round((totalScore / maxPossible) * 100);
-                let emailHtml = `
-                    <h2 style="color: #4f46e5;">Exam Submitted Successfully</h2>
-                    <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
-                    <p>Your assessment for <strong>"${exam.title}"</strong> has been received.</p>
-                `;
+                const resultsArePublic = exam.resultsPublished || (exam.resultPublishTime && new Date(exam.resultPublishTime) <= new Date()) || !exam.resultPublishTime;
 
-                if (hasTheory) {
-                    emailHtml += `
-                        <div style="background: #f3f4f6; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                            <p style="margin: 0; font-weight: bold; color: #374151;">Note: This exam contains theory questions.</p>
-                            <p style="margin: 5px 0 0 0; color: #6b7280;">Your final score will be determined after manual grading by the teacher.</p>
-                        </div>
+                let emailHtml = '';
+                if (resultsArePublic) {
+                    emailHtml = `
+                        <h2 style="color: #4f46e5;">Exam Submitted Successfully</h2>
+                        <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
+                        <p>Your assessment for <strong>"${exam.title}"</strong> has been received and graded.</p>
                     `;
+
+                    if (hasTheory) {
+                        emailHtml += `
+                            <div style="background: #f3f4f6; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                                <p style="margin: 0; font-weight: bold; color: #374151;">Note: This exam contains theory questions.</p>
+                                <p style="margin: 5px 0 0 0; color: #6b7280;">Your final score will be determined after manual grading by the teacher.</p>
+                            </div>
+                        `;
+                    } else {
+                        const percentage = Math.round((totalScore / maxPossible) * 100);
+                        emailHtml += `
+                            <div style="background: #4f46e5; color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0;">
+                                <div style="font-size: 14px; text-transform: uppercase; font-weight: bold; opacity: 0.8; margin-bottom: 5px;">Your Score</div>
+                                <div style="font-size: 48px; font-weight: 900;">${percentage}%</div>
+                                <div style="font-size: 16px; margin-top: 10px;">${totalScore} / ${maxPossible} Points</div>
+                            </div>
+                        `;
+                    }
                 } else {
-                    emailHtml += `
-                        <div style="background: #4f46e5; color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0;">
-                            <div style="font-size: 14px; text-transform: uppercase; font-weight: bold; opacity: 0.8; margin-bottom: 5px;">Your Score</div>
-                            <div style="font-size: 48px; font-weight: 900;">${percentage}%</div>
-                            <div style="font-size: 16px; margin-top: 10px;">${totalScore} / ${maxPossible} Points</div>
+                    // Send confirmation only, no score
+                    emailHtml = `
+                        <h2 style="color: #4f46e5;">Exam Submitted</h2>
+                        <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
+                        <p>Your assessment for <strong>"${exam.title}"</strong> has been successfully received.</p>
+                        <div style="background: #f9fafb; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e5e7eb;">
+                            <p style="margin: 0; color: #374151;"><strong>Status:</strong> Received / Pending Result Release</p>
+                            <p style="margin: 5px 0 0 0; color: #6b7280;">Results will be sent to you once they are officially released on ${new Date(exam.resultPublishTime).toLocaleString()}.</p>
                         </div>
                     `;
                 }
@@ -558,14 +574,16 @@ router.post('/submissions/:id/submit', async (req, res) => {
 
                 await sendEmail({
                     to: emailTo,
-                    subject: `Exam Result: ${exam.title}`,
+                    subject: `Exam ${resultsArePublic ? 'Result' : 'Submission'}: ${exam.title}`,
                     classroomId: exam.classId,
                     schoolId: exam.schoolId,
                     html: emailHtml
                 });
 
-                submission.emailSent = true;
-                await submission.save();
+                if (resultsArePublic) {
+                    submission.emailSent = true;
+                    await submission.save();
+                }
             } catch (err) {
                 console.error('Failed to send exam result email:', err.message);
             }
@@ -657,28 +675,35 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
 
         if (emailTo) {
             try {
-                const maxPossible = exam.questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);
-                const percentage = Math.round((submission.totalScore / maxPossible) * 100);
+                const resultsArePublic = exam.resultsPublished || (exam.resultPublishTime && new Date(exam.resultPublishTime) <= new Date()) || !exam.resultPublishTime;
 
-                await sendEmail({
-                    to: emailTo,
-                    subject: `Updated Exam Result: ${exam.title}`,
-                    classroomId: exam.classId,
-                    schoolId: exam.schoolId,
-                    html: `
-                        <h2 style="color: #4f46e5;">Exam Grading Complete</h2>
-                        <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
-                        <p>Your assessment for <strong>"${exam.title}"</strong> has been reviewed and graded by the examiner.</p>
-                        
-                        <div style="background: #4f46e5; color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0;">
-                            <div style="font-size: 14px; text-transform: uppercase; font-weight: bold; opacity: 0.8; margin-bottom: 5px;">Final Score</div>
-                            <div style="font-size: 48px; font-weight: 900;">${percentage}%</div>
-                            <div style="font-size: 16px; margin-top: 10px;">${submission.totalScore} / ${maxPossible} Points</div>
-                        </div>
-                        
-                        <p>Thank you for your patience.</p>
-                    `
-                });
+                if (resultsArePublic) {
+                    const maxPossible = exam.questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);
+                    const percentage = Math.round((submission.totalScore / maxPossible) * 100);
+
+                    await sendEmail({
+                        to: emailTo,
+                        subject: `Updated Exam Result: ${exam.title}`,
+                        classroomId: exam.classId,
+                        schoolId: exam.schoolId,
+                        html: `
+                            <h2 style="color: #4f46e5;">Exam Grading Complete</h2>
+                            <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
+                            <p>Your assessment for <strong>"${exam.title}"</strong> has been reviewed and graded by the examiner.</p>
+                            
+                            <div style="background: #4f46e5; color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0;">
+                                <div style="font-size: 14px; text-transform: uppercase; font-weight: bold; opacity: 0.8; margin-bottom: 5px;">Final Score</div>
+                                <div style="font-size: 48px; font-weight: 900;">${percentage}%</div>
+                                <div style="font-size: 16px; margin-top: 10px;">${submission.totalScore} / ${maxPossible} Points</div>
+                            </div>
+                            
+                            <p>Thank you for your patience.</p>
+                        `
+                    });
+
+                    submission.emailSent = true;
+                    await submission.save();
+                }
             } catch (err) {
                 console.error('Failed to send updated result email:', err.message);
             }

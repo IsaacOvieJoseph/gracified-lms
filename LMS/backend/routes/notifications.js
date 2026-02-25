@@ -7,6 +7,7 @@ const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const internalAuth = require('../middleware/internalAuth'); // Import internalAuth middleware
 const { checkAndSendReminders } = require('../utils/reminderHelper');
+const { processPendingExamResults } = require('../utils/examNotificationHelper');
 
 
 // Send class reminder
@@ -293,10 +294,15 @@ router.get('/trigger-reminders', async (req, res) => {
     }
 
     const result = await checkAndSendReminders();
+    const examResult = await processPendingExamResults();
+
     res.json({
       success: true,
-      message: 'Reminder check completed',
-      details: result
+      message: 'Notification check completed',
+      details: {
+        reminders: result,
+        examResults: examResult
+      }
     });
   } catch (error) {
     console.error('Trigger Reminders Error:', error.message);

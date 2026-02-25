@@ -2,14 +2,20 @@ const cron = require('node-cron');
 const { checkAndSendReminders } = require('./reminderHelper');
 
 const startScheduler = () => {
-    // Run every minute for class reminders
-    // We use a cron expression that triggers at the start of every minute
+    // Run every minute for class reminders and exam result release
     cron.schedule('* * * * *', async () => {
-        try {
-            await checkAndSendReminders();
-        } catch (error) {
-            console.error('[Cron] Scheduler execution failed:', error.message);
-        }
+        // Run tasks in parallel so they don't block each other
+        await Promise.allSettled([
+            checkAndSendReminders().catch(err =>
+                console.error('[Cron] Class Reminders failed:', err.message)
+            ),
+            (async () => {
+                const { processPendingExamResults } = require('./examNotificationHelper');
+                return processPendingExamResults();
+            })().catch(err =>
+                console.error('[ExamResults] Processor failed:', err.message)
+            )
+        ]);
     });
 
     console.log('Class session scheduler started (running every minute)');
