@@ -20,7 +20,7 @@ const checkAndSendReminders = async (forcedTime = null) => {
         const minutes = reminderTime.getUTCMinutes().toString().padStart(2, '0');
         const timeStr = `${hours}:${minutes}`;
 
-        console.log(`[Scheduler] Checking for classes starting at ${timeStr} UTC on ${currentDay} (Server Time: ${new Date().toISOString()})`);
+        // console.log(`[Scheduler] Checking for classes starting at ${timeStr} UTC on ${currentDay} (Server Time: ${new Date().toISOString()})`);
 
         // Find classrooms with sessions starting in 15 minutes
         const classrooms = await Classroom.find({
@@ -115,7 +115,7 @@ const checkAndSendReminders = async (forcedTime = null) => {
                 }
                 totalReminders++;
             }
-            console.log(`[Scheduler] Sent reminders for class: ${classroom.name} at ${timeStr}${topicInfo ? ` (Topic: ${topicInfo.name})` : ''}`);
+            // console.log(`[Scheduler] Sent reminders for class: ${classroom.name} at ${timeStr}${topicInfo ? ` (Topic: ${topicInfo.name})` : ''}`);
         }
         return { processed: classrooms.length, reminders: totalReminders };
     } catch (error) {

@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
 const processPendingExamResults = async () => {
     try {
         const now = new Date();
-        console.log(`[ExamResults] Starting check at ${now.toISOString()}`);
+        // console.log(`[ExamResults] Starting check at ${now.toISOString()}`);
 
         // Find all submissions that are graded but haven't had results sent yet
         const pendingSubmissions = await ExamSubmission.find({
@@ -19,7 +19,7 @@ const processPendingExamResults = async () => {
             emailSent: false
         }).populate('examId');
 
-        console.log(`[ExamResults] Found ${pendingSubmissions.length} graded submissions with pending emails.`);
+        // console.log(`[ExamResults] Found ${pendingSubmissions.length} graded submissions with pending emails.`);
 
         if (pendingSubmissions.length === 0) return { processed: 0 };
 
@@ -28,14 +28,14 @@ const processPendingExamResults = async () => {
         for (const submission of pendingSubmissions) {
             const exam = submission.examId;
             if (!exam) {
-                console.warn(`[ExamResults] Submission ${submission._id} is missing its examId.`);
+                // console.warn(`[ExamResults] Submission ${submission._id} is missing its examId.`);
                 continue;
             }
 
             // Check if results are now public for this exam
             const resultsArePublic = exam.resultsPublished || (exam.resultPublishTime && new Date(exam.resultPublishTime) <= now);
 
-            console.log(`[ExamResults] Processing submission for exam: "${exam.title}". Results public: ${resultsArePublic}. PublishTime: ${exam.resultPublishTime ? new Date(exam.resultPublishTime).toISOString() : 'N/A'}`);
+            // console.log(`[ExamResults] Processing submission for exam: "${exam.title}". Results public: ${resultsArePublic}. PublishTime: ${exam.resultPublishTime ? new Date(exam.resultPublishTime).toISOString() : 'N/A'}`);
 
             if (resultsArePublic) {
                 let emailTo = submission.candidateEmail;
@@ -57,7 +57,7 @@ const processPendingExamResults = async () => {
 
                 if (emailTo) {
                     try {
-                        console.log(`[ExamResults] Attempting to send result to ${emailTo} for "${exam.title}"...`);
+                        // console.log(`[ExamResults] Attempting to send result to ${emailTo} for "${exam.title}"...`);
                         const totalScore = submission.totalScore;
                         const maxPossible = exam.questions && exam.questions.length > 0
                             ? exam.questions.reduce((acc, q) => acc + (q.maxScore || 1), 0)
@@ -89,19 +89,19 @@ const processPendingExamResults = async () => {
                         submission.emailSent = true;
                         await submission.save();
                         sentCount++;
-                        console.log(`[ExamResults] Success: result sent to ${emailTo}`);
+                        // console.log(`[ExamResults] Success: result sent to ${emailTo}`);
                     } catch (err) {
                         console.error(`[ExamResults] Failed to send email to ${emailTo}:`, err.message);
                     }
                 } else {
-                    console.warn(`[ExamResults] No email address found for submission ${submission._id}`);
+                    // console.warn(`[ExamResults] No email address found for submission ${submission._id}`);
                 }
             } else {
-                console.log(`[ExamResults] Results for "${exam.title}" are not yet public. Skipping.`);
+                // console.log(`[ExamResults] Results for "${exam.title}" are not yet public. Skipping.`);
             }
         }
 
-        console.log(`[ExamResults] Task completed. Sent ${sentCount} results.`);
+        // console.log(`[ExamResults] Task completed. Sent ${sentCount} results.`);
         return { processed: sentCount };
     } catch (error) {
         console.error('[ExamResults] Critical Error in processor:', error.message);

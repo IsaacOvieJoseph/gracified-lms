@@ -26,9 +26,9 @@ const startScheduler = () => {
     // Run topic auto-progression check daily at midnight
     cron.schedule('0 0 * * *', async () => {
         try {
-            console.log('[Cron] Running topic auto-progression check...');
+            // console.log('[Cron] Running topic auto-progression check...');
             const results = await checkAutoProgression();
-            console.log(`[Cron] Topic auto-progression completed. Processed ${results.length} topics.`);
+            // console.log(`[Cron] Topic auto-progression completed. Processed ${results.length} topics.`);
         } catch (error) {
             console.error('[Cron] Topic auto-progression failed:', error.message);
         }
