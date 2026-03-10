@@ -1,12 +1,50 @@
 import React, { useEffect, useState } from 'react';
-import { Book, Clock, CheckCircle, Circle, Calendar } from 'lucide-react';
+import { Book, Clock, CheckCircle, Circle, Calendar, Video, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
 import { useAuth } from '../context/AuthContext';
 
 
+const VideoPlayer = ({ video, title }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div className="mt-4">
+            <button
+                onClick={() => setExpanded(v => !v)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-all shadow-md shadow-purple-200 active:scale-[0.98]"
+            >
+                <Video className="w-4 h-4" />
+                {expanded ? 'Hide Lecture Video' : 'Watch Lecture Video'}
+                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {expanded && (
+                <div className="mt-3 rounded-2xl overflow-hidden bg-black shadow-xl">
+                    <video
+                        src={video.url}
+                        controls
+                        autoPlay={false}
+                        className="w-full max-h-[480px] object-contain"
+                        preload="metadata"
+                        title={title}
+                    />
+                    {video.originalName && (
+                        <div className="px-4 py-2 bg-slate-900 text-slate-400 text-xs flex items-center gap-2">
+                            <Video className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="truncate">{video.originalName}</span>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 const TopicDisplay = ({ classroomId }) => {
     const [currentTopic, setCurrentTopic] = useState(null);
+    const [allTopics, setAllTopics] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showPaidTopics, setShowPaidTopics] = useState(false);
     const [topicStatus, setTopicStatus] = useState(null); // { paidTopics, unpaidTopics, totalUnpaidAmount, allTopics }
@@ -20,6 +58,7 @@ const TopicDisplay = ({ classroomId }) => {
             fetchTopicStatus();
         }
     }, [classroomId]);
+
     // Fetch paid/unpaid topics and total
     const fetchTopicStatus = async () => {
         try {
@@ -29,6 +68,7 @@ const TopicDisplay = ({ classroomId }) => {
             setTopicStatus(null);
         }
     };
+
     const loadPaystackScript = () => {
         return new Promise((resolve, reject) => {
             if (window.PaystackPop) return resolve();
@@ -163,9 +203,10 @@ const TopicDisplay = ({ classroomId }) => {
         try {
             const response = await api.get(`/topics/classroom/${classroomId}/current`);
             setCurrentTopic(response.data.currentTopic);
-            // Fetch paid topic visibility
+            // Fetch paid topic visibility + full topic list (to get recordedVideo data)
             const topicsResp = await api.get(`/topics/classroom/${classroomId}`);
             setShowPaidTopics(topicsResp.data.showPaidTopics);
+            setAllTopics(topicsResp.data.topics || []);
         } catch (error) {
             console.error('Error fetching current topic:', error);
         } finally {
@@ -223,6 +264,14 @@ const TopicDisplay = ({ classroomId }) => {
         );
     }
 
+    // Merge recordedVideo data from full topic list (the /current endpoint may not include it)
+    const enrichedCurrentTopic = (() => {
+        const full = allTopics.find(t => t._id === currentTopic._id);
+        return full ? { ...currentTopic, recordedVideo: full.recordedVideo } : currentTopic;
+    })();
+
+    const hasCurrentVideo = enrichedCurrentTopic.recordedVideo && enrichedCurrentTopic.recordedVideo.url;
+
     return (
         <div className={`bg-white rounded-lg shadow-md p-6 border-2 ${getStatusColor(currentTopic.status)}`}>
             <div className="flex items-start justify-between">
@@ -231,11 +280,16 @@ const TopicDisplay = ({ classroomId }) => {
                         {getStatusIcon(currentTopic.status)}
                     </div>
                     <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
+                        <div className="flex items-center flex-wrap gap-2 mb-1">
                             <h3 className="text-lg font-bold text-gray-800">{currentTopic.name}</h3>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(currentTopic.status)}`}>
                                 {currentTopic.status === 'active' ? 'Current Topic' : currentTopic.status}
                             </span>
+                            {hasCurrentVideo && (
+                                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                                    <Video className="w-3 h-3" /> Lecture Available
+                                </span>
+                            )}
                         </div>
 
                         {currentTopic.description && (
@@ -280,6 +334,14 @@ const TopicDisplay = ({ classroomId }) => {
                                 </span>
                             )}
                         </div>
+
+                        {/* ── Recorded Lecture Video for Current Topic ── */}
+                        {hasCurrentVideo && (
+                            <VideoPlayer
+                                video={enrichedCurrentTopic.recordedVideo}
+                                title={`Lecture: ${enrichedCurrentTopic.name}`}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

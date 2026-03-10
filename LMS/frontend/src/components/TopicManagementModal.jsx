@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Loader2, CheckCircle, Clock, Circle, Play, Flag, Book, Pencil, GripVertical, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Plus, Trash2, Loader2, CheckCircle, Clock, Circle, Play, Flag, Book, Pencil, GripVertical, RotateCcw, Video, Upload, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ConfirmationModal from './ConfirmationModal';
 import api from '../utils/api';
@@ -32,6 +32,13 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [topicToDelete, setTopicToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // ── Video upload states ─────────────────────────────────────────────────
+    const [videoUploadTopicId, setVideoUploadTopicId] = useState(null); // which topic is being uploaded to
+    const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [removingVideoId, setRemovingVideoId] = useState(null);
+    const videoInputRef = useRef(null);
 
     useEffect(() => {
         if (show && classroomId) {
@@ -174,7 +181,7 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
         }
     };
 
-    // Drag and drop handlers
+    // ── Drag and drop ───────────────────────────────────────────────────────
     const handleDragStart = (e, index) => {
         setDraggedIndex(index);
         e.dataTransfer.effectAllowed = 'move';
@@ -197,22 +204,106 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
         const [draggedTopic] = reorderedTopics.splice(draggedIndex, 1);
         reorderedTopics.splice(dropIndex, 0, draggedTopic);
 
-        // Update local state immediately for smooth UX
         setTopics(reorderedTopics);
         setDraggedIndex(null);
 
-        // Send new order to backend
         try {
             const orderedIds = reorderedTopics.map(t => t._id);
             await api.put('/topics/reorder', { orderedIds });
             toast.success('Topics reordered!');
-            fetchTopics(); // Refresh to get updated order from server
+            fetchTopics();
         } catch (error) {
             toast.error('Error reordering topics');
-            fetchTopics(); // Revert on error
+            fetchTopics();
         }
     };
 
+    // ── Video upload handlers ───────────────────────────────────────────────
+    const handleVideoFileChange = async (e, topicId) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const maxSize = 500 * 1024 * 1024; // 500 MB
+        if (file.size > maxSize) {
+            toast.error('Video file is too large. Maximum allowed size is 500 MB.');
+            e.target.value = '';
+            return;
+        }
+
+        setUploadingVideo(true);
+        setUploadProgress(0);
+        setVideoUploadTopicId(topicId);
+
+        try {
+            const formData = new FormData();
+            formData.append('video', file);
+
+            // Use XMLHttpRequest for upload progress tracking
+            await new Promise((resolve, reject) => {
+                const token = localStorage.getItem('token');
+                const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const pct = Math.round((event.loaded / event.total) * 100);
+                        setUploadProgress(pct);
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(JSON.parse(xhr.responseText));
+                    } else {
+                        try {
+                            const err = JSON.parse(xhr.responseText);
+                            reject(new Error(err.message || 'Upload failed'));
+                        } catch {
+                            reject(new Error('Upload failed'));
+                        }
+                    }
+                });
+
+                xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+                xhr.open('POST', `${baseURL}/topics/${topicId}/upload-video`);
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                xhr.send(formData);
+            });
+
+            toast.success('Lecture video uploaded successfully!');
+            fetchTopics();
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err.message || 'Error uploading video');
+        } finally {
+            setUploadingVideo(false);
+            setUploadProgress(0);
+            setVideoUploadTopicId(null);
+            e.target.value = '';
+        }
+    };
+
+    const handleRemoveVideo = async (topicId) => {
+        setRemovingVideoId(topicId);
+        try {
+            await api.delete(`/topics/${topicId}/video`);
+            toast.success('Video removed successfully');
+            fetchTopics();
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Error removing video');
+        } finally {
+            setRemovingVideoId(null);
+        }
+    };
+
+    const formatFileSize = (bytes) => {
+        if (!bytes) return '';
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    // ── Form helpers ────────────────────────────────────────────────────────
     const resetForm = () => {
         setFormData({
             name: '',
@@ -436,7 +527,7 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                         )}
 
                         {/* Topics List */}
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {topics.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <Book className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -459,6 +550,9 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                         const isCurrent = topic.status === 'active';
                                         const isDone = topic.status === 'completed';
                                         const isPending = topic.status === 'pending' && !isNext;
+                                        const hasVideo = topic.recordedVideo && topic.recordedVideo.url;
+                                        const isUploadingThis = uploadingVideo && videoUploadTopicId === topic._id;
+                                        const isRemovingThis = removingVideoId === topic._id;
 
                                         return (
                                             <div
@@ -467,22 +561,23 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                                 onDragStart={(e) => handleDragStart(e, index)}
                                                 onDragOver={(e) => handleDragOver(e, index)}
                                                 onDrop={(e) => handleDrop(e, index)}
-                                                className={`bg-white border-2 rounded-lg p-4 transition-all cursor-move ${draggedIndex === index ? 'opacity-50 scale-95' : ''
+                                                className={`bg-white border-2 rounded-xl p-4 transition-all cursor-move ${draggedIndex === index ? 'opacity-50 scale-95' : ''
                                                     } ${isCurrent ? 'border-blue-400 shadow-lg' :
                                                         isDone ? 'border-green-200 opacity-75' :
                                                             isNext ? 'border-indigo-300 shadow-md transform scale-[1.01]' :
                                                                 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
+                                                {/* ── Topic Header Row ── */}
                                                 <div className="flex items-start justify-between">
-                                                    <div className="flex items-start space-x-3 flex-1">
+                                                    <div className="flex items-start space-x-3 flex-1 min-w-0">
                                                         {/* Drag Handle */}
-                                                        <div className="mt-1 text-gray-400 cursor-grab active:cursor-grabbing">
+                                                        <div className="mt-1 text-gray-400 cursor-grab active:cursor-grabbing flex-shrink-0">
                                                             <GripVertical className="w-5 h-5" />
                                                         </div>
 
                                                         {/* Status Icon */}
-                                                        <div className="mt-1">
+                                                        <div className="mt-1 flex-shrink-0">
                                                             {isDone ? (
                                                                 <CheckCircle className="w-5 h-5 text-green-600" />
                                                             ) : isCurrent ? (
@@ -494,27 +589,24 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                                             )}
                                                         </div>
 
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center space-x-2 mb-1">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center flex-wrap gap-2 mb-1">
                                                                 <h4 className="font-semibold text-gray-800">{topic.name}</h4>
                                                                 {isCurrent && (
-                                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                                                                        Current
-                                                                    </span>
+                                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">Current</span>
                                                                 )}
                                                                 {isDone && (
-                                                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                                                                        Done
-                                                                    </span>
+                                                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Done</span>
                                                                 )}
                                                                 {isNext && (
-                                                                    <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
-                                                                        Next
-                                                                    </span>
+                                                                    <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">Next</span>
                                                                 )}
                                                                 {isPending && (
-                                                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
-                                                                        Pending
+                                                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Pending</span>
+                                                                )}
+                                                                {hasVideo && (
+                                                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                                                                        <Video className="w-3 h-3" /> Video
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -534,7 +626,7 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                                     </div>
 
                                                     {/* Actions */}
-                                                    <div className="flex items-center space-x-2 ml-4">
+                                                    <div className="flex items-center space-x-1 ml-3 flex-shrink-0">
                                                         {(topic.status === 'pending') && (
                                                             <button
                                                                 onClick={() => handleActivate(topic._id)}
@@ -577,6 +669,100 @@ const TopicManagementModal = ({ show, onClose, classroomId, onSuccess }) => {
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
+                                                </div>
+
+                                                {/* ── Video Section ── */}
+                                                <div className="mt-4 ml-10 pl-3 border-l-2 border-slate-100">
+                                                    {isUploadingThis ? (
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center gap-2 text-sm text-purple-700 font-medium">
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                                Uploading lecture video… {uploadProgress}%
+                                                            </div>
+                                                            <div className="w-full bg-slate-100 rounded-full h-2">
+                                                                <div
+                                                                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                                                                    style={{ width: `${uploadProgress}%` }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ) : hasVideo ? (
+                                                        <div className="space-y-3">
+                                                            {/* Video preview */}
+                                                            <div className="rounded-xl overflow-hidden bg-black aspect-video max-h-52 w-full">
+                                                                <video
+                                                                    src={topic.recordedVideo.url}
+                                                                    controls
+                                                                    className="w-full h-full object-contain"
+                                                                    preload="metadata"
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                                                                <div className="text-xs text-slate-500 flex items-center gap-2">
+                                                                    <Video className="w-3.5 h-3.5 text-purple-500" />
+                                                                    <span className="font-medium text-slate-700 truncate max-w-[240px]">
+                                                                        {topic.recordedVideo.originalName}
+                                                                    </span>
+                                                                    {topic.recordedVideo.size && (
+                                                                        <span className="text-slate-400">· {formatFileSize(topic.recordedVideo.size)}</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {/* Replace video */}
+                                                                    <label
+                                                                        htmlFor={`video-replace-${topic._id}`}
+                                                                        className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition"
+                                                                        title="Replace video"
+                                                                    >
+                                                                        <Upload className="w-3.5 h-3.5" />
+                                                                        Replace
+                                                                    </label>
+                                                                    <input
+                                                                        id={`video-replace-${topic._id}`}
+                                                                        type="file"
+                                                                        accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska,video/x-msvideo"
+                                                                        className="hidden"
+                                                                        onChange={(e) => handleVideoFileChange(e, topic._id)}
+                                                                        disabled={uploadingVideo}
+                                                                    />
+                                                                    {/* Remove video */}
+                                                                    <button
+                                                                        onClick={() => handleRemoveVideo(topic._id)}
+                                                                        disabled={isRemovingThis}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition"
+                                                                        title="Remove video"
+                                                                    >
+                                                                        {isRemovingThis ? (
+                                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                        ) : (
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        )}
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <label
+                                                            htmlFor={`video-upload-${topic._id}`}
+                                                            className={`flex items-center gap-2 cursor-pointer group w-fit ${uploadingVideo ? 'opacity-50 pointer-events-none' : ''}`}
+                                                            title="Attach a recorded lecture video"
+                                                        >
+                                                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-300 text-slate-500 group-hover:border-purple-400 group-hover:text-purple-600 group-hover:bg-purple-50 transition">
+                                                                <Video className="w-4 h-4" />
+                                                                <span className="text-xs font-semibold">Attach Lecture Video</span>
+                                                                <Upload className="w-3.5 h-3.5 opacity-60" />
+                                                            </div>
+                                                            <input
+                                                                id={`video-upload-${topic._id}`}
+                                                                type="file"
+                                                                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska,video/x-msvideo"
+                                                                className="hidden"
+                                                                onChange={(e) => handleVideoFileChange(e, topic._id)}
+                                                                disabled={uploadingVideo}
+                                                            />
+                                                        </label>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

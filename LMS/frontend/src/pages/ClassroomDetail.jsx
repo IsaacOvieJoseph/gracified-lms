@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone, Flag, CreditCard, School, GraduationCap, Layers, Sparkles } from 'lucide-react';
+import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone, Flag, CreditCard, School, GraduationCap, Layers, Sparkles, MessageSquare } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal, formatDisplayDate } from '../utils/timezone';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
@@ -17,6 +17,7 @@ import TopicDisplay from '../components/TopicDisplay';
 import GoogleMeetAuth from '../components/GoogleMeetAuth';
 import PaymentRequiredModal from '../components/PaymentRequiredModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import QnABoardManagement from '../components/QnABoardManagement';
 
 // subjectOptions converted to dynamic state inside component
 
@@ -38,6 +39,100 @@ const defaultSubjects = [
   'Computer Science', 'History', 'Geography', 'Economics',
   'Literature', 'Art', 'Music', 'Physical Education'
 ];
+
+// ─── Inline topic card with collapsible video player ────────────────────────
+const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending, hasVideo }) => {
+  const [videoOpen, setVideoOpen] = useState(false);
+  return (
+    <div
+      className={`border-2 rounded-lg p-4 transition ${isCurrent ? 'border-blue-400 bg-blue-50' :
+        isDone ? 'border-green-200 bg-green-50 opacity-75' :
+          isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
+            'border-gray-200 bg-white hover:border-gray-300'
+        }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-1 flex-shrink-0">
+          {isDone ? (
+            <CheckCircle className="w-5 h-5 text-green-600" />
+          ) : isCurrent ? (
+            <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
+          ) : isNext ? (
+            <Play className="w-5 h-5 text-indigo-600" />
+          ) : (
+            <Circle className="w-5 h-5 text-gray-400" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center flex-wrap gap-2 mb-1">
+            <h4 className="font-semibold text-gray-800">{topic.name}</h4>
+            {isCurrent && (
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">Current</span>
+            )}
+            {isDone && (
+              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Done</span>
+            )}
+            {isNext && (
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">Next</span>
+            )}
+            {isPending && (
+              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Pending</span>
+            )}
+            {hasVideo && (
+              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                <Video className="w-3 h-3" /> Recorded
+              </span>
+            )}
+          </div>
+          {topic.description && (
+            <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
+          )}
+          {topic.lessonsOutline && (
+            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+              <p className="font-medium text-gray-700 mb-1">Lesson Outline:</p>
+              <p className="line-clamp-3 whitespace-pre-wrap">{topic.lessonsOutline}</p>
+            </div>
+          )}
+
+          {/* Watch recorded lecture button */}
+          {hasVideo && (
+            <div className="mt-3">
+              <button
+                onClick={() => setVideoOpen(v => !v)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
+              >
+                <Video className="w-3.5 h-3.5" />
+                {videoOpen ? 'Hide Lecture' : 'Watch Lecture'}
+                {videoOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {videoOpen && (
+                <div className="mt-3 rounded-xl overflow-hidden bg-black shadow-lg">
+                  <video
+                    src={topic.recordedVideo.url}
+                    controls
+                    autoPlay={false}
+                    className="w-full max-h-[380px] object-contain"
+                    preload="metadata"
+                    title={`Lecture: ${topic.name}`}
+                  />
+                  {topic.recordedVideo.originalName && (
+                    <div className="px-3 py-1.5 bg-slate-900 text-slate-400 text-xs flex items-center gap-2">
+                      <Video className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                      <span className="truncate">{topic.recordedVideo.originalName}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 const ClassroomDetail = () => {
   const { id } = useParams();
@@ -1362,7 +1457,8 @@ const ClassroomDetail = () => {
             { id: 'topics', label: 'Topics', icon: Book },
             ...((isEnrolled || canEdit) ? [
               { id: 'assignments', label: 'Assignments', icon: FileText },
-              { id: 'exams', label: 'Exams', icon: GraduationCap }
+              { id: 'exams', label: 'Exams', icon: GraduationCap },
+              { id: 'qna', label: 'Q&A Boards', icon: MessageSquare }
             ] : []),
             ...(canViewStudents ? [{ id: 'students', label: 'Students', icon: Users }] : [])
           ].map(tab => (
@@ -1434,66 +1530,21 @@ const ClassroomDetail = () => {
                           const isCurrent = topic.status === 'active';
                           const isDone = topic.status === 'completed';
                           const isPending = topic.status === 'pending' && !isNext;
+                          const hasVideo = topic.recordedVideo && topic.recordedVideo.url;
 
                           return (
-                            <div
+                            <TopicCardWithVideo
                               key={topic._id}
-                              className={`border-2 rounded-lg p-4 transition ${isCurrent ? 'border-blue-400 bg-blue-50' :
-                                isDone ? 'border-green-200 bg-green-50 opacity-75' :
-                                  isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
-                                    'border-gray-200 bg-white hover:border-gray-300'
-                                }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="mt-1">
-                                  {isDone ? (
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                  ) : isCurrent ? (
-                                    <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
-                                  ) : isNext ? (
-                                    <Play className="w-5 h-5 text-indigo-600" />
-                                  ) : (
-                                    <Circle className="w-5 h-5 text-gray-400" />
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-2 mb-1">
-                                    <h4 className="font-semibold text-gray-800">{topic.name}</h4>
-                                    {isCurrent && (
-                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                                        Current
-                                      </span>
-                                    )}
-                                    {isDone && (
-                                      <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                                        Done
-                                      </span>
-                                    )}
-                                    {isNext && (
-                                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
-                                        Next
-                                      </span>
-                                    )}
-                                    {isPending && (
-                                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
-                                        Pending
-                                      </span>
-                                    )}
-                                  </div>
-                                  {topic.description && (
-                                    <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
-                                  )}
-                                  {topic.lessonsOutline && (
-                                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                                      <p className="font-medium text-gray-700 mb-1">Lesson Outline:</p>
-                                      <p className="line-clamp-3 whitespace-pre-wrap">{topic.lessonsOutline}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                              topic={topic}
+                              isCurrent={isCurrent}
+                              isDone={isDone}
+                              isNext={isNext}
+                              isPending={isPending}
+                              hasVideo={hasVideo}
+                            />
                           );
                         });
+
                       })()
                     ) : (
                       <div className="text-center py-8 text-gray-500">
@@ -1508,6 +1559,15 @@ const ClassroomDetail = () => {
                 </div>
               )
             }</div>
+        )}
+
+        {activeTab === 'qna' && (
+          <QnABoardManagement
+            classroomId={id}
+            classroom={classroom}
+            user={user}
+            canEdit={canEdit}
+          />
         )}
 
         {activeTab === 'assignments' && (

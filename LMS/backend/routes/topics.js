@@ -4,7 +4,35 @@ const Classroom = require('../models/Classroom');
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
 const { isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
+
+// ─── Multer – video uploads ──────────────────────────────────────────────────
+const videoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../uploads/topic-videos');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `topic-${req.params.id}-${unique}${path.extname(file.originalname)}`);
+  }
+});
+
+const videoUpload = multer({
+  storage: videoStorage,
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /mp4|webm|ogg|mov|mkv|avi/i;
+    const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+    const mime = /video\//i.test(file.mimetype);
+    if (ext && mime) return cb(null, true);
+    cb(new Error('Only video files are allowed (mp4, webm, ogg, mov, mkv, avi)'));
+  }
+});
 
 // Helper to check school access
 const hasSchoolAccess = (user, classroom) => {
@@ -462,6 +490,106 @@ router.post('/:id/reset', auth, authorize('root_admin', 'school_admin', 'teacher
 
 
 
+// Upload recorded video to a topic
+router.post('/:id/upload-video',
+  auth,
+  authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
+  (req, res, next) => {
+    videoUpload.single('video')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ message: 'Video file is too large. Maximum allowed size is 500 MB.' });
+        }
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    try {
+      const topic = await Topic.findById(req.params.id).populate('classroomId');
+      if (!topic) return res.status(404).json({ message: 'Topic not found' });
+
+      const classroom = topic.classroomId;
+      const canEdit =
+        req.user.role === 'root_admin' ||
+        (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+        (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
+
+      if (!canEdit) {
+        // Remove uploaded file if access denied
+        if (req.file) fs.unlinkSync(req.file.path);
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No video file uploaded' });
+      }
+
+      // Delete old video from disk if it exists
+      if (topic.recordedVideo && topic.recordedVideo.url) {
+        const oldPath = path.join(__dirname, '../uploads/topic-videos', path.basename(topic.recordedVideo.url));
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath); } catch (e) { /* ignore */ }
+        }
+      }
+
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const videoUrl = `${protocol}://${host}/uploads/topic-videos/${req.file.filename}`;
+
+      topic.recordedVideo = {
+        url: videoUrl,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        uploadedAt: new Date()
+      };
+      await topic.save();
+
+      res.json({ message: 'Video uploaded successfully', recordedVideo: topic.recordedVideo });
+    } catch (error) {
+      console.error('Error uploading topic video:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Delete recorded video from a topic
+router.delete('/:id/video',
+  auth,
+  authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
+  async (req, res) => {
+    try {
+      const topic = await Topic.findById(req.params.id).populate('classroomId');
+      if (!topic) return res.status(404).json({ message: 'Topic not found' });
+
+      const classroom = topic.classroomId;
+      const canEdit =
+        req.user.role === 'root_admin' ||
+        (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+        (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
+
+      if (!canEdit) return res.status(403).json({ message: 'Access denied' });
+
+      if (topic.recordedVideo && topic.recordedVideo.url) {
+        const filePath = path.join(__dirname, '../uploads/topic-videos', path.basename(topic.recordedVideo.url));
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+        }
+      }
+
+      topic.recordedVideo = { url: null, originalName: null, size: null, uploadedAt: null };
+      await topic.save();
+
+      res.json({ message: 'Video removed successfully' });
+    } catch (error) {
+      console.error('Error deleting topic video:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 
 module.exports = router;
+
 

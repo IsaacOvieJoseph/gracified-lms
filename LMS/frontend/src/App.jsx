@@ -32,6 +32,8 @@ import ExamSubmissions from './pages/ExamSubmissions';
 import ExamSubmissionDetail from './pages/ExamSubmissionDetail';
 import Profile from './pages/Profile';
 import Landing from './pages/Landing';
+import QnACenter from './pages/QnACenter';
+import QnAPresentation from './pages/QnAPresentation';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -308,6 +310,8 @@ const AppRoutes = () => {
         }
       />
       <Route path="/exam-center/:token" element={<ExamCenter />} />
+      <Route path="/qna/:token" element={<QnACenter />} />
+      <Route path="/qna/:token/present" element={<PrivateRoute><QnAPresentation /></PrivateRoute>} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
     </Routes>

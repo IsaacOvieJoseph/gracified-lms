@@ -33,6 +33,8 @@ require('./models/SubscriptionPlan');
 require('./models/UserSubscription');
 require('./models/Exam');
 require('./models/ExamSubmission');
+require('./models/QnABoard');
+require('./models/QnAQuestion');
 
 // Security Middlewares
 app.use(helmet({
@@ -76,6 +78,7 @@ app.use(express.json({ limit: '10kb' })); // Body limit to prevent large payload
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+
 // Apply rate limiting to authentication routes
 app.use('/api/auth', authLimiter);
 app.use('/api/google-auth', authLimiter);
@@ -109,6 +112,7 @@ const googleAuthRouter = require('./routes/googleAuth');
 app.use('/api/google-auth', googleAuthRouter);
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/exams', require('./routes/exams'));
+app.use('/api/qna', require('./routes/qna'));
 
 // Connect to MongoDB
 const connectDB = async () => {

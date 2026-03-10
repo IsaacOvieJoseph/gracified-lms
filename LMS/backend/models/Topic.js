@@ -32,6 +32,13 @@ const topicSchema = new mongoose.Schema({
     title: String,
     content: String
   }],
+  // Recorded lecture video attached to this topic
+  recordedVideo: {
+    url: { type: String, default: null },
+    originalName: { type: String, default: null },
+    size: { type: Number, default: null },
+    uploadedAt: { type: Date, default: null }
+  },
   isPaid: {
     type: Boolean,
     default: false
