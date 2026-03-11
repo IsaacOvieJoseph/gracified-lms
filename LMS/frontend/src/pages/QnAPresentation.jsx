@@ -71,7 +71,10 @@ const QnAPresentation = () => {
 
     const sortedQuestions = [...questions].sort((a, b) => {
         if (a.isAnswered === b.isAnswered) {
-            return b.upvotes.length - a.upvotes.length || new Date(b.createdAt) - new Date(a.createdAt);
+            if (a.upvotes.length !== b.upvotes.length) {
+                return b.upvotes.length - a.upvotes.length;
+            }
+            return new Date(a.createdAt) - new Date(b.createdAt); // Oldest -> Newest
         }
         return a.isAnswered ? 1 : -1;
     });
@@ -211,7 +214,7 @@ const QnAPresentation = () => {
                                                 <p className={`text-lg md:text-xl font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                                                     {board.allowAnonymous ? 'Anonymous' : currentQuestion.authorName}
                                                 </p>
-                                                <p className={`text-xs md:text-sm font-medium ${textSecondary}`}>{new Date(currentQuestion.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                <p className={`text-xs md:text-sm font-medium ${textSecondary}`}>{new Date(currentQuestion.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                             </div>
                                         </div>
 

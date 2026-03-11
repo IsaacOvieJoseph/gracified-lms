@@ -104,7 +104,15 @@ const QnACenter = () => {
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
     if (!board) return null;
 
-    const sortedQuestions = [...questions].sort((a, b) => b.upvotes.length - a.upvotes.length || new Date(b.createdAt) - new Date(a.createdAt));
+    const sortedQuestions = [...questions].sort((a, b) => {
+        if (a.isAnswered === b.isAnswered) {
+            if (a.upvotes.length !== b.upvotes.length) {
+                return b.upvotes.length - a.upvotes.length;
+            }
+            return new Date(a.createdAt) - new Date(b.createdAt); // Oldest -> Newest
+        }
+        return a.isAnswered ? 1 : -1;
+    });
 
     const displayQuestions = sortedQuestions.filter(q => {
         if (isAdmin) return true;
@@ -269,7 +277,7 @@ const QnACenter = () => {
                                             </div>
                                             <div className="flex items-center">
                                                 <Clock className="w-3.5 h-3.5 mr-1" />
-                                                <span>{new Date(q.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span>{new Date(q.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </div>
                                     </div>
