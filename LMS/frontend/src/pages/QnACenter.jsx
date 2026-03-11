@@ -199,7 +199,7 @@ const QnACenter = () => {
 
                 <div className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <h2 className="text-xl font-bold text-gray-900">Questions <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-2">{displayQuestions.length}</span></h2>
+                        <h2 className="text-xl font-bold text-gray-900">Questions <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-2">{sortedQuestions.length}</span></h2>
                         {!isAdmin && board.hideQuestions && (
                             <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded font-medium border border-indigo-100 shadow-sm flex items-center">
                                 <EyeOff className="w-3.5 h-3.5 mr-1" />
@@ -208,10 +208,15 @@ const QnACenter = () => {
                         )}
                     </div>
 
-                    {displayQuestions.length === 0 ? (
+                    {sortedQuestions.length === 0 ? (
                         <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
                             <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                             <p className="text-gray-500 text-lg">No questions yet. Be the first to ask!</p>
+                        </div>
+                    ) : displayQuestions.length === 0 ? (
+                        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
+                            <EyeOff className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                            <p className="text-gray-500 text-lg">Questions are hidden from others. Ask your first question!</p>
                         </div>
                     ) : (
                         displayQuestions.map(q => {

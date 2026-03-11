@@ -69,7 +69,12 @@ const QnAPresentation = () => {
     if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div></div>;
     if (!board) return null;
 
-    const sortedQuestions = [...questions].sort((a, b) => b.upvotes.length - a.upvotes.length || new Date(b.createdAt) - new Date(a.createdAt));
+    const sortedQuestions = [...questions].sort((a, b) => {
+        if (a.isAnswered === b.isAnswered) {
+            return b.upvotes.length - a.upvotes.length || new Date(b.createdAt) - new Date(a.createdAt);
+        }
+        return a.isAnswered ? 1 : -1;
+    });
     const currentQuestion = sortedQuestions[currentIndex];
 
     // Theme Variables
