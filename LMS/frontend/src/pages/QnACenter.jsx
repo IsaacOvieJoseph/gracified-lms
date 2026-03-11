@@ -69,11 +69,17 @@ const QnACenter = () => {
         try {
             const finalAuthorName = user ? (stayAnonymous ? 'Anonymous' : user.name) : authorName;
             const finalAuthorId = user ? (stayAnonymous ? null : user._id) : null;
-            await api.post(`/qna/board/${board._id}/questions`, {
+            const res = await api.post(`/qna/board/${board._id}/questions`, {
                 text: newQuestion,
                 authorName: finalAuthorName,
                 authorId: finalAuthorId
             });
+
+            // Track owned questions locally so anonymous authors can still see their posts
+            const myQs = JSON.parse(localStorage.getItem('myQnaQuestions') || '[]');
+            myQs.push(res.data._id);
+            localStorage.setItem('myQnaQuestions', JSON.stringify(myQs));
+
             toast.success('Question posted!');
             setNewQuestion('');
             fetchBoardAndQuestions(false);
@@ -104,6 +110,11 @@ const QnACenter = () => {
         if (isAdmin) return true;
         if (!board.hideQuestions) return true;
         if (user && q.authorId === user._id) return true;
+
+        // Check local storage for local/anonymous ownership
+        const myQs = JSON.parse(localStorage.getItem('myQnaQuestions') || '[]');
+        if (myQs.includes(q._id)) return true;
+
         return false;
     });
 
