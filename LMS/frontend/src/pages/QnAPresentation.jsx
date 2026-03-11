@@ -203,7 +203,9 @@ const QnAPresentation = () => {
                                                 <User className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-slate-300' : 'text-slate-500'}`} />
                                             </div>
                                             <div>
-                                                <p className={`text-lg md:text-xl font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{currentQuestion.authorName}</p>
+                                                <p className={`text-lg md:text-xl font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                                    {board.allowAnonymous ? 'Anonymous' : currentQuestion.authorName}
+                                                </p>
                                                 <p className={`text-xs md:text-sm font-medium ${textSecondary}`}>{new Date(currentQuestion.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                             </div>
                                         </div>

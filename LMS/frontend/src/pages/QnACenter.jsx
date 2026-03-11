@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { MessageSquare, ThumbsUp, Send, User as UserIcon, CheckCircle, Clock } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Send, User as UserIcon, CheckCircle, Clock, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout'; // Or we can use a minimalist layout like ExamCenter
@@ -10,6 +10,8 @@ const QnACenter = () => {
     const { token } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+
+    const isAdmin = user && ['teacher', 'personal_teacher', 'root_admin', 'school_admin'].includes(user.role);
 
     const [board, setBoard] = useState(null);
     const [questions, setQuestions] = useState([]);
@@ -97,6 +99,13 @@ const QnACenter = () => {
     if (!board) return null;
 
     const sortedQuestions = [...questions].sort((a, b) => b.upvotes.length - a.upvotes.length || new Date(b.createdAt) - new Date(a.createdAt));
+
+    const displayQuestions = sortedQuestions.filter(q => {
+        if (isAdmin) return true;
+        if (!board.hideQuestions) return true;
+        if (user && q.authorId === user._id) return true;
+        return false;
+    });
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans">
@@ -190,16 +199,22 @@ const QnACenter = () => {
 
                 <div className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <h2 className="text-xl font-bold text-gray-900">Questions <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-2">{sortedQuestions.length}</span></h2>
+                        <h2 className="text-xl font-bold text-gray-900">Questions <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-2">{displayQuestions.length}</span></h2>
+                        {!isAdmin && board.hideQuestions && (
+                            <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded font-medium border border-indigo-100 shadow-sm flex items-center">
+                                <EyeOff className="w-3.5 h-3.5 mr-1" />
+                                Hidden to Class
+                            </span>
+                        )}
                     </div>
 
-                    {sortedQuestions.length === 0 ? (
+                    {displayQuestions.length === 0 ? (
                         <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
                             <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                             <p className="text-gray-500 text-lg">No questions yet. Be the first to ask!</p>
                         </div>
                     ) : (
-                        sortedQuestions.map(q => {
+                        displayQuestions.map(q => {
                             // Determine if current user has upvoted
                             const ident = user ? user._id : null; // Server uses IP if no user._id, but frontend can't know IP easily, so we just rely on visual refresh from server
                             const hasUpvoted = ident && q.upvotes.includes(ident);
@@ -227,7 +242,14 @@ const QnACenter = () => {
                                         <div className="flex items-center gap-2 md:gap-4 mt-3 text-[10px] md:text-xs text-gray-500">
                                             <div className="flex items-center">
                                                 <UserIcon className="w-3.5 h-3.5 mr-1" />
-                                                <span className="font-medium text-gray-700">{q.authorName}</span>
+                                                <span className="font-medium text-gray-700">
+                                                    {(board.allowAnonymous && !isAdmin) ? 'Anonymous' : q.authorName}
+                                                </span>
+                                                {board.allowAnonymous && isAdmin && q.authorName !== 'Anonymous' && (
+                                                    <span className="ml-2 text-[9px] font-bold tracking-wider uppercase bg-indigo-50 text-indigo-500 border border-indigo-100 px-1.5 py-0.5 rounded">
+                                                        Anon to Class
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="flex items-center">
                                                 <Clock className="w-3.5 h-3.5 mr-1" />

@@ -19,7 +19,7 @@ router.get('/classroom/:classroomId', auth, async (req, res) => {
 // Create QnA board
 router.post('/board', auth, authorize('school_admin', 'personal_teacher', 'teacher'), async (req, res) => {
     try {
-        const { title, description, topicId, classroomId, isPublic, allowAnonymous } = req.body;
+        const { title, description, topicId, classroomId, isPublic, allowAnonymous, hideQuestions } = req.body;
 
         // Validate that the request contains title and classroomId at least
         if (!title || !classroomId) {
@@ -34,7 +34,8 @@ router.post('/board', auth, authorize('school_admin', 'personal_teacher', 'teach
             creatorId: req.user._id,
             shareableLink: crypto.randomBytes(16).toString('hex'),
             isPublic: isPublic || false,
-            allowAnonymous: allowAnonymous || false
+            allowAnonymous: allowAnonymous || false,
+            hideQuestions: hideQuestions || false
         });
 
         await board.save();

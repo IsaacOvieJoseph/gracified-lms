@@ -14,6 +14,7 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
         topicId: '',
         isPublic: false,
         allowAnonymous: false,
+        hideQuestions: false,
         isActive: true
     });
     const [selectedBoardId, setSelectedBoardId] = useState(null);
@@ -57,6 +58,7 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
             topicId: board.topicId?._id || '',
             isPublic: board.isPublic,
             allowAnonymous: board.allowAnonymous,
+            hideQuestions: board.hideQuestions || false,
             isActive: board.isActive
         });
         setSelectedBoardId(board._id);
@@ -98,7 +100,7 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
                 {canEdit && (
                     <button
                         onClick={() => {
-                            setFormData({ title: '', description: '', topicId: '', isPublic: false, allowAnonymous: false, isActive: true });
+                            setFormData({ title: '', description: '', topicId: '', isPublic: false, allowAnonymous: false, hideQuestions: false, isActive: true });
                             setIsEditing(false);
                             setShowModal(true);
                         }}
@@ -251,6 +253,19 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
                                     <span className="ml-3 flex flex-col">
                                         <span className="text-sm font-medium text-gray-800 group-hover:text-indigo-600 transition">Open to Public</span>
                                         <span className="text-xs text-gray-500">Anyone with the link can join, even without an account.</span>
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center group cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                        checked={formData.hideQuestions}
+                                        onChange={e => setFormData({ ...formData, hideQuestions: e.target.checked })}
+                                    />
+                                    <span className="ml-3 flex flex-col">
+                                        <span className="text-sm font-medium text-gray-800 group-hover:text-indigo-600 transition">Hide questions from others</span>
+                                        <span className="text-xs text-gray-500">Students will only be able to see their own questions.</span>
                                     </span>
                                 </label>
 

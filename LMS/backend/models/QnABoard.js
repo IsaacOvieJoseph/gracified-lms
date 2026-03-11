@@ -38,6 +38,10 @@ const qnaBoardSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    hideQuestions: {
+        type: Boolean,
+        default: false
+    },
     isActive: {
         type: Boolean,
         default: true
