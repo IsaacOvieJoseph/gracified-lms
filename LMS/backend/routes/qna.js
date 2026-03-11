@@ -32,7 +32,7 @@ router.post('/board', auth, authorize('school_admin', 'personal_teacher', 'teach
             topicId: topicId || null,
             classroomId,
             creatorId: req.user._id,
-            shareableLink: crypto.randomBytes(16).toString('hex'),
+            shareableLink: crypto.randomBytes(4).toString('hex'),
             isPublic: isPublic || false,
             allowAnonymous: allowAnonymous || false,
             hideQuestions: hideQuestions || false
