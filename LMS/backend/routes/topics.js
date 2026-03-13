@@ -517,36 +517,48 @@ router.post('/:id/upload-video',
         (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
 
       if (!canEdit) {
-        // Remove uploaded file if access denied
         if (req.file) fs.unlinkSync(req.file.path);
         return res.status(403).json({ message: 'Access denied' });
+      }
+
+      // Premium Upload Check: Only 'Premium' plan subscribers and root_admin can upload
+      const isPremiumType = req.user.role === 'root_admin' || 
+                           (req.user.subscriptionPlan && req.user.subscriptionPlan.name === 'Premium');
+
+      if (!isPremiumType) {
+        if (req.file) {
+          try { fs.unlinkSync(req.file.path); } catch (e) {}
+        }
+        return res.status(403).json({ 
+          message: 'Video file upload is reserved for Premium plan subscribers and Root Admins. Please upgrade your subscription or use a video URL instead.' 
+        });
       }
 
       if (!req.file) {
         return res.status(400).json({ message: 'No video file uploaded' });
       }
 
-      // Delete old video from disk if it exists
-      if (topic.recordedVideo && topic.recordedVideo.url) {
-        const oldPath = path.join(__dirname, '../uploads/topic-videos', path.basename(topic.recordedVideo.url));
-        if (fs.existsSync(oldPath)) {
-          try { fs.unlinkSync(oldPath); } catch (e) { /* ignore */ }
-        }
-      }
-
       const protocol = req.protocol;
       const host = req.get('host');
       const videoUrl = `${protocol}://${host}/uploads/topic-videos/${req.file.filename}`;
+      
+      const newIndex = topic.recordedVideos.length;
+      const newLabel = `Lecture ${newIndex + 1}`;
 
-      topic.recordedVideo = {
+      const newVideo = {
         url: videoUrl,
         originalName: req.file.originalname,
         size: req.file.size,
-        uploadedAt: new Date()
+        videoType: 'file',
+        uploadedAt: new Date(),
+        label: newLabel,
+        order: newIndex
       };
+
+      topic.recordedVideos.push(newVideo);
       await topic.save();
 
-      res.json({ message: 'Video uploaded successfully', recordedVideo: topic.recordedVideo });
+      res.json({ message: 'Video uploaded successfully', recordedVideos: topic.recordedVideos });
     } catch (error) {
       console.error('Error uploading topic video:', error);
       res.status(500).json({ message: error.message });
@@ -554,15 +566,19 @@ router.post('/:id/upload-video',
   }
 );
 
-// Delete recorded video from a topic
-router.delete('/:id/video',
+// Add video URL to a topic
+router.post('/:id/add-video-url',
   auth,
   authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
   async (req, res) => {
     try {
+      const { url } = req.body;
+      if (!url) return res.status(400).json({ message: 'URL is required' });
+
       const topic = await Topic.findById(req.params.id).populate('classroomId');
       if (!topic) return res.status(404).json({ message: 'Topic not found' });
 
+      // Permission check
       const classroom = topic.classroomId;
       const canEdit =
         req.user.role === 'root_admin' ||
@@ -571,23 +587,159 @@ router.delete('/:id/video',
 
       if (!canEdit) return res.status(403).json({ message: 'Access denied' });
 
-      if (topic.recordedVideo && topic.recordedVideo.url) {
-        const filePath = path.join(__dirname, '../uploads/topic-videos', path.basename(topic.recordedVideo.url));
-        if (fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
-        }
-      }
+      const newIndex = topic.recordedVideos.length;
+      const newLabel = `Lecture ${newIndex + 1}`;
 
-      topic.recordedVideo = { url: null, originalName: null, size: null, uploadedAt: null };
+      const newVideo = {
+        url,
+        videoType: 'url',
+        uploadedAt: new Date(),
+        label: newLabel,
+        order: newIndex
+      };
+
+      topic.recordedVideos.push(newVideo);
       await topic.save();
 
-      res.json({ message: 'Video removed successfully' });
+      res.json({ message: 'Video URL added successfully', recordedVideos: topic.recordedVideos });
     } catch (error) {
-      console.error('Error deleting topic video:', error);
+      console.error('Error adding video URL:', error);
       res.status(500).json({ message: error.message });
     }
   }
 );
+
+// Internal helper for video permissions
+const checkVideoEditPermissions = async (req, res, next) => {
+  try {
+    const topic = await Topic.findById(req.params.id).populate('classroomId');
+    if (!topic) return res.status(404).json({ message: 'Topic not found' });
+
+    const classroom = topic.classroomId;
+    const canEdit =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
+
+    if (!canEdit) return res.status(403).json({ message: 'Access denied' });
+    req.topic = topic;
+    next();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete recorded video from a topic
+router.delete('/:id/videos/:videoId',
+  auth,
+  authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
+  checkVideoEditPermissions,
+  async (req, res) => {
+    try {
+      const topic = req.topic;
+      const videoId = req.params.videoId;
+      
+      const videoIndex = topic.recordedVideos.findIndex(v => v._id.toString() === videoId);
+      if (videoIndex === -1) return res.status(404).json({ message: 'Video not found' });
+
+      const video = topic.recordedVideos[videoIndex];
+      
+      const filePath = path.join(__dirname, '../uploads/topic-videos', path.basename(video.url));
+      if (video.videoType === 'file' && fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+      }
+
+      topic.recordedVideos.splice(videoIndex, 1);
+      
+      // Re-adjust order and labels for remaining
+      topic.recordedVideos.forEach((v, idx) => {
+        v.order = idx;
+        v.label = `Lecture ${idx + 1}`;
+      });
+
+      await topic.save();
+
+      res.json({ message: 'Video removed successfully', recordedVideos: topic.recordedVideos });
+    } catch (error) {
+      console.error('Error removing video:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Update recorded video label
+router.put('/:id/videos/:videoId/label',
+  auth,
+  authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
+  checkVideoEditPermissions,
+  async (req, res) => {
+    try {
+      const topic = req.topic;
+      const videoId = req.params.videoId;
+      const { label } = req.body;
+      
+      const video = topic.recordedVideos.id(videoId);
+      if (!video) return res.status(404).json({ message: 'Video not found' });
+
+      if (label !== undefined) {
+        video.label = label;
+      }
+
+      await topic.save();
+      res.json({ message: 'Video label updated', recordedVideos: topic.recordedVideos });
+    } catch (error) {
+      console.error('Error updating topic video label:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Reorder videos
+router.put('/:id/videos/reorder',
+  auth,
+  authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
+  checkVideoEditPermissions,
+  async (req, res) => {
+    try {
+      const topic = req.topic;
+      const { orderedVideoIds } = req.body;
+      
+      if (!orderedVideoIds || !Array.isArray(orderedVideoIds)) {
+        return res.status(400).json({ message: 'Invalid orderedVideoIds' });
+      }
+
+      // Reorder the recordedVideos array
+      const oldVideos = [...topic.recordedVideos];
+      topic.recordedVideos = [];
+
+      orderedVideoIds.forEach((id, index) => {
+        const vid = oldVideos.find(v => v._id.toString() === id.toString());
+        if (vid) {
+          vid.order = index;
+          vid.label = `Lecture ${index + 1}`;
+          topic.recordedVideos.push(vid);
+        }
+      });
+
+      // Add any left over in case they were missed
+      oldVideos.forEach(v => {
+        if (!orderedVideoIds.includes(v._id.toString())) {
+          const newIdx = topic.recordedVideos.length;
+          v.order = newIdx;
+          v.label = `Lecture ${newIdx + 1}`;
+          topic.recordedVideos.push(v);
+        }
+      });
+
+      await topic.save();
+      res.json({ message: 'Videos reordered successfully', recordedVideos: topic.recordedVideos });
+    } catch (error) {
+      console.error('Error reordering videos:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 
 
 module.exports = router;

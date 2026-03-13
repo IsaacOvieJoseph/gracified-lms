@@ -60,6 +60,21 @@ const seedSubscriptionPlans = async () => {
         features: ['Full access for one year', 'Save ₦10,000 annually'],
         isActive: true,
       },
+      {
+        name: 'Premium',
+        description: 'Ultimate plan for large schools and successful teachers',
+        planType: 'monthly', // or creating a specific type if needed, but monthly works for billing
+        price: 15000,
+        durationDays: 30,
+        revenueSharePercentage: 0,
+        features: [
+            'Unlimited student enrollment', 
+            'Direct video file uploads', 
+            'Priority support',
+            'Custom branding options'
+        ],
+        isActive: true,
+      },
     ];
 
     await SubscriptionPlan.insertMany(plans);

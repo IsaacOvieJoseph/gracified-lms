@@ -5,36 +5,162 @@ import { formatDisplayDate } from '../utils/timezone';
 import { useAuth } from '../context/AuthContext';
 
 
-const VideoPlayer = ({ video, title }) => {
-    const [expanded, setExpanded] = useState(false);
+const getVideoEmbedInfo = (url) => {
+    if (!url) return null;
+
+    // 1. Direct Video Files (Native Player)
+    const isDirectFile = /\.(mp4|webm|ogg|m4v|ogv)$/i.test(url.split('?')[0]);
+    const isMonosnapDirect = url.includes('monosnap.ai/direct/');
+    if (isDirectFile || isMonosnapDirect) {
+        return { type: 'direct', embedUrl: url, isDirect: true };
+    }
+
+    // 2. YouTube
+    const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const ytMatch = url.match(ytRegExp);
+    if (ytMatch && ytMatch[2].length === 11) {
+        return { type: 'youtube', id: ytMatch[2], embedUrl: `https://www.youtube.com/embed/${ytMatch[2]}` };
+    }
+
+    // 3. Vimeo
+    const vimeoRegExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+    const vimeoMatch = url.match(vimeoRegExp);
+    if (vimeoMatch) {
+        return { type: 'vimeo', id: vimeoMatch[1], embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}` };
+    }
+
+    // 4. Google Drive
+    const driveRegExp = /drive\.google\.com\/file\/d\/([^\/\?]+)/;
+    const driveMatch = url.match(driveRegExp);
+    if (driveMatch) {
+        return { type: 'drive', id: driveMatch[1], embedUrl: `https://drive.google.com/file/d/${driveMatch[1]}/preview` };
+    }
+
+    // 5. Dailymotion
+    const dailyRegExp = /(?:dailymotion\.com\/video\/|dai\.ly\/)([a-zA-Z0-9]+)/;
+    const dailyMatch = url.match(dailyRegExp);
+    if (dailyMatch) {
+        return { type: 'dailymotion', id: dailyMatch[1], embedUrl: `https://www.dailymotion.com/embed/video/${dailyMatch[1]}` };
+    }
+
+    // 6. Loom
+    const loomRegExp = /loom\.com\/(?:share|embed)\/([a-f0-9]+)/;
+    const loomMatch = url.match(loomRegExp);
+    if (loomMatch) {
+        return { type: 'loom', id: loomMatch[1], embedUrl: `https://www.loom.com/embed/${loomMatch[1]}` };
+    }
+
+    // 7. Wistia
+    const wistiaRegExp = /(?:wistia\.com\/medias\/|fast\.wistia\.net\/embed\/iframe\/)([a-zA-Z0-9]+)/;
+    const wistiaMatch = url.match(wistiaRegExp);
+    if (wistiaMatch) {
+        return { type: 'wistia', id: wistiaMatch[1], embedUrl: `https://fast.wistia.net/embed/iframe/${wistiaMatch[1]}` };
+    }
+
+    // 8. Twitch
+    const twitchRegExp = /twitch\.tv\/videos\/([0-9]+)/;
+    const twitchMatch = url.match(twitchRegExp);
+    if (twitchMatch) {
+        const domain = window.location.hostname;
+        return { type: 'twitch', id: twitchMatch[1], embedUrl: `https://player.twitch.tv/?video=${twitchMatch[1]}&parent=${domain}&autoplay=false` };
+    }
+
+    // 9. Dropbox (Transform to direct streamable link)
+    const dropboxRegExp = /dropbox\.com\/s\/([a-zA-Z0-9]+)\/([^\?]+)/;
+    const dropboxMatch = url.match(dropboxRegExp);
+    if (dropboxMatch) {
+        const directUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace(/\?dl=[01]/, '') + (url.includes('?') ? '&raw=1' : '?raw=1');
+        return { type: 'dropbox', embedUrl: directUrl, isDirect: true };
+    }
+
+    return null;
+};
+
+const VideoPlayer = ({ lecture, expanded, onToggle }) => {
+    const renderVideo = () => {
+        if (lecture.videoType === 'url') {
+            const embedInfo = getVideoEmbedInfo(lecture.url);
+            if (embedInfo) {
+                if (embedInfo.isDirect) {
+                    return (
+                        <video
+                            src={embedInfo.embedUrl}
+                            controls
+                            autoPlay={false}
+                            className="w-full max-h-[480px] object-contain"
+                            preload="metadata"
+                            title={lecture.label}
+                        />
+                    );
+                }
+                return (
+                    <div className="aspect-video w-full">
+                        <iframe
+                            className="w-full h-full"
+                            src={embedInfo.embedUrl}
+                            title={lecture.label}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                );
+            }
+            return (
+                <div className="p-12 text-center bg-slate-900 flex flex-col items-center justify-center gap-4">
+                    <Video className="w-12 h-12 text-purple-500/50" />
+                    <div className="space-y-1">
+                        <p className="text-white font-bold">External Lecture Video</p>
+                        <p className="text-slate-400 text-sm">This video is hosted on an external platform.</p>
+                    </div>
+                    <a 
+                        href={lecture.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-2 px-8 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-500/20 active:scale-95"
+                    >
+                        Open Video Link
+                    </a>
+                </div>
+            );
+        }
+
+        return (
+            <video
+                src={lecture.url}
+                controls
+                autoPlay={false}
+                className="w-full max-h-[480px] object-contain"
+                preload="metadata"
+                title={lecture.label}
+            />
+        );
+    };
 
     return (
         <div className="mt-4">
             <button
-                onClick={() => setExpanded(v => !v)}
+                onClick={onToggle}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-all shadow-md shadow-purple-200 active:scale-[0.98]"
             >
                 <Video className="w-4 h-4" />
-                {expanded ? 'Hide Lecture Video' : 'Watch Lecture Video'}
+                {expanded ? `Hide ${lecture.label || 'Lecture'}` : `Watch ${lecture.label || 'Lecture'}`}
                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
 
             {expanded && (
-                <div className="mt-3 rounded-2xl overflow-hidden bg-black shadow-xl">
-                    <video
-                        src={video.url}
-                        controls
-                        autoPlay={false}
-                        className="w-full max-h-[480px] object-contain"
-                        preload="metadata"
-                        title={title}
-                    />
-                    {video.originalName && (
-                        <div className="px-4 py-2 bg-slate-900 text-slate-400 text-xs flex items-center gap-2">
+                <div className="mt-3 rounded-2xl overflow-hidden bg-black shadow-xl animate-in fade-in zoom-in-95 duration-300">
+                    {renderVideo()}
+                    <div className="px-4 py-3 bg-slate-900 text-slate-400 text-xs flex flex-col gap-1 border-t border-slate-800">
+                        <div className="flex items-center gap-2">
                             <Video className="w-3.5 h-3.5 text-purple-400" />
-                            <span className="truncate">{video.originalName}</span>
+                            <span className="font-bold text-slate-200">{lecture.label}</span>
                         </div>
-                    )}
+                        <div className="flex items-center gap-3 ml-5 opacity-75">
+                            <span className="truncate">{lecture.originalName || (lecture.videoType === 'url' ? 'External Link' : '')}</span>
+                            {lecture.uploadedAt && <span>• Uploaded {new Date(lecture.uploadedAt).toLocaleDateString()}</span>}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -49,6 +175,7 @@ const TopicDisplay = ({ classroomId }) => {
     const [showPaidTopics, setShowPaidTopics] = useState(false);
     const [topicStatus, setTopicStatus] = useState(null); // { paidTopics, unpaidTopics, totalUnpaidAmount, allTopics }
     const [paying, setPaying] = useState(false);
+    const [activeVideoId, setActiveVideoId] = useState(null);
     const { user } = useAuth();
 
 
@@ -264,13 +391,15 @@ const TopicDisplay = ({ classroomId }) => {
         );
     }
 
-    // Merge recordedVideo data from full topic list (the /current endpoint may not include it)
+    // Merge recordedVideos data from full topic list (the /current endpoint may not include it)
     const enrichedCurrentTopic = (() => {
         const full = allTopics.find(t => t._id === currentTopic._id);
-        return full ? { ...currentTopic, recordedVideo: full.recordedVideo } : currentTopic;
+        const videos = (full ? full.recordedVideos : currentTopic.recordedVideos) || [];
+        return { ...currentTopic, recordedVideos: videos };
     })();
 
-    const hasCurrentVideo = enrichedCurrentTopic.recordedVideo && enrichedCurrentTopic.recordedVideo.url;
+    const recordedVideos = enrichedCurrentTopic.recordedVideos || [];
+    const hasCurrentVideos = recordedVideos.length > 0;
 
     return (
         <div className={`bg-white rounded-lg shadow-md p-6 border-2 ${getStatusColor(currentTopic.status)}`}>
@@ -285,9 +414,9 @@ const TopicDisplay = ({ classroomId }) => {
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(currentTopic.status)}`}>
                                 {currentTopic.status === 'active' ? 'Current Topic' : currentTopic.status}
                             </span>
-                            {hasCurrentVideo && (
+                            {hasCurrentVideos && (
                                 <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                                    <Video className="w-3 h-3" /> Lecture Available
+                                    <Video className="w-3 h-3" /> {recordedVideos.length} Lecture{recordedVideos.length !== 1 ? 's' : ''} available
                                 </span>
                             )}
                         </div>
@@ -336,11 +465,18 @@ const TopicDisplay = ({ classroomId }) => {
                         </div>
 
                         {/* ── Recorded Lecture Video for Current Topic ── */}
-                        {hasCurrentVideo && (
-                            <VideoPlayer
-                                video={enrichedCurrentTopic.recordedVideo}
-                                title={`Lecture: ${enrichedCurrentTopic.name}`}
-                            />
+                        {/* Video Players */}
+                        {hasCurrentVideos && (
+                            <div className="space-y-4 mt-4">
+                                {[...recordedVideos].sort((a,b) => (a.order || 0) - (b.order || 0)).map((lecture, idx) => (
+                                    <VideoPlayer 
+                                        key={lecture._id || idx} 
+                                        lecture={lecture} 
+                                        expanded={activeVideoId === (lecture._id || idx)}
+                                        onToggle={() => setActiveVideoId(activeVideoId === (lecture._id || idx) ? null : (lecture._id || idx))}
+                                    />
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>

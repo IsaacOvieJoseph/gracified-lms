@@ -34,6 +34,7 @@ import Profile from './pages/Profile';
 import Landing from './pages/Landing';
 import QnACenter from './pages/QnACenter';
 import QnAPresentation from './pages/QnAPresentation';
+import TopicManagement from './pages/TopicManagement';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -314,6 +315,14 @@ const AppRoutes = () => {
       <Route path="/qna/:token/present" element={<PrivateRoute><QnAPresentation /></PrivateRoute>} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
+      <Route
+        path="/classrooms/:id/manage-topics"
+        element={
+          <PrivateRoute>
+            <TopicManagement />
+          </PrivateRoute>
+        }
+      />
     </Routes>
   );
 };

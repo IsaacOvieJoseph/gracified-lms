@@ -384,7 +384,7 @@ router.post('/login', async (req, res) => {
     let { email, password } = req.body;
     email = email.toLowerCase();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('subscriptionPlan');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -438,7 +438,8 @@ router.post('/login', async (req, res) => {
         defaultPricingType: user.defaultPricingType,
         profilePicture: user.profilePicture,
         bankDetails: user.bankDetails,
-        payoutPreference: user.payoutPreference
+        payoutPreference: user.payoutPreference,
+        subscriptionPlan: user.subscriptionPlan
       },
       trialExpired,
       subscriptionExpired,
@@ -455,7 +456,8 @@ router.get('/me', auth, async (req, res) => {
       .select('-password')
       .populate('enrolledClasses', 'name schedule')
       .populate('schoolId', 'name logoUrl') // Populate school name and logo
-      .populate('tutorialId', 'name logoUrl'); // Populate tutorial name and logo
+      .populate('tutorialId', 'name logoUrl') // Populate tutorial name and logo
+      .populate('subscriptionPlan');
 
     // Check subscription status for School Admin and Personal Teacher
     let trialExpired = false;
@@ -486,7 +488,8 @@ router.get('/me', auth, async (req, res) => {
         defaultPricingType: user.defaultPricingType,
         profilePicture: user.profilePicture,
         bankDetails: user.bankDetails,
-        payoutPreference: user.payoutPreference
+        payoutPreference: user.payoutPreference,
+        subscriptionPlan: user.subscriptionPlan
       },
       trialExpired,
       subscriptionExpired,

@@ -12,7 +12,6 @@ import { formatAmount } from '../utils/currency';
 import CreateAssignmentModal from '../components/CreateAssignmentModal';
 import GradeAssignmentModal from '../components/GradeAssignmentModal';
 import SubmitAssignmentModal from '../components/SubmitAssignmentModal';
-import TopicManagementModal from '../components/TopicManagementModal';
 import TopicDisplay from '../components/TopicDisplay';
 import GoogleMeetAuth from '../components/GoogleMeetAuth';
 import PaymentRequiredModal from '../components/PaymentRequiredModal';
@@ -40,16 +39,151 @@ const defaultSubjects = [
   'Literature', 'Art', 'Music', 'Physical Education'
 ];
 
+const getVideoEmbedInfo = (url) => {
+  if (!url) return null;
+
+  // 1. Direct Video Files (Native Player)
+  const isDirectFile = /\.(mp4|webm|ogg|m4v|ogv)$/i.test(url.split('?')[0]);
+  const isMonosnapDirect = url.includes('monosnap.ai/direct/');
+  if (isDirectFile || isMonosnapDirect) {
+    return { type: 'direct', embedUrl: url, isDirect: true };
+  }
+
+  // 2. YouTube
+  const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const ytMatch = url.match(ytRegExp);
+  if (ytMatch && ytMatch[2].length === 11) {
+    return { type: 'youtube', id: ytMatch[2], embedUrl: `https://www.youtube.com/embed/${ytMatch[2]}` };
+  }
+
+  // 3. Vimeo
+  const vimeoRegExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+  const vimeoMatch = url.match(vimeoRegExp);
+  if (vimeoMatch) {
+    return { type: 'vimeo', id: vimeoMatch[1], embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}` };
+  }
+
+  // 4. Google Drive
+  const driveRegExp = /drive\.google\.com\/file\/d\/([^\/\?]+)/;
+  const driveMatch = url.match(driveRegExp);
+  if (driveMatch) {
+    return { type: 'drive', id: driveMatch[1], embedUrl: `https://drive.google.com/file/d/${driveMatch[1]}/preview` };
+  }
+
+  // 5. Dailymotion
+  const dailyRegExp = /(?:dailymotion\.com\/video\/|dai\.ly\/)([a-zA-Z0-9]+)/;
+  const dailyMatch = url.match(dailyRegExp);
+  if (dailyMatch) {
+    return { type: 'dailymotion', id: dailyMatch[1], embedUrl: `https://www.dailymotion.com/embed/video/${dailyMatch[1]}` };
+  }
+
+  // 6. Loom
+  const loomRegExp = /loom\.com\/(?:share|embed)\/([a-f0-9]+)/;
+  const loomMatch = url.match(loomRegExp);
+  if (loomMatch) {
+    return { type: 'loom', id: loomMatch[1], embedUrl: `https://www.loom.com/embed/${loomMatch[1]}` };
+  }
+
+  // 7. Wistia
+  const wistiaRegExp = /(?:wistia\.com\/medias\/|fast\.wistia\.net\/embed\/iframe\/)([a-zA-Z0-9]+)/;
+  const wistiaMatch = url.match(wistiaRegExp);
+  if (wistiaMatch) {
+    return { type: 'wistia', id: wistiaMatch[1], embedUrl: `https://fast.wistia.net/embed/iframe/${wistiaMatch[1]}` };
+  }
+
+  // 8. Twitch
+  const twitchRegExp = /twitch\.tv\/videos\/([0-9]+)/;
+  const twitchMatch = url.match(twitchRegExp);
+  if (twitchMatch) {
+    const domain = window.location.hostname;
+    return { type: 'twitch', id: twitchMatch[1], embedUrl: `https://player.twitch.tv/?video=${twitchMatch[1]}&parent=${domain}&autoplay=false` };
+  }
+
+  // 9. Dropbox (Transform to direct streamable link)
+  const dropboxRegExp = /dropbox\.com\/s\/([a-zA-Z0-9]+)\/([^\?]+)/;
+  const dropboxMatch = url.match(dropboxRegExp);
+  if (dropboxMatch) {
+    const directUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace(/\?dl=[01]/, '') + (url.includes('?') ? '&raw=1' : '?raw=1');
+    return { type: 'dropbox', embedUrl: directUrl, isDirect: true };
+  }
+
+  return null;
+};
+
 // ─── Inline topic card with collapsible video player ────────────────────────
-const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending, hasVideo }) => {
+const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => {
   const [videoOpen, setVideoOpen] = useState(false);
+  const [activeVideoId, setActiveVideoId] = useState(null);
+  const recordedVideos = topic.recordedVideos || [];
+  const hasVideos = recordedVideos.length > 0;
+
+  const renderVideo = (vid, idx) => {
+    const embedInfo = vid.videoType === 'url' ? getVideoEmbedInfo(vid.url) : null;
+
+    if (vid.videoType === 'url') {
+      if (embedInfo) {
+        if (embedInfo.isDirect) {
+          return (
+            <video
+              src={embedInfo.embedUrl}
+              controls
+              autoPlay={false}
+              className="w-full max-h-[380px] object-contain"
+              preload="metadata"
+              title={vid.label || `Lecture ${idx + 1}`}
+            />
+          );
+        }
+        return (
+          <div className="aspect-video w-full">
+            <iframe
+              className="w-full h-full"
+              src={embedInfo.embedUrl}
+              title={vid.label || `Lecture ${idx + 1}`}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+        );
+      }
+      return (
+        <div className="p-8 text-center bg-slate-900 border-b border-slate-800 flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+            <Video className="w-5 h-5 text-purple-400" />
+          </div>
+          <p className="text-white text-xs font-bold">External Lecture Video</p>
+          <a
+            href={vid.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-purple-700 transition"
+          >
+            Open Video Link
+          </a>
+        </div>
+      );
+    }
+
+    return (
+      <video
+        src={vid.url}
+        controls
+        autoPlay={false}
+        className="w-full max-h-[380px] object-contain"
+        preload="metadata"
+        title={vid.label || `Lecture ${idx + 1}`}
+      />
+    );
+  };
+
   return (
     <div
       className={`border-2 rounded-lg p-4 transition ${isCurrent ? 'border-blue-400 bg-blue-50' :
         isDone ? 'border-green-200 bg-green-50 opacity-75' :
-          isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
-            'border-gray-200 bg-white hover:border-gray-300'
-        }`}
+        isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
+        'border-gray-200 bg-white hover:border-gray-300'
+      }`}
     >
       <div className="flex items-start gap-3">
         <div className="mt-1 flex-shrink-0">
@@ -78,9 +212,9 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending, hasVi
             {isPending && (
               <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Pending</span>
             )}
-            {hasVideo && (
+            {hasVideos && (
               <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                <Video className="w-3 h-3" /> Recorded
+                <Video className="w-3 h-3" /> {recordedVideos.length} Lecture{recordedVideos.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
@@ -94,34 +228,48 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending, hasVi
             </div>
           )}
 
-          {/* Watch recorded lecture button */}
-          {hasVideo && (
+          {/* Watch recorded lectures section */}
+          {hasVideos && (
             <div className="mt-3">
               <button
                 onClick={() => setVideoOpen(v => !v)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
               >
                 <Video className="w-3.5 h-3.5" />
-                {videoOpen ? 'Hide Lecture' : 'Watch Lecture'}
+                {videoOpen ? 'Hide Lectures' : 'Watch Lectures'}
                 {videoOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
 
               {videoOpen && (
-                <div className="mt-3 rounded-xl overflow-hidden bg-black shadow-lg">
-                  <video
-                    src={topic.recordedVideo.url}
-                    controls
-                    autoPlay={false}
-                    className="w-full max-h-[380px] object-contain"
-                    preload="metadata"
-                    title={`Lecture: ${topic.name}`}
-                  />
-                  {topic.recordedVideo.originalName && (
-                    <div className="px-3 py-1.5 bg-slate-900 text-slate-400 text-xs flex items-center gap-2">
-                      <Video className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                      <span className="truncate">{topic.recordedVideo.originalName}</span>
-                    </div>
-                  )}
+                <div className="mt-3 space-y-3">
+                  {[...recordedVideos].sort((a, b) => (a.order || 0) - (b.order || 0)).map((vid, idx) => {
+                    const isExpanded = activeVideoId === (vid._id || idx);
+                    return (
+                      <div key={vid._id || idx} className="rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shadow-lg">
+                        <div 
+                          className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors"
+                          onClick={() => setActiveVideoId(isExpanded ? null : (vid._id || idx))}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isExpanded ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                              {isExpanded ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-200 truncate">{vid.label || `Lecture ${idx + 1}`}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                             <span className="text-[10px] text-slate-500 truncate hidden sm:inline">{vid.originalName || (vid.videoType === 'url' ? 'Link' : '')}</span>
+                             {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />}
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="bg-black border-t border-slate-800 animate-in slide-in-from-top-1 duration-200">
+                            {renderVideo(vid, idx)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1502,7 +1650,7 @@ const ClassroomDetail = () => {
                     </div>
                     {canEdit && (
                       <button
-                        onClick={() => setShowTopicModal(true)}
+                        onClick={() => navigate(`/classrooms/${id}/manage-topics`)}
                         className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition shadow-md"
                       >
                         <Book className="w-4 h-4" />
@@ -1530,7 +1678,6 @@ const ClassroomDetail = () => {
                           const isCurrent = topic.status === 'active';
                           const isDone = topic.status === 'completed';
                           const isPending = topic.status === 'pending' && !isNext;
-                          const hasVideo = topic.recordedVideo && topic.recordedVideo.url;
 
                           return (
                             <TopicCardWithVideo
@@ -1540,7 +1687,6 @@ const ClassroomDetail = () => {
                               isDone={isDone}
                               isNext={isNext}
                               isPending={isPending}
-                              hasVideo={hasVideo}
                             />
                           );
                         });
@@ -1558,7 +1704,8 @@ const ClassroomDetail = () => {
                   </div>
                 </div>
               )
-            }</div>
+            }
+          </div>
         )}
 
         {activeTab === 'qna' && (
@@ -2154,17 +2301,6 @@ const ClassroomDetail = () => {
           </div>
         )}
 
-        {/* Topic Management Modal */}
-        {
-          showTopicModal && (
-            <TopicManagementModal
-              show={showTopicModal}
-              onClose={() => setShowTopicModal(false)}
-              classroomId={id}
-              onSuccess={fetchClassroom}
-            />
-          )
-        }
 
         {/* Create Assignment Modal */}
         {
