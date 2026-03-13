@@ -34,3 +34,6 @@ data/
 coverage/
 .nyc_output/
 
+# Back-end uploads
+backend/uploads/
+
