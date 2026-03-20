@@ -80,6 +80,15 @@ const QnAPresentation = () => {
     });
     const currentQuestion = sortedQuestions[currentIndex];
 
+    const getFontSizeClass = (text) => {
+        const length = text.length;
+        if (length < 80) return 'text-3xl md:text-5xl lg:text-6xl';
+        if (length < 160) return 'text-2xl md:text-4xl lg:text-5xl';
+        if (length < 300) return 'text-xl md:text-3xl lg:text-4xl';
+        if (length < 600) return 'text-lg md:text-2xl lg:text-3xl';
+        return 'text-base md:text-xl lg:text-2xl';
+    };
+
     // Theme Variables
     const isDark = theme === 'dark';
 
@@ -163,24 +172,24 @@ const QnAPresentation = () => {
                         </button>
                     )}
 
-                    <div className={`flex flex-col sm:flex-row gap-3 pointer-events-auto items-end sm:items-center ${!showSidebar ? 'ml-auto' : 'ml-auto'}`}>
+                    <div className={`flex flex-row md:flex-row gap-2 pointer-events-auto items-center ml-auto`}>
                         <button
                             onClick={toggleTheme}
-                            className={`p-2.5 sm:p-3 backdrop-blur rounded-xl transition border shadow-sm ${navOverlayBg}`}
+                            className={`p-2 backdrop-blur rounded-xl transition border shadow-sm ${navOverlayBg}`}
                             title="Toggle Theme"
                         >
                             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
 
-                        <div className={`backdrop-blur px-3 sm:px-4 py-2 border rounded-xl flex flex-col sm:flex-row items-end sm:items-center shadow-md ${isDark ? 'bg-indigo-600/20 border-indigo-500/30' : 'bg-white/80 border-indigo-200'}`}>
-                            <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-indigo-200' : 'text-indigo-600'}`}>Live Q&A: </span>
-                            <span className={`text-sm sm:text-base font-bold sm:ml-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{window.location.host}/qna/{token}</span>
+                        <div className={`backdrop-blur px-3 py-1.5 md:px-4 md:py-2 border rounded-xl flex items-center shadow-md max-w-[200px] sm:max-w-md ${isDark ? 'bg-indigo-600/20 border-indigo-500/30' : 'bg-white/80 border-indigo-200'}`}>
+                            <span className={`hidden sm:inline text-xs sm:text-sm font-medium mr-2 ${isDark ? 'text-indigo-200' : 'text-indigo-600'}`}>Live Q&A: </span>
+                            <span className={`text-[10px] sm:text-base font-bold truncate tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{window.location.host}/qna/{token}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Content Centered - Wraps to flex-col to place mobile buttons under card */}
-                <div className={`flex-1 flex flex-col items-center justify-center p-6 pt-28 pb-10 md:px-24 lg:px-32 relative z-0 ${showSidebar ? 'min-h-[50vh] md:min-h-full' : 'min-h-full'}`}>
+                <div className={`flex-1 flex flex-col items-center justify-center p-6 pt-32 pb-10 md:px-24 lg:px-32 relative z-0 ${showSidebar ? 'min-h-[50vh] md:min-h-full' : 'min-h-full'}`}>
                     {sortedQuestions.length === 0 ? (
                         <div className="text-center animate-in fade-in zoom-in duration-500">
                             <Monitor className={`w-16 h-16 md:w-24 md:h-24 mx-auto mb-6 ${emptyIconColor}`} />
@@ -188,7 +197,7 @@ const QnAPresentation = () => {
                             <p className={`text-lg md:text-xl ${textSecondary}`}>Students can join using the link above</p>
                         </div>
                     ) : (
-                        <div className="w-full max-w-5xl animate-in fade-in slide-in-from-bottom-8 duration-500 flex flex-col items-center" key={currentQuestion._id}>
+                        <div className="w-full max-w-7xl animate-in fade-in slide-in-from-bottom-8 duration-500 flex flex-col items-center" key={currentQuestion._id}>
 
                             <div className="w-full">
                                 <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
@@ -200,12 +209,17 @@ const QnAPresentation = () => {
                                     </div>
                                 </div>
 
-                                <div className={`p-6 md:p-10 lg:p-16 rounded-[2rem] md:rounded-[2.5rem] backdrop-blur-md transition-colors duration-500 relative ${currentQuestion.isAnswered ? answeredCardBg : cardBg}`}>
-                                    <p className={`text-xl md:text-4xl lg:text-5xl font-medium leading-tight mb-8 md:mb-12 ${textPrimary}`} style={{ wordBreak: 'break-word' }}>
-                                        "{currentQuestion.text}"
-                                    </p>
+                                <div className={`w-full p-6 md:p-12 rounded-[2.5rem] backdrop-blur-md transition-all duration-500 relative flex flex-col shadow-2xl border ${currentQuestion.isAnswered ? answeredCardBg : cardBg}`} 
+                                     style={{ maxHeight: 'min(75vh, 800px)', minHeight: '300px' }}>
+                                    
+                                    <div className="flex-1 overflow-y-auto pr-2 mb-6 custom-scrollbar scroll-smooth">
+                                        <p className={`${getFontSizeClass(currentQuestion.text)} font-medium leading-tight ${textPrimary} text-center md:text-left selection:bg-indigo-500/30`} 
+                                           style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                                            "{currentQuestion.text}"
+                                        </p>
+                                    </div>
 
-                                    <div className="flex flex-wrap sm:flex-nowrap justify-between items-end gap-4">
+                                    <div className="mt-auto pt-6 border-t border-slate-200/10 flex flex-wrap sm:flex-nowrap justify-between items-center gap-6">
                                         <div className="flex items-center gap-3">
                                             <div className={`p-2 md:p-3 rounded-full flex-shrink-0 ${isDark ? 'bg-slate-700/50' : 'bg-slate-100'}`}>
                                                 <User className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-slate-300' : 'text-slate-500'}`} />
