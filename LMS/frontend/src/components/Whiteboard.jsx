@@ -10,6 +10,12 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const DEFAULT_SOCKET_URL = API_URL.replace(/\/api$/, '');
 const SOCKET_URL = import.meta.env.VITE_API_WS_URL || DEFAULT_SOCKET_URL;
 
+// --- Virtual coordinate space ---
+// All strokes are stored/transmitted as fractions of this virtual canvas.
+// This ensures identical rendering on ANY device regardless of screen size.
+const VIRT_W = 10000;
+const VIRT_H = 40000;
+
 export default function Whiteboard() {
   const { classId: paramClassId } = useParams();
   const navigate = useNavigate();
@@ -22,8 +28,9 @@ export default function Whiteboard() {
   const containerRef = useRef(null);
   const strokeBufferRef = useRef([]);
   const flushIntervalRef = useRef(null);
-  const undoStackRef = useRef([]);
+  const undoStackRef = useRef([]);   // each element is a stroke or array of strokes (1 undo step)
   const redoStackRef = useRef([]);
+  const currentStrokeGroupRef = useRef([]); // segments accumulated during current pen drag
   const strokeHistoryRef = useRef([]); // local authoritative history for redraws
   const inputRef = useRef(null);
   const panStartRef = useRef({ clientX: 0, clientY: 0, scrollTop: 0, scrollLeft: 0 });
@@ -36,7 +43,12 @@ export default function Whiteboard() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const [locked, setLocked] = useState(false);
+  // Follow mode is purely client-side for students — they decide whether to track the teacher
   const [followEnabled, setFollowEnabled] = useState(false);
+  const followEnabledRef = useRef(false); // stable ref for socket callbacks
+  const teacherSocketIdRef = useRef(null);
+  const [currentPage, setCurrentPage] = useState(1); // 1-indexed page shown in toolbar
+  const lastBroadcastedPageRef = useRef(-1); // prevent redundant page emits
   const [tool, setTool] = useState('pen'); // pen, eraser, rect, circle, text, pointer
   const [color, setColor] = useState('#000000');
   const [width, setWidth] = useState(2);
@@ -82,15 +94,16 @@ export default function Whiteboard() {
     return `id_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
   };
 
-  const pushToBuffer = (stroke) => {
+  const pushToBuffer = (stroke, groupToUndoStack = true) => {
     const s = { ...(stroke || {}) };
     if (!s._id && !s.id) s._id = generateId();
     if (!s.ts) s.ts = new Date().toISOString();
     strokeBufferRef.current.push(s);
-    // record in local history and undo stack
     strokeHistoryRef.current.push(s);
-    undoStackRef.current.push(s);
-    // flush if buffer large
+    // For pen strokes we only group to undo stack on pointerUp (see handlePointerUp);
+    // shapes and text push directly as single-step actions
+    if (groupToUndoStack) undoStackRef.current.push([s]);
+    else currentStrokeGroupRef.current.push(s);
     if (strokeBufferRef.current.length >= 30) flushBuffer();
   };
 
@@ -176,10 +189,22 @@ export default function Whiteboard() {
     socket.emit('wb:join', { classId });
 
     socket.on('wb:draw', (data) => {
+      // Migrate legacy 0..1 normalized strokes to virtual coordinate space
+      const migrateLegacy = (s) => {
+        if (!s || s.normalized) return s;
+        const isLegacy = (pt) => pt && pt.x <= 1 && pt.y <= 1 && pt.x >= 0 && pt.y >= 0;
+        const up = (pt) => pt ? { x: pt.x * VIRT_W, y: pt.y * VIRT_H } : pt;
+        const m = { ...s, normalized: true };
+        if (isLegacy(s.prev)) m.prev = up(s.prev);
+        if (isLegacy(s.curr)) m.curr = up(s.curr);
+        if (s.pos && isLegacy(s.pos)) m.pos = up(s.pos);
+        return m;
+      };
+      const stroke = migrateLegacy(data);
       // real-time single stroke from another client
-      renderStroke(data, false);
+      renderStroke(stroke, false);
       // record to local history if it has an id
-      if (data && (data._id || data.id)) strokeHistoryRef.current.push(data);
+      if (stroke && (stroke._id || stroke.id)) strokeHistoryRef.current.push(stroke);
 
       // Track active drawers for sorting and cursor visibility
       if (data.userId) {
@@ -209,27 +234,36 @@ export default function Whiteboard() {
 
     socket.on('wb:user-joined', (payload) => {
       if (payload.socketId === socket.id) return;
+      // Identify the teacher socket as early as possible for follow-mode
+      if (payload.isTeacher) teacherSocketIdRef.current = payload.socketId;
       setOtherCursors((prev) => ({
         ...prev,
         [payload.socketId]: { ...payload, xNorm: 0, yNorm: 0, lastSeen: Date.now() }
       }));
     });
 
+    // Real-time cursor positions from other participants
     socket.on('wb:cursor', (payload) => {
-      // payload: { socketId, xNorm, yNorm, name, color }
+      // payload: { socketId, xNorm, yNorm, name, color, isTeacher }
+      if (payload.isTeacher) teacherSocketIdRef.current = payload.socketId;
       setOtherCursors((prev) => ({ ...prev, [payload.socketId]: { ...payload, lastSeen: Date.now() } }));
     });
 
-    socket.on('wb:viewport', ({ scrollTopNorm, teacherSocketId }) => {
-      // when teacher broadcasts viewport and follow mode is enabled, students follow
-      if (!isTeacher && followEnabled && containerRef.current && canvasRef.current) {
+    socket.on('wb:viewport', ({ scrollTopNorm, page }) => {
+      // Update the page indicator for everyone
+      if (typeof page === 'number') setCurrentPage(page);
+
+      // Students: if follow is on, scroll to the teacher's position
+      if (!isTeacher && followEnabledRef.current && containerRef.current && canvasRef.current) {
         const canvas = canvasRef.current;
         const container = containerRef.current;
-        const maxScroll = Math.max(0, canvas.height - container.clientHeight);
-        const newTop = Math.max(0, Math.min(1, scrollTopNorm)) * maxScroll;
+        // Normalize against our own canvas CSS height — same fraction, correct absolute position
+        const canvasCSSH = canvas.clientHeight || canvas.height || 4000;
+        const newTop = Math.max(0, Math.min(scrollTopNorm, 1)) * canvasCSSH;
         container.scrollTop = newTop;
       }
     });
+
 
     socket.on('wb:clear', () => {
       clearCanvas(false);
@@ -239,7 +273,9 @@ export default function Whiteboard() {
       setLocked(!!locked);
     });
     socket.on('wb:follow-state', ({ follow }) => {
-      setFollowEnabled(!!follow);
+      // Server can still push follow-state (teacher toggled it globally)
+      // but students can also override locally — we only auto-enable, not force-disable
+      if (follow) setFollowEnabled(true);
     });
 
     socket.on('wb:voice-state', async ({ enabled }) => {
@@ -303,11 +339,26 @@ export default function Whiteboard() {
 
     socket.on('wb:history', (strokes) => {
       try {
+        // Migrate strokes that were saved with the old 0..1 normalization scheme
+        // (before the virtual coordinate space was introduced).
+        // Legacy strokes have no `normalized` flag and coordinates in 0..1 range.
+        const migrateStroke = (s) => {
+          if (!s || s.normalized) return s; // already in virtual space
+          const isLegacyCoord = (pt) => pt && pt.x <= 1 && pt.y <= 1 && pt.x >= 0 && pt.y >= 0;
+          const upscale = (pt) => pt ? { x: pt.x * VIRT_W, y: pt.y * VIRT_H } : pt;
+          const migrated = { ...s, normalized: true };
+          if (isLegacyCoord(s.prev)) migrated.prev = upscale(s.prev);
+          if (isLegacyCoord(s.curr)) migrated.curr = upscale(s.curr);
+          if (s.pos && isLegacyCoord(s.pos)) migrated.pos = upscale(s.pos);
+          return migrated;
+        };
+
         // draw persisted strokes in order
         strokes.forEach((s) => {
-          renderStroke(s, false);
-          // populate history
-          strokeHistoryRef.current.push(s);
+          const stroke = migrateStroke(s);
+          renderStroke(stroke, false);
+          // populate history (store migrated version so redrawAll works correctly)
+          strokeHistoryRef.current.push(stroke);
         });
       } catch (err) {
         console.error('Error replaying history', err);
@@ -326,6 +377,8 @@ export default function Whiteboard() {
         const next = { ...prev };
         list.forEach(p => {
           if (p.socketId !== socket.id) {
+            // Identify teacher socket for follow-mode
+            if (p.isTeacher) teacherSocketIdRef.current = p.socketId;
             next[p.socketId] = { ...p, xNorm: 0, yNorm: 0, lastSeen: Date.now() };
           }
         });
@@ -441,22 +494,30 @@ export default function Whiteboard() {
     }
   }, [textInput.visible]);
 
+  // Convert a point from virtual space to canvas pixels
+  const virtToPixels = (vpt, canvas) => ({
+    x: (vpt.x / VIRT_W) * canvas.width,
+    y: (vpt.y / VIRT_H) * canvas.height
+  });
+
+  // Convert a point from canvas pixels to virtual space
+  const pixelsToVirt = (ppt, canvas) => ({
+    x: (ppt.x / canvas.width) * VIRT_W,
+    y: (ppt.y / canvas.height) * VIRT_H
+  });
+
   function drawLine(prev, curr, color = '#000', width = 2, emit = true) {
     const ctx = ctxRef.current;
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
-    // helper converts normalized (0..1) coords to pixels if needed
-    const toPixels = (pt) => {
-      if (pt == null) return pt;
-      // if coordinates look normalized (0..1), convert
-      if (pt.x <= 1 && pt.y <= 1) {
-        return { x: pt.x * canvas.width, y: pt.y * canvas.height };
-      }
-      return pt;
-    };
 
-    const p1 = toPixels(prev);
-    const p2 = toPixels(curr);
+    // prev/curr are always in virtual space when emit=false (from remote)
+    // and always in canvas pixels when emit=true (from local pointer events)
+    const p1virt = emit ? pixelsToVirt(prev, canvas) : prev;
+    const p2virt = emit ? pixelsToVirt(curr, canvas) : curr;
+
+    const p1 = virtToPixels(p1virt, canvas);
+    const p2 = virtToPixels(p2virt, canvas);
 
     // dynamically expand canvas if drawing near bottom
     const margin = 200;
@@ -473,6 +534,7 @@ export default function Whiteboard() {
       const newCtx = canvas.getContext('2d');
       newCtx.drawImage(tmp, 0, 0);
       ctxRef.current = newCtx;
+      canvasHeightRef.current = newH;
     }
 
     ctx.strokeStyle = color;
@@ -484,32 +546,35 @@ export default function Whiteboard() {
     ctx.closePath();
 
     if (!emit) return;
-    // emit normalized coords so strokes replay correctly on different client sizes
-    const norm = (pt) => ({ x: pt.x / canvas.width, y: pt.y / canvas.height });
-    const stroke = { type: 'line', prev: norm(p1), curr: norm(p2), color, width };
+    // store in virtual space — identical on every device
+    const stroke = { type: 'line', prev: p1virt, curr: p2virt, color, width, normalized: true };
     if (!stroke._id && !stroke.id) stroke._id = generateId();
     socketRef.current.emit('wb:draw', { ...stroke, persist: false });
-    pushToBuffer(stroke);
+    pushToBuffer(stroke, false); // accumulate into current stroke group; committed on pointerUp
   }
 
   function renderStroke(s, emit = false) {
-    // s: stroke object with type
+    // s: stroke object with type.
+    // All coordinates in strokes are in virtual space (VIRT_W x VIRT_H).
     const t = s.type || 'line';
     if (t === 'line') {
+      // drawLine expects virtual-space coords when emit=false
       drawLine(s.prev, s.curr, s.color || '#000', s.width || 2, emit);
       return;
     }
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
-    const toPixels = (pt) => {
-      if (!pt) return pt;
-      if (pt.x <= 1 && pt.y <= 1) return { x: pt.x * canvas.width, y: pt.y * canvas.height };
-      return pt;
-    };
+
+    // Helper: virtual → pixels
+    const tp = (vpt) => ({
+      x: (vpt.x / VIRT_W) * canvas.width,
+      y: (vpt.y / VIRT_H) * canvas.height
+    });
+
     if (t === 'rect') {
-      const p1 = toPixels(s.prev);
-      const p2 = toPixels(s.curr);
+      const p1 = tp(s.prev);
+      const p2 = tp(s.curr);
       const x = Math.min(p1.x, p2.x);
       const y = Math.min(p1.y, p2.y);
       const w = Math.abs(p2.x - p1.x);
@@ -520,8 +585,8 @@ export default function Whiteboard() {
       return;
     }
     if (t === 'circle') {
-      const p1 = toPixels(s.prev);
-      const p2 = toPixels(s.curr);
+      const p1 = tp(s.prev);
+      const p2 = tp(s.curr);
       const cx = (p1.x + p2.x) / 2;
       const cy = (p1.y + p2.y) / 2;
       const rx = Math.abs(p2.x - p1.x) / 2;
@@ -535,9 +600,8 @@ export default function Whiteboard() {
       return;
     }
     if (t === 'erase') {
-      // draw using destination-out to erase
-      const prev = toPixels(s.prev);
-      const curr = toPixels(s.curr);
+      const prev = tp(s.prev);
+      const curr = tp(s.curr);
       ctx.save();
       ctx.globalCompositeOperation = 'destination-out';
       ctx.lineWidth = s.width || 20;
@@ -550,7 +614,7 @@ export default function Whiteboard() {
       return;
     }
     if (t === 'text') {
-      const pos = toPixels(s.pos || s.prev);
+      const pos = tp(s.pos || s.prev);
       ctx.fillStyle = s.color || '#000';
       ctx.font = `${(s.fontSize || 16)}px sans-serif`;
       ctx.fillText(s.text || '', pos.x, pos.y);
@@ -587,6 +651,9 @@ export default function Whiteboard() {
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(true);
       lastPosRef.current = pos;
+      // Start a fresh undo group for this stroke
+      currentStrokeGroupRef.current = [];
+      redoStackRef.current = []; // any new draw clears the redo stack
     } else if (tool === 'hand') {
       setIsPanning(true);
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -606,10 +673,11 @@ export default function Whiteboard() {
         ov.height = canvasRef.current.height;
       }
     } else if (tool === 'text') {
-      // show inline text input at clicked position
-      // Using direct canvas coordinates since absolute items in a relative 
-      // overflow div will scroll correctly without manual offset tracking
-      setTextInput({ visible: true, x: pos.x, y: pos.y, value: '', fontSize: 18 });
+      // The text input is absolutely positioned inside the scrollable container.
+      // pos.y is relative to the canvas top (viewport-relative from getBoundingClientRect).
+      // We must add scrollTop so the absolute position corresponds to the canvas coordinate.
+      const scrollTop = containerRef.current ? containerRef.current.scrollTop : 0;
+      setTextInput({ visible: true, x: pos.x, y: pos.y + scrollTop, value: '', fontSize: 18 });
     }
   };
   const handlePointerMove = (e) => {
@@ -622,6 +690,17 @@ export default function Whiteboard() {
       const dy = clientY - panStartRef.current.clientY;
       containerRef.current.scrollTop = panStartRef.current.scrollTop - dy;
       containerRef.current.scrollLeft = panStartRef.current.scrollLeft - dx;
+      // Still emit cursor during pan so following students track the teacher
+      try {
+        const now = Date.now();
+        if (now - lastCursorEmitRef.current > 80) {
+          const canvas = canvasRef.current;
+          const xNorm = (pos.x / canvas.width) * VIRT_W;
+          const yNorm = (pos.y / canvas.height) * VIRT_H;
+          socketRef.current?.emit('wb:cursor', { xNorm, yNorm, isTeacher: !!isTeacher });
+          lastCursorEmitRef.current = now;
+        }
+      } catch (_) { /* ignore */ }
       return;
     }
     if (tool === 'pen') {
@@ -632,11 +711,18 @@ export default function Whiteboard() {
     } else if (tool === 'eraser') {
       if (!isDrawing) return;
       const prev = lastPosRef.current || pos;
-      // draw erase locally
-      const eraseStroke = { type: 'erase', prev: { x: prev.x / canvasRef.current.width, y: prev.y / canvasRef.current.height }, curr: { x: pos.x / canvasRef.current.width, y: pos.y / canvasRef.current.height }, width: width * 8 };
+      const canvas = canvasRef.current;
+      // store in virtual space
+      const eraseStroke = {
+        type: 'erase',
+        prev: { x: (prev.x / canvas.width) * VIRT_W, y: (prev.y / canvas.height) * VIRT_H },
+        curr: { x: (pos.x / canvas.width) * VIRT_W, y: (pos.y / canvas.height) * VIRT_H },
+        width: width * 8,
+        normalized: true
+      };
       renderStroke(eraseStroke, false);
       socketRef.current?.emit('wb:draw', { ...eraseStroke, persist: false });
-      pushToBuffer(eraseStroke);
+      pushToBuffer(eraseStroke, false); // false = add to group, not directly to undo stack
       lastPosRef.current = pos;
     } else if (tool === 'rect' || tool === 'circle') {
       // draw preview on overlay
@@ -661,14 +747,16 @@ export default function Whiteboard() {
         octx.closePath();
       }
     }
-    // emit cursor position (normalized) throttled
+    // emit cursor position in virtual space (throttled)
     try {
       const now = Date.now();
       if (now - lastCursorEmitRef.current > 80) {
         const canvas = canvasRef.current;
-        const xNorm = pos.x / canvas.width;
-        const yNorm = pos.y / canvas.height;
-        socketRef.current?.emit('wb:cursor', { xNorm, yNorm });
+        // Store cursor as virtual coords so it renders at the right position on all devices
+        const xNorm = (pos.x / canvas.width) * VIRT_W;
+        const yNorm = (pos.y / canvas.height) * VIRT_H;
+        // Include isTeacher flag so students know whose cursor to follow
+        socketRef.current?.emit('wb:cursor', { xNorm, yNorm, isTeacher: !!isTeacher });
         lastCursorEmitRef.current = now;
       }
     } catch (err) {
@@ -683,17 +771,24 @@ export default function Whiteboard() {
     if (tool === 'pen' || tool === 'eraser') {
       setIsDrawing(false);
       lastPosRef.current = null;
+      // Commit the whole stroke as one undo step
+      if (currentStrokeGroupRef.current.length > 0) {
+        undoStackRef.current.push([...currentStrokeGroupRef.current]);
+        currentStrokeGroupRef.current = [];
+      }
     } else if (tool === 'rect' || tool === 'circle') {
       const start = shapeStartRef.current;
       const end = getPointerPos(e);
       if (start && end) {
         const canvas = canvasRef.current;
+        // store in virtual space
         const stroke = {
           type: tool,
-          prev: { x: start.x / canvas.width, y: start.y / canvas.height },
-          curr: { x: end.x / canvas.width, y: end.y / canvas.height },
+          prev: { x: (start.x / canvas.width) * VIRT_W, y: (start.y / canvas.height) * VIRT_H },
+          curr: { x: (end.x / canvas.width) * VIRT_W, y: (end.y / canvas.height) * VIRT_H },
           color,
           width,
+          normalized: true
         };
         // clear overlay
         const ov = overlayRef.current;
@@ -927,8 +1022,12 @@ export default function Whiteboard() {
     isSubmittingTextRef.current = true;
     try {
       const canvas = canvasRef.current;
-      const posNorm = { x: textInput.x / canvas.width, y: textInput.y / canvas.height };
-      const stroke = { type: 'text', pos: posNorm, text: textInput.value, color, fontSize: textInput.fontSize };
+      // store position in virtual space
+      const posVirt = {
+        x: (textInput.x / canvas.width) * VIRT_W,
+        y: (textInput.y / canvas.height) * VIRT_H
+      };
+      const stroke = { type: 'text', pos: posVirt, text: textInput.value, color, fontSize: textInput.fontSize, normalized: true };
       renderStroke(stroke, false);
       socketRef.current?.emit('wb:draw', { ...stroke, persist: false });
       pushToBuffer(stroke);
@@ -990,6 +1089,11 @@ export default function Whiteboard() {
   useEffect(() => {
     isVoiceEnabledRef.current = isVoiceEnabled;
   }, [isVoiceEnabled]);
+
+  // Keep followEnabledRef in sync with state so socket callbacks see the latest value
+  useEffect(() => {
+    followEnabledRef.current = followEnabled;
+  }, [followEnabled]);
 
   // Voice communication handlers
   const handleToggleVoice = async () => {
@@ -1074,321 +1178,268 @@ export default function Whiteboard() {
   };
 
 
-  // teacher: emit viewport on scroll when locked; students: follow teacher when locked
+  // ─── Page tracking & teacher viewport broadcast ───────────────────────────
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !socketRef.current) return;
+    if (!container) return;
 
-    let lastEmit = 0;
+    // For ALL users: update the page-number badge as they scroll
+    let pageTick = 0;
+    let viewportTick = 0;
+
     const onScroll = () => {
-      if (!socketRef.current) return;
-      if (!isTeacher) return;
-      if (!whiteboardSessionLocked()) return; // helper below
-      const now = Date.now();
-      if (now - lastEmit < 100) return;
-      lastEmit = now;
-      const canvas = canvasRef.current;
-      const maxScroll = Math.max(0, canvas.height - container.clientHeight);
-      const scrollTopNorm = maxScroll > 0 ? container.scrollTop / maxScroll : 0;
-      socketRef.current.emit('wb:viewport', { scrollTopNorm });
+      const pageH = container.clientHeight || 1;
+      const page = Math.floor(container.scrollTop / pageH) + 1;
+
+      // Update page badge for this user (debounced)
+      clearTimeout(pageTick);
+      pageTick = setTimeout(() => setCurrentPage(page), 100);
+
+      // Teacher: always broadcast scroll + page (students decide whether to follow)
+      if (!isTeacher || !socketRef.current?.connected) return;
+      clearTimeout(viewportTick);
+      viewportTick = setTimeout(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        // scrollTopNorm = scrollTop / total canvas CSS height
+        // Students apply it to their own canvas CSS height → identical fraction visible
+        const canvasCSSH = canvas.clientHeight || canvas.height || 4000;
+        const scrollTopNorm = canvasCSSH > 0 ? container.scrollTop / canvasCSSH : 0;
+        lastBroadcastedPageRef.current = page;
+        socketRef.current.emit('wb:viewport', { scrollTopNorm, page });
+      }, 120);
     };
 
-    if (isTeacher) {
-      container.addEventListener('scroll', onScroll, { passive: true });
-    }
-
+    container.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      if (isTeacher) container.removeEventListener('scroll', onScroll);
+      container.removeEventListener('scroll', onScroll);
+      clearTimeout(pageTick);
+      clearTimeout(viewportTick);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTeacher, locked]);
+  }, [isTeacher]);
 
   function whiteboardSessionLocked() {
-    // prefer server lock state; local locked state is okay as an approximation
     return !!locked;
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
-      {/* Responsive Toolbar */}
-      <div className="bg-white border-b border-gray-200 p-2 md:p-3 flex flex-wrap items-center gap-2 md:gap-4 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <h3 className="font-bold text-gray-800 hidden sm:block">Whiteboard</h3>
-          <div className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${locked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-            {locked ? 'Locked' : 'Open'}
-          </div>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', overflow: 'hidden', background: '#f9fafb', zIndex: 100 }}>
+
+      {/* ── Left Sidebar ── */}
+      <aside style={{
+        flexShrink: 0, width: 68,
+        background: '#fff', borderRight: '1px solid #e5e7eb',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 4, padding: '10px 4px', overflowY: 'auto', overflowX: 'hidden', zIndex: 40,
+      }}>
+        {/* Drawing tools */}
+        {[
+          { id: 'hand',    icon: <Hand className="w-4 h-4" />,         label: 'Pan'    },
+          { id: 'pointer', icon: <MousePointer className="w-4 h-4" />, label: 'Point'  },
+          { id: 'pen',     icon: <Paintbrush className="w-4 h-4" />,   label: 'Pen'    },
+          { id: 'eraser',  icon: <Eraser className="w-4 h-4" />,       label: 'Erase'  },
+          { id: 'rect',    icon: <Square className="w-4 h-4" />,       label: 'Rect'   },
+          { id: 'circle',  icon: <CircleIcon className="w-4 h-4" />,   label: 'Circle' },
+          { id: 'text',    icon: <Type className="w-4 h-4" />,         label: 'Text'   },
+        ].map(({ id, icon, label }) => (
+          <button key={id} onClick={() => setTool(id)} title={label} style={{
+            width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            background: tool === id ? '#eef2ff' : 'transparent',
+            color: tool === id ? '#4f46e5' : '#6b7280',
+            fontWeight: tool === id ? 700 : 500,
+            boxShadow: tool === id ? 'inset 0 0 0 1px #c7d2fe' : 'none',
+            transition: 'all 0.15s',
+          }}>
+            {icon}
+            <span style={{ fontSize: 9, letterSpacing: '0.03em' }}>{label}</span>
+          </button>
+        ))}
+
+        <div style={{ width: 48, height: 1, background: '#e5e7eb', margin: '4px 0', flexShrink: 0 }} />
+
+        {/* Color palette */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, flexShrink: 0 }}>
+          {['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#06b6d4', '#ffffff'].map(c => (
+            <button key={c} onClick={() => setColor(c)} title={c} style={{
+              width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer',
+              border: color === c ? '3px solid #4f46e5' : '2px solid #d1d5db',
+              transform: color === c ? 'scale(1.15)' : 'scale(1)',
+              boxShadow: color === c ? '0 0 0 2px #e0e7ff' : 'none',
+              transition: 'all 0.15s',
+            }} />
+          ))}
         </div>
 
-        {isTeacher && (
-          <div className="flex items-center gap-1 border-r pr-2 md:pr-4">
-            {/* Utility Actions */}
-            <button
-              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-              onClick={onClear}
-              title="Clear All"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-            <button
-              className={`p-2 rounded-lg transition-colors ${locked ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              onClick={onToggleLock}
-              title={locked ? 'Unlock' : 'Lock'}
-            >
-              {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-            </button>
-            <button
-              className={`p-2 rounded-lg transition-colors ${followEnabled ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
-              onClick={() => { socketRef.current?.emit('wb:follow', { follow: !followEnabled }); setFollowEnabled(!followEnabled); }}
-              title={followEnabled ? 'Disable Follow' : 'Enable Follow'}
-            >
-              {followEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            </button>
-          </div>
-        )}
+        {/* Brush size */}
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0, padding: '0 2px', boxSizing: 'border-box' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Size</span>
+          <input
+            type="range" min={1} max={24} value={width}
+            onChange={e => setWidth(Number(e.target.value))}
+            style={{ width: '100%', margin: 0, padding: 0, accentColor: '#4f46e5', cursor: 'pointer', display: 'block' }}
+          />
+          <input
+            type="number" min={1} max={24} value={width}
+            onChange={e => setWidth(Math.max(1, Math.min(24, Number(e.target.value) || 1)))}
+            style={{
+              width: 44, textAlign: 'center', border: '1px solid #e5e7eb',
+              borderRadius: 6, padding: '2px 0', fontSize: 11,
+              fontWeight: 700, color: '#4f46e5', outline: 'none', background: '#f9fafb'
+            }}
+          />
+        </div>
 
-        {/* Voice Communication Controls */}
-        <VoiceControls
-          isVoiceEnabled={isVoiceEnabled}
-          isVideoEnabled={isVideoEnabled}
-          isMuted={isMuted}
-          onToggleVoice={handleToggleVoice}
-          onToggleMute={handleToggleMute}
-          onToggleVideo={handleToggleVideo}
-          isTeacher={isTeacher}
-          localVolume={localVolume}
-          participants={{
-            ...otherCursors,
-            [socketRef.current?.id]: {
-              name: user?.name || user?.email || 'Me',
-              color: '#4f46e5',
-              muted: isMuted,
-              videoEnabled: isVideoEnabled,
-              handRaised: isHandRaised
+        <div style={{ width: 48, height: 1, background: '#e5e7eb', margin: '4px 0', flexShrink: 0 }} />
+
+        {/* Teacher controls */}
+        {isTeacher && (<>
+          <button title="Undo" onClick={() => {
+            if (undoStackRef.current.length > 0) {
+              const step = undoStackRef.current.pop();
+              const strokes = Array.isArray(step) ? step : [step];
+              redoStackRef.current.push(strokes);
+              // Remove all strokes in this step from history, then redraw
+              const ids = new Set(strokes.map(s => s._id || s.id).filter(Boolean));
+              strokeHistoryRef.current = strokeHistoryRef.current.filter(x => !ids.has(x._id || x.id));
+              strokes.forEach(s => socketRef.current?.emit('wb:remove-stroke', { strokeId: s._id || s.id }));
+              redrawAll();
             }
           }}
-          onForceMute={handleForceMute}
-          activeSpeakers={activeSpeakers}
-          activeDrawers={activeDrawers}
-          localId={socketRef.current?.id}
-          micLocked={micLocked}
-          remoteStreams={remoteStreams}
-          localStream={localStreamRef.current}
+            style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'transparent', color: '#6b7280', transition: 'all 0.15s' }}>
+            <Undo className="w-4 h-4" /><span style={{ fontSize: 9 }}>Undo</span>
+          </button>
+          <button title="Redo" onClick={() => {
+            if (redoStackRef.current.length > 0) {
+              const strokes = redoStackRef.current.pop();
+              const arr = Array.isArray(strokes) ? strokes : [strokes];
+              undoStackRef.current.push(arr);
+              arr.forEach(s => { renderStroke(s, false); pushToBuffer(s, true); socketRef.current?.emit('wb:draw', { ...s, persist: false }); });
+            }
+          }}
+            style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'transparent', color: '#6b7280', transition: 'all 0.15s' }}>
+            <Redo className="w-4 h-4" /><span style={{ fontSize: 9 }}>Redo</span>
+          </button>
+          <button title="Clear All" onClick={onClear}
+            style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'transparent', color: '#ef4444', transition: 'all 0.15s' }}>
+            <Trash2 className="w-4 h-4" /><span style={{ fontSize: 9 }}>Clear</span>
+          </button>
+          <button title={locked ? 'Unlock' : 'Lock'} onClick={onToggleLock}
+            style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: locked ? '#1f2937' : 'transparent', color: locked ? '#fff' : '#6b7280', transition: 'all 0.15s' }}>
+            {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            <span style={{ fontSize: 9 }}>{locked ? 'Locked' : 'Lock'}</span>
+          </button>
+        </>)}
+
+        {/* Student controls — shown immediately after tools so they're always visible */}
+        {!isTeacher && (<>
+          <button onClick={() => setFollowEnabled(f => !f)} title={followEnabled ? `Stop following · Pg ${currentPage}` : 'Follow teacher — view syncs to their page'}
+            style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: followEnabled ? '#4f46e5' : '#eef2ff', color: followEnabled ? '#fff' : '#4f46e5', transition: 'all 0.15s', boxShadow: followEnabled ? '0 0 0 2px #818cf8' : 'none' }}>
+            {followEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            <span style={{ fontSize: 9, fontWeight: 700 }}>{followEnabled ? `Pg ${currentPage}` : 'Follow'}</span>
+          </button>
+          {isVoiceEnabled && (
+            <button onClick={handleRaiseHand} title={isHandRaised ? 'Lower Hand' : 'Raise Hand'}
+              style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: isHandRaised ? '#f59e0b' : 'transparent', color: isHandRaised ? '#fff' : '#6b7280', transition: 'all 0.15s' }}>
+              <Hand className={`w-4 h-4 ${isHandRaised ? 'animate-bounce' : ''}`} />
+              <span style={{ fontSize: 9 }}>{isHandRaised ? 'Raised' : 'Hand'}</span>
+            </button>
+          )}
+        </>)}
+
+        {/* Voice controls — video floats over canvas, buttons sit in sidebar */}
+        <VoiceControls
+          isVoiceEnabled={isVoiceEnabled} isVideoEnabled={isVideoEnabled}
+          isMuted={isMuted} onToggleVoice={handleToggleVoice}
+          onToggleMute={handleToggleMute} onToggleVideo={handleToggleVideo}
+          isTeacher={isTeacher} localVolume={localVolume}
+          participants={{ ...otherCursors, [socketRef.current?.id]: { name: user?.name || user?.email || 'Me', color: '#4f46e5', muted: isMuted, videoEnabled: isVideoEnabled, handRaised: isHandRaised } }}
+          onForceMute={handleForceMute} activeSpeakers={activeSpeakers} activeDrawers={activeDrawers}
+          localId={socketRef.current?.id} micLocked={micLocked}
+          remoteStreams={remoteStreams} localStream={localStreamRef.current}
         />
 
-        {/* Raise Hand (Student only, show when voice is enabled) */}
-        {!isTeacher && isVoiceEnabled && (
-          <button
-            onClick={handleRaiseHand}
-            className={`p-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm ${isHandRaised ? 'bg-yellow-500 text-white shadow-lg scale-110' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            title={isHandRaised ? 'Lower Hand' : 'Raise Hand'}
-          >
-            <Hand className={`w-4 h-4 ${isHandRaised ? 'animate-bounce' : ''}`} />
-            <span className="hidden sm:inline">{isHandRaised ? 'Hand Raised' : 'Raise Hand'}</span>
-          </button>
-        )}
+        {/* Spacer */}
+        <div style={{ flex: 1, minHeight: 8 }} />
 
-        {/* Drawing Tools */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
-          <button
-            onClick={() => setTool('hand')}
-            className={`p-2 rounded-lg transition-all ${tool === 'hand' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Pan Tool (Hand)"
-          >
-            <Hand className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTool('pointer')}
-            className={`p-2 rounded-lg transition-all ${tool === 'pointer' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Pointer"
-          >
-            <MousePointer className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTool('pen')}
-            className={`p-2 rounded-lg transition-all ${tool === 'pen' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Pen"
-          >
-            <Paintbrush className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTool('eraser')}
-            className={`p-2 rounded-lg transition-all ${tool === 'eraser' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Eraser"
-          >
-            <Eraser className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTool('rect')}
-            className={`p-2 rounded-lg transition-all ${tool === 'rect' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Rectangle"
-          >
-            <Square className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTool('circle')}
-            className={`p-2 rounded-lg transition-all ${tool === 'circle' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Circle"
-          >
-            <CircleIcon className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTool('text')}
-            className={`p-2 rounded-lg transition-all ${tool === 'text' ? 'bg-white shadow-sm text-indigo-600 scale-110' : 'text-gray-600 hover:text-gray-900'}`}
-            title="Text"
-          >
-            <Type className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Colors */}
-        <div className="flex items-center gap-1 px-2 border-l border-r">
-          <div className="flex flex-wrap gap-1 max-w-[100px] sm:max-w-none">
-            {['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#06b6d4', '#ffffff'].map(c => (
-              <button
-                key={c}
-                onClick={() => setColor(c)}
-                className="w-5 h-5 rounded-full border border-gray-200 transition-transform active:scale-90"
-                style={{ background: c }}
-                title={c}
-              />
-            ))}
+        {/* Status badges */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 999, background: locked ? '#fee2e2' : '#dcfce7', color: locked ? '#b91c1c' : '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+            {locked ? 'Locked' : 'Open'}
+          </div>
+          <div style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 999, background: '#f3f4f6', color: '#4b5563' }}>
+            Pg {currentPage}
           </div>
         </div>
 
-        {/* History & Export */}
-        <div className="flex items-center gap-1">
-          {isTeacher && (
-            <>
-              <button
-                onClick={() => {
-                  if (undoStackRef.current.length > 0) {
-                    const s = undoStackRef.current.pop();
-                    redoStackRef.current.push(s);
-                    socketRef.current?.emit('wb:remove-stroke', { strokeId: s._id || s.id });
-                    strokeHistoryRef.current = strokeHistoryRef.current.filter(x => (x._id || x.id) !== (s._id || s.id));
-                    redrawAll();
-                  }
-                }}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Undo"
-              >
-                <Undo className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  if (redoStackRef.current.length > 0) {
-                    const s = redoStackRef.current.pop();
-                    renderStroke(s, false);
-                    pushToBuffer(s);
-                    socketRef.current?.emit('wb:draw', { ...s, persist: false });
-                  }
-                }}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Redo"
-              >
-                <Redo className="w-4 h-4" />
-              </button>
-            </>
-          )}
-          <button
-            onClick={onExportPNG}
-            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors hidden sm:flex items-center gap-2 font-medium text-sm"
-            title="Export Image"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export</span>
-          </button>
-          <button
-            onClick={onExportPNG}
-            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors sm:hidden"
-            title="Export Image"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+        {/* Export */}
+        <button onClick={onExportPNG} title="Export PNG" style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'transparent', color: '#4f46e5', transition: 'all 0.15s', flexShrink: 0 }}>
+          <Download className="w-4 h-4" /><span style={{ fontSize: 9 }}>Export</span>
+        </button>
 
-          <div className="w-px h-6 bg-gray-200 mx-1" />
+        {/* Exit */}
+        <button onClick={handleExit} title="Exit Whiteboard" style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: '#fff1f2', color: '#e11d48', transition: 'all 0.15s', flexShrink: 0 }}>
+          <LogOut className="w-4 h-4" /><span style={{ fontSize: 9 }}>Exit</span>
+        </button>
+      </aside>
 
-          <button
-            onClick={handleExit}
-            className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2 font-medium text-sm"
-            title="Exit Whiteboard"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Exit</span>
-          </button>
-        </div>
-      </div>
-
+      {/* ── Canvas draw area ── */}
       <div
         ref={containerRef}
-        className={`flex-1 overflow-auto relative bg-gray-100/50 ${tool === 'hand' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') :
-          tool === 'pointer' ? 'cursor-default' : 'cursor-crosshair'
-          }`}
+        style={{ flex: '1 1 0', overflow: 'auto', position: 'relative', minWidth: 0 }}
+        className={tool === 'hand' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : tool === 'pointer' ? 'cursor-default' : 'cursor-crosshair'}
       >
         <canvas
           ref={canvasRef}
           style={{ width: '100%', height: `${canvasHeightRef.current}px`, border: '1px solid #e5e7eb', touchAction: 'none', display: 'block' }}
           onMouseDown={handlePointerDown}
           onMouseMove={handlePointerMove}
-          onMouseUp={(e) => handlePointerUp(e)}
-          onMouseLeave={(e) => handlePointerUp(e)}
+          onMouseUp={handlePointerUp}
+          onMouseLeave={handlePointerUp}
           onTouchStart={handlePointerDown}
           onTouchMove={handlePointerMove}
-          onTouchEnd={(e) => handlePointerUp(e)}
+          onTouchEnd={handlePointerUp}
         />
-        {/* overlay canvas for previews */}
+        {/* Overlay canvas for shape previews */}
         <canvas ref={overlayRef} style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', width: '100%', height: `${canvasHeightRef.current}px` }} />
 
-        {/* inline text input */}
+        {/* Inline text input */}
         {textInput.visible && (
           <input
             ref={inputRef}
             className="outline-none border-b-2 border-indigo-500 bg-white/90 backdrop-blur-sm shadow-lg pointer-events-auto"
             value={textInput.value}
             onChange={(e) => setTextInput(t => ({ ...t, value: e.target.value }))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitTextInput();
-              if (e.key === 'Escape') setTextInput({ visible: false, x: 0, y: 0, value: '' });
-              e.stopPropagation();
-            }}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitTextInput(); if (e.key === 'Escape') setTextInput({ visible: false, x: 0, y: 0, value: '' }); e.stopPropagation(); }}
             onBlur={() => submitTextInput()}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute',
-              left: `${textInput.x}px`,
-              top: `${textInput.y}px`,
-              zIndex: 100,
-              padding: '4px 8px',
-              fontSize: `${textInput.fontSize}px`,
-              minWidth: '150px'
-            }}
+            style={{ position: 'absolute', left: `${textInput.x}px`, top: `${textInput.y}px`, zIndex: 100, padding: '4px 8px', fontSize: `${textInput.fontSize}px`, minWidth: '150px' }}
           />
         )}
 
-        {/* render other users' cursors */}
+        {/* Other users' cursors */}
         {Object.keys(otherCursors).map((id) => {
           const c = otherCursors[id];
           if (!c || (Date.now() - (c.lastSeen || 0) > 8000)) return null;
           const canvas = canvasRef.current;
           const container = containerRef.current;
           if (!canvas || !container) return null;
-          const px = c.xNorm * canvas.width;
-          const py = c.yNorm * canvas.height - (containerRef.current?.scrollTop || 0);
+          const canvasCSSW = canvas.clientWidth  || canvas.width;
+          const canvasCSSH = canvas.clientHeight || canvas.height;
+          const px = (c.xNorm / VIRT_W) * canvasCSSW;
+          const py = (c.yNorm / VIRT_H) * canvasCSSH - (container.scrollTop || 0);
           const isSpeaking = activeSpeakers.has(id);
-
           return (
             <div key={id} style={{ position: 'absolute', left: px + 8, top: py - 8, pointerEvents: 'none', zIndex: 40 }}>
-              <div
-                className={`transition-all duration-300 ${isSpeaking ? 'ring-4 ring-green-400 ring-offset-2 scale-110' : ''}`}
-                style={{ background: c.color || '#000', color: '#fff', padding: '2px 6px', borderRadius: 6, fontSize: 12, whiteSpace: 'nowrap' }}
-              >
-                {c.name}
-                {isSpeaking && <span className="ml-1">🔊</span>}
+              <div className={`transition-all duration-300 ${isSpeaking ? 'ring-4 ring-green-400 ring-offset-2 scale-110' : ''}`}
+                style={{ background: c.color || '#000', color: '#fff', padding: '2px 6px', borderRadius: 6, fontSize: 12, whiteSpace: 'nowrap' }}>
+                {c.name}{isSpeaking && <span className="ml-1">🔊</span>}
               </div>
               <div style={{ width: 8, height: 8, background: c.color || '#000', borderRadius: '50%', marginTop: 4 }} />
             </div>
-          )
+          );
         })}
       </div>
     </div>

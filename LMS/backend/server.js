@@ -222,6 +222,7 @@ io.on('connection', (socket) => {
         socketId: socket.id,
         name,
         color,
+        isTeacher: !!isTeacher,   // students use this to identify who to follow
         muted: true, // Default to muted on join
         videoEnabled: false,
         handRaised: false,
@@ -253,6 +254,7 @@ io.on('connection', (socket) => {
             socketId: s.id,
             name: s.data.name || 'User',
             color: s.data.color,
+            isTeacher: !!s.data.isTeacher,  // included so student can identify teacher on join
             muted: s.data.muted ?? true,
             videoEnabled: s.data.videoEnabled ?? false,
             handRaised: s.data.handRaised ?? false
@@ -275,20 +277,19 @@ io.on('connection', (socket) => {
       xNorm,
       yNorm,
       name: socket.data.user ? (socket.data.user.name || socket.data.user.email || 'User') : 'User',
-      color: socket.data.color || '#000'
+      color: socket.data.color || '#000',
+      isTeacher: !!socket.data.isTeacher  // let students identify the teacher for follow-mode
     };
     socket.to(sessionId).emit('wb:cursor', payload);
   });
 
-  // teacher broadcasts viewport; when locked this enforces viewer positions
-  socket.on('wb:viewport', ({ scrollTopNorm }) => {
+  // Teacher broadcasts their scroll/page position — always forwarded.
+  // Follow-mode is a purely client-side decision for each student, so we never gate this.
+  socket.on('wb:viewport', ({ scrollTopNorm, page }) => {
     const { classId, sessionId } = socket.data || {};
     if (!classId || !sessionId) return;
-    // only allow teacher to broadcast viewport
-    if (!socket.data.isTeacher) return;
-    // only broadcast when follow mode is enabled
-    if (!whiteboardSessions.isFollow(classId)) return;
-    io.to(sessionId).emit('wb:viewport', { scrollTopNorm, teacherSocketId: socket.id });
+    if (!socket.data.isTeacher) return; // only teacher may publish position
+    socket.to(sessionId).emit('wb:viewport', { scrollTopNorm, page, teacherSocketId: socket.id });
   });
 
   // teacher toggles follow mode for the session
