@@ -11,7 +11,8 @@ export default function VoiceControls({
     isTeacher,
     localVolume = 0,
     participants = {},
-    onForceMute,
+    allowedDrawers = new Set(),
+    onAllowUser,
     activeSpeakers = new Set(),
     activeDrawers = new Set(),
     localId = null,
@@ -173,94 +174,37 @@ export default function VoiceControls({
         <div className="flex items-center gap-1.5 border-r border-slate-100 pr-3 md:pr-5 relative">
             {isTeacher && (
                 <div className="flex items-center gap-1.5">
+                    {/* Voice/Mic Toggles hidden per user request */}
+                    
                     <button
-                        className={`p-2.5 rounded-xl transition-all duration-300 transform active:scale-90 shadow-sm ${isVoiceEnabled
-                            ? 'bg-emerald-500 text-white shadow-emerald-200'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                            }`}
-                        onClick={onToggleVoice}
-                        title={isVoiceEnabled ? 'Disable Voice Chat' : 'Enable Voice Chat'}
+                        className={`p-2.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 transform active:scale-95 shadow-sm ${showParticipants ? 'bg-primary text-white shadow-primary/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        onClick={() => setShowParticipants(!showParticipants)}
+                        title="Participation Management"
                     >
-                        {isVoiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                        <Users className="w-4 h-4" />
+                        <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showParticipants ? 'rotate-180' : ''}`} />
                     </button>
-
-                    {isVoiceEnabled && (
-                        <button
-                            className={`p-2.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 transform active:scale-95 shadow-sm ${showParticipants ? 'bg-primary text-white shadow-primary/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                            onClick={() => setShowParticipants(!showParticipants)}
-                            title="Manage Participants"
-                        >
-                            <Users className="w-4 h-4" />
-                            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showParticipants ? 'rotate-180' : ''}`} />
-                        </button>
-                    )}
                 </div>
             )}
 
-            {isVoiceEnabled && (
-                <button
-                    className={`p-2.5 rounded-xl transition-all duration-300 relative overflow-hidden transform active:scale-95 shadow-sm ${isMuted
-                        ? 'bg-red-50 text-red-500 border border-red-100'
-                        : 'bg-blue-50 text-blue-600 border border-blue-100'
-                        } ${micLocked && isMuted ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
-                    onClick={onToggleMute}
-                    title={micLocked && isMuted ? 'Microphone Locked by Teacher' : (isMuted ? 'Unmute' : 'Mute')}
-                >
-                    {/* Volume Level Indicator */}
-                    {!isMuted && localVolume > 5 && (
-                        <div
-                            className="absolute bottom-0 left-0 w-full bg-blue-500/20 transition-all duration-75"
-                            style={{ height: `${volumePercent}%` }}
-                        />
-                    )}
-
-                    <div className="relative z-10 transition-transform" style={{ transform: !isMuted && localVolume > 20 ? `scale(${1 + (localVolume / 400)})` : 'scale(1)' }}>
-                        {micLocked && isMuted && !isTeacher ? (
-                            <div className="relative">
-                                <MicOff className="w-4 h-4" />
-                                <Lock className="w-2.5 h-2.5 absolute -bottom-1 -right-1 text-red-600 bg-white rounded-full p-0.5 shadow-sm" />
-                            </div>
-                        ) : (
-                            isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />
-                        )}
-                    </div>
-                </button>
-            )}
-
-            {isVoiceEnabled && (
-                <button
-                    className={`p-2.5 rounded-xl transition-all duration-300 transform active:scale-95 shadow-sm ${isVideoEnabled
-                        ? 'bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-indigo-100/50'
-                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                        }`}
-                    onClick={onToggleVideo}
-                    title={isVideoEnabled ? 'Turn Camera Off' : 'Turn Camera On'}
-                >
-                    {isVideoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-                </button>
-            )}
+            {/* Camera Toggle */}
+            <button
+                className={`p-2.5 rounded-xl transition-all duration-300 transform active:scale-95 shadow-sm ${isVideoEnabled
+                    ? 'bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-indigo-100/50'
+                    : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                    }`}
+                onClick={onToggleVideo}
+                title={isVideoEnabled ? 'Turn Camera Off' : 'Turn Camera On'}
+            >
+                {isVideoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+            </button>
 
             {/* Participants Popover */}
-            {showParticipants && isTeacher && isVoiceEnabled && (
+            {showParticipants && isTeacher && (
                 <div className="absolute top-full left-0 mt-3 w-72 bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] animate-in fade-in slide-in-from-top-4 duration-300 overflow-hidden">
                     <div className="p-5 border-b border-slate-50 space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Moderation</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-                            <div className="flex flex-col">
-                                <span className="text-xs font-black text-slate-700">Mute Everyone</span>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Lock microphones</span>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer group">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={micLocked}
-                                    onChange={() => onForceMute('all', !micLocked)}
-                                />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-sm group-active:scale-95 transition-transform" />
-                            </label>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-full">Participation List</span>
                         </div>
                     </div>
                     <div className="max-h-72 overflow-y-auto p-3 scrollbar-none">
@@ -303,11 +247,11 @@ export default function VoiceControls({
                                             </div>
                                         </div>
                                         <button
-                                            className={`p-2.5 rounded-xl transition-all duration-300 ${person.muted ? 'bg-red-50 text-red-500 ring-1 ring-red-100' : 'bg-slate-50 text-slate-400 group-hover:text-emerald-500 hover:bg-emerald-50'} ${person.id === localId ? 'invisible pointer-events-none' : 'opacity-0 group-hover:opacity-100 transform translate-x-1 group-hover:translate-x-0'}`}
-                                            onClick={() => onForceMute(person.id, !person.muted)}
-                                            title={person.muted ? `Unmute ${person.name}` : `Mute ${person.name}`}
+                                            className={`p-2.5 rounded-xl transition-all duration-300 ${allowedDrawers.has(person.id) ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100' : 'bg-slate-50 text-slate-400 group-hover:text-amber-500 hover:bg-amber-50'} ${person.id === localId ? 'invisible pointer-events-none' : 'opacity-0 group-hover:opacity-100 transform translate-x-1 group-hover:translate-x-0'}`}
+                                            onClick={() => onAllowUser(person.id, !allowedDrawers.has(person.id))}
+                                            title={allowedDrawers.has(person.id) ? 'Revoke Participation' : 'Allow Participation'}
                                         >
-                                            {person.muted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                                            <Paintbrush className="w-4 h-4" />
                                         </button>
                                     </div>
                                 ))}

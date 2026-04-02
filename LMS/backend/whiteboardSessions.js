@@ -18,9 +18,51 @@ class WhiteboardSessions {
       locked: false,
       follow: false, // when true, students follow teacher viewport/cursor
       voiceEnabled: false,
+      allowedDrawers: new Set(),
+      isDarkMode: false,
     };
     this.sessions[classId] = s;
     return s;
+  }
+
+  setTheme(classId, isDarkMode) {
+    const s = this.sessions[classId];
+    if (s) s.isDarkMode = !!isDarkMode;
+  }
+
+  isDarkMode(classId) {
+    const s = this.sessions[classId];
+    return s ? !!s.isDarkMode : false;
+  }
+
+  allowUser(classId, socketId, allowed) {
+    const s = this.sessions[classId];
+    if (!s) return;
+    if (allowed) s.allowedDrawers.add(socketId);
+    else s.allowedDrawers.delete(socketId);
+  }
+
+  allowAllUsers(classId) {
+    const s = this.sessions[classId];
+    if (!s) return;
+    s.clients.forEach(sid => s.allowedDrawers.add(sid));
+  }
+
+  disallowAllUsers(classId) {
+    const s = this.sessions[classId];
+    if (!s) return;
+    s.allowedDrawers.clear();
+  }
+
+  isUserAllowed(classId, socketId) {
+    const s = this.sessions[classId];
+    if (!s) return false;
+    return s.allowedDrawers.has(socketId);
+  }
+
+  getAllowedUsers(classId) {
+    const s = this.sessions[classId];
+    return s ? Array.from(s.allowedDrawers) : [];
   }
 
   setVoiceEnabled(classId, enabled) {

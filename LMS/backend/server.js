@@ -230,8 +230,20 @@ io.on('connection', (socket) => {
       });
       const locked = whiteboardSessions.isLocked(classId);
       const follow = whiteboardSessions.isFollow(classId);
+      
+      // Bulk logic: if board is NOT locked, allow new students by default
+      if (!locked) {
+        whiteboardSessions.allowUser(classId, socket.id, true);
+      }
+      
       socket.emit('wb:lock-state', { locked });
       socket.emit('wb:follow-state', { follow });
+      socket.emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+      socket.emit('wb:theme-state', { isDarkMode: whiteboardSessions.isDarkMode(classId) });
+      // Notify others about the update if joiner was allowed
+      if (!locked) {
+        io.to(sessionId).emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+      }
       socket.emit('wb:voice-state', { enabled: whiteboardSessions.isVoiceEnabled(classId) });
       // send persisted history to the newly joined socket
       try {
@@ -408,9 +420,26 @@ io.on('connection', (socket) => {
     const { classId } = socket.data || {};
     if (!classId) return;
     if (!socket.data.isTeacher) return;
+    
     whiteboardSessions.lock(classId, !!locked);
     const s = whiteboardSessions.getSession(classId);
-    if (s) io.to(s.sessionId).emit('wb:lock-state', { locked: !!locked });
+    if (s) {
+      if (locked) {
+        whiteboardSessions.disallowAllUsers(classId);
+      } else {
+        whiteboardSessions.allowAllUsers(classId);
+      }
+      io.to(s.sessionId).emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+      io.to(s.sessionId).emit('wb:lock-state', { locked: !!locked });
+    }
+  });
+
+  socket.on('wb:theme', ({ isDarkMode }) => {
+    const { classId, isTeacher, sessionId } = socket.data || {};
+    if (!classId || !isTeacher || !sessionId) return;
+    
+    whiteboardSessions.setTheme(classId, !!isDarkMode);
+    io.to(sessionId).emit('wb:theme-state', { isDarkMode: !!isDarkMode });
   });
 
   // Voice Communication Handlers
@@ -539,6 +568,15 @@ io.on('connection', (socket) => {
         io.to(sessionId).emit('wb:user-mute-state', { userId: targetUserId, muted: state });
       }
     }
+  });
+
+  socket.on('wb:allow-user', ({ targetSocketId, allowed }) => {
+    const { isTeacher, sessionId, classId } = socket.data || {};
+    if (!isTeacher || !sessionId || !classId) return;
+    
+    whiteboardSessions.allowUser(classId, targetSocketId, !!allowed);
+    io.to(sessionId).emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+    io.to(sessionId).emit('wb:allow-user-status', { userId: targetSocketId, allowed: !!allowed });
   });
 
   socket.on('disconnect', () => {

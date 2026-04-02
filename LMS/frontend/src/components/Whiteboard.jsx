@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useContext, useCallback } from 'rea
 import { io } from 'socket.io-client';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut, Video, VideoOff } from 'lucide-react';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut, Video, VideoOff, Users, ChevronDown, Pencil, Moon, Sun } from 'lucide-react';
 import VoiceControls from './VoiceControls';
 import toast from 'react-hot-toast';
 
@@ -36,13 +36,15 @@ export default function Whiteboard() {
   const panStartRef = useRef({ clientX: 0, clientY: 0, scrollTop: 0, scrollLeft: 0 });
   const isSubmittingTextRef = useRef(false);
   const lastPosRef = useRef(null);
-  const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: '', fontSize: 18 });
+  const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: '', fontSize: 28 });
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [otherCursors, setOtherCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
   const { user } = useAuth();
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
   // Follow mode is purely client-side for students — they decide whether to track the teacher
   const [followEnabled, setFollowEnabled] = useState(false);
   const followEnabledRef = useRef(false); // stable ref for socket callbacks
@@ -58,6 +60,9 @@ export default function Whiteboard() {
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [allowedDrawers, setAllowedDrawers] = useState(new Set());
+  const allowedDrawersRef = useRef(new Set());
+  const [showParticipants, setShowParticipants] = useState(false);
   const [remoteStreams, setRemoteStreams] = useState({}); // userId -> MediaStream
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [activeSpeakers, setActiveSpeakers] = useState(new Set());
@@ -271,6 +276,7 @@ export default function Whiteboard() {
 
     socket.on('wb:lock-state', ({ locked }) => {
       setLocked(!!locked);
+      lockedRef.current = !!locked;
     });
     socket.on('wb:follow-state', ({ follow }) => {
       // Server can still push follow-state (teacher toggled it globally)
@@ -386,6 +392,22 @@ export default function Whiteboard() {
       });
     });
 
+    socket.on('wb:allow-user-status', ({ userId, allowed }) => {
+      setAllowedDrawers(prev => {
+        const next = new Set(prev);
+        if (allowed) next.add(userId);
+        else next.delete(userId);
+        allowedDrawersRef.current = next;
+        return next;
+      });
+      if (userId === socket.id) {
+        toast.success(allowed ? 'The teacher has allowed you to participate!' : 'Your drawing permission was revoked.');
+      }
+    });
+
+    // Remove legacy duplicate listener if it exists
+    socket.off('wb:user-allow-status');
+
     socket.on('wb:user-left', ({ socketId }) => {
       setOtherCursors(prev => {
         const next = { ...prev };
@@ -449,6 +471,18 @@ export default function Whiteboard() {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
       }
     });
+
+    socket.on('wb:allowed-drawers', (ids) => {
+      const next = new Set(ids || []);
+      setAllowedDrawers(next);
+      allowedDrawersRef.current = next;
+    });
+
+    socket.on('wb:theme-state', ({ isDarkMode }) => {
+      setIsDarkMode(!!isDarkMode);
+    });
+
+    // Consolidated with wb:allow-user-status above
 
     socket.on('wb:voice-user-left', ({ userId }) => {
       if (peerConnectionsRef.current[userId]) {
@@ -616,8 +650,9 @@ export default function Whiteboard() {
     if (t === 'text') {
       const pos = tp(s.pos || s.prev);
       ctx.fillStyle = s.color || '#000';
-      ctx.font = `${(s.fontSize || 16)}px sans-serif`;
-      ctx.fillText(s.text || '', pos.x, pos.y);
+      ctx.font = `${(s.fontSize || 20)}px sans-serif`;
+      ctx.textBaseline = 'hanging'; // Align with top-edge positioning of the input
+      ctx.fillText(s.text || '', pos.x + 4, pos.y + 4); // add small padding to match input
       return;
     }
   }
@@ -631,16 +666,51 @@ export default function Whiteboard() {
   }
 
   function getPointerPos(e) {
-    const rect = canvasRef.current.getBoundingClientRect();
-    if (e.touches) {
-      const t = e.touches[0];
-      return { x: (t.clientX - rect.left), y: (t.clientY - rect.top) };
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    
+    // Support both mouse and touch events
+    const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    
+    return { 
+      x: clientX - rect.left, 
+      y: clientY - rect.top 
+    };
+  }
+
+  function submitTextInput() {
+    if (isSubmittingTextRef.current) return;
+    if (!textInput.visible) return;
+
+    if (!textInput.value) {
+      setTextInput({ visible: false, x: 0, y: 0, value: '' });
+      return;
     }
-    return { x: (e.clientX - rect.left), y: (e.clientY - rect.top) };
+    isSubmittingTextRef.current = true;
+    try {
+      const canvas = canvasRef.current;
+      // store position in virtual space
+      const posVirt = {
+        x: (textInput.x / canvas.width) * VIRT_W,
+        y: (textInput.y / canvas.height) * VIRT_H
+      };
+      const stroke = { type: 'text', pos: posVirt, text: textInput.value, color: color || (isDarkMode ? '#fff' : '#000'), fontSize: textInput.fontSize, normalized: true };
+      renderStroke(stroke, false);
+      socketRef.current?.emit('wb:draw', { ...stroke, persist: false });
+      pushToBuffer(stroke);
+      setTextInput({ visible: false, x: 0, y: 0, value: '' });
+    } finally {
+      isSubmittingTextRef.current = false;
+    }
   }
 
   const handlePointerDown = (e) => {
-    if (locked && !isTeacher) return;
+    // Permission check using REFS for current state
+    const currentAllowed = allowedDrawersRef.current;
+    const canDraw = isTeacher || currentAllowed.has(socketRef.current?.id);
+    if (!canDraw) return;
 
     // If we were typing text, commit it before starting a new action
     if (textInput.visible) {
@@ -674,23 +744,22 @@ export default function Whiteboard() {
       }
     } else if (tool === 'text') {
       // The text input is absolutely positioned inside the scrollable container.
-      // pos.y is relative to the canvas top (viewport-relative from getBoundingClientRect).
-      // We must add scrollTop so the absolute position corresponds to the canvas coordinate.
-      const scrollTop = containerRef.current ? containerRef.current.scrollTop : 0;
-      setTextInput({ visible: true, x: pos.x, y: pos.y + scrollTop, value: '', fontSize: 18 });
+      // pos.x/pos.y are already coordinates on the board (relative to canvas top-left).
+      setTextInput({ visible: true, x: pos.x, y: pos.y, value: '', fontSize: 20 });
     }
   };
   const handlePointerMove = (e) => {
-    if (locked && !isTeacher && tool !== 'hand') return;
+    if (isPanning) {
+      handlePan(e);
+      return;
+    }
     const pos = getPointerPos(e);
-    if (tool === 'hand' && isPanning) {
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const dx = clientX - panStartRef.current.clientX;
-      const dy = clientY - panStartRef.current.clientY;
-      containerRef.current.scrollTop = panStartRef.current.scrollTop - dy;
-      containerRef.current.scrollLeft = panStartRef.current.scrollLeft - dx;
-      // Still emit cursor during pan so following students track the teacher
+
+    // Continuous permission check
+    const canDraw = isTeacher || allowedDrawersRef.current.has(socketRef.current?.id);
+
+    if (!isDrawing) {
+      // Still emit cursor for presence even if not allowed to draw
       try {
         const now = Date.now();
         if (now - lastCursorEmitRef.current > 80) {
@@ -703,6 +772,12 @@ export default function Whiteboard() {
       } catch (_) { /* ignore */ }
       return;
     }
+
+    if (!canDraw) {
+      setIsDrawing(false);
+      return;
+    }
+
     if (tool === 'pen') {
       if (!isDrawing) return;
       const prev = lastPosRef.current || pos;
@@ -1010,33 +1085,6 @@ export default function Whiteboard() {
     return pc;
   };
 
-  // handler for submitting text input
-  const submitTextInput = () => {
-    if (isSubmittingTextRef.current) return;
-    if (!textInput.visible) return;
-
-    if (!textInput.value) {
-      setTextInput({ visible: false, x: 0, y: 0, value: '' });
-      return;
-    }
-    isSubmittingTextRef.current = true;
-    try {
-      const canvas = canvasRef.current;
-      // store position in virtual space
-      const posVirt = {
-        x: (textInput.x / canvas.width) * VIRT_W,
-        y: (textInput.y / canvas.height) * VIRT_H
-      };
-      const stroke = { type: 'text', pos: posVirt, text: textInput.value, color, fontSize: textInput.fontSize, normalized: true };
-      renderStroke(stroke, false);
-      socketRef.current?.emit('wb:draw', { ...stroke, persist: false });
-      pushToBuffer(stroke);
-      setTextInput({ visible: false, x: 0, y: 0, value: '' });
-    } finally {
-      isSubmittingTextRef.current = false;
-    }
-  };
-
   const handleRaiseHand = () => {
     const newState = !isHandRaised;
     setIsHandRaised(newState);
@@ -1080,8 +1128,10 @@ export default function Whiteboard() {
 
   const onToggleLock = () => {
     if (!isTeacher) return;
-    socketRef.current.emit('wb:lock', { locked: !locked });
-    setLocked(!locked);
+    const next = !locked;
+    setLocked(next);
+    lockedRef.current = next;
+    socketRef.current.emit('wb:lock', { locked: next });
   };
 
   // Track voice state for socket listeners to avoid stale closure issues
@@ -1224,12 +1274,12 @@ export default function Whiteboard() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', overflow: 'hidden', background: '#f9fafb', zIndex: 100 }}>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', overflow: 'hidden', background: isDarkMode ? '#0f172a' : '#f9fafb', zIndex: 100 }}>
 
       {/* ── Left Sidebar ── */}
       <aside style={{
         flexShrink: 0, width: 68,
-        background: '#fff', borderRight: '1px solid #e5e7eb',
+        background: isDarkMode ? '#1e293b' : '#fff', borderRight: '1px solid #e5e7eb',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 4, padding: '10px 4px', overflowY: 'auto', overflowX: 'hidden', zIndex: 40,
       }}>
@@ -1246,8 +1296,8 @@ export default function Whiteboard() {
           <button key={id} onClick={() => setTool(id)} title={label} style={{
             width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            background: tool === id ? '#eef2ff' : 'transparent',
-            color: tool === id ? '#4f46e5' : '#6b7280',
+            background: tool === id ? (isDarkMode ? '#312e81' : '#eef2ff') : 'transparent',
+            color: tool === id ? (isDarkMode ? '#818cf8' : '#4f46e5') : (isDarkMode ? '#94a3b8' : '#6b7280'),
             fontWeight: tool === id ? 700 : 500,
             boxShadow: tool === id ? 'inset 0 0 0 1px #c7d2fe' : 'none',
             transition: 'all 0.15s',
@@ -1257,7 +1307,7 @@ export default function Whiteboard() {
           </button>
         ))}
 
-        <div style={{ width: 48, height: 1, background: '#e5e7eb', margin: '4px 0', flexShrink: 0 }} />
+        <div style={{ width: 48, height: 1, background: isDarkMode ? '#334155' : '#e5e7eb', margin: '4px 0', flexShrink: 0 }} />
 
         {/* Color palette */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, flexShrink: 0 }}>
@@ -1291,7 +1341,7 @@ export default function Whiteboard() {
           />
         </div>
 
-        <div style={{ width: 48, height: 1, background: '#e5e7eb', margin: '4px 0', flexShrink: 0 }} />
+        <div style={{ width: 48, height: 1, background: isDarkMode ? '#334155' : '#e5e7eb', margin: '4px 0', flexShrink: 0 }} />
 
         {/* Teacher controls */}
         {isTeacher && (<>
@@ -1325,11 +1375,96 @@ export default function Whiteboard() {
             style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'transparent', color: '#ef4444', transition: 'all 0.15s' }}>
             <Trash2 className="w-4 h-4" /><span style={{ fontSize: 9 }}>Clear</span>
           </button>
-          <button title={locked ? 'Unlock' : 'Lock'} onClick={onToggleLock}
+          <button title={locked ? 'Unlock Board' : 'Lock Board'} onClick={onToggleLock}
             style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: locked ? '#1f2937' : 'transparent', color: locked ? '#fff' : '#6b7280', transition: 'all 0.15s' }}>
             {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
             <span style={{ fontSize: 9 }}>{locked ? 'Locked' : 'Lock'}</span>
           </button>
+
+          <div style={{ position: 'relative' }}>
+            <button title="Selective Participation" onClick={() => setShowParticipants(!showParticipants)}
+              style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: showParticipants ? '#eef2ff' : 'transparent', color: showParticipants ? '#4f46e5' : '#6b7280', transition: 'all 0.15s' }}>
+              <Users className="w-4 h-4" /><span style={{ fontSize: 9 }}>Students</span>
+            </button>
+
+            {showParticipants && (
+              <div style={{ 
+                position: 'fixed', 
+                left: 72, 
+                top: 120, 
+                width: 260, 
+                background: isDarkMode ? '#1e293b' : '#fff', 
+                border: isDarkMode ? '1px solid #334155' : '1px solid #e5e7eb', 
+                borderRadius: 12, 
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', 
+                zIndex: 1000, 
+                padding: 12, 
+                display: 'flex', 
+                flexDirection: 'column' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Selective Unlock</div>
+                  <button onClick={() => setShowParticipants(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#9ca3af', padding: 4 }}>✕</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '60vh', overflowY: 'auto', paddingRight: 4, scrollBehavior: 'smooth' }}>
+                  {Object.keys(otherCursors).length === 0 ? (
+                    <div style={{ fontSize: 11, fontStyle: 'italic', color: '#9ca3af', textAlign: 'center', padding: '30px 0' }}>No other students joined</div>
+                  ) : (
+                    Object.keys(otherCursors).map(sid => {
+                      const p = otherCursors[sid];
+                      const isAllowed = allowedDrawers.has(sid);
+                      return (
+                        <div key={sid} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          padding: '8px 10px', 
+                          borderRadius: 8, 
+                          background: isAllowed 
+                            ? (isDarkMode ? '#312e81' : '#f5f7ff') 
+                            : (isDarkMode ? '#334155' : '#f9fafb'), 
+                          border: isAllowed 
+                            ? (isDarkMode ? '1px solid #4338ca' : '1px solid #e0e7ff') 
+                            : '1px solid transparent' 
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: p.color || '#000', border: '2px solid #fff', boxShadow: '0 0 0 1px #e5e7eb' }} />
+                            <span style={{ 
+                              fontSize: 12, 
+                              fontWeight: 600, 
+                              color: isDarkMode ? '#f1f5f9' : '#374151', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis', 
+                              whiteSpace: 'nowrap' 
+                            }}>{p.name}</span>
+                          </div>
+                          <button
+                            onClick={() => socketRef.current?.emit('wb:allow-user', { targetSocketId: sid, allowed: !isAllowed })}
+                            title={isAllowed ? 'Revoke Drawing' : 'Allow Drawing'}
+                            style={{ 
+                              padding: 8, 
+                              borderRadius: 10, 
+                              border: 'none', 
+                              cursor: 'pointer', 
+                              background: isAllowed ? '#4f46e5' : (isDarkMode ? '#1e293b' : '#f1f5f9'), 
+                              color: isAllowed ? '#fff' : (isDarkMode ? '#94a3b8' : '#94a3b8'),
+                              boxShadow: isAllowed ? '0 4px 12px -2px rgba(79, 70, 229, 0.4)' : 'none',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <Pencil className={`w-3.5 h-3.5 ${isAllowed ? 'scale-110' : 'scale-100 opacity-70'}`} />
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </>)}
 
         {/* Student controls — shown immediately after tools so they're always visible */}
@@ -1339,26 +1474,31 @@ export default function Whiteboard() {
             {followEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             <span style={{ fontSize: 9, fontWeight: 700 }}>{followEnabled ? `Pg ${currentPage}` : 'Follow'}</span>
           </button>
-          {isVoiceEnabled && (
-            <button onClick={handleRaiseHand} title={isHandRaised ? 'Lower Hand' : 'Raise Hand'}
-              style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: isHandRaised ? '#f59e0b' : 'transparent', color: isHandRaised ? '#fff' : '#6b7280', transition: 'all 0.15s' }}>
-              <Hand className={`w-4 h-4 ${isHandRaised ? 'animate-bounce' : ''}`} />
-              <span style={{ fontSize: 9 }}>{isHandRaised ? 'Raised' : 'Hand'}</span>
-            </button>
-          )}
+          <button onClick={handleRaiseHand} title={isHandRaised ? 'Lower Hand' : 'Raise Hand'}
+            style={{ width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: isHandRaised ? '#f59e0b' : 'transparent', color: isHandRaised ? '#fff' : '#6b7280', transition: 'all 0.15s' }}>
+            <Hand className={`w-4 h-4 ${isHandRaised ? 'animate-bounce' : ''}`} />
+            <span style={{ fontSize: 9 }}>{isHandRaised ? 'Raised' : 'Hand'}</span>
+          </button>
         </>)}
 
-        {/* Voice controls — video floats over canvas, buttons sit in sidebar */}
-        <VoiceControls
-          isVoiceEnabled={isVoiceEnabled} isVideoEnabled={isVideoEnabled}
-          isMuted={isMuted} onToggleVoice={handleToggleVoice}
-          onToggleMute={handleToggleMute} onToggleVideo={handleToggleVideo}
-          isTeacher={isTeacher} localVolume={localVolume}
-          participants={{ ...otherCursors, [socketRef.current?.id]: { name: user?.name || user?.email || 'Me', color: '#4f46e5', muted: isMuted, videoEnabled: isVideoEnabled, handRaised: isHandRaised } }}
-          onForceMute={handleForceMute} activeSpeakers={activeSpeakers} activeDrawers={activeDrawers}
-          localId={socketRef.current?.id} micLocked={micLocked}
-          remoteStreams={remoteStreams} localStream={localStreamRef.current}
-        />
+        {/* Night Mode Toggle */}
+        <button onClick={() => {
+          if (!isTeacher) return;
+          const next = !isDarkMode;
+          setIsDarkMode(next);
+          socketRef.current?.emit('wb:theme', { isDarkMode: next });
+        }} title={isDarkMode ? 'Light Mode' : 'Night Mode'}
+          style={{ 
+            width: 52, padding: '6px 0', borderRadius: 10, border: 'none', 
+            cursor: isTeacher ? 'pointer' : 'default', 
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, 
+            background: isDarkMode ? '#1e293b' : 'transparent', color: isDarkMode ? '#fbbf24' : '#64748b', 
+            transition: 'all 0.15s', flexShrink: 0,
+            opacity: isTeacher ? 1 : 0.8
+          }}>
+          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          <span style={{ fontSize: 9 }}>{isDarkMode ? 'Light' : 'Night'}</span>
+        </button>
 
         {/* Spacer */}
         <div style={{ flex: 1, minHeight: 8 }} />
@@ -1387,19 +1527,31 @@ export default function Whiteboard() {
       {/* ── Canvas draw area ── */}
       <div
         ref={containerRef}
-        style={{ flex: '1 1 0', overflow: 'auto', position: 'relative', minWidth: 0 }}
+        style={{ 
+          flex: '1 1 0', 
+          overflow: 'auto', 
+          position: 'relative', 
+          minWidth: 0, 
+          background: isDarkMode ? '#0f172a' : '#f9fafb',
+          transition: 'background-color 0.3s ease'
+        }}
         className={tool === 'hand' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : tool === 'pointer' ? 'cursor-default' : 'cursor-crosshair'}
       >
         <canvas
           ref={canvasRef}
-          style={{ width: '100%', height: `${canvasHeightRef.current}px`, border: '1px solid #e5e7eb', touchAction: 'none', display: 'block' }}
-          onMouseDown={handlePointerDown}
-          onMouseMove={handlePointerMove}
-          onMouseUp={handlePointerUp}
-          onMouseLeave={handlePointerUp}
-          onTouchStart={handlePointerDown}
-          onTouchMove={handlePointerMove}
-          onTouchEnd={handlePointerUp}
+          style={{ 
+            width: '100%', 
+            height: `${canvasHeightRef.current}px`, 
+            border: isDarkMode ? '1px solid #1e293b' : '1px solid #e5e7eb', 
+            touchAction: 'none', 
+            display: 'block', 
+            background: isDarkMode ? '#0f172a' : '#fff',
+            filter: isDarkMode ? 'brightness(1.1)' : 'none'
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         />
         {/* Overlay canvas for shape previews */}
         <canvas ref={overlayRef} style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', width: '100%', height: `${canvasHeightRef.current}px` }} />
@@ -1408,14 +1560,29 @@ export default function Whiteboard() {
         {textInput.visible && (
           <input
             ref={inputRef}
-            className="outline-none border-b-2 border-indigo-500 bg-white/90 backdrop-blur-sm shadow-lg pointer-events-auto"
+            className="outline-none border-2 border-primary bg-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-lg pointer-events-auto px-4 py-2"
+            placeholder="Type and press Enter..."
+            autoFocus
             value={textInput.value}
             onChange={(e) => setTextInput(t => ({ ...t, value: e.target.value }))}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitTextInput(); if (e.key === 'Escape') setTextInput({ visible: false, x: 0, y: 0, value: '' }); e.stopPropagation(); }}
+            onKeyDown={(e) => { 
+              if (e.key === 'Enter') { e.preventDefault(); submitTextInput(); }
+              if (e.key === 'Escape') setTextInput({ visible: false, x: 0, y: 0, value: '' }); 
+              e.stopPropagation(); 
+            }}
             onBlur={() => submitTextInput()}
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{ position: 'absolute', left: `${textInput.x}px`, top: `${textInput.y}px`, zIndex: 100, padding: '4px 8px', fontSize: `${textInput.fontSize}px`, minWidth: '150px' }}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{ 
+              position: 'absolute', 
+              left: `${textInput.x}px`, 
+              top: `${textInput.y}px`, 
+              zIndex: 2000, 
+              fontSize: `${textInput.fontSize}px`, 
+              minWidth: '220px',
+              color: color || '#000',
+              transform: 'translate(-4px, -12px)' // Small offset to align cursor better
+            }}
           />
         )}
 
@@ -1429,7 +1596,7 @@ export default function Whiteboard() {
           const canvasCSSW = canvas.clientWidth  || canvas.width;
           const canvasCSSH = canvas.clientHeight || canvas.height;
           const px = (c.xNorm / VIRT_W) * canvasCSSW;
-          const py = (c.yNorm / VIRT_H) * canvasCSSH - (container.scrollTop || 0);
+          const py = (c.yNorm / VIRT_H) * canvasCSSH;
           const isSpeaking = activeSpeakers.has(id);
           return (
             <div key={id} style={{ position: 'absolute', left: px + 8, top: py - 8, pointerEvents: 'none', zIndex: 40 }}>
