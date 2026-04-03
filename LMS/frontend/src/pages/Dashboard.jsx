@@ -33,9 +33,58 @@ const Dashboard = () => {
     }
   });
 
+  const [currentScheduleTab, setCurrentScheduleTab] = useState('day');
+  const [scheduleData, setScheduleData] = useState({ today: [], weekly: {} });
+
   useEffect(() => {
     fetchData();
   }, [selectedSchools, user]);
+
+  useEffect(() => {
+    // Determine today's day of week
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const todayIndex = new Date().getDay();
+    const todayName = DAYS[todayIndex];
+
+    const todaySchedules = [];
+    const weekGrouped = { 'Monday': [], 'Tuesday': [], 'Wednesday': [], 'Thursday': [], 'Friday': [], 'Saturday': [], 'Sunday': [] };
+
+    userClassrooms.forEach(classroom => {
+      if (classroom.schedule && Array.isArray(classroom.schedule)) {
+        classroom.schedule.forEach(session => {
+          const local = convertUTCToLocal(session.dayOfWeek, session.startTime);
+          const localEnd = convertUTCToLocal(session.dayOfWeek, session.endTime);
+
+          const scheduleItem = {
+            classId: classroom._id,
+            className: classroom.name,
+            subject: classroom.subject,
+            startTime: local.hhmm,
+            endTime: localEnd.hhmm,
+            day: local.dayOfWeek,
+            timezone: local.timezone,
+            isCurrent: classroom.activities?.some(a => a.type === 'meeting')
+          };
+
+          if (local.dayOfWeek === todayName) {
+            todaySchedules.push(scheduleItem);
+          }
+          if (weekGrouped[local.dayOfWeek]) {
+            weekGrouped[local.dayOfWeek].push(scheduleItem);
+          }
+        });
+      }
+    });
+
+    // Sort today's schedules by start time
+    todaySchedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    // Sort weekly segments
+    Object.keys(weekGrouped).forEach(day => {
+      weekGrouped[day].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    });
+
+    setScheduleData({ today: todaySchedules, weekly: weekGrouped });
+  }, [userClassrooms]);
 
   useEffect(() => {
     // Listen for school selection changes
@@ -104,7 +153,6 @@ const Dashboard = () => {
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
       // Map activities to classrooms and identify "Recent" ones
-      // Use relatedClassrooms instead of availableClassrooms to filter properly
       const classroomsWithActivity = relatedClassrooms.map(c => {
         const activities = [];
         const activeMeeting = activeMeetings.find(m => m.classroomId?.toString() === c._id.toString());
@@ -119,15 +167,9 @@ const Dashboard = () => {
         const activeTopic = c.topics?.find(t => t.status === 'active');
         if (activeTopic) activities.push({ type: 'topic', label: `Topic: ${activeTopic.name}` });
 
-        // if (new Date(c.updatedAt) > threeDaysAgo) {
-        //   activities.push({ type: 'update', label: 'Recently Updated' });
-        // }
-
         return { ...c, activities };
       });
 
-      // "Recent Classrooms" are those with any activity
-      // We removed the OR new Date(c.createdAt) > threeDaysAgo condition as requested
       const recent = classroomsWithActivity
         .filter(c => c.activities.length > 0)
         .sort((a, b) => {
@@ -135,9 +177,8 @@ const Dashboard = () => {
           return new Date(b.updatedAt) - new Date(a.updatedAt);
         });
 
-      setRecentClassrooms(recent.slice(0, 10)); // Top 10 recent activities
+      setRecentClassrooms(recent.slice(0, 10));
 
-      // Stats calculation
       let studentCount = 0;
       let classroomCount = availableClassrooms.length;
 
@@ -226,6 +267,104 @@ const Dashboard = () => {
               </div>
             </>
           )}
+        </div>
+
+        {/* Schedule Display */}
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">Class Schedule</h3>
+            </div>
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+              <button
+                onClick={() => setCurrentScheduleTab('day')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'day' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setCurrentScheduleTab('week')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'week' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Weekly
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-50/30">
+            {currentScheduleTab === 'day' ? (
+              <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible md:max-h-[320px] md:overflow-y-auto snap-x snap-mandatory gap-3 pb-3 md:pb-0 md:space-y-2 scrollbar-hide">
+                {scheduleData.today.length > 0 ? (
+                  scheduleData.today.map((session, idx) => (
+                    <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 group hover:border-indigo-300 transition-all min-w-[85%] md:min-w-0 snap-center shrink-0">
+                      <div className="hidden sm:flex flex-col items-center justify-center py-1.5 px-2 bg-slate-50 rounded-lg border border-slate-100 min-w-[75px]">
+                        <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{session.startTime}</span>
+                        <div className="w-0.5 h-1 bg-slate-300 my-0.5 rounded-full opacity-50" />
+                        <span className="text-[8px] font-bold text-slate-400">{session.timezone.split(' ')[0]}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex sm:hidden items-center gap-1.5 mb-1 text-[8px] font-black text-indigo-400 uppercase tracking-widest">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>{session.startTime} ({session.timezone.split(' ')[0]})</span>
+                        </div>
+                        <Link to={`/classrooms/${session.classId}`} className="block group-hover:text-indigo-600">
+                          <h4 className="font-bold text-slate-900 truncate text-xs sm:text-sm">{session.className}</h4>
+                        </Link>
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium truncate">{session.subject || 'Tutorial Class'}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 text-right">
+                        {session.isCurrent ? (
+                          <div className="flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full border border-rose-100 animate-pulse">
+                             <div className="w-1 h-1 rounded-full bg-rose-600" />
+                             <span className="text-[8px] font-bold uppercase tracking-wider text-nowrap">Live</span>
+                          </div>
+                        ) : null}
+                         <Link to={`/classrooms/${session.classId}`} className="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-700 transition">Enter Class</Link>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="w-full py-8 bg-white rounded-2xl border border-dashed border-slate-200 text-center flex flex-col items-center">
+                    <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center mb-2">
+                       <Clock className="w-5 h-5 text-slate-300" />
+                    </div>
+                    <p className="text-slate-400 font-bold text-xs">Free Day!</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-row overflow-x-auto snap-x snap-mandatory gap-3 pb-2 scrollbar-hide">
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                  <div key={day} className="flex flex-col min-w-[42%] sm:min-w-[32%] md:min-w-[24%] lg:min-w-[18%] xl:min-w-[13.5%] snap-center shrink-0">
+                    <h5 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">{day}</h5>
+                    <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[200px] scrollbar-hide">
+                      {scheduleData.weekly[day] && scheduleData.weekly[day].length > 0 ? (
+                        scheduleData.weekly[day].map((session, idx) => (
+                          <Link
+                            key={idx}
+                            to={`/classrooms/${session.classId}`}
+                            className="block p-2 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-indigo-200 hover:-translate-y-0.5 transition-all"
+                          >
+                            <p className="text-[9px] font-black text-indigo-600 flex items-center justify-between">
+                              <span>{session.startTime}</span>
+                            </p>
+                            <p className="text-[10px] font-bold text-slate-800 truncate">{session.className}</p>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="h-10 border border-dashed border-slate-200 rounded-lg flex items-center justify-center p-2">
+                           <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Quiet</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -409,14 +548,8 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    </Layout >
+    </Layout>
   );
 };
 
-
-
-
-
-
 export default Dashboard;
-
