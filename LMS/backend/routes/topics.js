@@ -742,6 +742,68 @@ router.put('/:id/videos/reorder',
 
 
 
+const TopicProgress = require('../models/TopicProgress');
+
+// ─── Topic Progression tracking (User specific) ──────────────────────────────
+
+// Get user's progress for a specific topic
+router.get('/:id/progress', auth, async (req, res) => {
+  try {
+    const progress = await TopicProgress.findOne({
+      userId: req.user._id,
+      topicId: req.params.id
+    });
+    
+    if (!progress) {
+      return res.json({ progress: { watchedVideoIds: [], lastActiveVideoId: null, completionPercentage: 0 } });
+    }
+    
+    res.json({ progress });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update user's progress for a specific topic
+router.post('/:id/progress', auth, async (req, res) => {
+  try {
+    const { videoId, isLastActive = true } = req.body;
+    const topicId = req.params.id;
+    const userId = req.user._id;
+
+    const topic = await Topic.findById(topicId);
+    if (!topic) return res.status(404).json({ message: 'Topic not found' });
+
+    let progress = await TopicProgress.findOne({ userId, topicId });
+    if (!progress) {
+      progress = new TopicProgress({ userId, topicId, watchedVideoIds: [] });
+    }
+
+    // Add videoId to watched list if not already present
+    if (videoId && !progress.watchedVideoIds.includes(videoId)) {
+      progress.watchedVideoIds.push(videoId);
+    }
+
+    // Update last active video if requested
+    if (videoId && isLastActive) {
+      progress.lastActiveVideoId = videoId;
+    }
+
+    // Update completion percentage
+    const totalVideos = topic.recordedVideos.length;
+    if (totalVideos > 0) {
+      progress.completionPercentage = Math.round((progress.watchedVideoIds.length / totalVideos) * 100);
+    }
+
+    progress.lastWatchedAt = new Date();
+    await progress.save();
+
+    res.json({ message: 'Progress updated', progress });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
 
 

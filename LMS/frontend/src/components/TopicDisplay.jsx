@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Book, Clock, CheckCircle, Circle, Calendar, Video, ChevronDown, ChevronUp } from 'lucide-react';
+import { Book, Clock, CheckCircle, Circle, Calendar, Video, ChevronDown, ChevronUp, X, Play, Pause, Lock } from 'lucide-react';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
 import { useAuth } from '../context/AuthContext';
@@ -76,108 +76,49 @@ const getVideoEmbedInfo = (url) => {
     return null;
 };
 
-const VideoPlayer = ({ lecture, expanded, onToggle }) => {
-    const renderVideo = () => {
-        if (lecture.videoType === 'url') {
-            const embedInfo = getVideoEmbedInfo(lecture.url);
-            if (embedInfo) {
-                if (embedInfo.isDirect) {
-                    return (
-                        <video
-                            src={embedInfo.embedUrl}
-                            controls
-                            autoPlay={false}
-                            className="w-full max-h-[480px] object-contain"
-                            preload="metadata"
-                            title={lecture.label}
-                        />
-                    );
-                }
-                return (
-                    <div className="aspect-video w-full">
-                        <iframe
-                            className="w-full h-full"
-                            src={embedInfo.embedUrl}
-                            title={lecture.label}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        ></iframe>
-                    </div>
-                );
-            }
-            return (
-                <div className="p-12 text-center bg-slate-900 flex flex-col items-center justify-center gap-4">
-                    <Video className="w-12 h-12 text-purple-500/50" />
-                    <div className="space-y-1">
-                        <p className="text-white font-bold">External Lecture Video</p>
-                        <p className="text-slate-400 text-sm">This video is hosted on an external platform.</p>
-                    </div>
-                    <a 
-                        href={lecture.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="mt-2 px-8 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-500/20 active:scale-95"
-                    >
-                        Open Video Link
-                    </a>
-                </div>
-            );
-        }
-
-        return (
-            <video
-                src={lecture.url}
-                controls
-                autoPlay={false}
-                className="w-full max-h-[480px] object-contain"
-                preload="metadata"
-                title={lecture.label}
-            />
-        );
-    };
-
-    return (
-        <div className="mt-4">
-            <button
-                onClick={onToggle}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-all shadow-md shadow-purple-200 active:scale-[0.98]"
-            >
-                <Video className="w-4 h-4" />
-                {expanded ? `Hide ${lecture.label || 'Lecture'}` : `Watch ${lecture.label || 'Lecture'}`}
-                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-
-            {expanded && (
-                <div className="mt-3 rounded-2xl overflow-hidden bg-black shadow-xl animate-in fade-in zoom-in-95 duration-300">
-                    {renderVideo()}
-                    <div className="px-4 py-3 bg-slate-900 text-slate-400 text-xs flex flex-col gap-1 border-t border-slate-800">
-                        <div className="flex items-center gap-2">
-                            <Video className="w-3.5 h-3.5 text-purple-400" />
-                            <span className="font-bold text-slate-200">{lecture.label}</span>
-                        </div>
-                        <div className="flex items-center gap-3 ml-5 opacity-75">
-                            <span className="truncate">{lecture.originalName || (lecture.videoType === 'url' ? 'External Link' : '')}</span>
-                            {lecture.uploadedAt && <span>• Uploaded {new Date(lecture.uploadedAt).toLocaleDateString()}</span>}
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
 const TopicDisplay = ({ classroomId }) => {
     const [currentTopic, setCurrentTopic] = useState(null);
     const [allTopics, setAllTopics] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showPaidTopics, setShowPaidTopics] = useState(false);
-    const [topicStatus, setTopicStatus] = useState(null); // { paidTopics, unpaidTopics, totalUnpaidAmount, allTopics }
+    const [topicStatus, setTopicStatus] = useState(null);
     const [paying, setPaying] = useState(false);
     const [activeVideoId, setActiveVideoId] = useState(null);
+    const [watchedVideoIds, setWatchedVideoIds] = useState(new Set());
+    const [videoOpen, setVideoOpen] = useState(false);
     const { user } = useAuth();
 
+
+    const saveWatched = async (id) => {
+        // Optimistic local update
+        setWatchedVideoIds(prev => {
+            const next = new Set(prev);
+            if (!next.has(id)) {
+                next.add(id);
+            }
+            return next;
+        });
+
+        // Backend persistence
+        if (currentTopic?._id) {
+            try {
+                await api.post(`/topics/${currentTopic._id}/progress`, {
+                    videoId: id,
+                    isLastActive: true
+                });
+                // Also update localStorage as secondary cache
+                localStorage.setItem(`lms_watched_${classroomId}_${currentTopic._id}`, JSON.stringify([...watchedVideoIds, id]));
+                localStorage.setItem(`lms_vplay_${classroomId}_${currentTopic._id}`, id);
+            } catch (err) {
+                console.error("Failed to save progress to DB", err);
+            }
+        }
+    };
+
+    const handleVideoSelect = (id) => {
+        setActiveVideoId(id);
+        saveWatched(id);
+    };
 
     useEffect(() => {
         if (classroomId) {
@@ -186,7 +127,64 @@ const TopicDisplay = ({ classroomId }) => {
         }
     }, [classroomId]);
 
-    // Fetch paid/unpaid topics and total
+    const enrichedCurrentTopic = currentTopic ? (() => {
+        const full = allTopics.find(t => t._id === (currentTopic._id || currentTopic));
+        const videos = (full ? full.recordedVideos : currentTopic.recordedVideos) || [];
+        return { ...currentTopic, recordedVideos: videos };
+    })() : null;
+
+    const recordedVideos = enrichedCurrentTopic?.recordedVideos || [];
+    const hasCurrentVideos = recordedVideos.length > 0;
+    const sortedVideos = [...recordedVideos].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // Persist and load active/watched video
+    useEffect(() => {
+        const loadProgress = async () => {
+            if (hasCurrentVideos && currentTopic?._id) {
+                try {
+                    // 1. Try fetching from DB
+                    const { data } = await api.get(`/topics/${currentTopic._id}/progress`);
+                    const progress = data.progress;
+                    
+                    if (progress && progress.watchedVideoIds?.length > 0) {
+                        setWatchedVideoIds(new Set(progress.watchedVideoIds));
+                        if (progress.lastActiveVideoId) {
+                            setActiveVideoId(progress.lastActiveVideoId);
+                        } else {
+                            setActiveVideoId(sortedVideos[0]._id || 0);
+                        }
+                        return; // Successfully loaded from DB
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch progress from DB, falling back to local", err);
+                }
+
+                // 2. Fallback to LocalStorage if DB is empty or fails
+                const storageKey = `lms_vplay_${classroomId}_${currentTopic._id}`;
+                const watchedKey = `lms_watched_${classroomId}_${currentTopic._id}`;
+                
+                const savedId = localStorage.getItem(storageKey);
+                const savedWatched = localStorage.getItem(watchedKey);
+
+                if (savedWatched) {
+                    try {
+                        setWatchedVideoIds(new Set(JSON.parse(savedWatched)));
+                    } catch (e) {}
+                }
+                
+                if (savedId && sortedVideos.some(v => (v._id || 0) === savedId)) {
+                    setActiveVideoId(savedId);
+                } else if (sortedVideos.length > 0) {
+                    const firstId = sortedVideos[0]._id || 0;
+                    setActiveVideoId(firstId);
+                    saveWatched(firstId);
+                }
+            }
+        };
+        
+        loadProgress();
+    }, [hasCurrentVideos, currentTopic?._id, classroomId]);
+
     const fetchTopicStatus = async () => {
         try {
             const resp = await api.get(`/payments/topic-status/${classroomId}`);
@@ -221,14 +219,12 @@ const TopicDisplay = ({ classroomId }) => {
         }
     };
 
-    // Payment handlers
     const handlePayForTopic = async (topicId) => {
         setPaying(true);
         try {
             const topic = topicStatus.allTopics.find(t => t._id === topicId);
             const amount = topic.price;
 
-            // 1. Initialize on server to get reference
             const resp = await api.post('/payments/paystack/initiate', {
                 amount,
                 classroomId,
@@ -237,7 +233,6 @@ const TopicDisplay = ({ classroomId }) => {
             });
 
             if (resp.data.reference) {
-                // 2. Load and open Paystack Inline
                 await loadPaystackScript();
 
                 const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
@@ -330,7 +325,6 @@ const TopicDisplay = ({ classroomId }) => {
         try {
             const response = await api.get(`/topics/classroom/${classroomId}/current`);
             setCurrentTopic(response.data.currentTopic);
-            // Fetch paid topic visibility + full topic list (to get recordedVideo data)
             const topicsResp = await api.get(`/topics/classroom/${classroomId}`);
             setShowPaidTopics(topicsResp.data.showPaidTopics);
             setAllTopics(topicsResp.data.topics || []);
@@ -349,162 +343,273 @@ const TopicDisplay = ({ classroomId }) => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'completed':
-                return 'text-green-600 bg-green-50 border-green-200';
+                return 'text-emerald-600 bg-emerald-50 border-emerald-200';
             case 'active':
-                return 'text-blue-600 bg-blue-50 border-blue-200';
+                return 'text-indigo-600 bg-indigo-50 border-indigo-200';
             default:
-                return 'text-gray-600 bg-gray-50 border-gray-200';
+                return 'text-slate-600 bg-slate-50 border-slate-200';
         }
     };
 
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'completed':
-                return <CheckCircle className="w-5 h-5" />;
-            case 'active':
-                return <Clock className="w-5 h-5 animate-pulse" />;
-            default:
-                return <Circle className="w-5 h-5" />;
+    const renderCurrentVideo = (vid, idx) => {
+        if (!vid) return null;
+        if (vid.videoType === 'url') {
+            const embedInfo = getVideoEmbedInfo(vid.url);
+            if (embedInfo) {
+                if (embedInfo.isDirect) {
+                    return (
+                        <video
+                            src={embedInfo.embedUrl}
+                            controls
+                            autoPlay={false}
+                            className="w-full max-h-[600px] object-contain"
+                            preload="metadata"
+                            title={vid.label || `Lecture ${idx + 1}`}
+                        />
+                    );
+                }
+                return (
+                    <div className="aspect-video w-full h-full min-h-[500px]">
+                        <iframe
+                            className="w-full h-full"
+                            src={embedInfo.embedUrl}
+                            title={vid.label || `Lecture ${idx + 1}`}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                );
+            }
+            return (
+                <div className="p-8 text-center bg-slate-900 border-b border-slate-800 flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
+                        <Video className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <p className="text-white text-xs font-bold">External Lecture Video</p>
+                    <a
+                        href={vid.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 px-6 py-3 bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black border border-slate-700 transition-all flex items-center gap-3 group"
+                    >
+                        <span>Open Resource</span>
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </a>
+                </div>
+            );
         }
-    };
+
+        return (
+            <video
+                src={vid.url}
+                controls
+                autoPlay={false}
+                className="w-full max-h-[600px] object-contain"
+                preload="metadata"
+                title={vid.label || `Lecture ${idx + 1}`}
+            />
+        );
+    }
 
     if (loading) {
         return (
-            <div className="bg-white rounded-lg shadow-md p-6 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="bg-white rounded-lg shadow-sm p-8 animate-pulse border border-slate-100">
+                <div className="flex items-start gap-5 mb-6">
+                    <div className="flex-1">
+                        <div className="h-2 bg-slate-100 rounded-full w-24 mb-3"></div>
+                        <div className="h-8 bg-slate-50 rounded-2xl w-2/3"></div>
+                    </div>
+                </div>
+                <div className="bg-slate-50 rounded-3xl h-[600px] border border-slate-100"></div>
             </div>
         );
     }
 
     if (!currentTopic) {
         return (
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg shadow-md p-6 border-2 border-dashed border-gray-300">
-                <div className="flex items-center space-x-3 text-gray-500">
-                    <Book className="w-6 h-6" />
-                    <div>
-                        <p className="font-medium">No Active Topic</p>
-                        <p className="text-sm">Topics will appear here when activated</p>
-                    </div>
+            <div className="bg-white rounded-3xl shadow-sm p-12 border-2 border-dashed border-slate-200 text-center flex flex-col items-center gap-5">
+                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm">
+                    <Book className="w-10 h-10 text-slate-200" />
                 </div>
+                <div>
+                   <p className="font-black text-slate-800 text-2xl tracking-tight">Focusing on your Future</p>
+                   <p className="text-slate-400 text-sm mt-1 max-w-sm mx-auto font-medium">Your instructor is preparing the upcoming lecture topic. Please check back shortly for updates.</p>
+                </div>
+                <button className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-black transition-all">
+                    View Course Details
+                </button>
             </div>
         );
     }
 
-    // Merge recordedVideos data from full topic list (the /current endpoint may not include it)
-    const enrichedCurrentTopic = (() => {
-        const full = allTopics.find(t => t._id === currentTopic._id);
-        const videos = (full ? full.recordedVideos : currentTopic.recordedVideos) || [];
-        return { ...currentTopic, recordedVideos: videos };
-    })();
-
-    const recordedVideos = enrichedCurrentTopic.recordedVideos || [];
-    const hasCurrentVideos = recordedVideos.length > 0;
-
     return (
-        <div className={`bg-white rounded-lg shadow-md p-6 border-2 ${getStatusColor(currentTopic.status)}`}>
-            <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3 flex-1">
-                    <div className={`mt-1 ${getStatusColor(currentTopic.status)}`}>
-                        {getStatusIcon(currentTopic.status)}
-                    </div>
+        <div className={`bg-white rounded-2xl shadow-sm p-8 border-t-4 transition-all ${currentTopic.status === 'active' ? 'border-slate-400' : 'border-slate-200'}`}>
+            <div className="flex flex-col gap-6">
+                <div className="flex items-start justify-between">
                     <div className="flex-1">
-                        <div className="flex items-center flex-wrap gap-2 mb-1">
-                            <h3 className="text-lg font-bold text-gray-800">{currentTopic.name}</h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(currentTopic.status)}`}>
-                                {currentTopic.status === 'active' ? 'Current Topic' : currentTopic.status}
+                        <div className="flex items-center flex-wrap gap-3 mb-3">
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">{currentTopic.name}</h3>
+                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200`}>
+                                {currentTopic.status === 'active' ? 'Current Focus' : currentTopic.status}
                             </span>
                             {hasCurrentVideos && (
-                                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                                    <Video className="w-3 h-3" /> {recordedVideos.length} Lecture{recordedVideos.length !== 1 ? 's' : ''} available
+                                <span className="px-3 py-1 bg-slate-50 text-slate-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-100">
+                                    {recordedVideos.length} Chapters
                                 </span>
                             )}
                         </div>
 
                         {currentTopic.description && (
-                            <p className="text-gray-600 mb-3">{currentTopic.description}</p>
+                            <p className="text-slate-500 text-lg leading-relaxed max-w-4xl">{currentTopic.description}</p>
                         )}
+                    </div>
+                </div>
 
-                        {currentTopic.lessonsOutline && (
-                            <div className="mb-3 p-3 bg-indigo-50 border border-indigo-100 rounded-md">
-                                <h5 className="text-sm font-semibold text-indigo-900 mb-1">Lesson Outline</h5>
-                                <p className="text-gray-700 text-sm whitespace-pre-wrap">{currentTopic.lessonsOutline}</p>
+                {/* THEATER MODE - ALWAYS ON FOR TOPICS WITH VIDEOS */}
+                {hasCurrentVideos && (
+                    <div className="bg-slate-900 rounded-3xl md:rounded-[2rem] overflow-hidden shadow-xl p-2 md:p-5 border border-slate-800 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="flex flex-col lg:flex-row gap-4 md:gap-5">
+                            {/* Main Cinematic Player - MAX WIDTH ON MOBILE */}
+                            <div className="flex-1 bg-black rounded-2xl md:rounded-3xl overflow-hidden shadow-inner relative min-h-[250px] md:min-h-[500px] lg:min-h-[580px] flex items-center justify-center border border-slate-800/50">
+                                {activeVideoId !== null ? (
+                                    (() => {
+                                        const v = sortedVideos.find((vid, i) => (vid._id || i) === activeVideoId);
+                                        const idx = sortedVideos.findIndex((vid, i) => (vid._id || i) === activeVideoId);
+                                        return renderCurrentVideo(v, idx);
+                                    })()
+                                ) : (
+                                    <div className="p-12 text-center text-slate-600 flex flex-col items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
+                                            <Play className="w-6 h-6 opacity-20" />
+                                        </div>
+                                        <p className="text-sm font-medium">Select a chapter below</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
 
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                            {/* Playlist - CAROUSEL ON MOBILE, SIDEBAR ON DESKTOP */}
+                            <div className="lg:w-72 shrink-0 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto pb-4 lg:pb-0 pr-1 snap-x scrollbar-hide lg:custom-scrollbar">
+                                <div className="hidden lg:block px-2 mb-2 border-b border-slate-800/50 pb-2">
+                                    <h5 className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500">Course Materials</h5>
+                                </div>
+                                
+                                {sortedVideos.map((vid, idx) => {
+                                    const vId = vid._id || idx;
+                                    const isActive = activeVideoId === vId;
+                                    const isWatched = watchedVideoIds.has(vId);
+                                    return (
+                                        <div 
+                                            key={vId} 
+                                            onClick={() => handleVideoSelect(vId)}
+                                            className={`group flex items-center gap-3 p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border-2 snap-start shrink-0 w-[240px] lg:w-full ${
+                                                isActive 
+                                                    ? 'bg-slate-800 border-slate-700 shadow-lg translate-x-0 lg:translate-x-1' 
+                                                    : 'bg-transparent border-transparent hover:bg-slate-800/40 hover:border-slate-800'
+                                            }`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                                                isActive ? 'bg-white text-slate-900 border-white' : isWatched ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-800 text-slate-500 border-slate-700'
+                                            }`}>
+                                                {isActive ? <Pause className="w-3 h-3 fill-current" /> : isWatched ? <CheckCircle className="w-4 h-4" /> : <div className="text-[10px] font-bold">{idx + 1}</div>}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className={`text-[11px] font-bold truncate leading-tight ${isActive ? 'text-white' : isWatched ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                                    {vid.label || `Lecture ${idx + 1}`}
+                                                </p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-slate-400' : isWatched ? 'text-emerald-500' : 'text-slate-600'}`}>{isWatched ? 'Watched' : `Part ${idx + 1}`}</span>
+                                                    <div className={`w-0.5 h-0.5 rounded-full ${isActive ? 'bg-slate-600' : isWatched ? 'bg-emerald-500/30' : 'bg-slate-800'}`} />
+                                                    <span className={`text-[8px] font-bold truncate ${isActive ? 'text-slate-500' : 'text-slate-700'}`}>{vid.videoType === 'url' ? 'Link' : 'File'}</span>
+                                                </div>
+                                            </div>
+                                            {isActive && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse mr-1" />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    {currentTopic.lessonsOutline && (
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-white rounded-xl border border-slate-100">
+                                    <Book className="w-4 h-4 text-slate-500" />
+                                </div>
+                                <h5 className="font-bold text-slate-800 uppercase tracking-widest text-[9px]">Module Outline</h5>
+                            </div>
+                            <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed px-1">{currentTopic.lessonsOutline}</p>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col gap-6">
+                        <div className="grid grid-cols-2 gap-4">
                             {getDurationText(currentTopic.duration) && (
-                                <div className="flex items-center space-x-1">
-                                    <Clock className="w-4 h-4" />
-                                    <span>Duration: {getDurationText(currentTopic.duration)}</span>
+                                <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                    <div className="flex items-center gap-2 mb-1.5 px-1">
+                                        <Clock className="w-3.5 h-3.5 text-slate-300" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total Duration</span>
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-700 px-1">{getDurationText(currentTopic.duration)}</p>
                                 </div>
                             )}
 
                             {currentTopic.startedAt && (
-                                <div className="flex items-center space-x-1">
-                                    <Calendar className="w-4 h-4" />
-                                    <span>Started: {formatDisplayDate(currentTopic.startedAt)}</span>
+                                <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                    <div className="flex items-center gap-2 mb-1.5 px-1">
+                                        <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Launch Date</span>
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-700 px-1">{formatDisplayDate(currentTopic.startedAt)}</p>
                                 </div>
-                            )}
-
-                            {currentTopic.expectedEndDate && currentTopic.status === 'active' && (
-                                <div className="flex items-center space-x-1">
-                                    <Calendar className="w-4 h-4" />
-                                    <span className="font-medium text-indigo-600">
-                                        Expected End: {formatDisplayDate(currentTopic.expectedEndDate)}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Only show paid topic price if allowed */}
-                            {showPaidTopics && currentTopic.isPaid && currentTopic.price > 0 && (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                                    ₦{currentTopic.price}
-                                </span>
                             )}
                         </div>
 
-                        {/* ── Recorded Lecture Video for Current Topic ── */}
-                        {/* Video Players */}
-                        {hasCurrentVideos && (
-                            <div className="space-y-4 mt-4">
-                                {[...recordedVideos].sort((a,b) => (a.order || 0) - (b.order || 0)).map((lecture, idx) => (
-                                    <VideoPlayer 
-                                        key={lecture._id || idx} 
-                                        lecture={lecture} 
-                                        expanded={activeVideoId === (lecture._id || idx)}
-                                        onToggle={() => setActiveVideoId(activeVideoId === (lecture._id || idx) ? null : (lecture._id || idx))}
-                                    />
-                                ))}
+                        {currentTopic.expectedEndDate && currentTopic.status === 'active' && (
+                            <div className="p-5 bg-slate-50 rounded-xl border border-slate-100">
+                                <div className="flex items-center gap-3 text-slate-400 mb-2">
+                                    <Calendar className="w-4 h-4" />
+                                    <span className="text-[9px] font-bold uppercase tracking-widest">Completion Target</span>
+                                </div>
+                                <p className="text-slate-700 text-lg font-black">{formatDisplayDate(currentTopic.expectedEndDate)}</p>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Paid/Unpaid Topics and Payment Options */}
             {user && !['root_admin', 'school_admin', 'personal_teacher', 'teacher'].includes(user.role) && showPaidTopics && topicStatus && (
-                <div className="mt-6">
-                    <h4 className="font-semibold mb-2">Your Topic Access</h4>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                <div className="mt-12 pt-8 border-t border-slate-100">
+                    <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3" /> Progress Markers
+                    </h4>
+                    <div className="flex flex-wrap gap-2.5">
                         {topicStatus.allTopics.map(topic => (
-                            <span key={topic._id} className={`px-2 py-1 rounded-full text-xs font-semibold ${topic.isPaid ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                {topic.name} {topic.isPaid ? '✓' : `₦${topic.price}`}
+                            <div key={topic._id} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${topic.isPaid ? 'bg-slate-50 border-slate-100 text-slate-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+                                <div className={`p-1 rounded-md ${topic.isPaid ? 'bg-slate-200 text-slate-600' : 'bg-slate-200 text-slate-400'}`}>
+                                    {topic.isPaid ? <CheckCircle className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                                </div>
+                                <span className="text-[10px] font-bold">{topic.name}</span>
                                 {!topic.isPaid && topic.price > 0 && (
                                     <button
-                                        className="ml-2 px-2 py-0.5 bg-purple-600 text-white rounded text-xs"
+                                        className="ml-2 px-3 py-1 bg-slate-800 text-white rounded-lg text-[9px] font-bold hover:bg-black transition"
                                         disabled={paying}
                                         onClick={() => handlePayForTopic(topic._id)}
                                     >
-                                        Pay
+                                        UNLOCK ₦{topic.price}
                                     </button>
                                 )}
-                            </span>
+                            </div>
                         ))}
                     </div>
                     {topicStatus.unpaidTopics.length > 1 && topicStatus.totalUnpaidAmount > 0 && (
                         <button
-                            className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
+                            className="mt-4 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-black disabled:opacity-50"
                             disabled={paying}
                             onClick={handlePayForAllTopics}
                         >

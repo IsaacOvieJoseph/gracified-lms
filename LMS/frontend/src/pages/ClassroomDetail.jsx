@@ -112,10 +112,91 @@ const getVideoEmbedInfo = (url) => {
 
 // ─── Inline topic card with collapsible video player ────────────────────────
 const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => {
-  const [videoOpen, setVideoOpen] = useState(false);
+  const { classroomId } = useParams();
   const [activeVideoId, setActiveVideoId] = useState(null);
+  const [watchedVideoIds, setWatchedVideoIds] = useState(new Set());
   const recordedVideos = topic.recordedVideos || [];
   const hasVideos = recordedVideos.length > 0;
+
+  const saveWatched = async (id) => {
+    // Optimistic UI update
+    setWatchedVideoIds(prev => {
+        const next = new Set(prev);
+        if (!next.has(id)) {
+            next.add(id);
+        }
+        return next;
+    });
+
+    // DB Persistence
+    if (topic?._id) {
+        try {
+            await api.post(`/topics/${topic._id}/progress`, {
+                videoId: id,
+                isLastActive: true
+            });
+            // Update local cache as secondary
+            localStorage.setItem(`lms_watched_${classroomId}_${topic._id}`, JSON.stringify([...watchedVideoIds, id]));
+            localStorage.setItem(`lms_vplay_${classroomId}_${topic._id}`, id);
+        } catch (err) {
+            console.error("Failed to sync progress to DB", err);
+        }
+    }
+  };
+
+  const handleVideoSelect = (id) => {
+    setActiveVideoId(id);
+    saveWatched(id);
+  };
+
+  // Load and persist watched/active state
+  useEffect(() => {
+    const fetchProgress = async () => {
+        if (hasVideos && topic?._id) {
+            // 1. Primary: Fetch from server
+            try {
+                const { data } = await api.get(`/topics/${topic._id}/progress`);
+                const progress = data.progress;
+                if (progress && progress.watchedVideoIds?.length > 0) {
+                    setWatchedVideoIds(new Set(progress.watchedVideoIds));
+                    if (progress.lastActiveVideoId) {
+                        setActiveVideoId(progress.lastActiveVideoId);
+                    } else {
+                        const firstVid = [...recordedVideos].sort((a,b) => (a.order||0)-(b.order||0))[0];
+                        setActiveVideoId(firstVid._id || 0);
+                    }
+                    return; // Successfully synced with cloud
+                }
+            } catch (err) {
+                console.error("Cloud progress fetch failed, using local fallback", err);
+            }
+
+            // 2. Secondary: Fallback to LocalStorage
+            const storageKey = `lms_vplay_${classroomId}_${topic._id}`;
+            const watchedKey = `lms_watched_${classroomId}_${topic._id}`;
+            
+            const savedId = localStorage.getItem(storageKey);
+            const savedWatched = localStorage.getItem(watchedKey);
+
+            if (savedWatched) {
+                try {
+                    setWatchedVideoIds(new Set(JSON.parse(savedWatched)));
+                } catch (e) {}
+            }
+
+            if (savedId && recordedVideos.some((v, idx) => (v._id || idx) === savedId)) {
+                setActiveVideoId(savedId);
+            } else if (recordedVideos.length > 0) {
+                const firstVid = [...recordedVideos].sort((a,b) => (a.order||0)-(b.order||0))[0];
+                const firstId = firstVid._id || 0;
+                setActiveVideoId(firstId);
+                saveWatched(firstId);
+            }
+        }
+    };
+    
+    fetchProgress();
+  }, [hasVideos, topic?._id, classroomId]);
 
   const renderVideo = (vid, idx) => {
     const embedInfo = vid.videoType === 'url' ? getVideoEmbedInfo(vid.url) : null;
@@ -148,18 +229,22 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
         );
       }
       return (
-        <div className="p-8 text-center bg-slate-900 border-b border-slate-800 flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-            <Video className="w-5 h-5 text-purple-400" />
+        <div className="p-12 text-center bg-slate-950 h-full w-full flex flex-col items-center justify-center gap-4">
+          <div className="w-20 h-20 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-2xl">
+             <Video className="w-8 h-8 text-slate-500" />
           </div>
-          <p className="text-white text-xs font-bold">External Lecture Video</p>
+          <div className="space-y-1">
+              <p className="text-white text-lg font-black tracking-tight">External Stream</p>
+              <p className="text-slate-500 text-sm max-w-xs mx-auto">This content is hosted on a secure 3rd-party platform.</p>
+          </div>
           <a
-            href={vid.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-purple-700 transition"
+              href={vid.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 px-6 py-3 bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black border border-slate-700 transition-all flex items-center gap-3 group shadow-lg"
           >
-            Open Video Link
+              <span>Open Resource</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </a>
         </div>
       );
@@ -228,50 +313,77 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
             </div>
           )}
 
-          {/* Watch recorded lectures section */}
+          {/* Persistent Theater Mode - ALWAYS ON FOR TOPICS WITH VIDEOS */}
           {hasVideos && (
-            <div className="mt-3">
-              <button
-                onClick={() => setVideoOpen(v => !v)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
-              >
-                <Video className="w-3.5 h-3.5" />
-                {videoOpen ? 'Hide Lectures' : 'Watch Lectures'}
-                {videoOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
+            <div className="mt-4">
+              <div className="mt-4 flex flex-col lg:flex-row gap-4 md:gap-5 bg-slate-900 rounded-3xl md:rounded-[2rem] overflow-hidden shadow-xl p-2 md:p-5 border border-slate-800 animate-in fade-in zoom-in duration-300">
+                {/* Main Player Section - MAX WIDTH ON MOBILE */}
+                <div className="flex-1 bg-black rounded-2xl md:rounded-3xl overflow-hidden flex items-center justify-center min-h-[250px] md:min-h-[500px] lg:min-h-[600px] shadow-inner relative border border-slate-800/50">
+                  {activeVideoId !== null ? (
+                    (() => {
+                      const sorted = [...recordedVideos].sort((a, b) => (a.order || 0) - (b.order || 0));
+                      const activeVid = sorted.find((v, idx) => (v._id || idx) === activeVideoId);
+                      const activeIdx = sorted.findIndex((v, idx) => (v._id || idx) === activeVideoId);
+                      return activeVid ? renderVideo(activeVid, activeIdx) : (
+                        <div className="text-slate-500">Video not found</div>
+                      );
+                    })()
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 text-slate-500 p-8">
+                      <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
+                        <Play className="w-6 h-6 opacity-20" />
+                      </div>
+                      <p className="font-bold text-sm">Select a chapter from the list</p>
+                    </div>
+                  )}
+                </div>
 
-              {videoOpen && (
-                <div className="mt-3 space-y-3">
+                {/* Vertical Video List Sidebar - CAROUSEL ON MOBILE */}
+                <div className="w-full lg:w-72 shrink-0 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto pb-4 lg:pb-0 pr-1 snap-x scrollbar-hide lg:custom-scrollbar">
+                  <div className="hidden lg:flex items-center justify-between mb-3 px-1 border-b border-slate-800 pb-2">
+                      <h5 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Course Materials</h5>
+                      <span className="text-[9px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">{recordedVideos.length} Parts</span>
+                  </div>
+                  
                   {[...recordedVideos].sort((a, b) => (a.order || 0) - (b.order || 0)).map((vid, idx) => {
-                    const isExpanded = activeVideoId === (vid._id || idx);
+                    const vId = vid._id || idx;
+                    const isActive = activeVideoId === vId;
+                    const isWatched = watchedVideoIds.has(vId);
                     return (
-                      <div key={vid._id || idx} className="rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shadow-lg">
-                        <div 
-                          className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors"
-                          onClick={() => setActiveVideoId(isExpanded ? null : (vid._id || idx))}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isExpanded ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                              {isExpanded ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-                            </div>
-                            <span className="text-[11px] font-bold text-slate-200 truncate">{vid.label || `Lecture ${idx + 1}`}</span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-2">
-                             <span className="text-[10px] text-slate-500 truncate hidden sm:inline">{vid.originalName || (vid.videoType === 'url' ? 'Link' : '')}</span>
-                             {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />}
+                      <div 
+                        key={vId} 
+                        onClick={() => handleVideoSelect(vId)}
+                        className={`group flex items-center gap-3 p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border-2 snap-start shrink-0 w-[240px] lg:w-full ${
+                          isActive 
+                            ? 'bg-slate-800 border-slate-700 shadow-md translate-x-0 lg:translate-x-1' 
+                            : 'bg-transparent border-transparent hover:bg-slate-800/40 hover:border-slate-800'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                          isActive ? 'bg-white text-slate-900 border-white' : isWatched ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-800 text-slate-500 border-slate-700'
+                        }`}>
+                          {isActive ? <Pause className="w-3 h-3 fill-current" /> : isWatched ? <CheckCircle className="w-4 h-4" /> : <div className="text-[10px] font-bold">{idx + 1}</div>}
+                        </div>
+                        
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[11px] font-bold truncate leading-tight ${isActive ? 'text-white' : isWatched ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                            {vid.label || `Lecture ${idx + 1}`}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                              <span className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-slate-400' : isWatched ? 'text-emerald-500' : 'text-slate-600'}`}>{isWatched ? 'Watched' : `Part ${idx + 1}`}</span>
+                              <div className={`w-0.5 h-0.5 rounded-full ${isActive ? 'bg-slate-500' : isWatched ? 'bg-emerald-500/30' : 'bg-slate-700'}`} />
+                              <span className={`text-[8px] font-bold ${isActive ? 'text-slate-500' : 'text-slate-700'}`}>{vid.videoType === 'url' ? 'Link' : 'File'}</span>
                           </div>
                         </div>
 
-                        {isExpanded && (
-                          <div className="bg-black border-t border-slate-800 animate-in slide-in-from-top-1 duration-200">
-                            {renderVideo(vid, idx)}
-                          </div>
+                        {isActive && (
+                          <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse mr-1" />
                         )}
                       </div>
                     );
                   })}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>

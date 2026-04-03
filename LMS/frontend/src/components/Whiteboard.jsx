@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { io } from 'socket.io-client';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -36,10 +37,11 @@ export default function Whiteboard() {
   const panStartRef = useRef({ clientX: 0, clientY: 0, scrollTop: 0, scrollLeft: 0 });
   const isSubmittingTextRef = useRef(false);
   const lastPosRef = useRef(null);
-  const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: '', fontSize: 28 });
+  const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, viewportX: 0, viewportY: 0, value: '', fontSize: 28 });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [otherCursors, setOtherCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
+  const [isMobileView, setIsMobileView] = useState(typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
   const { user } = useAuth();
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
@@ -151,6 +153,7 @@ export default function Whiteboard() {
     }
 
     const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 1024);
       const canvas = canvasRef.current;
       if (!canvas) return;
       const parent = canvas.parentElement;
@@ -649,10 +652,17 @@ export default function Whiteboard() {
     }
     if (t === 'text') {
       const pos = tp(s.pos || s.prev);
-      ctx.fillStyle = s.color || '#000';
-      ctx.font = `${(s.fontSize || 20)}px sans-serif`;
-      ctx.textBaseline = 'hanging'; // Align with top-edge positioning of the input
-      ctx.fillText(s.text || '', pos.x + 4, pos.y + 4); // add small padding to match input
+      const lines = (s.text || '').split('\n');
+      const fontSize = s.fontSize || 28;
+      const lineHeight = fontSize * 1.25;
+      
+      ctx.fillStyle = s.color || (isDarkMode ? '#f1f5f9' : '#0f172a');
+      ctx.font = `600 ${fontSize}px sans-serif`;
+      ctx.textBaseline = 'top';
+      
+      lines.forEach((line, index) => {
+        ctx.fillText(line, pos.x + 4, pos.y + 4 + (index * lineHeight));
+      });
       return;
     }
   }
@@ -684,23 +694,29 @@ export default function Whiteboard() {
     if (isSubmittingTextRef.current) return;
     if (!textInput.visible) return;
 
-    if (!textInput.value) {
-      setTextInput({ visible: false, x: 0, y: 0, value: '' });
+    if (!textInput.value.trim()) {
+      setTextInput({ visible: false, x: 0, y: 0, viewportX: 0, viewportY: 0, value: '' });
       return;
     }
     isSubmittingTextRef.current = true;
     try {
       const canvas = canvasRef.current;
-      // store position in virtual space
+      const rect = canvas.getBoundingClientRect();
+      
+      // Convert viewport coordinates to canvas pixels
+      const canvasX = textInput.viewportX - rect.left;
+      const canvasY = textInput.viewportY - rect.top;
+
+      // convert to virtual space
       const posVirt = {
-        x: (textInput.x / canvas.width) * VIRT_W,
-        y: (textInput.y / canvas.height) * VIRT_H
+        x: (canvasX / canvas.width) * VIRT_W,
+        y: (canvasY / canvas.height) * VIRT_H
       };
       const stroke = { type: 'text', pos: posVirt, text: textInput.value, color: color || (isDarkMode ? '#fff' : '#000'), fontSize: textInput.fontSize, normalized: true };
       renderStroke(stroke, false);
       socketRef.current?.emit('wb:draw', { ...stroke, persist: false });
       pushToBuffer(stroke);
-      setTextInput({ visible: false, x: 0, y: 0, value: '' });
+      setTextInput({ visible: false, x: 0, y: 0, viewportX: 0, viewportY: 0, value: '' });
     } finally {
       isSubmittingTextRef.current = false;
     }
@@ -743,9 +759,21 @@ export default function Whiteboard() {
         ov.height = canvasRef.current.height;
       }
     } else if (tool === 'text') {
-      // The text input is absolutely positioned inside the scrollable container.
-      // pos.x/pos.y are already coordinates on the board (relative to canvas top-left).
-      setTextInput({ visible: true, x: pos.x, y: pos.y, value: '', fontSize: 20 });
+      const clientX = e.nativeEvent ? e.nativeEvent.clientX : (e.clientX || 0);
+      const clientY = e.nativeEvent ? e.nativeEvent.clientY : (e.clientY || 0);
+      
+      console.log('Whiteboard: Portal opening at', { clientX, clientY });
+      toast.success('Editor Active');
+      
+      setTextInput({ 
+        visible: true, 
+        viewportX: clientX, 
+        viewportY: clientY, 
+        x: pos.x, 
+        y: pos.y, 
+        value: '', 
+        fontSize: 28 
+      });
     }
   };
   const handlePointerMove = (e) => {
@@ -1292,7 +1320,7 @@ export default function Whiteboard() {
           { id: 'rect',    icon: <Square className="w-4 h-4" />,       label: 'Rect'   },
           { id: 'circle',  icon: <CircleIcon className="w-4 h-4" />,   label: 'Circle' },
           { id: 'text',    icon: <Type className="w-4 h-4" />,         label: 'Text'   },
-        ].map(({ id, icon, label }) => (
+        ].filter(t => isMobileView || t.id !== 'text').map(({ id, icon, label }) => (
           <button key={id} onClick={() => setTool(id)} title={label} style={{
             width: 52, padding: '6px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
@@ -1533,7 +1561,8 @@ export default function Whiteboard() {
           position: 'relative', 
           minWidth: 0, 
           background: isDarkMode ? '#0f172a' : '#f9fafb',
-          transition: 'background-color 0.3s ease'
+          transition: 'background-color 0.3s ease',
+          touchAction: 'none' // Prevent mobile scrolling gestures from interrupting canvas drawing
         }}
         className={tool === 'hand' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : tool === 'pointer' ? 'cursor-default' : 'cursor-crosshair'}
       >
@@ -1556,35 +1585,6 @@ export default function Whiteboard() {
         {/* Overlay canvas for shape previews */}
         <canvas ref={overlayRef} style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', width: '100%', height: `${canvasHeightRef.current}px` }} />
 
-        {/* Inline text input */}
-        {textInput.visible && (
-          <input
-            ref={inputRef}
-            className="outline-none border-2 border-primary bg-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-lg pointer-events-auto px-4 py-2"
-            placeholder="Type and press Enter..."
-            autoFocus
-            value={textInput.value}
-            onChange={(e) => setTextInput(t => ({ ...t, value: e.target.value }))}
-            onKeyDown={(e) => { 
-              if (e.key === 'Enter') { e.preventDefault(); submitTextInput(); }
-              if (e.key === 'Escape') setTextInput({ visible: false, x: 0, y: 0, value: '' }); 
-              e.stopPropagation(); 
-            }}
-            onBlur={() => submitTextInput()}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={{ 
-              position: 'absolute', 
-              left: `${textInput.x}px`, 
-              top: `${textInput.y}px`, 
-              zIndex: 2000, 
-              fontSize: `${textInput.fontSize}px`, 
-              minWidth: '220px',
-              color: color || '#000',
-              transform: 'translate(-4px, -12px)' // Small offset to align cursor better
-            }}
-          />
-        )}
 
         {/* Other users' cursors */}
         {Object.keys(otherCursors).map((id) => {
@@ -1609,6 +1609,66 @@ export default function Whiteboard() {
           );
         })}
       </div>
+
+      {/* RENDER TEXT EDITOR VIA PORTAL AT BODY LEVEL FOR MAXIMUM RELIABILITY */}
+      {textInput.visible && createPortal(
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          zIndex: 999998, 
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <textarea
+            ref={inputRef}
+            placeholder="Type and press Enter..."
+            autoFocus
+            value={textInput.value}
+            onChange={(e) => setTextInput(t => ({ ...t, value: e.target.value }))}
+            onKeyDown={(e) => { 
+                if (e.key === 'Enter' && !e.shiftKey) { 
+                    e.preventDefault(); 
+                    submitTextInput(); 
+                }
+                if (e.key === 'Escape') {
+                    setTextInput({ visible: false, x: 0, y: 0, viewportX: 0, viewportY: 0, value: '' });
+                }
+                e.stopPropagation(); 
+            }}
+            onBlur={() => submitTextInput()}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{ 
+              position: 'fixed', 
+              left: `${textInput.viewportX}px`, 
+              top: `${textInput.viewportY}px`, 
+              zIndex: 999999, 
+              fontSize: '28px', 
+              minWidth: '380px',
+              minHeight: '160px',
+              color: '#0f172a',
+              backgroundColor: '#ffffff',
+              border: '5px solid #4f46e5',
+              borderRadius: '16px',
+              padding: '20px',
+              boxShadow: '0 30px 60px rgba(0,0,0,0.4), 0 0 0 10px rgba(79, 70, 229, 0.1)',
+              fontFamily: 'sans-serif',
+              lineHeight: '1.4',
+              transform: 'translate(-20px, -40px)',
+              resize: 'both',
+              outline: 'none',
+              pointerEvents: 'auto',
+              display: 'block',
+              visibility: 'visible',
+              opacity: 1
+            }}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
