@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MessageSquare, ChevronDown, ChevronUp, Plus, Loader2 } from 'lucide-react';
+import { Star, MessageSquare, ChevronDown, ChevronUp, Plus, Loader2, X } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import { formatDisplayDate } from '../utils/timezone';
