@@ -283,7 +283,7 @@ const Layout = ({ children }) => {
               <SubscriptionBlockBanner onViewPlans={() => navigate('/subscription-management')} user={user} />
             </div>
           )}
-          <div className="max-w-7xl mx-auto animate-slide-up">
+          <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>
