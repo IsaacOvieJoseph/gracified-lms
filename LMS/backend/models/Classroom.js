@@ -103,6 +103,12 @@ const classroomSchema = new mongoose.Schema({
     ref: 'Topic',
     default: null
   },
+  shortCode: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow nulls for existing records until updated
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -111,6 +117,24 @@ const classroomSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+// Generate unique shortCode before saving
+classroomSchema.pre('save', async function (next) {
+  if (!this.shortCode) {
+    const crypto = require('crypto');
+    const generateCode = () => crypto.randomBytes(4).toString('hex'); // 8 characters
+    let code = generateCode();
+
+    // Ensure uniqueness (though 8 hex chars is quite large, good to check)
+    let exists = await this.constructor.findOne({ shortCode: code });
+    while (exists) {
+      code = generateCode();
+      exists = await this.constructor.findOne({ shortCode: code });
+    }
+    this.shortCode = code;
+  }
+  next();
 });
 
 module.exports = mongoose.model('Classroom', classroomSchema);

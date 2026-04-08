@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.jpg';
 import { validateEmail } from '../utils/validation';
@@ -13,6 +13,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +29,9 @@ const Login = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        navigate('/dashboard');
+        const params = new URLSearchParams(location.search);
+        const redirectTo = params.get('redirect') || '/dashboard';
+        navigate(redirectTo);
       } else if (result.redirectToVerify && result.email) {
         navigate('/verify-email', { state: { email: result.email } });
       } else if (result.trialExpired) {
@@ -163,7 +166,10 @@ const Login = () => {
 
             <div className="mt-12 pt-8 border-t border-slate-100 text-center text-sm text-slate-500">
               Don't have an account?{' '}
-              <Link to="/register" className="font-bold text-primary hover:underline">
+              <Link 
+                to={`/register?${new URLSearchParams(location.search).toString()}`} 
+                className="font-bold text-primary hover:underline"
+              >
                 Create account
               </Link>
             </div>

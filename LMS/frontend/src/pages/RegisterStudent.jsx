@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +20,7 @@ const RegisterStudent = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [schools, setSchools] = useState([]);
 
@@ -71,7 +72,9 @@ const RegisterStudent = () => {
         navigate('/verify-email', { state: { email: formData.email } });
       } else if (response.data.token) {
         login(response.data.token, response.data.user);
-        navigate('/dashboard');
+        const params = new URLSearchParams(location.search);
+        const redirectTo = params.get('redirect') || '/dashboard';
+        navigate(redirectTo);
       }
     } catch (err) {
       console.error('Registration error:', err);

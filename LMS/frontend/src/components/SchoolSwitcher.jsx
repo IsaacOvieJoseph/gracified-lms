@@ -20,7 +20,7 @@ const SchoolSwitcher = ({ user, selectedSchools = [], setSelectedSchools = () =>
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm font-medium">Schools:</label>
+      <label className="hidden md:block text-sm font-medium">Schools:</label>
       <select
         value={selectedSchools[0] || 'ALL'}
         onChange={e => {

@@ -14,6 +14,46 @@ const FeedbackRequest = require('../models/FeedbackRequest');
 const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
+// Public: Get classroom by shortCode for preview
+router.get('/public/:shortCode', async (req, res) => {
+  try {
+    const classroom = await Classroom.findOne({ shortCode: req.params.shortCode })
+      .populate({
+        path: 'teacherId',
+        select: 'name email role subscriptionStatus trialEndDate tutorialId',
+        populate: {
+          path: 'tutorialId',
+          select: 'name'
+        }
+      })
+      .populate('topics', 'name description status order isPaid price')
+      .populate({
+        path: 'schoolId',
+        select: 'name adminId',
+        populate: {
+          path: 'adminId',
+          select: 'name email'
+        }
+      });
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    if (!classroom.published) {
+      return res.status(403).json({ message: 'Classroom is not currently active for public preview.' });
+    }
+
+    if (classroom.isPrivate) {
+      return res.status(403).json({ message: 'This is a private classroom and cannot be previewed via public link. Kindly reach out to your class coordinator or teacher for access.' });
+    }
+
+    res.json({ classroom });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get all classrooms
 router.get('/', auth, subscriptionCheck, async (req, res) => {
   try {
@@ -996,11 +1036,68 @@ function generateGoogleMeetLink() {
   return `https://meet.google.com/${rand(3)}-${rand(4)}-${rand(3)}`;
 }
 
+// Helper to notify students when a lecture starts
+const notifyStudentsLectureStart = async (classroom, initiator, link) => {
+  const Notification = require('../models/Notification');
+  const { sendEmail } = require('../utils/email');
+
+  if (!classroom.students || classroom.students.length === 0) return;
+
+  const schoolName = (Array.isArray(classroom.schoolId) && classroom.schoolId[0]?.name) || initiator.tutorialId?.name || 'our platform';
+  
+  const notificationPromises = classroom.students.map(async (student) => {
+    // In-app notification
+    try {
+      await Notification.create({
+        userId: student._id || student,
+        message: `Live lecture started for "${classroom.name}" by ${initiator.name}. Click to join!`,
+        type: 'lecture_started',
+        entityId: classroom._id,
+        entityRef: 'Classroom',
+        link: link // Custom field if supported by your FE, else just entityId
+      });
+    } catch (err) {
+      console.error(`Failed to create in-app notification for student ${student._id}:`, err.message);
+    }
+
+    // Email notification
+    if (student.email) {
+      const emailContent = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Live Lecture Started!</h2>
+          <p>Hello <strong>${student.name || 'Student'}</strong>,</p>
+          <p>Your instructor, <strong>${initiator.name}</strong>, has just started a live lecture for <strong>${classroom.name}</strong> at ${schoolName}.</p>
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${link}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Join Lecture Now</a>
+          </div>
+          <p style="color: #666; font-size: 14px;">If the button above doesn't work, copy and paste this link into your browser:</p>
+          <p style="color: #4f46e5; font-size: 14px; word-break: break-all;">${link}</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="color: #888; font-size: 12px; text-align: center;">&copy; ${new Date().getFullYear()} Gracified LMS. All rights reserved.</p>
+        </div>
+      `;
+
+      try {
+        await sendEmail({
+          to: student.email,
+          subject: `LIVE NOW: ${classroom.name} Lecture has started!`,
+          html: emailContent
+        });
+      } catch (err) {
+        console.error(`Failed to send lecture start email to ${student.email}:`, err.message);
+      }
+    }
+  });
+
+  await Promise.allSettled(notificationPromises);
+};
+
 // Start a class call (teacher, personal_teacher owner, school_admin of school, root_admin)
 router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id)
       .populate('schoolId')
+      .populate('students', 'name email')
       .populate({
         path: 'teacherId',
         select: 'name tutorialId',
@@ -1097,6 +1194,8 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
       const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now, eventId, htmlLink });
       await session.save();
       created = true;
+      // Start background task to notify students
+      notifyStudentsLectureStart(classroom, user, link);
     } else {
       const diffMs = now - new Date(latest.startedAt);
       const fortyFiveMin = 45 * 60 * 1000;
@@ -1138,6 +1237,8 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
         const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now, eventId, htmlLink });
         await session.save();
         created = true;
+        // Start background task to notify students
+        notifyStudentsLectureStart(classroom, user, link);
       } else {
         link = latest.link;
         // carry over any metadata from latest

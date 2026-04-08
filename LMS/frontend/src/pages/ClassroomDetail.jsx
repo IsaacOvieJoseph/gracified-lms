@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone, Flag, CreditCard, School, GraduationCap, Layers, Sparkles, MessageSquare } from 'lucide-react';
+import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Circle, FastForward, Eye, EyeOff, Megaphone, Flag, CreditCard, School, GraduationCap, Layers, Sparkles, MessageSquare, MoreHorizontal } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal, formatDisplayDate } from '../utils/timezone';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
@@ -1222,9 +1222,78 @@ const ClassroomDetail = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           {/* Header Row: Title, Tags, Edit Button */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-800">{classroom.name}</h2>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-between lg:justify-start gap-3 mb-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-800 truncate">{classroom.name}</h2>
+                  
+                  {/* Mobile-only Action Menu aligned with title */}
+                  {canEdit && (
+                    <div className="relative md:hidden group shrink-0">
+                      <button className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-all active:scale-90">
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+                      
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 py-3 z-[100] opacity-0 translate-y-2 pointer-events-none group-focus-within:opacity-100 group-focus-within:translate-y-0 group-focus-within:pointer-events-auto transition-all duration-300 transform origin-top-right">
+                        <div className="px-5 py-2 mb-2">
+                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Class Actions</p>
+                        </div>
+
+                        <button
+                          onClick={handlePublishToggle}
+                          disabled={publishing}
+                          className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
+                        >
+                          {classroom.published ? <EyeOff className="w-4 h-4 text-slate-400" /> : <Eye className="w-4 h-4 text-emerald-500" />}
+                          <span>{classroom.published ? 'Unpublish Class' : 'Publish Class'}</span>
+                        </button>
+
+                        {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
+                          <button
+                            onClick={() => {
+                              const shareLink = `${window.location.origin}/c/${classroom.shortCode}`;
+                              navigator.clipboard.writeText(shareLink);
+                              toast.success('Link copied!');
+                            }}
+                            className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
+                          >
+                            <Share2 className="w-4 h-4 text-indigo-500" />
+                            <span>Share Class</span>
+                          </button>
+                        )}
+
+                        <button
+                          onClick={handleOpenEdit}
+                          className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
+                        >
+                          <Edit className="w-4 h-4 text-amber-500" />
+                          <span>Edit Details</span>
+                        </button>
+
+                        <button
+                          onClick={() => setShowEndClassModal(true)}
+                          className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
+                        >
+                          <Flag className="w-4 h-4 text-indigo-600" />
+                          <span>End Class</span>
+                        </button>
+
+                        {(user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
+                          <div className="mt-2 pt-2 border-t border-slate-50">
+                            <button
+                              onClick={handleDeleteClassroomClick}
+                              className="w-full flex items-center gap-3 px-5 py-3 hover:bg-rose-50 text-rose-500 font-black text-sm transition-colors text-left"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span>Delete Classroom</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {classroom.isPaid && classroom.pricing?.amount > 0 ? (
                   <div className="flex flex-col">
                     <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
@@ -1268,53 +1337,62 @@ const ClassroomDetail = () => {
             </div>
 
             {canEdit && (
-              <div className="flex flex-wrap gap-2 mt-2 lg:mt-0">
-                <button
-                  onClick={handlePublishToggle}
-                  disabled={publishing}
-                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition font-medium ${classroom.published
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  title={classroom.published ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
-                >
-                  {publishing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : classroom.published ? (
-                    <Eye className="w-4 h-4" />
-                  ) : (
-                    <EyeOff className="w-4 h-4 opacity-50" />
-                  )}
-                  <span className="hidden md:inline">{classroom.published ? 'Published' : 'Unpublished'}</span>
-                </button>
-                <button
-                  onClick={handleOpenEdit}
-                  className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition shrink-0 self-start"
-                  title="Edit Classroom"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span className="hidden md:inline">Edit</span>
-                </button>
-                {/* End Class Button */}
-                <button
-                  onClick={() => setShowEndClassModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shrink-0 self-start"
-                  title="End Classroom (Reset)"
-                >
-                  <Flag className="w-4 h-4" />
-                  <span className="hidden md:inline">End Class</span>
-                </button>
-                {/* Delete Button (Only for admins or personal teacher owners) */}
-                {(user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
+              <div className="flex items-center gap-2 mt-2 lg:mt-0">
+                {/* Desktop Buttons: Refined Professional Palette */}
+                <div className="hidden md:flex items-center gap-2.5">
                   <button
-                    onClick={handleDeleteClassroomClick}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shrink-0 self-start"
-                    title="Delete Classroom"
+                    onClick={handlePublishToggle}
+                    disabled={publishing}
+                    className={`h-11 flex items-center gap-2.5 px-5 rounded-xl font-bold text-xs transition-all transform hover:-translate-y-0.5 active:scale-95 border ${
+                      classroom.published
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/80 shadow-sm shadow-emerald-100'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-700 shadow-sm shadow-slate-100'
+                    }`}
                   >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="hidden md:inline">Delete</span>
+                    {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : classroom.published ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 opacity-50" />}
+                    <span>{classroom.published ? 'Published' : 'Draft'}</span>
                   </button>
-                )}
+
+                  {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
+                    <button
+                      onClick={() => {
+                        const shareLink = `${window.location.origin}/c/${classroom.shortCode}`;
+                        navigator.clipboard.writeText(shareLink);
+                        toast.success('Link copied!');
+                      }}
+                      className="h-11 flex items-center gap-2.5 px-5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm shadow-indigo-100 group"
+                    >
+                      <Share2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                      <span>Share</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleOpenEdit}
+                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm"
+                  >
+                    <Edit className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowEndClassModal(true)}
+                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-slate-900/10"
+                  >
+                    <Flag className="w-3.5 h-3.5 text-slate-400" />
+                    <span>End Class</span>
+                  </button>
+
+                  {(user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
+                    <button
+                      onClick={handleDeleteClassroomClick}
+                      className="h-11 flex items-center justify-center w-11 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 border border-rose-100 hover:border-rose-500 shadow-sm"
+                      title="Delete Classroom"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

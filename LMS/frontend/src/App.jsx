@@ -35,6 +35,7 @@ import Landing from './pages/Landing';
 import QnACenter from './pages/QnACenter';
 import QnAPresentation from './pages/QnAPresentation';
 import TopicManagement from './pages/TopicManagement';
+import PublicClassroom from './pages/PublicClassroom';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -65,7 +66,10 @@ const PrivateRoute = ({ children }) => {
 
 const RegisterChoice = () => {
   const { user } = useAuth();
+  const location = useLocation();
   if (user) return <Navigate to="/dashboard" />;
+
+  const search = location.search;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
@@ -76,7 +80,7 @@ const RegisterChoice = () => {
         </div>
 
         <div className="space-y-4">
-          <Link to="/register/student" className="group relative flex items-center justify-between p-4 border-2 border-transparent bg-indigo-50 rounded-xl hover:bg-white hover:border-indigo-500 hover:shadow-lg transition-all duration-300">
+          <Link to={`/register/student${search}`} className="group relative flex items-center justify-between p-4 border-2 border-transparent bg-indigo-50 rounded-xl hover:bg-white hover:border-indigo-500 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center space-x-4">
               <div className="bg-indigo-100 p-3 rounded-lg group-hover:bg-indigo-600 transition-colors duration-300">
                 <GraduationCap className="w-6 h-6 text-indigo-600 group-hover:text-white transition-colors duration-300" />
@@ -89,7 +93,7 @@ const RegisterChoice = () => {
             <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300">→</div>
           </Link>
 
-          <Link to="/register/school-admin" className="group relative flex items-center justify-between p-4 border-2 border-transparent bg-green-50 rounded-xl hover:bg-white hover:border-green-500 hover:shadow-lg transition-all duration-300">
+          <Link to={`/register/school-admin${search}`} className="group relative flex items-center justify-between p-4 border-2 border-transparent bg-green-50 rounded-xl hover:bg-white hover:border-green-500 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center space-x-4">
               <div className="bg-green-100 p-3 rounded-lg group-hover:bg-green-600 transition-colors duration-300">
                 <School className="w-6 h-6 text-green-600 group-hover:text-white transition-colors duration-300" />
@@ -102,7 +106,7 @@ const RegisterChoice = () => {
             <div className="text-green-600 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300">→</div>
           </Link>
 
-          <Link to="/register/personal-teacher" className="group relative flex items-center justify-between p-4 border-2 border-transparent bg-purple-50 rounded-xl hover:bg-white hover:border-purple-500 hover:shadow-lg transition-all duration-300">
+          <Link to={`/register/personal-teacher${search}`} className="group relative flex items-center justify-between p-4 border-2 border-transparent bg-purple-50 rounded-xl hover:bg-white hover:border-purple-500 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center space-x-4">
               <div className="bg-purple-100 p-3 rounded-lg group-hover:bg-purple-600 transition-colors duration-300">
                 <User className="w-6 h-6 text-purple-600 group-hover:text-white transition-colors duration-300" />
@@ -136,6 +140,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
       <Route path="/register" element={<RegisterChoice />} />
+      <Route path="/c/:shortCode" element={<PublicClassroom />} />
       <Route path="/register/student" element={<RegisterStudent />} />
       <Route path="/register/school-admin" element={<RegisterSchoolAdmin />} />
       <Route path="/register/personal-teacher" element={<RegisterPersonalTeacher />} />
