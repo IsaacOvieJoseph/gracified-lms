@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Book, Clock, CheckCircle, Circle, Calendar, Video, ChevronDown, ChevronUp, X, Play, Pause, Lock } from 'lucide-react';
+import { Book, Clock, CheckCircle, Circle, Calendar, Video, ChevronDown, ChevronUp, ChevronRight, X, Play, Pause, Lock } from 'lucide-react';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
 import { useAuth } from '../context/AuthContext';
