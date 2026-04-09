@@ -9,6 +9,7 @@ import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatAmount } from '../utils/currency';
+import FormFieldHelp from '../components/FormFieldHelp';
 import CreateAssignmentModal from '../components/CreateAssignmentModal';
 import GradeAssignmentModal from '../components/GradeAssignmentModal';
 import SubmitAssignmentModal from '../components/SubmitAssignmentModal';
@@ -1503,7 +1504,10 @@ const ClassroomDetail = () => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Academic Level</label>
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                          Academic Level
+                          <FormFieldHelp content="The grade or education level this class is designed for." />
+                        </label>
                         <Select
                           options={levelOptions}
                           value={levelOptions.find(opt => opt.value === editForm.level)}
@@ -1515,7 +1519,10 @@ const ClassroomDetail = () => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Subject</label>
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                          Subject
+                          <FormFieldHelp content="Helps students find your class in the search results." />
+                        </label>
                         <CreatableSelect
                           options={subjectOptions}
                           value={editForm.subject ? { value: editForm.subject, label: editForm.subject } : null}
@@ -1593,26 +1600,40 @@ const ClassroomDetail = () => {
                         />
                       </div>
 
-                      <div className="flex items-center gap-6 pt-4">
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <div
-                            className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 md:col-span-2">
+                        {/* Private Toggle */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Visibility</span>
+                            <FormFieldHelp content="Private classes are not visible to the public. You must share direct links with students." />
+                          </div>
+                          <label 
                             onClick={() => setEditForm({ ...editForm, isPrivate: !editForm.isPrivate })}
+                            className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${editForm.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
                           >
-                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPrivate ? 'translate-x-4' : ''}`} />
-                          </div>
-                          <span className="text-sm font-bold text-slate-700 uppercase">Private</span>
-                        </label>
+                            <span className={`text-sm font-bold transition-colors ${editForm.isPrivate ? 'text-indigo-700' : 'text-slate-600'}`}>Private Class</span>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPrivate ? 'translate-x-4' : ''}`} />
+                            </div>
+                          </label>
+                        </div>
 
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <div
-                            className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                            onClick={() => setEditForm({ ...editForm, isPaid: !editForm.isPaid })}
-                          >
-                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPaid ? 'translate-x-4' : ''}`} />
+                        {/* Paid Toggle */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Fee</span>
+                            <FormFieldHelp content="When enabled, you can set a price and billing cycle for this classroom." />
                           </div>
-                          <span className="text-sm font-bold text-slate-700 uppercase">Paid Class</span>
-                        </label>
+                          <label 
+                            onClick={() => setEditForm({ ...editForm, isPaid: !editForm.isPaid })}
+                            className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${editForm.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                          >
+                            <span className={`text-sm font-bold transition-colors ${editForm.isPaid ? 'text-indigo-700' : 'text-slate-600'}`}>Paid Class</span>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPaid ? 'translate-x-4' : ''}`} />
+                            </div>
+                          </label>
+                        </div>
                       </div>
                     </div>
 
@@ -1621,7 +1642,10 @@ const ClassroomDetail = () => {
                       <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
                         <div className="grid md:grid-cols-2 gap-6">
                           <div className="space-y-1.5">
-                            <label className="text-sm font-bold text-primary uppercase tracking-wider">Billing Cycle</label>
+                            <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
+                              Billing Cycle
+                              <FormFieldHelp content="Determines payment intervals: Monthly/Weekly (subscription), Per Topic/Lecture (gated), or One Time (access forever)." />
+                            </label>
                             <Select
                               options={[
                                 { value: 'per_lecture', label: 'Per Lecture' },
@@ -1638,7 +1662,10 @@ const ClassroomDetail = () => {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-bold text-primary uppercase tracking-wider">Amount (NGN)</label>
+                            <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
+                              Amount (NGN)
+                              <FormFieldHelp content="The price students will pay based on the selected billing cycle." />
+                            </label>
                             <input
                               type="number"
                               value={editForm.pricingAmount}

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
+import FormFieldHelp from '../components/FormFieldHelp';
 
 const ExamCreator = () => {
     const navigate = useNavigate();
@@ -213,7 +214,8 @@ const ExamCreator = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-gray-700 flex items-center">
-                                        Exam Title <span className="text-red-400 ml-1">*</span>
+                                        Exam Title <span className="text-red-400 ml-1 mr-1">*</span>
+                                        <FormFieldHelp content="Provide a clear, identifying name for this examination." />
                                     </label>
                                     <input
                                         type="text"
@@ -226,7 +228,8 @@ const ExamCreator = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-gray-700 flex items-center">
-                                        Duration (Minutes) <span className="text-red-400 ml-1">*</span>
+                                        Duration (Minutes) <span className="text-red-400 ml-1 mr-1">*</span>
+                                        <FormFieldHelp content="The timer will start as soon as a student begins the exam." />
                                     </label>
                                     <div className="relative">
                                         <Clock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -255,7 +258,10 @@ const ExamCreator = () => {
 
                             <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-3">
-                                    <label className="text-sm font-bold text-gray-700">Class Association (Optional)</label>
+                                    <label className="text-sm font-bold text-gray-700 flex items-center">
+                                        Class Association (Optional)
+                                        <FormFieldHelp content="Linking to a class helps organize results and filter access modes." />
+                                    </label>
                                     <select
                                         value={formData.classId || ''}
                                         onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
@@ -271,7 +277,10 @@ const ExamCreator = () => {
                                     </p>
                                 </div>
                                 <div className="space-y-3">
-                                    <label className="text-sm font-bold text-gray-700">Due Date (Optional)</label>
+                                    <label className="text-sm font-bold text-gray-700 flex items-center">
+                                        Due Date (Optional)
+                                        <FormFieldHelp content="After this date, students will no longer be able to start the exam." />
+                                    </label>
                                     <input
                                         type="datetime-local"
                                         value={formData.dueDate ? new Date(formData.dueDate).toISOString().slice(0, 16) : ''}
@@ -284,7 +293,10 @@ const ExamCreator = () => {
 
                             <div className="pt-4 flex flex-col md:flex-row gap-6">
                                 <div className="flex-1 space-y-3">
-                                    <label className="text-sm font-bold text-gray-700">Access Control</label>
+                                    <label className="text-sm font-bold text-gray-700 flex items-center">
+                                        Access Control
+                                        <FormFieldHelp content="Authenticated: Restricted to LMS users. Public: Sharable with anyone in the world." />
+                                    </label>
                                     <div className="flex space-x-4">
                                         <button
                                             type="button"
@@ -318,7 +330,10 @@ const ExamCreator = () => {
                                 </div>
 
                                 <div className="flex-1 space-y-3">
-                                    <label className="text-sm font-bold text-gray-700">Result Publish Time (Optional)</label>
+                                    <label className="text-sm font-bold text-gray-700 flex items-center">
+                                        Result Publish Time (Optional)
+                                        <FormFieldHelp content="Students will only see their scores and correct answers after this specified time." />
+                                    </label>
                                     <input
                                         type="datetime-local"
                                         value={formData.resultPublishTime ? new Date(formData.resultPublishTime).toISOString().slice(0, 16) : ''}
@@ -376,7 +391,10 @@ const ExamCreator = () => {
                                                 />
                                             </div>
                                             <div className="w-full md:w-32 space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Score</label>
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center">
+                                                    Score
+                                                    <FormFieldHelp content="Points awarded for a fully correct answer." />
+                                                </label>
                                                 <input
                                                     type="number"
                                                     min="0"
@@ -386,7 +404,10 @@ const ExamCreator = () => {
                                                 />
                                             </div>
                                             <div className="w-full md:w-48 space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Type</label>
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center">
+                                                    Type
+                                                    <FormFieldHelp content="MCQ items are auto-graded. Theory items require manual verification." />
+                                                </label>
                                                 <select
                                                     value={q.questionType}
                                                     onChange={(e) => handleQuestionChange(qIndex, 'questionType', e.target.value)}

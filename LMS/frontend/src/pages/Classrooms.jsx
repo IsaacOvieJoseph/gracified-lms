@@ -14,6 +14,7 @@ import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatAmount } from '../utils/currency';
+import FormFieldHelp from '../components/FormFieldHelp';
 
 const levelOptions = [
   { value: 'Pre-Primary', label: 'Pre-Primary' },
@@ -392,7 +393,10 @@ const Classrooms = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Academic Level</label>
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                      Academic Level
+                      <FormFieldHelp content="The grade or difficulty level of this class." />
+                    </label>
                     <Select
                       options={levelOptions}
                       value={levelOptions.find(opt => opt.value === formData.level)}
@@ -402,7 +406,10 @@ const Classrooms = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Subject</label>
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                      Subject
+                      <FormFieldHelp content="Categorize your class for better discoverability in the marketplace." />
+                    </label>
                     <CreatableSelect
                       options={subjectOptions}
                       value={formData.subject ? { value: formData.subject, label: formData.subject } : null}
@@ -464,7 +471,10 @@ const Classrooms = () => {
                   )}
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Max Capacity</label>
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                      Max Capacity
+                      <FormFieldHelp content="The maximum number of students allowed to enroll in this class." />
+                    </label>
                     <input
                       type="number"
                       value={formData.capacity}
@@ -474,26 +484,40 @@ const Classrooms = () => {
                     />
                   </div>
 
-                  <div className="flex items-center gap-6 pt-4">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div
-                        className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                    {/* Private Toggle */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Visibility</span>
+                        <FormFieldHelp content="Private classes won't appear in the global marketplace. Only students with a direct link can enroll." />
+                      </div>
+                      <label 
                         onClick={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
+                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${formData.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
                       >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPrivate ? 'translate-x-4' : ''}`} />
-                      </div>
-                      <span className="text-sm font-bold text-slate-700 uppercase">Private</span>
-                    </label>
+                        <span className={`text-sm font-bold transition-colors ${formData.isPrivate ? 'text-indigo-700' : 'text-slate-600'}`}>Private Class</span>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPrivate ? 'translate-x-4' : ''}`} />
+                        </div>
+                      </label>
+                    </div>
 
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div
-                        className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                        onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
-                      >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                    {/* Paid Toggle */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Fee</span>
+                        <FormFieldHelp content="If enabled, students must pay the specified fee to access content or join lectures." />
                       </div>
-                      <span className="text-sm font-bold text-slate-700 uppercase">Paid Class</span>
-                    </label>
+                      <label 
+                        onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
+                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${formData.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                      >
+                        <span className={`text-sm font-bold transition-colors ${formData.isPaid ? 'text-indigo-700' : 'text-slate-600'}`}>Paid Class</span>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -502,7 +526,10 @@ const Classrooms = () => {
                   <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-primary uppercase tracking-wider">Billing Cycle</label>
+                        <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
+                          Billing Cycle
+                          <FormFieldHelp content="Defines when students are charged: Weekly (every 7 days), Per Lecture (on join), or One Time (enrolment only)." />
+                        </label>
                         <Select
                           options={[
                             { value: 'per_lecture', label: 'Per Lecture' },

@@ -349,7 +349,6 @@ router.get('/paystack/verify', auth, async (req, res) => {
       } catch (notifyErr) {
         console.error('Error notifying recipients after topic access verify:', notifyErr.message);
       }
-      }
     } else if (payment.type === 'lecture_access' && payment.callSessionId) {
       // Lecture access payment: notification only (access checked in join-call route)
       try {

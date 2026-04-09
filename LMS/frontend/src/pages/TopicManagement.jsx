@@ -11,6 +11,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, Lock } from 'lucide-react';
+import FormFieldHelp from '../components/FormFieldHelp';
 
 const TopicManagement = () => {
     const { id: classroomId } = useParams();
@@ -434,7 +435,10 @@ const TopicManagement = () => {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-sm font-bold text-slate-700 mb-2 block">Duration Mode</label>
+                                        <label className="text-sm font-bold text-slate-700 mb-2 flex items-center">
+                                            Duration Mode
+                                            <FormFieldHelp content="Choose a time unit (Days, Weeks, Months) to estimate the duration of this topic." />
+                                        </label>
                                         <select
                                             value={formData.duration.mode}
                                             onChange={(e) => setFormData({
@@ -479,7 +483,10 @@ const TopicManagement = () => {
                                                     />
                                                     <div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
                                                 </div>
-                                                <span className="font-bold text-slate-700">Paid Topic</span>
+                                                <span className="font-bold text-slate-700 flex items-center">
+                                                    Paid Topic
+                                                    <FormFieldHelp content="If enabled, students must pay an individual fee to unlock this topic and its materials." />
+                                                </span>
                                             </label>
                                             {formData.isPaid && (
                                                 <div className="flex-1 flex items-center gap-2">
@@ -598,6 +605,7 @@ const TopicManagement = () => {
                                                         >
                                                             <LinkIcon className="w-3 h-3" />
                                                             External URL
+                                                            <FormFieldHelp content="Attach videos from external platforms like YouTube or Google Drive." />
                                                         </button>
 
                                                         {/* Premium Upload logic */}
@@ -610,6 +618,7 @@ const TopicManagement = () => {
                                                                     <label className="flex items-center gap-2 px-3 py-1.5 bg-white border border-primary/20 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-primary/5 transition-all">
                                                                         <Upload className="w-3 h-3" />
                                                                         Upload File
+                                                                        <FormFieldHelp content="Securely upload video files directly to our cloud storage." />
                                                                         <input
                                                                             type="file"
                                                                             accept="video/*"

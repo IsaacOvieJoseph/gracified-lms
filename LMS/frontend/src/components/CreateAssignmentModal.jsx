@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { toLocalISOString } from '../utils/timezone';
+import FormFieldHelp from './FormFieldHelp';
 
 const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics, editAssignment }) => {
   const [createForm, setCreateForm] = useState({
@@ -283,7 +284,10 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               )}
 
               <div className="md:col-span-2">
-                <label>Assignment Type</label>
+                <label className="flex items-center">
+                  Assignment Type
+                  <FormFieldHelp content="Theory for essay-style answers. MCQ for auto-graded multiple choice questions." />
+                </label>
                 <div className="flex gap-4 p-1 bg-slate-100 rounded-xl w-fit">
                   <button
                     type="button"
@@ -320,7 +324,10 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                       checked={isEvenlyDistributed}
                       onChange={(e) => setIsEvenlyDistributed(e.target.checked)}
                     />
-                    <span className="ml-2 text-sm font-medium text-gray-700">Same Weight Per Question</span>
+                    <span className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+                      Same Weight Per Question
+                      <FormFieldHelp content="Distribute the overall score equally among all questions. Ideal for quick multiple-mark theories." />
+                    </span>
                   </label>
                 )}
               </div>
@@ -449,7 +456,10 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                   {createForm.assignmentType === 'theory' && (
                     <div className="space-y-3 pt-2">
                       <div>
-                        <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Marking Preference</label>
+                        <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2 flex items-center">
+                          Marking Preference
+                          <FormFieldHelp content="Manual: Teacher grades it. AI Marking: AI grades it automatically based on the question context." />
+                        </label>
                         <select
                           value={question.markingPreference}
                           onChange={(e) => handleMarkingPreferenceChange(qIndex, e.target.value)}
@@ -499,7 +509,10 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               {createForm.assignmentType === 'mcq' && (
                 <>
                   <div>
-                    <label>Publish Results At</label>
+                    <label className="flex items-center">
+                      Publish Results At
+                      <FormFieldHelp content="Choose when students will be able to see their final MCQ results and correct answers." />
+                    </label>
                     <input
                       type="datetime-local"
                       value={createForm.publishResultsAt}
@@ -520,20 +533,21 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                 </>
               )}
 
-              <div className="md:col-span-2 pt-2">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${createForm.published ? 'bg-primary' : 'bg-slate-200'}`}>
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={createForm.published}
-                      onChange={(e) => setCreateForm({ ...createForm, published: e.target.checked })}
-                    />
-                    <div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${createForm.published ? 'translate-x-4' : ''}`} />
-                  </div>
+              <div className="md:col-span-2 space-y-2 pt-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Visibility Control</span>
+                  <FormFieldHelp content="If off, students will not see this assignment on their dashboard." />
+                </div>
+                <label 
+                  onClick={() => setCreateForm({ ...createForm, published: !createForm.published })}
+                  className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${createForm.published ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                >
                   <div>
-                    <span className="font-bold text-slate-700">Published</span>
-                    <p className="text-xs text-slate-400 font-medium">Assignment will be visible to students immediately</p>
+                    <span className={`text-sm font-bold transition-colors ${createForm.published ? 'text-primary' : 'text-slate-600'}`}>Published</span>
+                    <p className="text-[10px] text-slate-400 font-medium">Assignment will be visible to students immediately</p>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full transition-colors relative ${createForm.published ? 'bg-primary' : 'bg-slate-300'}`}>
+                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${createForm.published ? 'translate-x-4' : ''}`} />
                   </div>
                 </label>
               </div>
