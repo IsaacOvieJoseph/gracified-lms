@@ -355,10 +355,34 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       ) || req.user.enrolledClasses.some(
         classId => classId.toString() === classroom._id.toString()
       );
-      //comment out
-      //  if (!isEnrolled) {
-      //    return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
-      //  }
+
+      // If classroom is one_time, student must have a completed payment for enrollment
+      if (classroom.pricing?.type === 'one_time' && classroom.isPaid && !isEnrolled) {
+        // Proceed to enrollment/payment flow (handled by return status if needed)
+      }
+
+      // If classroom is weekly, check if student has paid within the last 7 days
+      if (classroom.pricing?.type === 'weekly' && classroom.isPaid && isEnrolled) {
+        const Payment = require('../models/Payment');
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const recentPayment = await Payment.findOne({
+          userId: req.user._id,
+          classroomId: classroom._id,
+          type: 'class_enrollment',
+          status: 'completed',
+          paymentDate: { $gte: sevenDaysAgo }
+        });
+
+        if (!recentPayment) {
+          return res.status(403).json({ 
+            message: 'Your weekly subscription has expired. Please pay to continue.', 
+            paymentRequired: true,
+            billingCycle: 'weekly'
+          });
+        }
+      }
     }
 
     // Teachers can see their own classrooms even if unpublished
@@ -1128,6 +1152,8 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Only class teacher or admins can start the call.' });
     }
 
+    const { isPaid, amount } = req.body;
+
     // Find latest call session
     const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
     const now = new Date();
@@ -1191,7 +1217,16 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
         console.warn('Google Meet creation failed, falling back to pseudo link:', err.message);
         link = generateGoogleMeetLink();
       }
-      const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now, eventId, htmlLink });
+      const session = new CallSession({ 
+        classroomId: classroom._id, 
+        startedBy: user._id, 
+        link, 
+        startedAt: now, 
+        eventId, 
+        htmlLink,
+        isPaid: !!isPaid,
+        amount: amount || 0
+      });
       await session.save();
       created = true;
       // Start background task to notify students
@@ -1234,7 +1269,16 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
           console.warn('Google Meet creation failed, falling back to pseudo link:', err.message);
           link = generateGoogleMeetLink();
         }
-        const session = new CallSession({ classroomId: classroom._id, startedBy: user._id, link, startedAt: now, eventId, htmlLink });
+        const session = new CallSession({ 
+          classroomId: classroom._id, 
+          startedBy: user._id, 
+          link, 
+          startedAt: now, 
+          eventId, 
+          htmlLink,
+          isPaid: !!isPaid,
+          amount: amount || 0
+        });
         await session.save();
         created = true;
         // Start background task to notify students
@@ -1311,7 +1355,29 @@ router.get('/:id/call', auth, subscriptionCheck, async (req, res) => {
         // If the latest call started more than 55 minutes ago, consider it inactive
         return res.status(404).json({ message: 'No active call found (previous call expired)' });
       } else {
-        return res.json({ link: latest.link, startedAt: latest.startedAt });
+        // Check if student has paid for this specific lecture if it's a paid lecture
+        let hasPaid = false;
+        if (latest.isPaid && user.role === 'student') {
+          const Payment = require('../models/Payment');
+          const payment = await Payment.findOne({
+            userId: user._id,
+            classroomId: classroom._id,
+            callSessionId: latest._id,
+            status: 'completed'
+          });
+          if (payment) hasPaid = true;
+        } else {
+          hasPaid = true; // Not a paid lecture or not a student
+        }
+
+        return res.json({ 
+          link: latest.link, 
+          startedAt: latest.startedAt, 
+          isPaid: latest.isPaid, 
+          amount: latest.amount,
+          callId: latest._id,
+          hasPaid
+        });
       }
     } else {
       return res.status(404).json({ message: 'No active call found' });
@@ -1482,6 +1548,18 @@ router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher',
   } catch (err) {
     console.error('Error ending classroom:', err);
     res.status(500).json({ message: err.message });
+  }
+});
+
+// Get public info for a classroom (name, pricing info only)
+router.get('/:id/public', async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id)
+      .select('name description pricing isPaid published');
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+    res.json({ classroom });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

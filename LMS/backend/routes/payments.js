@@ -93,7 +93,8 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
       const isSubscription = payment.type === 'subscription';
 
       if (role === 'root_admin') {
-        message = `System Alert: ${isSubscription ? 'New Subscription' : payment.type === 'topic_access' ? 'Topic Access Purchase' : 'Class Enrollment'} of ${payment.amount} ${payment.currency || 'NGN'} from ${payerUser?.name || 'user'}.`;
+        const typeLabel = payment.type === 'topic_access' ? 'Topic Purchase' : (payment.type === 'lecture_access' ? 'Lecture Access' : 'Class Enrollment');
+        message = `System Alert: ${isSubscription ? 'New Subscription' : typeLabel} of ${payment.amount} ${payment.currency || 'NGN'} from ${payerUser?.name || 'user'}.`;
       } else if (role === 'school_admin' || role === 'personal_teacher') {
         if (String(user._id) === String(payerUser?._id)) {
           // They are the ones who paid (for subscription or potentially admin-student enrollment?)
@@ -104,6 +105,8 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
           if (payment.type === 'topic_access') {
             const topicName = payment.metadata?.get?.('allTopics') === 'true' ? 'All Topics' : 'a topic';
             message = `Topic Purchase: ${payerUser?.name || 'A student'} purchased access to ${topicName} in ${classroom?.name || 'your class'} (Amount: ${payment.amount} ${payment.currency || 'NGN'}).`;
+          } else if (payment.type === 'lecture_access') {
+             message = `Lecture Access Paid: ${payerUser?.name || 'A student'} paid to join a lecture in ${classroom?.name || 'your class'} (Amount: ${payment.amount} ${payment.currency || 'NGN'}).`;
           } else {
             message = `New Enrollment: ${payerUser?.name || 'A student'} joined ${classroom?.name || 'your class'} (Amount: ${payment.amount} ${payment.currency || 'NGN'}).`;
           }
@@ -111,12 +114,16 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
       } else if (role === 'teacher') {
         if (payment.type === 'topic_access') {
           message = `Topic Purchase: ${payerUser?.name || 'A student'} purchased access to a topic in your class "${classroom?.name || 'Class'}".`;
+        } else if (payment.type === 'lecture_access') {
+          message = `Lecture Access Paid: ${payerUser?.name || 'A student'} paid to join your lecture in "${classroom?.name || 'Class'}".`;
         } else {
           message = `Class Enrollment: ${payerUser?.name || 'A student'} joined your class "${classroom?.name || 'Class'}".`;
         }
       } else if (role === 'student') {
         if (payment.type === 'topic_access') {
           message = `Topic Access: You have successfully purchased access to ${payment.metadata?.get?.('allTopics') === 'true' ? 'all topics' : 'the topic'} in "${classroom?.name || 'the class'}". Total Paid: ₦${payment.amount}.`;
+        } else if (payment.type === 'lecture_access') {
+          message = `Lecture Access: You have successfully paid for the lecture in "${classroom?.name || 'the class'}". You can now join.`;
         } else {
           message = `Enrollment Successful: You have successfully enrolled in "${classroom?.name || 'the class'}". Total Paid: ₦${payment.amount}.`;
         }
@@ -200,6 +207,7 @@ router.post('/paystack/initiate', auth, async (req, res) => {
         classroomId: classroomId || null,
         topicId: (Array.isArray(req.body.topicIds) ? 'multi' : (topicId || null)),
         topicIds: Array.isArray(req.body.topicIds) ? req.body.topicIds.join(',') : '',
+        callSessionId: req.body.callSessionId || null,
         planId: planId || null
       },
       // optional return URL
@@ -255,6 +263,7 @@ router.get('/paystack/verify', auth, async (req, res) => {
       type: metadata.type || 'class_enrollment',
       classroomId: metadata.classroomId || null,
       topicId: (metadata.topicId && metadata.topicId !== 'all' && metadata.topicId !== 'multi') ? metadata.topicId : null,
+      callSessionId: metadata.callSessionId || null,
       planId: metadata.planId || null,
       amount: normalizedAmount || 0,
       currency: currency,
@@ -339,6 +348,16 @@ router.get('/paystack/verify', auth, async (req, res) => {
         await notifyRecipients({ payerUser, payment, classroom });
       } catch (notifyErr) {
         console.error('Error notifying recipients after topic access verify:', notifyErr.message);
+      }
+      }
+    } else if (payment.type === 'lecture_access' && payment.callSessionId) {
+      // Lecture access payment: notification only (access checked in join-call route)
+      try {
+        const payerUser = await User.findById(req.user._id).select('email name _id');
+        const classroom = await Classroom.findById(payment.classroomId);
+        await notifyRecipients({ payerUser, payment, classroom });
+      } catch (notifyErr) {
+        console.error('Error notifying recipients after lecture access verify:', notifyErr.message);
       }
     } else if (payment.type === 'subscription' && payment.planId) {
       const UserSubscription = require('../models/UserSubscription');
@@ -442,6 +461,7 @@ router.post('/paystack/webhook', express.raw({ type: 'application/json' }), asyn
       type: metadata.type || 'class_enrollment',
       classroomId: metadata.classroomId || null,
       topicId: (metadata.topicId && metadata.topicId !== 'all' && metadata.topicId !== 'multi') ? metadata.topicId : null,
+      callSessionId: metadata.callSessionId || null,
       amount: normalizedAmount || 0,
       paystackReference: reference,
       status: 'completed'

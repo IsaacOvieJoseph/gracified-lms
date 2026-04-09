@@ -7,10 +7,12 @@ const { isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelp
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { videoStorage } = require('../config/cloudinary');
+
 const router = express.Router();
 
 // ─── Multer – video uploads ──────────────────────────────────────────────────
-const videoStorage = multer.diskStorage({
+const localVideoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../uploads/topic-videos');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -23,7 +25,7 @@ const videoStorage = multer.diskStorage({
 });
 
 const videoUpload = multer({
-  storage: videoStorage,
+  storage: process.env.CLOUDINARY_CLOUD_NAME ? videoStorage : localVideoStorage,
   limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
   fileFilter: (req, file, cb) => {
     const allowed = /mp4|webm|ogg|mov|mkv|avi/i;
@@ -538,9 +540,7 @@ router.post('/:id/upload-video',
         return res.status(400).json({ message: 'No video file uploaded' });
       }
 
-      const protocol = req.protocol;
-      const host = req.get('host');
-      const videoUrl = `${protocol}://${host}/uploads/topic-videos/${req.file.filename}`;
+      const videoUrl = process.env.CLOUDINARY_CLOUD_NAME ? req.file.path : `${req.protocol}://${req.get('host')}/uploads/topic-videos/${req.file.filename}`;
       
       const newIndex = topic.recordedVideos.length;
       const newLabel = `Lecture ${newIndex + 1}`;
@@ -644,9 +644,14 @@ router.delete('/:id/videos/:videoId',
 
       const video = topic.recordedVideos[videoIndex];
       
-      const filePath = path.join(__dirname, '../uploads/topic-videos', path.basename(video.url));
-      if (video.videoType === 'file' && fs.existsSync(filePath)) {
-        try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+      if (!process.env.CLOUDINARY_CLOUD_NAME) {
+        const filePath = path.join(__dirname, '../uploads/topic-videos', path.basename(video.url));
+        if (video.videoType === 'file' && fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+        }
+      } else if (video.videoType === 'file') {
+        // If we wanted to delete from Cloudinary, we'd use cloudinary.uploader.destroy here
+        // but it requires keeping track of public_id. For now, we'll just remove from DB.
       }
 
       topic.recordedVideos.splice(videoIndex, 1);

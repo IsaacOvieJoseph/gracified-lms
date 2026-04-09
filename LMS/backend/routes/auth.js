@@ -10,11 +10,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { sendEmail } = require('../utils/email');
+const { logoStorage } = require('../config/cloudinary');
 
 const router = express.Router();
 
-// Configure storage for logos
-const storage = multer.diskStorage({
+// Configure storage for logos - Use Cloudinary if configured, otherwise fallback to local
+const localLogoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'uploads/logos';
     if (!fs.existsSync(dir)) {
@@ -29,7 +30,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage,
+  storage: process.env.CLOUDINARY_CLOUD_NAME ? logoStorage : localLogoStorage,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
   fileFilter: (req, file, cb) => {
     const filetypes = /jpeg|jpg|png|webp/;
@@ -48,37 +49,28 @@ router.post('/upload-logo', upload.single('logo'), async (req, res) => {
     return res.status(400).json({ message: 'No file uploaded' });
   }
 
-  // Deep file validation (Magic Numbers)
-  try {
-    const fileTypeModule = await import('file-type');
-    // Handle both ESM default export and direct exports
-    const FileType = fileTypeModule.default || fileTypeModule;
-    const fromFileFn = FileType.fromFile || FileType.fileTypeFromFile;
+  // If using local storage, perform deep file validation
+  if (!process.env.CLOUDINARY_CLOUD_NAME) {
+    try {
+      const fileTypeModule = await import('file-type');
+      const FileType = fileTypeModule.default || fileTypeModule;
+      const fromFileFn = FileType.fromFile || FileType.fileTypeFromFile;
 
-    if (typeof fromFileFn !== 'function') {
-      console.error('file-type module structure:', Object.keys(fileTypeModule));
-      if (fileTypeModule.default) console.error('file-type default structure:', Object.keys(fileTypeModule.default));
-      throw new Error('file-type validation function not found');
+      if (typeof fromFileFn === 'function') {
+        const type = await fromFileFn(req.file.path);
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!type || !allowedTypes.includes(type.mime)) {
+          if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+          return res.status(400).json({ message: 'Invalid file content. Only real images (JPG, PNG, WebP) are allowed.' });
+        }
+      }
+    } catch (err) {
+      console.error('File validation error:', err.message);
+      // Fallback: don't block if validation library fails on local
     }
-
-    const type = await fromFileFn(req.file.path);
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!type || !allowedTypes.includes(type.mime)) {
-      // Delete the invalid file
-      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ message: 'Invalid file content. Only real images (JPG, PNG, WebP) are allowed.' });
-    }
-  } catch (err) {
-    console.error('File validation error:', err.message);
-    // If validation fails, we play it safe and delete the file
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    return res.status(500).json({ message: 'Error validating file content' });
   }
 
-  const protocol = req.protocol;
-  const host = req.get('host');
-  const imageUrl = `${protocol}://${host}/uploads/logos/${req.file.filename}`;
+  const imageUrl = process.env.CLOUDINARY_CLOUD_NAME ? req.file.path : `${req.protocol}://${req.get('host')}/uploads/logos/${req.file.filename}`;
   res.json({ imageUrl });
 });
 

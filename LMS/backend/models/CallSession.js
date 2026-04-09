@@ -6,7 +6,8 @@ const callSessionSchema = new mongoose.Schema({
   link: { type: String, required: true },
   startedAt: { type: Date, default: Date.now },
   eventId: { type: String },
-  htmlLink: { type: String },
+  isPaid: { type: Boolean, default: false },
+  amount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('CallSession', callSessionSchema);

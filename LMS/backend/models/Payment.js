@@ -8,7 +8,7 @@ const paymentSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['class_enrollment', 'topic_access', 'subscription', 'personal_teacher_subscription'],
+    enum: ['class_enrollment', 'topic_access', 'subscription', 'personal_teacher_subscription', 'lecture_access'],
     required: true
   },
   classroomId: {
@@ -19,6 +19,11 @@ const paymentSchema = new mongoose.Schema({
   topicId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Topic',
+    default: null
+  },
+  callSessionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CallSession',
     default: null
   },
   amount: {

@@ -548,6 +548,7 @@ const ClassroomDetail = () => {
   const [paidTopicIds, setPaidTopicIds] = useState(new Set()); // IDs of topics user has paid for
   const [exams, setExams] = useState([]);
   const [activeTab, setActiveTab] = useState('topics'); // Default tab
+  const [weeklyPaymentRequired, setWeeklyPaymentRequired] = useState(false);
 
   useEffect(() => {
     fetchClassroom();
@@ -733,8 +734,17 @@ const ClassroomDetail = () => {
       // Also populate assignments to display them
       const response = await api.get(`/classrooms/${id}`);
       setClassroom(response.data.classroom);
+      setWeeklyPaymentRequired(false);
       fetchExams(); // Fetch exams after classroom is loaded
     } catch (error) {
+      if (error.response?.status === 403 && error.response?.data?.paymentRequired) {
+        setWeeklyPaymentRequired(true);
+        // We might want to fetch a public version of the classroom for name/styling
+        try {
+          const publicResp = await api.get(`/classrooms/${id}/public`);
+          setClassroom(publicResp.data.classroom);
+        } catch (e) {}
+      }
       console.error('Error fetching classroom:', error);
     } finally {
       if (!classroom) setLoading(false);
@@ -988,9 +998,25 @@ const ClassroomDetail = () => {
   };
 
   const handleStartZoom = async () => {
+    // If pricing is per_lecture, ask teacher if this session should be paid
+    let isPaidLecture = false;
+    let lecturePrice = 0;
+
+    if (classroom.pricing?.type === 'per_lecture') {
+      const confirmPaid = window.confirm("Is this a paid lecture? Students will need to pay to join.");
+      if (confirmPaid) {
+        isPaidLecture = true;
+        const price = window.prompt("Enter price for this lecture (NGN):", classroom.pricing.amount || 0);
+        if (price === null) return; // cancelled
+        lecturePrice = parseFloat(price);
+      }
+    }
+
     try {
-      // Start or get current Google Meet link for this class
-      const response = await api.post(`/classrooms/${id}/call/start`);
+      const response = await api.post(`/classrooms/${id}/call/start`, {
+        isPaid: isPaidLecture,
+        amount: lecturePrice
+      });
       const link = response.data.link;
       if (link) {
         const w = window.open(link, '_blank');
@@ -1014,24 +1040,81 @@ const ClassroomDetail = () => {
 
     try {
       const resp = await api.get(`/classrooms/${id}/call`);
-      const link = resp.data.link;
-      if (link) {
-        // Mark attendance silently
-        try {
-          if (user?.role === 'student') {
-            await api.post(`/classrooms/${id}/call/attend`, {}, { skipLoader: true });
-          }
-        } catch (attendErr) {
-          console.error('Failed to mark attendance:', attendErr);
-        }
+      const { link, isPaid, amount, callId, hasPaid } = resp.data;
 
-        const w = window.open(link, '_blank');
-        if (w) w.opener = null;
-      } else {
-        toast.error('No active lecture found');
+      if (!link) {
+        return toast.error('No active lecture found');
       }
+
+      if (isPaid && !hasPaid && user?.role === 'student') {
+        // Initiate payment for lecture
+        if (window.confirm(`This is a paid lecture. Pay ₦${amount} to join?`)) {
+          initiateLecturePayment(callId, amount);
+        }
+        return;
+      }
+
+      // Mark attendance silently
+      try {
+        if (user?.role === 'student') {
+          await api.post(`/classrooms/${id}/call/attend`, {}, { skipLoader: true });
+        }
+      } catch (attendErr) {
+        console.error('Failed to mark attendance:', attendErr);
+      }
+
+      const w = window.open(link, '_blank');
+      if (w) w.opener = null;
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error joining lecture');
+    }
+  };
+
+  const initiateLecturePayment = async (callId, amount) => {
+    try {
+      setIsProcessingPayment(true);
+      const resp = await api.post('/payments/paystack/initiate', {
+        amount,
+        classroomId: id,
+        callSessionId: callId,
+        type: 'lecture_access'
+      });
+
+      if (resp.data.authorization_url) {
+        // For web, we usually want to use PaystackPop if available
+        const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+        if (!pubKey || !window.PaystackPop) {
+          window.location.href = resp.data.authorization_url;
+          return;
+        }
+
+        const handleCallback = (response) => {
+          (async () => {
+            try {
+              await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
+              toast.success('Payment successful! You can now join the lecture.');
+              handleJoinCall(); // Try joining again
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Payment verification failed');
+            } finally {
+              setIsProcessingPayment(false);
+            }
+          })();
+        };
+
+        const handler = window.PaystackPop.setup({
+          key: pubKey,
+          email: user.email,
+          amount: Math.round(amount * 100),
+          ref: resp.data.reference,
+          callback: handleCallback,
+          onClose: () => setIsProcessingPayment(false)
+        });
+        handler.open();
+      }
+    } catch (err) {
+      toast.error('Failed to initiate payment');
+      setIsProcessingPayment(false);
     }
   };
 
@@ -1544,7 +1627,8 @@ const ClassroomDetail = () => {
                                 { value: 'per_lecture', label: 'Per Lecture' },
                                 { value: 'per_topic', label: 'Per Topic' },
                                 { value: 'weekly', label: 'Weekly' },
-                                { value: 'monthly', label: 'Monthly' }
+                                { value: 'monthly', label: 'Monthly' },
+                                { value: 'one_time', label: 'One Time Payment' }
                               ]}
                               value={{ value: editForm.pricingType, label: editForm.pricingType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
                               onChange={sel => setEditForm({ ...editForm, pricingType: sel?.value })}
@@ -1789,113 +1873,136 @@ const ClassroomDetail = () => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto mt-6 no-scrollbar">
-          {[
-            { id: 'topics', label: 'Topics', icon: Book },
-            ...((isEnrolled || canEdit) ? [
-              { id: 'assignments', label: 'Assignments', icon: FileText },
-              { id: 'exams', label: 'Exams', icon: GraduationCap },
-              { id: 'qna', label: 'Q&A Boards', icon: MessageSquare }
-            ] : []),
-            ...(canViewStudents ? [{ id: 'students', label: 'Students', icon: Users }] : [])
-          ].map(tab => (
+        {weeklyPaymentRequired && user?.role === 'student' && (
+          <div className="mt-8 p-10 bg-indigo-50 border-2 border-indigo-100 rounded-[2.5rem] text-center animate-in fade-in zoom-in slide-in-from-bottom-4 duration-500">
+            <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <CreditCard className="w-10 h-10 text-indigo-600" />
+            </div>
+            <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Weekly Subscription Expired</h3>
+            <p className="text-slate-600 mb-8 max-w-md mx-auto font-medium">
+              This classroom requires a sustaining fee of <span className="text-indigo-600 font-bold">{formatAmount(classroom?.pricing?.amount || 0)}</span> every 7 days. Please pay to continue accessing your course materials.
+            </p>
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${activeTab === tab.id
-                ? 'border-indigo-600 text-indigo-600 bg-indigo-50/30'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
+              onClick={handleEnrollmentPayment}
+              disabled={isProcessingPayment}
+              className="btn-premium px-12 py-4 rounded-2xl shadow-xl shadow-indigo-200"
             >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.id === 'exams' && exams.length > 0 && (
-                <span className="ml-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{exams.length}</span>
-              )}
+              {isProcessingPayment ? <Loader2 className="w-6 h-6 animate-spin" /> : `Pay Weekly Fee - ${formatAmount(classroom?.pricing?.amount || 0)}`}
             </button>
-          ))}
-        </div>
+          </div>
+        )}
 
-        {/* Tab Content */}
-        {activeTab === 'topics' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {/* Current Topic Display */}
-            {
-              (isEnrolled || canEdit) && classroom.currentTopicId && (
-                <TopicDisplay classroomId={id} />
-              )
-            }
+        {!weeklyPaymentRequired && (
+          <>
+            {/* Tab Navigation */}
+            <div className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto mt-6 no-scrollbar">
+              {[
+                { id: 'topics', label: 'Topics', icon: Book },
+                ...((isEnrolled || canEdit) ? [
+                  { id: 'assignments', label: 'Assignments', icon: FileText },
+                  { id: 'exams', label: 'Exams', icon: GraduationCap },
+                  { id: 'qna', label: 'Q&A Boards', icon: MessageSquare }
+                ] : []),
+                ...(canViewStudents ? [{ id: 'students', label: 'Students', icon: Users }] : [])
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center space-x-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${activeTab === tab.id
+                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/30'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.id === 'exams' && exams.length > 0 && (
+                    <span className="ml-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{exams.length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
 
-            {/* Topic Management Section */}
-            {
-              (isEnrolled || canEdit || (!isEnrolled && user?.role === 'student')) && (
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold">Topics</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {classroom.topics?.length || 0} topic{classroom.topics?.length !== 1 ? 's' : ''} created
-                      </p>
-                    </div>
-                    {canEdit && (
-                      <button
-                        onClick={() => navigate(`/classrooms/${id}/manage-topics`)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition shadow-md"
-                      >
-                        <Book className="w-4 h-4" />
-                        <span>Manage Topics</span>
-                      </button>
-                    )}
-                  </div>
+            {/* Tab Content */}
+            {activeTab === 'topics' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {/* Current Topic Display */}
+                {
+                  (isEnrolled || canEdit) && classroom.currentTopicId && (
+                    <TopicDisplay classroomId={id} />
+                  )
+                }
 
-                  <div className="space-y-3">
-                    {classroom.topics && classroom.topics.length > 0 ? (
-                      (() => {
-                        const sortedTopics = [...classroom.topics].sort((a, b) => (a.order || 0) - (b.order || 0));
-                        const activeIndex = sortedTopics.findIndex(t => t.status === 'active');
-                        let nextId = null;
-                        if (activeIndex !== -1) {
-                          const nextTopic = sortedTopics.find((t, i) => i > activeIndex && t.status === 'pending');
-                          if (nextTopic) nextId = nextTopic._id;
-                        } else {
-                          const firstPending = sortedTopics.find(t => t.status === 'pending');
-                          if (firstPending) nextId = firstPending._id;
-                        }
-
-                        return sortedTopics.map((topic, index) => {
-                          const isNext = topic._id === nextId;
-                          const isCurrent = topic.status === 'active';
-                          const isDone = topic.status === 'completed';
-                          const isPending = topic.status === 'pending' && !isNext;
-
-                          return (
-                            <TopicCardWithVideo
-                              key={topic._id}
-                              topic={topic}
-                              isCurrent={isCurrent}
-                              isDone={isDone}
-                              isNext={isNext}
-                              isPending={isPending}
-                            />
-                          );
-                        });
-
-                      })()
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <Book className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                        <p>No topics added yet</p>
+                {/* Topic Management Section */}
+                {
+                  (isEnrolled || canEdit || (!isEnrolled && user?.role === 'student')) && (
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <h3 className="text-xl font-semibold">Topics</h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {classroom.topics?.length || 0} topic{classroom.topics?.length !== 1 ? 's' : ''} created
+                          </p>
+                        </div>
                         {canEdit && (
-                          <p className="text-sm mt-1">Click "Manage Topics" to create your first topic</p>
+                          <button
+                            onClick={() => navigate(`/classrooms/${id}/manage-topics`)}
+                            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition shadow-md"
+                          >
+                            <Book className="w-4 h-4" />
+                            <span>Manage Topics</span>
+                          </button>
                         )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              )
-            }
-          </div>
+
+                      <div className="space-y-3">
+                        {classroom.topics && classroom.topics.length > 0 ? (
+                          (() => {
+                            const sortedTopics = [...classroom.topics].sort((a, b) => (a.order || 0) - (b.order || 0));
+                            const activeIndex = sortedTopics.findIndex(t => t.status === 'active');
+                            let nextId = null;
+                            if (activeIndex !== -1) {
+                              const nextTopic = sortedTopics.find((t, i) => i > activeIndex && t.status === 'pending');
+                              if (nextTopic) nextId = nextTopic._id;
+                            } else {
+                              const firstPending = sortedTopics.find(t => t.status === 'pending');
+                              if (firstPending) nextId = firstPending._id;
+                            }
+
+                            return sortedTopics.map((topic, index) => {
+                              const isNext = topic._id === nextId;
+                              const isCurrent = topic.status === 'active';
+                              const isDone = topic.status === 'completed';
+                              const isPending = topic.status === 'pending' && !isNext;
+
+                              return (
+                                <TopicCardWithVideo
+                                  key={topic._id}
+                                  topic={topic}
+                                  isCurrent={isCurrent}
+                                  isDone={isDone}
+                                  isNext={isNext}
+                                  isPending={isPending}
+                                />
+                              );
+                            });
+
+                          })()
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <Book className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <p>No topics added yet</p>
+                            {canEdit && (
+                              <p className="text-sm mt-1">Click "Manage Topics" to create your first topic</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+              </div>
+            )}
+          </>
         )}
 
         {activeTab === 'qna' && (
