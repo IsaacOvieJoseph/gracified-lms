@@ -8,6 +8,7 @@ import CreateAssignmentModal from '../components/CreateAssignmentModal';
 import GradeAssignmentModal from '../components/GradeAssignmentModal'; // Import the new modal component
 import SubmitAssignmentModal from '../components/SubmitAssignmentModal';
 import PaymentRequiredModal from '../components/PaymentRequiredModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { Edit, Trash2, X, Loader2 } from 'lucide-react';
 import { formatDisplayDate } from '../utils/timezone';
 

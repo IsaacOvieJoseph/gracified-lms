@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Book, Users, DollarSign, FileText, Calendar, ChevronDown, ChevronUp, Monitor, AlertCircle, Clock, School } from 'lucide-react';
+import { Book, Users, DollarSign, FileText, Calendar, ChevronDown, ChevronUp, Monitor, AlertCircle, Clock, School, Loader2 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [isRecentExpanded, setIsRecentExpanded] = useState(true);
   const [isMyClassesExpanded, setIsMyClassesExpanded] = useState(false);
   const [schoolModalOpen, setSchoolModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedSchools, setSelectedSchools] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('selectedSchools')) || [];
@@ -200,6 +201,8 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -218,7 +221,9 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-500 text-sm font-semibold mb-1">Classrooms</p>
-                <p className="text-3xl font-bold text-slate-900">{stats.classrooms}</p>
+                <div className="text-3xl font-bold text-slate-900">
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin text-primary/30" /> : stats.classrooms}
+                </div>
               </div>
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                 <Book className="w-6 h-6" />
@@ -231,7 +236,9 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-500 text-sm font-semibold mb-1">Students</p>
-                  <p className="text-3xl font-bold text-slate-900">{stats.students}</p>
+                  <div className="text-3xl font-bold text-slate-900">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-300" /> : stats.students}
+                  </div>
                 </div>
                 <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
                   <Users className="w-6 h-6" />
@@ -246,7 +253,9 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-slate-500 text-sm font-semibold mb-1">Payments</p>
-                    <p className="text-3xl font-bold text-slate-900">{stats.payments}</p>
+                    <div className="text-3xl font-bold text-slate-900">
+                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-amber-300" /> : stats.payments}
+                    </div>
                   </div>
                   <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
                     <DollarSign className="w-6 h-6" />
@@ -258,7 +267,9 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-slate-500 text-sm font-semibold mb-1">Assignments</p>
-                    <p className="text-3xl font-bold text-slate-900">{stats.assignments}</p>
+                    <div className="text-3xl font-bold text-slate-900">
+                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-indigo-300" /> : stats.assignments}
+                    </div>
                   </div>
                   <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
                     <FileText className="w-6 h-6" />

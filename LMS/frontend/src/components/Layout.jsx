@@ -5,13 +5,14 @@ import {
   Book, LogOut, Users, User, DollarSign, FileText,
   LayoutDashboard, Landmark, Bell, Menu, X,
   MessageSquare, BarChart2, Settings, ShieldCheck,
-  ChevronRight, Search, CreditCard, PieChart
+  ChevronRight, Search, CreditCard, PieChart, ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import SubscriptionBlockBanner from './SubscriptionBlockBanner';
 import SchoolSwitcher from './SchoolSwitcher';
 import FeedbackManager from './FeedbackManager';
+import OnboardingTour from './OnboardingTour';
 import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
@@ -147,6 +148,7 @@ const Layout = ({ children }) => {
           {navItems.map((item) => (
             <NavLink
               key={item.path}
+              id={`nav-${item.path.split('/')[1]}`}
               to={item.path}
               className={({ isActive }) => `
                 nav-link ${isActive ? 'active shadow-sm' : ''}
@@ -197,7 +199,14 @@ const Layout = ({ children }) => {
             >
               <Menu className="w-6 h-6 text-slate-600" />
             </button>
-            <div className="hidden md:flex items-center gap-2 text-slate-400">
+            <div className="hidden md:flex items-center gap-3 text-slate-400">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-primary hover:border-primary/30 hover:shadow-sm transition-all"
+                title="Go Back"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
               <LandingBreadcrumbs path={location.pathname} />
             </div>
           </div>
@@ -277,7 +286,7 @@ const Layout = ({ children }) => {
         </header>
 
         {/* Dynamic Canvas Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <main id="dashboard-main" className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           {shouldBlock && !isDashboard && (
             <div className="mb-6">
               <SubscriptionBlockBanner onViewPlans={() => navigate('/subscription-management')} user={user} />
@@ -315,6 +324,8 @@ const Layout = ({ children }) => {
           </div>
         </div>
       )}
+      {/* Onboarding Tour */}
+      <OnboardingTour user={user} />
     </div>
   );
 };
@@ -322,6 +333,14 @@ const Layout = ({ children }) => {
 const LandingBreadcrumbs = ({ path }) => {
   const parts = path.split('/').filter(Boolean);
   if (parts.length === 0) return <span className="text-primary cursor-default">Platform</span>;
+
+  const getName = (segment) => {
+    // Check if it's a MongoID (24 chars hex)
+    if (/^[0-9a-fA-F]{24}$/.test(segment)) {
+      return localStorage.getItem(`bc_${segment}`) || '...';
+    }
+    return segment.replace(/-/g, ' ');
+  };
 
   return (
     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest overflow-hidden">
@@ -334,20 +353,21 @@ const LandingBreadcrumbs = ({ path }) => {
       {parts.map((p, i) => {
         const linkPath = `/${parts.slice(0, i + 1).join('/')}`;
         const isLast = i === parts.length - 1;
+        const displayName = getName(p);
 
         return (
           <React.Fragment key={i}>
             <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
             {isLast ? (
               <span className="text-slate-800 truncate max-w-[150px]">
-                {p.replace('-', ' ')}
+                {displayName}
               </span>
             ) : (
               <Link
                 to={linkPath}
                 className="text-slate-400 hover:text-primary transition-colors truncate max-w-[150px]"
               >
-                {p.replace('-', ' ')}
+                {displayName}
               </Link>
             )}
           </React.Fragment>

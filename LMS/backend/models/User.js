@@ -110,6 +110,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  loginCount: {
+    type: Number,
+    default: 0,
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

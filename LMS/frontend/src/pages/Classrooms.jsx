@@ -5,7 +5,7 @@ import {
   Plus, Calendar, Users, User, Book, Video, Edit, Eye,
   EyeOff, Search, Trash2, Loader2, ChevronDown,
   ChevronRight, Clock, School, ArrowRight, Layers,
-  Filter, Sparkles, X
+  Filter, Sparkles, X, DollarSign
 } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal } from '../utils/timezone';
 import Select from 'react-select';
@@ -63,6 +63,8 @@ const Classrooms = () => {
     isPaid: false, teacherId: '', schoolIds: [], published: false, isPrivate: false
   });
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
+  const [selectedLevel, setSelectedLevel] = useState('All Levels');
+  const [selectedPrice, setSelectedPrice] = useState('All Prices');
 
   const [openMySchool, setOpenMySchool] = useState(true);
   const [openOthers, setOpenOthers] = useState(true);
@@ -103,7 +105,17 @@ const Classrooms = () => {
     let filtered = [...classrooms];
 
     if (selectedSubject !== 'All Subjects') {
-      filtered = filtered.filter(c => c.subject === selectedSubject);
+      filtered = filtered.filter(c => (c.subject?.name || c.subject) === selectedSubject);
+    }
+
+    if (selectedLevel !== 'All Levels') {
+      filtered = filtered.filter(c => c.level === selectedLevel);
+    }
+
+    if (selectedPrice === 'Free') {
+      filtered = filtered.filter(c => !c.isPaid);
+    } else if (selectedPrice === 'Paid') {
+      filtered = filtered.filter(c => c.isPaid);
     }
 
     if (searchQuery.trim() !== '') {
@@ -117,7 +129,7 @@ const Classrooms = () => {
     }
 
     setFilteredClassrooms(filtered);
-  }, [searchQuery, selectedSubject, classrooms]);
+  }, [searchQuery, selectedSubject, selectedLevel, selectedPrice, classrooms]);
 
   const fetchClassrooms = async () => {
     if (classrooms.length === 0) setLoading(true);
@@ -300,34 +312,52 @@ const Classrooms = () => {
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 group w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+          <div className="relative group w-full lg:col-span-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
             <input
               type="text"
-              placeholder="Filter by name, teacher or subject..."
+              placeholder="Search classes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 bg-white border-slate-200 h-12 shadow-sm focus:shadow-md"
             />
           </div>
-          <div className="w-full md:w-64">
+          
+          <div className="w-full">
             <Select
               options={[{ value: 'All Subjects', label: 'All Subjects' }, ...subjectOptions]}
               value={{ value: selectedSubject, label: selectedSubject }}
               onChange={(sel) => setSelectedSubject(sel?.value || 'All Subjects')}
               className="modern-select"
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  height: '48px',
-                  borderRadius: '0.75rem',
-                })
-              }}
-              components={{
-                DropdownIndicator: () => <Filter className="w-4 h-4 text-slate-400 mr-4" />,
-                IndicatorSeparator: () => null
-              }}
+              styles={{ control: (base) => ({ ...base, height: '48px', borderRadius: '0.75rem' }) }}
+              components={{ DropdownIndicator: () => <Filter className="w-4 h-4 text-slate-400 mr-4" />, IndicatorSeparator: () => null }}
+            />
+          </div>
+
+          <div className="w-full">
+            <Select
+              options={[{ value: 'All Levels', label: 'All Levels' }, ...levelOptions]}
+              value={{ value: selectedLevel, label: selectedLevel }}
+              onChange={(sel) => setSelectedLevel(sel?.value || 'All Levels')}
+              className="modern-select"
+              styles={{ control: (base) => ({ ...base, height: '48px', borderRadius: '0.75rem' }) }}
+              components={{ DropdownIndicator: () => <Layers className="w-4 h-4 text-slate-400 mr-4" />, IndicatorSeparator: () => null }}
+            />
+          </div>
+
+          <div className="w-full">
+            <Select
+              options={[
+                { value: 'All Prices', label: 'All Prices' },
+                { value: 'Free', label: 'Free Classes' },
+                { value: 'Paid', label: 'Paid Classes' }
+              ]}
+              value={{ value: selectedPrice, label: selectedPrice }}
+              onChange={(sel) => setSelectedPrice(sel?.value || 'All Prices')}
+              className="modern-select"
+              styles={{ control: (base) => ({ ...base, height: '48px', borderRadius: '0.75rem' }) }}
+              components={{ DropdownIndicator: () => <DollarSign className="w-4 h-4 text-slate-400 mr-4" />, IndicatorSeparator: () => null }}
             />
           </div>
         </div>
@@ -470,33 +500,38 @@ const Classrooms = () => {
                     </div>
                   )}
 
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
-                      Max Capacity
-                      <FormFieldHelp content="The maximum number of students allowed to enroll in this class." />
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.capacity}
-                      onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 30 })}
-                      className="w-full"
-                      min="1"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 md:col-span-2">
+                    {/* Max Capacity */}
+                    <div className="space-y-2">
+                       <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Limit</span>
+                        <FormFieldHelp content="The maximum number of students allowed to enroll in this class." />
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formData.capacity}
+                          onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 30 })}
+                          onWheel={(e) => e.target.blur()}
+                          className="w-full pl-4 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-600 focus:bg-white transition-all outline-none font-bold text-slate-700"
+                          min="1"
+                          placeholder="30"
+                        />
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                     {/* Private Toggle */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Visibility</span>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Visibility</span>
                         <FormFieldHelp content="Private classes won't appear in the global marketplace. Only students with a direct link can enroll." />
                       </div>
                       <label 
                         onClick={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
-                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${formData.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
                       >
-                        <span className={`text-sm font-bold transition-colors ${formData.isPrivate ? 'text-indigo-700' : 'text-slate-600'}`}>Private Class</span>
-                        <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                        <span className={`text-sm font-bold transition-colors ${formData.isPrivate ? 'text-indigo-700' : 'text-slate-600'}`}>Private</span>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
                           <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPrivate ? 'translate-x-4' : ''}`} />
                         </div>
                       </label>
@@ -505,15 +540,15 @@ const Classrooms = () => {
                     {/* Paid Toggle */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Fee</span>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Monetization</span>
                         <FormFieldHelp content="If enabled, students must pay the specified fee to access content or join lectures." />
                       </div>
                       <label 
                         onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
-                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${formData.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
                       >
                         <span className={`text-sm font-bold transition-colors ${formData.isPaid ? 'text-indigo-700' : 'text-slate-600'}`}>Paid Class</span>
-                        <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
                           <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
                         </div>
                       </label>
@@ -535,21 +570,40 @@ const Classrooms = () => {
                             { value: 'per_lecture', label: 'Per Lecture' },
                             { value: 'per_topic', label: 'Per Topic' },
                             { value: 'weekly', label: 'Weekly' },
-                            { value: 'monthly', label: 'Monthly' }
+                            { value: 'monthly', label: 'Monthly' },
+                            { value: 'one_time', label: 'One Time Payment' }
                           ]}
                           value={{ value: formData.pricing.type, label: formData.pricing.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
                           onChange={sel => setFormData({ ...formData, pricing: { ...formData.pricing, type: sel?.value } })}
-                          className="modern-select"
+                          menuPortalTarget={document.body}
+                          styles={{
+                            control: (base) => ({
+                              ...base,
+                              minHeight: '60px',
+                              borderRadius: '1rem',
+                              borderWidth: '2px',
+                              borderColor: '#F1F5F9',
+                              backgroundColor: '#F8FAFC',
+                              fontWeight: '700',
+                              '&:hover': { borderColor: '#E2E8F0' }
+                            }),
+                            menuPortal: base => ({ ...base, zIndex: 9999 })
+                          }}
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-primary uppercase tracking-wider">Amount (NGN)</label>
+                        <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
+                          Amount ({import.meta.env.VITE_CURRENCY || 'NGN'})
+                          <FormFieldHelp content="The fee students will pay based on the selected billing cycle." />
+                        </label>
                         <input
                           type="number"
                           value={formData.pricing.amount}
                           onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 } })}
-                          className="w-full border-primary/20 focus:ring-primary/20"
-                          placeholder="0.00"
+                          onWheel={(e) => e.target.blur()}
+                          className="w-full h-[60px] bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-primary focus:bg-white transition-all outline-none px-4 font-bold text-slate-700"
+                          min="0"
+                          placeholder="e.g. 5000"
                           required={formData.isPaid}
                         />
                       </div>
@@ -628,6 +682,32 @@ const Classrooms = () => {
                   <button type="submit" className="btn-premium flex-1">Launch Classroom</button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl animate-slide-up text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Classroom?</h3>
+            <p className="text-slate-500 mb-8">This action cannot be undone. All materials and student enrollments will be lost.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-6 py-3 rounded-xl bg-red-500 text-white font-bold shadow-lg shadow-red-100 hover:bg-red-600 transition"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

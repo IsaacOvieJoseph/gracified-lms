@@ -83,7 +83,7 @@ const Login = () => {
 
       {/* Right Form */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
-        <div className="w-full max-w-md animate-slide-up">
+        <div className="w-full max-w-lg animate-slide-up">
           <div className="lg:hidden text-center mb-8">
             <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-2xl shadow-lg mb-4" />
             <h1 className="text-2xl font-bold text-slate-900">Gracified LMS</h1>

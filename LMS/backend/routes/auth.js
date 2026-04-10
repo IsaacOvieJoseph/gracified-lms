@@ -315,6 +315,7 @@ router.post('/verify-otp', async (req, res) => {
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
+    user.loginCount = (user.loginCount || 0) + 1;
     await user.save();
 
     const token = jwt.sign(
@@ -336,7 +337,8 @@ router.post('/verify-otp', async (req, res) => {
         tutorialId: user.tutorialId,
         bankDetails: user.bankDetails,
         payoutPreference: user.payoutPreference,
-        profilePicture: user.profilePicture
+        profilePicture: user.profilePicture,
+        loginCount: user.loginCount
       }
     });
   } catch (error) {
@@ -406,6 +408,10 @@ router.post('/login', async (req, res) => {
       }
     }
 
+    // Increment loginCount
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'your-secret-key',
@@ -431,7 +437,8 @@ router.post('/login', async (req, res) => {
         profilePicture: user.profilePicture,
         bankDetails: user.bankDetails,
         payoutPreference: user.payoutPreference,
-        subscriptionPlan: user.subscriptionPlan
+        subscriptionPlan: user.subscriptionPlan,
+        loginCount: user.loginCount
       },
       trialExpired,
       subscriptionExpired,

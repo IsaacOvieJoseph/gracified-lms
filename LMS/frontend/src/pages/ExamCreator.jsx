@@ -79,6 +79,9 @@ const ExamCreator = () => {
                 ...exam,
                 questions: mappedQuestions
             });
+            if (exam.title) {
+                localStorage.setItem(`bc_${id}`, exam.title);
+            }
         } catch (error) {
             toast.error('Failed to fetch exam details');
             navigate('/exams');

@@ -735,6 +735,9 @@ const ClassroomDetail = () => {
       // Also populate assignments to display them
       const response = await api.get(`/classrooms/${id}`);
       setClassroom(response.data.classroom);
+      if (response.data.classroom?.name) {
+        localStorage.setItem(`bc_${id}`, response.data.classroom.name);
+      }
       setWeeklyPaymentRequired(false);
       fetchExams(); // Fetch exams after classroom is loaded
     } catch (error) {
@@ -1589,30 +1592,38 @@ const ClassroomDetail = () => {
                         </div>
                       )}
 
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Max Capacity</label>
-                        <input
-                          type="number"
-                          value={editForm.capacity}
-                          onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) || 30 })}
-                          className="w-full"
-                          min="1"
-                        />
-                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 md:col-span-2">
+                        {/* Max Capacity */}
+                        <div className="space-y-2">
+                           <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Limit</span>
+                            <FormFieldHelp content="The maximum number of students allowed to enroll in this class." />
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={editForm.capacity}
+                              onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) || 30 })}
+                              onWheel={(e) => e.target.blur()}
+                              className="w-full pl-4 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-600 focus:bg-white transition-all outline-none font-bold text-slate-700"
+                              min="1"
+                              placeholder="30"
+                            />
+                          </div>
+                        </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 md:col-span-2">
                         {/* Private Toggle */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Visibility</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Visibility</span>
                             <FormFieldHelp content="Private classes are not visible to the public. You must share direct links with students." />
                           </div>
                           <label 
                             onClick={() => setEditForm({ ...editForm, isPrivate: !editForm.isPrivate })}
-                            className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${editForm.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
                           >
                             <span className={`text-sm font-bold transition-colors ${editForm.isPrivate ? 'text-indigo-700' : 'text-slate-600'}`}>Private Class</span>
-                            <div className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
                               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPrivate ? 'translate-x-4' : ''}`} />
                             </div>
                           </label>
@@ -1621,15 +1632,15 @@ const ClassroomDetail = () => {
                         {/* Paid Toggle */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Fee</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Monetization</span>
                             <FormFieldHelp content="When enabled, you can set a price and billing cycle for this classroom." />
                           </div>
                           <label 
                             onClick={() => setEditForm({ ...editForm, isPaid: !editForm.isPaid })}
-                            className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${editForm.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
                           >
                             <span className={`text-sm font-bold transition-colors ${editForm.isPaid ? 'text-indigo-700' : 'text-slate-600'}`}>Paid Class</span>
-                            <div className={`w-10 h-6 rounded-full transition-colors relative ${editForm.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
                               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPaid ? 'translate-x-4' : ''}`} />
                             </div>
                           </label>
@@ -1656,21 +1667,33 @@ const ClassroomDetail = () => {
                               ]}
                               value={{ value: editForm.pricingType, label: editForm.pricingType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
                               onChange={sel => setEditForm({ ...editForm, pricingType: sel?.value })}
-                              className="modern-select"
                               menuPortalTarget={document.body}
-                              styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                              styles={{
+                                control: (base) => ({
+                                  ...base,
+                                  minHeight: '60px',
+                                  borderRadius: '1rem',
+                                  borderWidth: '2px',
+                                  borderColor: '#F1F5F9',
+                                  backgroundColor: '#F8FAFC',
+                                  fontWeight: '700',
+                                  '&:hover': { borderColor: '#E2E8F0' }
+                                }),
+                                menuPortal: base => ({ ...base, zIndex: 9999 })
+                              }}
                             />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
-                              Amount (NGN)
+                              Amount ({import.meta.env.VITE_CURRENCY || 'NGN'})
                               <FormFieldHelp content="The price students will pay based on the selected billing cycle." />
                             </label>
                             <input
                               type="number"
                               value={editForm.pricingAmount}
                               onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
-                              className="w-full border-primary/20 focus:ring-primary/20"
+                              onWheel={(e) => e.target.blur()}
+                              className="w-full h-[60px] bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-primary focus:bg-white transition-all outline-none px-4 font-bold text-slate-700"
                               placeholder="0.00"
                               required={editForm.isPaid}
                             />

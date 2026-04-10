@@ -148,7 +148,7 @@ const RegisterSchoolAdmin = () => {
 
       {/* Right Form */}
       <div className="flex-1 flex justify-center p-6 pt-10 pb-10 relative z-10">
-        <div className="w-full max-w-md animate-slide-up">
+        <div className="w-full max-w-lg animate-slide-up">
           <div className="lg:hidden text-center mb-8">
             <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-2xl shadow-lg mb-4" />
             <h1 className="text-2xl font-bold text-slate-900">Gracified LMS</h1>
@@ -201,7 +201,7 @@ const RegisterSchoolAdmin = () => {
                   name="schoolName"
                   value={formData.schoolName}
                   onChange={handleChange}
-                  placeholder="Excellence Academy"
+                  placeholder="e.g. Excellence Academy"
                   required
                   className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                 />
