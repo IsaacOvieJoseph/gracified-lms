@@ -36,11 +36,12 @@ import QnACenter from './pages/QnACenter';
 import QnAPresentation from './pages/QnAPresentation';
 import TopicManagement from './pages/TopicManagement';
 import PublicClassroom from './pages/PublicClassroom';
+import AdminSubscriptionPlans from './pages/AdminSubscriptionPlans'; // Import new AdminSubscriptionPlans component
 import { Toaster } from 'react-hot-toast';
 
 
 const PrivateRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, platformSettings } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -56,8 +57,10 @@ const PrivateRoute = ({ children }) => {
     return <Navigate to="/verify-email" state={{ email: user.email }} />;
   }
 
+  const isCheckingEnabled = platformSettings ? platformSettings.subscriptionCheckingEnabled : true;
+
   // If user is School Admin or Personal Teacher and trial is expired, redirect to subscription management
-  if ((user.role === 'school_admin' || user.role === 'personal_teacher') && user.trialExpired) {
+  if (isCheckingEnabled && (user.role === 'school_admin' || user.role === 'personal_teacher') && user.trialExpired) {
     return <Navigate to="/subscription-management" state={{ email: user.email }} />;
   }
 
@@ -248,6 +251,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <PlatformSettings />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/subscription-plans-admin"
+        element={
+          <PrivateRoute>
+            <AdminSubscriptionPlans />
           </PrivateRoute>
         }
       />

@@ -20,7 +20,8 @@ router.get('/', auth, async (req, res) => {
                 taxRate: 0,
                 vatRate: 0,
                 serviceFeeRate: 0,
-                subjects: defaultSubjects
+                subjects: defaultSubjects,
+                subscriptionCheckingEnabled: true
             });
         } else if (!settings.subjects || settings.subjects.length === 0) {
             // If settings exist but subjects are missing/empty, populate defaults
@@ -41,7 +42,7 @@ router.put('/', auth, async (req, res) => {
             return res.status(403).json({ message: 'Access denied' });
         }
 
-        const { taxRate, vatRate, serviceFeeRate, subjects } = req.body;
+        const { taxRate, vatRate, serviceFeeRate, subjects, subscriptionCheckingEnabled } = req.body;
 
         let settings = await Settings.findOne();
         if (settings) {
@@ -49,6 +50,7 @@ router.put('/', auth, async (req, res) => {
             settings.vatRate = vatRate !== undefined ? vatRate : settings.vatRate;
             settings.serviceFeeRate = serviceFeeRate !== undefined ? serviceFeeRate : settings.serviceFeeRate;
             if (subjects) settings.subjects = subjects;
+            if (subscriptionCheckingEnabled !== undefined) settings.subscriptionCheckingEnabled = subscriptionCheckingEnabled;
             settings.updatedBy = req.user._id;
             await settings.save();
         } else {
@@ -57,6 +59,7 @@ router.put('/', auth, async (req, res) => {
                 vatRate,
                 serviceFeeRate,
                 subjects,
+                subscriptionCheckingEnabled: subscriptionCheckingEnabled !== undefined ? subscriptionCheckingEnabled : true,
                 updatedBy: req.user._id
             });
         }

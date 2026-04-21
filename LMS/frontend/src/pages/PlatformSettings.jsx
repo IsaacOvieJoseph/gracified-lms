@@ -10,7 +10,8 @@ const PlatformSettings = () => {
     const [settings, setSettings] = useState({
         taxRate: 0,
         vatRate: 0,
-        serviceFeeRate: 0
+        serviceFeeRate: 0,
+        subscriptionCheckingEnabled: true
     });
 
     useEffect(() => {
@@ -70,6 +71,22 @@ const PlatformSettings = () => {
                     </div>
 
                     <form onSubmit={handleSave} className="p-8 space-y-8">
+                        {/* Subscription Checking Toggle */}
+                        <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                            <div>
+                                <h4 className="font-bold text-slate-900">Enable Subscription Checking</h4>
+                                <p className="text-sm text-slate-500 font-medium">When disabled, all users will have full access regardless of their subscription status.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setSettings({ ...settings, subscriptionCheckingEnabled: !settings.subscriptionCheckingEnabled })}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.subscriptionCheckingEnabled ? 'bg-primary' : 'bg-slate-300'}`}
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.subscriptionCheckingEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                                />
+                            </button>
+                        </div>
                         <div className="grid grid-cols-1 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">

@@ -16,7 +16,7 @@ import OnboardingTour from './OnboardingTour';
 import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, refreshUser, platformSettings } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -112,6 +112,7 @@ const Layout = ({ children }) => {
     ...(['root_admin', 'school_admin'].includes(user?.role) ? [{ path: '/schools', icon: Landmark, label: 'Schools' }] : []),
     ...(user?.role === 'root_admin' ? [
       { path: '/disbursements', icon: Landmark, label: 'Disbursements' },
+      { path: '/subscription-plans-admin', icon: CreditCard, label: 'Subscription Plans' },
       { path: '/feedbacks', icon: MessageSquare, label: 'Feedbacks' },
       { path: '/platform-settings', icon: Settings, label: 'Platform Settings' }
     ] : []),
@@ -119,7 +120,9 @@ const Layout = ({ children }) => {
 
   const isDashboard = location.pathname === '/dashboard';
   let shouldBlock = false;
-  if (user && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
+  const isCheckingEnabled = platformSettings ? platformSettings.subscriptionCheckingEnabled : true;
+
+  if (isCheckingEnabled && user && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
     if (user.subscriptionStatus !== 'pay_as_you_go') {
       const trialValid = user.subscriptionStatus === 'trial' && user.trialEndDate && new Date(user.trialEndDate) > new Date() && !user.trialExpired;
       const activeValid = user.subscriptionStatus === 'active' && !user.subscriptionExpired;

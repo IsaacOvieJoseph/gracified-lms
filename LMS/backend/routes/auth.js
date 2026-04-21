@@ -399,7 +399,12 @@ router.post('/login', async (req, res) => {
     // Check subscription status for School Admin and Personal Teacher
     let trialExpired = false;
     let subscriptionExpired = false;
-    if ((user.role === 'school_admin' || user.role === 'personal_teacher')) {
+
+    const Settings = require('../models/Settings');
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
+    if (isCheckingEnabled && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
       if (user.subscriptionStatus === 'trial' && user.trialEndDate && user.trialEndDate < Date.now()) {
         trialExpired = true;
       }
@@ -461,7 +466,12 @@ router.get('/me', auth, async (req, res) => {
     // Check subscription status for School Admin and Personal Teacher
     let trialExpired = false;
     let subscriptionExpired = false;
-    if ((user.role === 'school_admin' || user.role === 'personal_teacher')) {
+
+    const Settings = require('../models/Settings');
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
+    if (isCheckingEnabled && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
       if (user.subscriptionStatus === 'trial' && user.trialEndDate && user.trialEndDate < Date.now()) {
         trialExpired = true;
       }

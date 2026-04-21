@@ -21,6 +21,10 @@ const settingsSchema = new mongoose.Schema({
             'Literature', 'Art', 'Music', 'Physical Education'
         ]
     },
+    subscriptionCheckingEnabled: {
+        type: Boolean,
+        default: true
+    },
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

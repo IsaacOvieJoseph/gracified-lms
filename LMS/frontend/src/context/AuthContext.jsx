@@ -7,6 +7,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [platformSettings, setPlatformSettings] = useState(null);
   // const navigate = useNavigate(); // Remove useNavigate instantiation
 
   useEffect(() => {
@@ -19,7 +20,17 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/settings');
+      setPlatformSettings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch platform settings:', error);
+    }
+  };
 
   const verifyToken = async () => {
     const existingToken = localStorage.getItem('token');
@@ -123,7 +134,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout, refreshUser, platformSettings, refreshSettings: fetchSettings }}>
       {children}
     </AuthContext.Provider>
   );

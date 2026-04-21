@@ -101,4 +101,57 @@ router.patch('/:id/status', auth, authorize('root_admin', 'school_admin'), async
   }
 });
 
+// Issue free access to users (Root Admin only)
+router.post('/issue-free-access', auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const { userIds, durationDays } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'User IDs are required and must be an array' });
+    }
+
+    if (!durationDays || isNaN(durationDays)) {
+      return res.status(400).json({ message: 'Duration in days is required' });
+    }
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + parseInt(durationDays));
+
+    const results = [];
+    for (const userId of userIds) {
+      const user = await User.findById(userId);
+      if (!user) {
+        results.push({ userId, status: 'error', message: 'User not found' });
+        continue;
+      }
+
+      // Update or create subscription
+      await UserSubscription.findOneAndUpdate(
+        { userId },
+        { 
+          status: 'active', 
+          startDate, 
+          endDate, 
+          paymentId: null, 
+          stripeSubscriptionId: 'free_access_by_admin' 
+        },
+        { new: true, upsert: true }
+      );
+
+      // Update user fields
+      user.subscriptionStatus = 'active';
+      user.subscriptionStartDate = startDate;
+      user.subscriptionEndDate = endDate;
+      await user.save();
+
+      results.push({ userId, status: 'success' });
+    }
+
+    res.json({ message: 'Free access issued successfully', results });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

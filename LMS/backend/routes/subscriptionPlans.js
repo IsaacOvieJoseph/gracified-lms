@@ -6,7 +6,11 @@ const router = express.Router();
 // Get all subscription plans
 router.get('/', auth, async (req, res) => {
   try {
-    const plans = await SubscriptionPlan.find({ isActive: true });
+    let query = { isActive: true };
+    if (req.user && req.user.role === 'root_admin') {
+      query = {}; // Root admin sees all plans
+    }
+    const plans = await SubscriptionPlan.find(query);
     res.json({ plans });
   } catch (error) {
     res.status(500).json({ message: error.message });
