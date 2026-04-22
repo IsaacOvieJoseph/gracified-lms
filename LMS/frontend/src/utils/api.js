@@ -25,6 +25,7 @@ api.interceptors.request.use((config) => {
     config.skipLoader || // Allow manual opt-out
     config.url.includes('/notifications') ||
     config.url.includes('/auth/me') ||
+    config.url.includes('/settings') ||
     config.url.includes('/whiteboard');
 
   if (!isBackgroundCall) {

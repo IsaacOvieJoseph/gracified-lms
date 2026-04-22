@@ -103,6 +103,10 @@ const classroomSchema = new mongoose.Schema({
     ref: 'Topic',
     default: null
   },
+  introVideo: {
+    type: String, // URL to intro video (YouTube, Vimeo, etc.)
+    default: null
+  },
   shortCode: {
     type: String,
     unique: true,

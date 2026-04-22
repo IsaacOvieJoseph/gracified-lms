@@ -36,6 +36,7 @@ import QnACenter from './pages/QnACenter';
 import QnAPresentation from './pages/QnAPresentation';
 import TopicManagement from './pages/TopicManagement';
 import PublicClassroom from './pages/PublicClassroom';
+import PublicSchool from './pages/PublicSchool';
 import AdminSubscriptionPlans from './pages/AdminSubscriptionPlans'; // Import new AdminSubscriptionPlans component
 import { Toaster } from 'react-hot-toast';
 
@@ -70,7 +71,13 @@ const PrivateRoute = ({ children }) => {
 const RegisterChoice = () => {
   const { user } = useAuth();
   const location = useLocation();
-  if (user) return <Navigate to="/dashboard" />;
+  
+  const getRedirectPath = () => {
+    const params = new URLSearchParams(location.search);
+    return params.get('redirect') || '/dashboard';
+  };
+
+  if (user) return <Navigate to={getRedirectPath()} replace />;
 
   const search = location.search;
 
@@ -126,7 +133,7 @@ const RegisterChoice = () => {
         <div className="mt-8 text-center pt-6 border-t border-gray-100">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="font-bold text-indigo-600 hover:text-indigo-500 transition-colors">
+            <Link to={`/login${location.search}`} className="font-bold text-indigo-600 hover:text-indigo-500 transition-colors">
               Sign In
             </Link>
           </p>
@@ -138,12 +145,20 @@ const RegisterChoice = () => {
 
 const AppRoutes = () => {
   const { user } = useAuth();
+  const location = useLocation();
+
+  // Helper to determine where to redirect after login/signup
+  const getRedirectPath = () => {
+    const params = new URLSearchParams(location.search);
+    return params.get('redirect') || '/dashboard';
+  };
 
   return (
     <Routes>
-      <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to={getRedirectPath()} replace />} />
       <Route path="/register" element={<RegisterChoice />} />
       <Route path="/c/:shortCode" element={<PublicClassroom />} />
+      <Route path="/s/:identifier" element={<PublicSchool />} />
       <Route path="/register/student" element={<RegisterStudent />} />
       <Route path="/register/school-admin" element={<RegisterSchoolAdmin />} />
       <Route path="/register/personal-teacher" element={<RegisterPersonalTeacher />} />

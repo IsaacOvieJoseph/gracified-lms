@@ -43,11 +43,42 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
   }
 });
 
-// GET PUBLIC SCHOOLS (For Registration)
+// GET PUBLIC SCHOOLS (For Registration lists)
 router.get('/public', async (req, res) => {
   try {
     const schools = await School.find().select('_id name');
     res.json({ schools });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET PUBLIC SCHOOL BY IDENTIFIER (shortCode or ID)
+router.get('/public/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const mongoose = require('mongoose');
+    let school = await School.findOne({ shortCode: identifier });
+
+    if (!school && mongoose.Types.ObjectId.isValid(identifier)) {
+      school = await School.findById(identifier);
+    }
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found' });
+    }
+
+    // Populate admin info and fetch classrooms
+    const populatedSchool = await School.findById(school._id).populate('adminId', 'name email');
+    const Classroom = require('../models/Classroom');
+    const classrooms = await Classroom.find({ schoolId: school._id, published: true })
+      .populate('teacherId', 'name')
+      .select('name description subject level shortCode pricing isPaid');
+
+    res.json({
+      school: populatedSchool,
+      classrooms
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -70,7 +101,7 @@ router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) 
     const formatted = schools.map((s) => ({
       _id: s._id,
       name: s.name,
-
+      shortCode: s.shortCode,
       admin: s.adminId
         ? { name: s.adminId.name, email: s.adminId.email }
         : null,
@@ -101,7 +132,8 @@ router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, re
     res.json({
       _id: s._id,
       name: s.name,
-      admin: s.adminId,
+      admin: s.adminId, // Note: This is populated as an object
+      shortCode: s.shortCode,
       createdAt: s.createdAt,
     });
   } catch (err) {

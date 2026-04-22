@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   Users, Calendar, Clock, BookOpen, ChevronRight, 
   CheckCircle2, Info, GraduationCap, MapPin, Globe,
-  ShieldCheck, ArrowRight, Share2, Star
+  ShieldCheck, ArrowRight, Share2, Star, Building2
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -58,8 +58,8 @@ const PublicClassroom = () => {
       navigate(`/classrooms/${classroom._id}`);
       return;
     }
-    // Redirect to login with a fallback to return here after auth
-    navigate(`/login?redirect=/c/${shortCode}`);
+    // Redirect to login with a fallback to return to the PRIVATE classroom view after auth
+    navigate(`/login?redirect=/classrooms/${classroom._id}`);
   };
 
   const handleShare = () => {
@@ -100,6 +100,22 @@ const PublicClassroom = () => {
   const teacher = classroom.teacherId;
   const school = classroom.schoolId?.[0]; // Assuming at least one school association
 
+  const getEmbedUrl = (url) => {
+    if (!url) return null;
+    let videoId = '';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop();
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    if (url.includes('vimeo.com')) {
+      videoId = url.split('/').pop();
+      return `https://player.vimeo.com/video/${videoId}`;
+    }
+    return url;
+  };
+
+  const embedUrl = getEmbedUrl(classroom.introVideo);
+
   return (
     <div className="min-h-screen bg-white font-inter selection:bg-indigo-100 selection:text-indigo-900">
       {/* Dynamic Header / Hero Area */}
@@ -114,9 +130,13 @@ const PublicClassroom = () => {
               Featured Class
             </span>
             {school && (
-                <span className="px-4 py-1.5 rounded-full bg-white/10 text-white/80 text-[10px] font-black uppercase tracking-[0.2em] backdrop-blur-sm">
-                   {school.name}
-                </span>
+                <Link 
+                  to={`/s/${school.shortCode || school._id}`}
+                  className="px-4 py-1.5 rounded-full bg-white/10 text-white/90 text-[10px] font-black uppercase tracking-[0.2em] backdrop-blur-md hover:bg-white/20 transition-all flex items-center gap-2 border border-white/10"
+                >
+                   <Building2 className="w-3 h-3" />
+                   <span>{school.name} Portal</span>
+                </Link>
             )}
           </div>
 
@@ -145,7 +165,7 @@ const PublicClassroom = () => {
                    </div>
                    <div>
                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Type</p>
-                     <p className="text-lg font-black uppercase tracking-tight">{classroom.pricing?.type.replace('_', ' ')}</p>
+                      <p className="text-lg font-black uppercase tracking-tight">{classroom.pricing?.type?.replace('_', ' ') || 'Class'}</p>
                    </div>
                 </div>
               </div>
@@ -169,9 +189,9 @@ const PublicClassroom = () => {
                   <div className="space-y-6">
                     <div className="flex items-baseline gap-2">
                        <span className="text-4xl font-black text-slate-900">
-                         {classroom.isPaid ? `₦${classroom.pricing.amount.toLocaleString()}` : "Free"}
+                         {classroom.isPaid ? `₦${classroom.pricing?.amount?.toLocaleString() || 0}` : "Free"}
                        </span>
-                       {classroom.isPaid && <span className="text-slate-400 font-bold text-sm">One-time Access</span>}
+                       {classroom.isPaid && <span className="text-slate-400 font-bold text-sm">Access Fee</span>}
                     </div>
 
                     <div className="space-y-4">
@@ -209,6 +229,23 @@ const PublicClassroom = () => {
           </div>
         </div>
       </div>
+
+      {/* Intro Video Section */}
+      {embedUrl && (
+        <div className="max-w-5xl mx-auto px-6 -mt-16 relative z-10">
+          <div className="bg-slate-900 rounded-[3rem] p-2 shadow-2xl shadow-indigo-500/20 border border-white/5 overflow-hidden group">
+            <div className="relative aspect-video rounded-[2.5rem] overflow-hidden bg-black">
+              <iframe
+                src={embedUrl}
+                title="Course Preview"
+                className="absolute inset-0 w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Course Content Section */}
       <div className="max-w-7xl mx-auto px-6 py-32">
@@ -266,11 +303,11 @@ const PublicClassroom = () => {
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-8 border-b border-white/5 pb-4">Instructor</h4>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-16 h-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center text-2xl font-black text-indigo-400 backdrop-blur-md">
-                       {teacher?.name?.charAt(0)}
+                       {teacher?.name?.charAt(0) || <Users className="w-8 h-8" />}
                     </div>
                     <div>
-                       <h5 className="text-xl font-black tracking-tight">{teacher?.name}</h5>
-                       <p className="text-sm text-indigo-400 font-bold capitalize">{teacher?.role.replace('_', ' ')}</p>
+                       <h5 className="text-xl font-black tracking-tight">{teacher?.name || 'TBA'}</h5>
+                       <p className="text-sm text-indigo-400 font-bold capitalize">{teacher?.role?.replace('_', ' ') || 'Instructor'}</p>
                     </div>
                   </div>
                   <div className="space-y-4 pt-4">

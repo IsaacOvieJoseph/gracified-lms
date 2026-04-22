@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +23,7 @@ const RegisterPersonalTeacher = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   useEffect(() => {
     // Listen for school selection changes
@@ -93,7 +94,9 @@ const RegisterPersonalTeacher = () => {
         navigate('/verify-email', { state: { email: formData.email } });
       } else if (response.data.token) {
         login(response.data.token, response.data.user);
-        navigate('/dashboard');
+        const params = new URLSearchParams(location.search);
+        const redirectTo = params.get('redirect') || '/dashboard';
+        navigate(redirectTo);
       }
     } catch (err) {
       console.error('Registration error:', err);
@@ -293,7 +296,7 @@ const RegisterPersonalTeacher = () => {
             <div className="mt-8 pt-6 border-t border-slate-200">
               <p className="text-sm text-slate-600 text-center">
                 Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+                <Link to={`/login${location.search}`} className="font-semibold text-primary hover:text-primary/80 transition-colors">
                   Sign in here
                 </Link>
               </p>
@@ -304,13 +307,13 @@ const RegisterPersonalTeacher = () => {
               <p className="text-xs text-slate-500 text-center mb-4">Other account types</p>
               <div className="grid grid-cols-2 gap-3">
                 <Link
-                  to="/register/student"
+                  to={`/register/student${location.search}`}
                   className="btn-secondary text-sm py-2 justify-center"
                 >
                   Student
                 </Link>
                 <Link
-                  to="/register/school-admin"
+                  to={`/register/school-admin${location.search}`}
                   className="btn-secondary text-sm py-2 justify-center"
                 >
                   School Admin

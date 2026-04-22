@@ -15,9 +15,21 @@ const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
 // Public: Get classroom by shortCode for preview
-router.get('/public/:shortCode', async (req, res) => {
+router.get('/public/:identifier', async (req, res) => {
   try {
-    const classroom = await Classroom.findOne({ shortCode: req.params.shortCode })
+    const { identifier } = req.params;
+    let classroom = await Classroom.findOne({ shortCode: identifier });
+
+    // Fallback to searching by ID if not found by shortCode
+    if (!classroom && require('mongoose').Types.ObjectId.isValid(identifier)) {
+      classroom = await Classroom.findById(identifier);
+    }
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    const populatedClassroom = await Classroom.findById(classroom._id)
       .populate({
         path: 'teacherId',
         select: 'name email role subscriptionStatus trialEndDate tutorialId',
@@ -36,19 +48,15 @@ router.get('/public/:shortCode', async (req, res) => {
         }
       });
 
-    if (!classroom) {
-      return res.status(404).json({ message: 'Classroom not found' });
-    }
-
-    if (!classroom.published) {
+    if (!populatedClassroom.published) {
       return res.status(403).json({ message: 'Classroom is not currently active for public preview.' });
     }
 
-    if (classroom.isPrivate) {
+    if (populatedClassroom.isPrivate) {
       return res.status(403).json({ message: 'This is a private classroom and cannot be previewed via public link. Kindly reach out to your class coordinator or teacher for access.' });
     }
 
-    res.json({ classroom });
+    res.json({ classroom: populatedClassroom });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -317,7 +325,7 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       })
       .populate({
         path: 'schoolId',
-        select: 'name adminId',
+        select: 'name adminId shortCode logoUrl',
         populate: {
           path: 'adminId',
           select: 'name email subscriptionStatus trialEndDate'
@@ -436,7 +444,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       teacherId,
       schoolId,
       published,
-      isPrivate
+      isPrivate,
+      introVideo
     } = req.body;
 
     // Validate schedule array
@@ -549,7 +558,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       teacherId: finalTeacherId,
       schoolId: finalSchoolId,
       published: published !== undefined ? published : false,
-      isPrivate: isPrivate !== undefined ? isPrivate : false
+      isPrivate: isPrivate !== undefined ? isPrivate : false,
+      introVideo
     });
 
     await classroom.save();
@@ -611,7 +621,7 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate } = req.body;
+    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate, introVideo } = req.body;
 
     if (name) classroom.name = name;
     if (description) classroom.description = description;
@@ -1551,12 +1561,48 @@ router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher',
   }
 });
 
-// Get public info for a classroom (name, pricing info only)
+// Get public information for a classroom by shortCode or ID
+router.get('/public/:shortCode', async (req, res) => {
+  try {
+    const { shortCode } = req.params;
+    const mongoose = require('mongoose');
+
+    let classroom = await Classroom.findOne({ shortCode })
+      .populate('teacherId', 'name role')
+      .populate('schoolId', 'name logoUrl shortCode')
+      .populate('topics', 'name description status order')
+      .lean();
+
+    if (!classroom && mongoose.Types.ObjectId.isValid(shortCode)) {
+      classroom = await Classroom.findById(shortCode)
+        .populate('teacherId', 'name role')
+        .populate('schoolId', 'name logoUrl shortCode')
+        .populate('topics', 'name description status order')
+        .lean();
+    }
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    res.json({ classroom });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get public info for a classroom (legacy search by ID)
 router.get('/:id/public', async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id)
-      .select('name description pricing isPaid published');
-    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+       .populate('teacherId', 'name role')
+       .populate('schoolId', 'name logoUrl shortCode')
+       .populate('topics', 'name description status order')
+       .lean();
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
     res.json({ classroom });
   } catch (error) {
     res.status(500).json({ message: error.message });

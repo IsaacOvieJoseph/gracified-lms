@@ -4,7 +4,7 @@ const Settings = require('../models/Settings');
 const { auth } = require('../middleware/auth');
 
 // Get current settings
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         let settings = await Settings.findOne();
 

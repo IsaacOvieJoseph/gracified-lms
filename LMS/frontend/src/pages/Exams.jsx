@@ -74,8 +74,9 @@ const Exams = () => {
         }
     };
 
-    const copyLink = (token) => {
-        const link = `${window.location.origin}/exam-center/${token}`;
+    const copyLink = (exam) => {
+        const identifier = exam.linkToken || exam._id;
+        const link = `${window.location.origin}/exam-center/${identifier}`;
         navigator.clipboard.writeText(link);
         toast.success('Exam link copied to clipboard!');
     };
@@ -250,7 +251,7 @@ const Exams = () => {
                                                         <>
                                                             {exam.submissionStatus === 'not-started' ? (
                                                                 <Link
-                                                                    to={`/exam-center/${exam.linkToken}`}
+                                                                    to={`/exam-center/${exam.linkToken || exam._id}`}
                                                                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 transition-all flex items-center space-x-2 shadow-md shadow-indigo-100"
                                                                 >
                                                                     <span>Start Exam</span>
@@ -258,7 +259,7 @@ const Exams = () => {
                                                                 </Link>
                                                             ) : (
                                                                 <Link
-                                                                    to={`/exam-center/${exam.linkToken}`} // Redirects to result screen if already done
+                                                                    to={`/exam-center/${exam.linkToken || exam._id}`} // Redirects to result screen if already done
                                                                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-200 transition-all flex items-center space-x-2"
                                                                 >
                                                                     <Eye className="w-4 h-4" />
@@ -269,7 +270,7 @@ const Exams = () => {
                                                     ) : (
                                                         <>
                                                             <button
-                                                                onClick={() => copyLink(exam.linkToken)}
+                                                                onClick={() => copyLink(exam)}
                                                                 className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors group/btn"
                                                                 title="Copy Exam Link"
                                                             >

@@ -267,7 +267,7 @@ const RegisterStudent = () => {
             <div className="mt-8 pt-6 border-t border-slate-200">
               <p className="text-sm text-slate-600 text-center">
                 Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+                <Link to={`/login${location.search}`} className="font-semibold text-primary hover:text-primary/80 transition-colors">
                   Sign in here
                 </Link>
               </p>
@@ -278,13 +278,13 @@ const RegisterStudent = () => {
               <p className="text-xs text-slate-500 text-center mb-4">Other account types</p>
               <div className="grid grid-cols-2 gap-3">
                 <Link
-                  to="/register/school-admin"
+                  to={`/register/school-admin${location.search}`}
                   className="btn-secondary text-sm py-2 justify-center"
                 >
                   School Admin
                 </Link>
                 <Link
-                  to="/register/personal-teacher"
+                  to={`/register/personal-teacher${location.search}`}
                   className="btn-secondary text-sm py-2 justify-center"
                 >
                   Teacher

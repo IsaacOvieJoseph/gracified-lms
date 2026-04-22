@@ -144,7 +144,7 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
 
                                 <div className="flex flex-col gap-2">
                                     <button
-                                        onClick={() => handleOpenNewWindow(`/qna/${board.shareableLink}`)}
+                                        onClick={() => handleOpenNewWindow(`/qna/${board.shareableLink || board._id}`)}
                                         className="flex justify-center flex-1 items-center space-x-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition text-sm font-medium"
                                     >
                                         <ExternalLink className="w-4 h-4" />
@@ -154,14 +154,14 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
                                     {canEdit && (
                                         <div className="flex justify-center items-center gap-2 mt-1">
                                             <button
-                                                onClick={() => handleCopyLink(board.shareableLink)}
+                                                onClick={() => handleCopyLink(board.shareableLink || board._id)}
                                                 className="flex-1 flex justify-center items-center space-x-1 px-2 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded transition"
                                             >
                                                 <Copy className="w-3.5 h-3.5" />
                                                 <span>Link</span>
                                             </button>
                                             <button
-                                                onClick={() => handleOpenNewWindow(`/qna/${board.shareableLink}/present`)}
+                                                onClick={() => handleOpenNewWindow(`/qna/${board.shareableLink || board._id}/present`)}
                                                 className="flex-1 flex justify-center items-center space-x-1 px-2 py-1.5 text-xs text-white bg-slate-800 hover:bg-slate-900 rounded transition"
                                             >
                                                 <MonitorPlay className="w-3.5 h-3.5" />

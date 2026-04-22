@@ -20,6 +20,9 @@ const mongoSanitize = require('express-mongo-sanitize');
 
 const app = express();
 
+// Trust proxy for rate limiting (needed on Render/cloud providers)
+app.set('trust proxy', 1);
+
 // Load models to ensure they are registered with Mongoose
 require('./models/User');
 require('./models/Classroom');

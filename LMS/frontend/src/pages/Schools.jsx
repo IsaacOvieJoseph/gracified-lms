@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ConfirmationModal from "../components/ConfirmationModal";
-import { Plus, Pencil, Trash2, ArrowUpDown, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, Loader2, X, Share2 } from "lucide-react";
 
 const CreateSchoolModal = ({ open, onClose, onCreated }) => {
   const { user } = useAuth();
@@ -319,6 +319,12 @@ export default function SchoolsPage() {
     setShowDeleteModal(true);
   };
 
+  const handleShare = (school) => {
+    const url = `${window.location.origin}/s/${school.shortCode || school._id}`;
+    navigator.clipboard.writeText(url);
+    toast.success('School portal link copied!');
+  };
+
   const confirmDelete = async () => {
     if (!schoolToDelete) return;
     setIsDeleting(true);
@@ -403,14 +409,23 @@ export default function SchoolsPage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
+                          onClick={() => handleShare(school)}
+                          className="text-indigo-600 hover:text-indigo-800"
+                          title="Share School Link"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => { setSelectedSchool(school); setEditModalOpen(true); }}
                           className="text-blue-600 hover:text-blue-800"
+                          title="Edit School"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => deleteSchool(school._id)}
                           className="text-red-600 hover:text-red-800"
+                          title="Delete School"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

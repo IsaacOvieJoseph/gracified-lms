@@ -457,7 +457,8 @@ const ClassroomDetail = () => {
       }),
       teacherId: classroom.teacherId?._id || '',
       schoolIds: Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s._id || s) : [classroom.schoolId?._id || classroom.schoolId].filter(Boolean),
-      isPrivate: classroom.isPrivate || false
+      isPrivate: classroom.isPrivate || false,
+      introVideo: classroom.introVideo || ''
     });
     if (['root_admin', 'school_admin'].includes(user?.role)) {
       fetchAvailableTeachers();
@@ -480,6 +481,7 @@ const ClassroomDetail = () => {
         pricing: { type: editForm.pricingType, amount: editForm.pricingAmount },
         isPaid: editForm.isPaid,
         isPrivate: editForm.isPrivate,
+        introVideo: editForm.introVideo,
         schedule: editForm.schedule.map(s => {
           const utc = convertLocalToUTC(s.dayOfWeek, s.startTime);
           const utcEnd = convertLocalToUTC(s.dayOfWeek, s.endTime);
@@ -1250,8 +1252,8 @@ const ClassroomDetail = () => {
     }
   };
 
-  const isEnrolled = classroom?.students?.some(s => s._id === user?._id) ||
-    user?.enrolledClasses?.includes(id);
+  const isEnrolled = (classroom?.students || []).some(s => (s._id || s).toString() === user?._id?.toString()) || 
+                      (user?.enrolledClasses || []).some(cid => cid?.toString() === classroom?._id?.toString());
 
   // Can manage school access
   const classroomSchoolIds = (Array.isArray(classroom?.schoolId) ? classroom.schoolId : [classroom?.schoolId]).filter(Boolean);
@@ -1303,6 +1305,26 @@ const ClassroomDetail = () => {
     return <Layout><div className="text-center py-8">Classroom not found</div></Layout>;
   }
 
+  const isTeacher = user?._id === (classroom.teacherId?._id || classroom.teacherId);
+  const isAdminForThisClass = ['root_admin', 'school_admin'].includes(user?.role);
+  const showIntroVideo = classroom.introVideo && !isEnrolled && !isTeacher && !isAdminForThisClass;
+
+  const getEmbedUrl = (url) => {
+    if (!url) return null;
+    let videoId = '';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop();
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    if (url.includes('vimeo.com')) {
+      videoId = url.split('/').pop();
+      return `https://player.vimeo.com/video/${videoId}`;
+    }
+    return url;
+  };
+
+  const embedUrl = getEmbedUrl(classroom.introVideo);
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -1338,7 +1360,7 @@ const ClassroomDetail = () => {
                         {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
                           <button
                             onClick={() => {
-                              const shareLink = `${window.location.origin}/c/${classroom.shortCode}`;
+                              const shareLink = `${window.location.origin}/c/${classroom.shortCode || classroom._id}`;
                               navigator.clipboard.writeText(shareLink);
                               toast.success('Link copied!');
                             }}
@@ -1443,7 +1465,7 @@ const ClassroomDetail = () => {
                   {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
                     <button
                       onClick={() => {
-                        const shareLink = `${window.location.origin}/c/${classroom.shortCode}`;
+                        const shareLink = `${window.location.origin}/c/${classroom.shortCode || classroom._id}`;
                         navigator.clipboard.writeText(shareLink);
                         toast.success('Link copied!');
                       }}
@@ -1543,6 +1565,20 @@ const ClassroomDetail = () => {
                           onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                           placeholder="Tell students what this class is about..."
                           className="w-full min-h-[100px]"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                          Intro Video URL
+                          <FormFieldHelp content="Paste a YouTube or Vimeo link to show a preview on the public page. (e.g. https://www.youtube.com/watch?v=...)" />
+                        </label>
+                        <input
+                          type="url"
+                          value={editForm.introVideo}
+                          onChange={e => setEditForm({ ...editForm, introVideo: e.target.value })}
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          className="w-full"
                         />
                       </div>
 
@@ -1832,6 +1868,40 @@ const ClassroomDetail = () => {
               <span className="text-sm">{classroom.topics?.length || 0} topics</span>
             </div>
           </div>
+
+          {showIntroVideo && embedUrl && (
+            <div className="bg-slate-900 rounded-[2.5rem] p-2 shadow-xl border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
+              <div className="relative aspect-video rounded-[2rem] overflow-hidden bg-black">
+                <iframe
+                  src={embedUrl}
+                  title="Course Preview"
+                  className="absolute inset-0 w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+              <div className="p-4 px-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                      <Video className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm">Course Preview</p>
+                      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Watch before you join</p>
+                    </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    if (classroom.isPaid) setShowEnrollmentPaymentModal(true);
+                    else handleEnroll();
+                  }}
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition"
+                >
+                  Join Now
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             {!isEnrolled && user?.role === 'student' && classroom.published && (

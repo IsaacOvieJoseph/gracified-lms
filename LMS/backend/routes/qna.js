@@ -46,17 +46,27 @@ router.post('/board', auth, authorize('school_admin', 'personal_teacher', 'teach
     }
 });
 
-// Check access by token
-router.get('/join/:token', async (req, res) => {
+// Check access by identifier (token or ID)
+router.get('/join/:identifier', async (req, res) => {
     try {
-        const board = await QnABoard.findOne({ shareableLink: req.params.token })
+        const { identifier } = req.params;
+        let board = await QnABoard.findOne({ shareableLink: identifier });
+
+        // Fallback to searching by ID if not found by token
+        if (!board && require('mongoose').Types.ObjectId.isValid(identifier)) {
+            board = await QnABoard.findById(identifier);
+        }
+
+        if (!board) return res.status(404).json({ message: 'Board not found' });
+        
+        // Re-fetch with population to ensure all fields are present
+        const populatedBoard = await QnABoard.findById(board._id)
             .populate('topicId', 'name')
             .populate('classroomId', 'name');
 
-        if (!board) return res.status(404).json({ message: 'Board not found' });
-        if (!board.isActive) return res.status(400).json({ message: 'Board is inactive' });
+        if (!populatedBoard.isActive) return res.status(400).json({ message: 'Board is inactive' });
 
-        res.json(board);
+        res.json(populatedBoard);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
