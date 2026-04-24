@@ -369,18 +369,18 @@ const TopicManagement = () => {
         <Layout>
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-8 card-premium p-6">
                     <div className="flex items-center gap-4">
                         <button 
                             onClick={() => navigate(`/classrooms/${classroomId}`)}
-                            className="p-2 hover:bg-slate-100 rounded-xl transition text-slate-500"
+                            className="w-12 h-12 flex items-center justify-center bg-muted text-muted-foreground rounded-2xl hover:bg-primary hover:text-white transition-all active:scale-95"
                         >
                             <ArrowLeft className="w-6 h-6" />
                         </button>
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900">Topic Management</h1>
+                            <h1 className="text-3xl font-black text-foreground italic uppercase tracking-tighter">Manage Topics</h1>
                             {classroom && (
-                                <p className="text-slate-500 font-medium">{classroom.name}</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic opacity-70">Classroom: {classroom.name}</p>
                             )}
                         </div>
                     </div>
@@ -389,53 +389,53 @@ const TopicManagement = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Left Side: Creation/Editing Form */}
                     <div className="lg:col-span-5">
-                        <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 sticky top-24">
-                            <h3 className="text-xl font-bold mb-6 text-slate-900 flex items-center gap-2">
+                        <div className="bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border sticky top-24">
+                            <h3 className="text-xs font-black mb-8 text-foreground flex items-center gap-2 uppercase tracking-[0.2em] italic">
                                 {editingTopic ? (
                                     <><Pencil className="w-5 h-5 text-primary" /> Edit Topic</>
                                 ) : (
-                                    <><Plus className="w-5 h-5 text-primary" /> New Course Topic</>
+                                    <><Plus className="w-5 h-5 text-primary" /> Create New Topic</>
                                 )}
                             </h3>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div>
-                                    <label className="text-sm font-bold text-slate-700 mb-2 block">Topic Name</label>
+                                    <label className="text-[10px] font-black uppercase text-muted-foreground mb-3 block tracking-widest italic opacity-60">Topic Name</label>
                                     <input
                                         type="text"
                                         placeholder="e.g. Introduction to Calculus"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-5 py-4 rounded-2xl bg-muted/50 border-2 border-border focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-foreground font-black italic tracking-tight placeholder:opacity-30 placeholder:italic"
                                         required
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-bold text-slate-700 mb-2 block">Description</label>
+                                    <label className="text-sm font-bold text-muted-foreground mb-2 block">Description</label>
                                     <textarea
                                         placeholder="What will students learn in this topic?"
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
                                         rows="3"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-bold text-slate-700 mb-2 block">Lesson Outline</label>
+                                    <label className="text-sm font-bold text-muted-foreground mb-2 block">Lesson Outline</label>
                                     <textarea
                                         placeholder="Briefly outline the lessons..."
                                         value={formData.lessonsOutline}
                                         onChange={(e) => setFormData({ ...formData, lessonsOutline: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
                                         rows="3"
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-sm font-bold text-slate-700 mb-2 flex items-center">
+                                        <label className="text-sm font-bold text-muted-foreground mb-2 flex items-center">
                                             Duration Mode
                                             <FormFieldHelp content="Choose a time unit (Days, Weeks, Months) to estimate the duration of this topic." />
                                         </label>
@@ -445,7 +445,7 @@ const TopicManagement = () => {
                                                 ...formData,
                                                 duration: { ...formData.duration, mode: e.target.value }
                                             })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
                                         >
                                             <option value="not_sure">Not Sure</option>
                                             <option value="day">Day(s)</option>
@@ -455,7 +455,7 @@ const TopicManagement = () => {
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-bold text-slate-700 mb-2 block">Value</label>
+                                        <label className="text-sm font-bold text-muted-foreground mb-2 block">Value</label>
                                         <input
                                             type="number"
                                             min="1"
@@ -464,7 +464,7 @@ const TopicManagement = () => {
                                                 ...formData,
                                                 duration: { ...formData.duration, value: parseInt(e.target.value) || 1 }
                                             })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
                                             disabled={formData.duration.mode === 'not_sure'}
                                         />
                                     </div>
@@ -472,32 +472,32 @@ const TopicManagement = () => {
 
                                 {showPaidTopics && (
                                     <div className="pt-2">
-                                        <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div className="flex items-center gap-6 p-4 bg-muted rounded-2xl border border-border">
                                             <label className="flex items-center gap-3 mb-0 ml-0 cursor-pointer">
-                                                <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${formData.isPaid ? 'bg-primary' : 'bg-slate-200'}`}>
+                                                <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${formData.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                                                     <input
                                                         type="checkbox"
                                                         className="hidden"
                                                         checked={formData.isPaid}
                                                         onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
                                                     />
-                                                    <div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                                                    <div className={`bg-card w-4 h-4 rounded-full shadow-sm transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
                                                 </div>
-                                                <span className="font-bold text-slate-700 flex items-center">
+                                                <span className="font-bold text-foreground flex items-center">
                                                     Paid Topic
                                                     <FormFieldHelp content="If enabled, students must pay an individual fee to unlock this topic and its materials." />
                                                 </span>
                                             </label>
                                             {formData.isPaid && (
                                                 <div className="flex-1 flex items-center gap-2">
-                                                    <span className="font-bold text-slate-400">₦</span>
+                                                    <span className="font-bold text-muted-foreground">₦</span>
                                                     <input
                                                         type="number"
                                                         min="0"
                                                         value={formData.price}
                                                         onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                                                         placeholder="Price"
-                                                        className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200"
+                                                        className="flex-1 px-3 py-1.5 rounded-lg bg-card border border-border text-foreground"
                                                     />
                                                 </div>
                                             )}
@@ -505,20 +505,20 @@ const TopicManagement = () => {
                                     </div>
                                 )}
 
-                                <div className="flex gap-4 pt-4">
+                                <div className="flex gap-4 pt-6">
                                     <button
                                         type="button"
                                         onClick={resetForm}
-                                        className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                                        className="flex-1 px-6 py-4 rounded-2xl border-2 border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition-all active:scale-95"
                                     >
-                                        Clear
+                                        CANCEL
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="bg-primary text-white flex-1 py-3 rounded-xl font-bold hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center"
+                                        className="btn-premium flex-1 py-4 flex items-center justify-center text-[10px]"
                                     >
-                                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingTopic ? 'Update Topic' : 'Create Topic')}
+                                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingTopic ? 'UPDATE' : 'CREATE')}
                                     </button>
                                 </div>
                             </form>
@@ -529,12 +529,12 @@ const TopicManagement = () => {
                     <div className="lg:col-span-7">
                         <div className="space-y-6">
                             {topics.length === 0 ? (
-                                <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100">
-                                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <Book className="w-10 h-10 text-slate-300" />
+                                <div className="text-center py-20 bg-card rounded-[2.5rem] border-2 border-dashed border-border">
+                                    <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Book className="w-10 h-10 text-muted-foreground/30" />
                                     </div>
-                                    <h4 className="text-xl font-bold text-slate-900 mb-2">No topics yet</h4>
-                                    <p className="text-slate-500">Create your first topic to get started with the curriculum!</p>
+                                    <h4 className="text-xl font-bold text-foreground mb-2">No topics yet</h4>
+                                    <p className="text-muted-foreground">Create your first topic to get started with the curriculum!</p>
                                 </div>
                             ) : (
                                 topics.map((topic, index) => {
@@ -552,56 +552,56 @@ const TopicManagement = () => {
                                             onDragStart={(e) => handleDragStart(e, index)}
                                             onDragOver={(e) => handleDragOver(e, index)}
                                             onDrop={(e) => handleDrop(e, index)}
-                                            className={`bg-white border-2 rounded-3xl p-6 transition-all group ${draggedIndex === index ? 'opacity-50 scale-95' : ''} ${isCurrent ? 'border-blue-400 shadow-xl' : isDone ? 'border-emerald-100' : 'border-slate-100 hover:border-slate-300'}`}
+                                            className={`bg-card border-2 rounded-[2rem] p-8 transition-all group shadow-sm ${draggedIndex === index ? 'opacity-50 scale-95' : ''} ${isCurrent ? 'border-primary shadow-2xl shadow-primary/10' : isDone ? 'border-emerald-500/20' : 'border-border hover:border-primary/20'}`}
                                         >
                                             {/* Topic Header */}
-                                            <div className="flex items-start justify-between gap-4 mb-6">
+                                                <div className="flex items-start justify-between gap-4 mb-8">
                                                 <div className="flex items-start gap-4 flex-1">
-                                                    <div className="mt-1 text-slate-300 cursor-grab active:cursor-grabbing flex-shrink-0 group-hover:text-slate-500 transition-colors">
+                                                    <div className="mt-1 text-muted-foreground/30 cursor-grab active:cursor-grabbing flex-shrink-0 group-hover:text-primary transition-colors">
                                                         <GripVertical className="w-6 h-6" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <div className="flex items-center flex-wrap gap-2 mb-2">
-                                                            <h4 className="text-lg font-bold text-slate-900">{topic.name}</h4>
-                                                            {isCurrent && <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest">Current Active</span>}
-                                                            {isDone && <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Completed</span>}
+                                                        <div className="flex items-center flex-wrap gap-2 mb-3">
+                                                            <h4 className="text-xl font-black text-foreground italic tracking-tighter uppercase">{topic.name}</h4>
+                                                            {isCurrent && <span className="px-3 py-1 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Active Lesson</span>}
+                                                            {isDone && <span className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">Done</span>}
                                                             {hasVideos && (
-                                                                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                                                                    <Video className="w-3 h-3" /> {recordedVideos.length} Video{recordedVideos.length !== 1 ? 's' : ''}
+                                                                <span className="px-3 py-1 bg-muted border border-border text-foreground rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                                                    <Video className="w-2.5 h-2.5 text-primary" /> {recordedVideos.length} Assets
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-slate-500 text-sm mb-3 line-clamp-2">{topic.description}</p>
-                                                        <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
-                                                            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {getDurationText(topic.duration)}</span>
-                                                            {topic.isPaid && <span className="text-emerald-600 flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> ₦{topic.price}</span>}
+                                                        <p className="text-muted-foreground text-xs mb-4 line-clamp-2 italic font-black uppercase tracking-widest opacity-60 leading-relaxed">"{topic.description}"</p>
+                                                        <div className="flex items-center gap-5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
+                                                            <span className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-primary" /> {getDurationText(topic.duration)}</span>
+                                                            {topic.isPaid && <span className="text-emerald-500 flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20"><AlertCircle className="w-3.5 h-3.5" /> ₦{topic.price}</span>}
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="flex items-center gap-1">
                                                     {topic.status === 'pending' && (
-                                                        <button onClick={() => handleActivate(topic._id)} className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-xl transition" title="Activate Topic"><Play className="w-5 h-5 fill-current" /></button>
+                                                        <button onClick={() => handleActivate(topic._id)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition" title="Activate Topic"><Play className="w-5 h-5 fill-current" /></button>
                                                     )}
                                                     {isCurrent && (
-                                                        <button onClick={() => handleComplete(topic._id)} className="p-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl transition" title="Mark Complete"><CheckCircle className="w-5 h-5" /></button>
+                                                        <button onClick={() => handleComplete(topic._id)} className="p-2.5 text-emerald-600 hover:bg-emerald-500/10 rounded-xl transition" title="Mark Complete"><CheckCircle className="w-5 h-5" /></button>
                                                     )}
                                                     {isDone && (
-                                                        <button onClick={() => handleReactivate(topic._id)} className="p-2.5 text-orange-600 hover:bg-orange-50 rounded-xl transition" title="Reactivate"><RotateCcw className="w-5 h-5" /></button>
+                                                        <button onClick={() => handleReactivate(topic._id)} className="p-2.5 text-orange-600 hover:bg-orange-500/10 rounded-xl transition" title="Reactivate"><RotateCcw className="w-5 h-5" /></button>
                                                     )}
-                                                    <button onClick={() => openEditForm(topic)} className="p-2.5 text-indigo-600 hover:bg-indigo-50 rounded-xl transition"><Pencil className="w-5 h-5" /></button>
-                                                    <button onClick={() => handleDelete(topic._id)} className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
+                                                    <button onClick={() => openEditForm(topic)} className="p-2.5 text-indigo-600 hover:bg-indigo-500/10 rounded-xl transition"><Pencil className="w-5 h-5" /></button>
+                                                    <button onClick={() => handleDelete(topic._id)} className="p-2.5 text-red-600 hover:bg-red-500/10 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
                                                 </div>
                                             </div>
 
                                             {/* Video Management Section */}
-                                            <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
+                                            <div className="bg-muted/30 rounded-2xl p-6 border border-border">
                                                 <div className="flex items-center justify-between mb-6">
-                                                    <h5 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Lecture Videos</h5>
+                                                    <h5 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/40">Lecture Videos</h5>
                                                     <div className="flex items-center gap-2">
                                                         <button 
                                                             onClick={() => setShowUrlInput(isShowingUrlInput ? null : topic._id)}
-                                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isShowingUrlInput ? 'bg-primary text-white' : 'bg-white text-primary border border-primary/20 hover:bg-primary/5'}`}
+                                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isShowingUrlInput ? 'bg-primary text-white' : 'bg-card text-primary border border-primary/20 hover:bg-primary/5'}`}
                                                         >
                                                             <LinkIcon className="w-3 h-3" />
                                                             External URL
@@ -615,8 +615,8 @@ const TopicManagement = () => {
                                                             
                                                             if (isPremium) {
                                                                 return (
-                                                                    <label className="flex items-center gap-2 px-3 py-1.5 bg-white border border-primary/20 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-primary/5 transition-all">
-                                                                        <Upload className="w-3 h-3" />
+                                                                    <label className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border text-foreground/60 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-muted transition-all">
+                                                                        <Upload className="w-3 h-3 text-primary" />
                                                                         Upload File
                                                                         <FormFieldHelp content="Securely upload video files directly to our cloud storage." />
                                                                         <input
@@ -631,15 +631,15 @@ const TopicManagement = () => {
                                                             } else {
                                                                 return (
                                                                     <div 
-                                                                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-not-allowed group relative"
+                                                                        className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border text-muted-foreground/40 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-not-allowed group relative"
                                                                         title="File upload is a Premium feature"
                                                                     >
                                                                         <Lock className="w-3 h-3" />
                                                                         Upload File
-                                                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none">
+                                                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none font-black uppercase tracking-widest">
                                                                             Premium Plan Required
                                                                         </div>
-                                                                        <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+                                                                        <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
                                                                     </div>
                                                                 );
                                                             }
@@ -649,14 +649,14 @@ const TopicManagement = () => {
 
                                                 {/* URL Input Form */}
                                                 {isShowingUrlInput && (
-                                                    <div className="mb-6 p-4 bg-white rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
+                                                    <div className="mb-6 p-4 bg-muted/50 rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
                                                         <div className="flex gap-2">
                                                             <input
                                                                 type="url"
                                                                 placeholder="Paste video URL (YouTube, Drive, etc.)"
                                                                 value={videoUrl}
                                                                 onChange={(e) => setVideoUrl(e.target.value)}
-                                                                className="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                                                className="flex-1 px-4 py-2 rounded-lg bg-card border border-border text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
                                                             />
                                                             <button 
                                                                 onClick={() => handleAddVideoUrl(topic._id)}
@@ -686,20 +686,20 @@ const TopicManagement = () => {
                                                         {[...recordedVideos].sort((a,b) => (a.order||0) - (b.order||0)).map((vid, vIdx, arr) => {
                                                             const isRemoving = removingVideoId === `${topic._id}-${vid._id}`;
                                                             return (
-                                                                <div key={vid._id} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-100 group/vid">
-                                                                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 font-black text-xs">
+                                                                <div key={vid._id} className="flex items-center gap-4 bg-card p-3 rounded-xl border border-border group/vid">
+                                                                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-black text-xs">
                                                                         {vIdx + 1}
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center gap-2">
-                                                                            <span className="text-sm font-bold text-slate-700 truncate">{vid.label}</span>
+                                                                            <span className="text-sm font-bold text-foreground truncate">{vid.label}</span>
                                                                             {vid.videoType === 'url' ? (
-                                                                                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[8px] font-black uppercase tracking-widest">URL</span>
+                                                                                <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[8px] font-black uppercase tracking-widest">URL</span>
                                                                             ) : (
-                                                                                <span className="px-2 py-0.5 bg-blue-50 text-blue-500 rounded text-[8px] font-black uppercase tracking-widest">FILE</span>
+                                                                                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[8px] font-black uppercase tracking-widest">FILE</span>
                                                                             )}
                                                                         </div>
-                                                                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{vid.originalName || vid.url}</p>
+                                                                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">{vid.originalName || vid.url}</p>
                                                                     </div>
                                                                     <div className="flex items-center gap-1 opacity-0 group-hover/vid:opacity-100 transition-opacity">
                                                                         <button 
@@ -709,7 +709,7 @@ const TopicManagement = () => {
                                                                                 [newOrder[vIdx], newOrder[vIdx-1]] = [newOrder[vIdx-1], newOrder[vIdx]];
                                                                                 handleReorderVideos(topic._id, newOrder);
                                                                             }}
-                                                                            className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-primary transition-colors disabled:opacity-10"
+                                                                            className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
                                                                         >
                                                                             <ChevronUp className="w-4 h-4" />
                                                                         </button>
@@ -720,13 +720,13 @@ const TopicManagement = () => {
                                                                                 [newOrder[vIdx], newOrder[vIdx+1]] = [newOrder[vIdx+1], newOrder[vIdx]];
                                                                                 handleReorderVideos(topic._id, newOrder);
                                                                             }}
-                                                                            className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-primary transition-colors disabled:opacity-10"
+                                                                            className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
                                                                         >
                                                                             <ChevronDown className="w-4 h-4" />
                                                                         </button>
                                                                         <button 
                                                                             onClick={() => handleRemoveVideo(topic._id, vid._id)}
-                                                                            className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                                                                            className="p-1.5 hover:bg-red-500/10 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
                                                                         >
                                                                             {isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                                                         </button>
@@ -736,9 +736,9 @@ const TopicManagement = () => {
                                                         })}
                                                     </div>
                                                 ) : (
-                                                    <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-xl bg-white/50">
-                                                        <Video className="w-6 h-6 text-slate-200 mx-auto mb-2" />
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No lectures attached</p>
+                                                    <div className="py-8 text-center border-2 border-dashed border-border rounded-xl bg-card/50">
+                                                        <Video className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
+                                                        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">No lectures attached</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -753,18 +753,18 @@ const TopicManagement = () => {
 
             {/* Progression Modal */}
             {showProgressionModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
-                    <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up text-center">
-                        <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+                    <div className="bg-card rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up text-center border border-border">
+                        <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
                             <CheckCircle className="w-10 h-10 text-emerald-500" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 mb-2">Topic Complete!</h3>
-                        <p className="text-slate-500 font-medium mb-8">
+                        <h3 className="text-2xl font-black text-foreground mb-2">Topic Complete!</h3>
+                        <p className="text-muted-foreground font-medium mb-8">
                             Should the next topic <span className="text-primary font-bold">"{nextTopic?.name}"</span> be activated immediately?
                         </p>
                         <div className="grid grid-cols-2 gap-4">
                             <button onClick={() => completeTopic(topicToComplete, true)} className="py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition shadow-lg shadow-primary/20">Yes, Activate</button>
-                            <button onClick={() => completeTopic(topicToComplete, false)} className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition">Not Yet</button>
+                            <button onClick={() => completeTopic(topicToComplete, false)} className="py-4 bg-muted text-muted-foreground rounded-2xl font-bold hover:bg-muted/80 transition">Not Yet</button>
                         </div>
                     </div>
                 </div>

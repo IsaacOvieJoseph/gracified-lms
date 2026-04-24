@@ -208,40 +208,43 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      {showWelcome && user && (
-        <div style={{ background: '#e0f7fa', padding: '10px', borderRadius: '6px', marginBottom: '16px', textAlign: 'center' }}>
-          Welcome, <b>{user.name}</b>!
+      <div className="space-y-8">
+        <div className="flex items-center gap-4">
+             <div className="p-3 bg-primary/10 rounded-xl text-primary border border-primary/20">
+                <Monitor className="w-8 h-8" />
+             </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-foreground italic uppercase tracking-tighter">My <span className="text-primary not-italic">Dashboard</span></h1>
+                <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] mt-1 opacity-40">System Operational Intelligence</p>
+              </div>
         </div>
-      )}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
 
         <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'student' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
-          <div className="card-premium p-6">
+          <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/30 transition-all group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-500 text-sm font-semibold mb-1">Classrooms</p>
-                <div className="text-3xl font-bold text-slate-900">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Total Classrooms</p>
+                <div className="text-3xl font-black text-foreground tracking-tight">
                   {loading ? <Loader2 className="w-5 h-5 animate-spin text-primary/30" /> : stats.classrooms}
                 </div>
               </div>
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                <Book className="w-6 h-6" />
+              <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 group-hover:scale-110 transition-transform">
+                <Book className="w-7 h-7" />
               </div>
             </div>
           </div>
 
           {user?.role !== 'student' && (
-            <div className="card-premium p-6">
+            <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-emerald-500/30 transition-all group">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-500 text-sm font-semibold mb-1">Students</p>
-                  <div className="text-3xl font-bold text-slate-900">
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-300" /> : stats.students}
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Active Students</p>
+                  <div className="text-3xl font-black text-foreground tracking-tight">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-500/30" /> : stats.students}
                   </div>
                 </div>
-                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                  <Users className="w-6 h-6" />
+                <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                  <Users className="w-7 h-7" />
                 </div>
               </div>
             </div>
@@ -249,30 +252,30 @@ const Dashboard = () => {
 
           {user?.role === 'student' && (
             <>
-              <div className="card-premium p-6">
+              <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-amber-500/30 transition-all group">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-500 text-sm font-semibold mb-1">Payments</p>
-                    <div className="text-3xl font-bold text-slate-900">
-                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-amber-300" /> : stats.payments}
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Paid Receipts</p>
+                    <div className="text-3xl font-black text-foreground tracking-tight">
+                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-amber-500/30" /> : stats.payments}
                     </div>
                   </div>
-                  <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
-                    <DollarSign className="w-6 h-6" />
+                  <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20 group-hover:scale-110 transition-transform">
+                    <DollarSign className="w-7 h-7" />
                   </div>
                 </div>
               </div>
 
-              <div className="card-premium p-6">
+              <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-indigo-500/30 transition-all group">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-500 text-sm font-semibold mb-1">Assignments</p>
-                    <div className="text-3xl font-bold text-slate-900">
-                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-indigo-300" /> : stats.assignments}
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Pending Quests</p>
+                    <div className="text-3xl font-black text-foreground tracking-tight">
+                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-indigo-500/30" /> : stats.assignments}
                     </div>
                   </div>
-                  <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
-                    <FileText className="w-6 h-6" />
+                  <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-500/20 group-hover:scale-110 transition-transform">
+                    <FileText className="w-7 h-7" />
                   </div>
                 </div>
               </div>
@@ -281,68 +284,68 @@ const Dashboard = () => {
         </div>
 
         {/* Schedule Display */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-card rounded-3xl shadow-sm border border-border overflow-hidden">
+          <div className="p-6 border-b border-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-500/20">
                 <Calendar className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">Class Schedule</h3>
+              <h3 className="text-xl font-black text-foreground tracking-tight">Class Schedule</h3>
             </div>
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <div className="flex bg-muted p-1 rounded-xl">
               <button
                 onClick={() => setCurrentScheduleTab('day')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'day' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'day' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Today
               </button>
               <button
                 onClick={() => setCurrentScheduleTab('week')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'week' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'week' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Weekly
               </button>
             </div>
           </div>
 
-          <div className="p-4 bg-slate-50/30">
+          <div className="p-4 bg-background/30">
             {currentScheduleTab === 'day' ? (
               <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible md:max-h-[320px] md:overflow-y-auto snap-x snap-mandatory gap-3 pb-3 md:pb-0 md:space-y-2 scrollbar-hide">
                 {scheduleData.today.length > 0 ? (
                   scheduleData.today.map((session, idx) => (
-                    <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 group hover:border-indigo-300 transition-all min-w-[85%] md:min-w-0 snap-center shrink-0">
-                      <div className="hidden sm:flex flex-col items-center justify-center py-1.5 px-2 bg-slate-50 rounded-lg border border-slate-100 min-w-[75px]">
-                        <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{session.startTime}</span>
-                        <div className="w-0.5 h-1 bg-slate-300 my-0.5 rounded-full opacity-50" />
-                        <span className="text-[8px] font-bold text-slate-400">{session.timezone.split(' ')[0]}</span>
+                    <div key={idx} className="bg-card p-3 rounded-xl border border-border shadow-sm flex items-center gap-3 group hover:border-indigo-500 transition-all min-w-[85%] md:min-w-0 snap-center shrink-0">
+                      <div className="hidden sm:flex flex-col items-center justify-center py-1.5 px-2 bg-muted rounded-lg border border-border min-w-[75px]">
+                        <span className="text-[10px] font-black text-foreground uppercase tracking-widest">{session.startTime}</span>
+                        <div className="w-0.5 h-1 bg-muted-foreground/30 my-0.5 rounded-full opacity-50" />
+                        <span className="text-[8px] font-bold text-muted-foreground">{session.timezone.split(' ')[0]}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex sm:hidden items-center gap-1.5 mb-1 text-[8px] font-black text-indigo-400 uppercase tracking-widest">
                           <Clock className="w-2.5 h-2.5" />
                           <span>{session.startTime} ({session.timezone.split(' ')[0]})</span>
                         </div>
-                        <Link to={`/classrooms/${session.classId}`} className="block group-hover:text-indigo-600">
-                          <h4 className="font-bold text-slate-900 truncate text-xs sm:text-sm">{session.className}</h4>
+                        <Link to={`/classrooms/${session.classId}`} className="block group-hover:text-indigo-400">
+                          <h4 className="font-bold text-foreground truncate text-xs sm:text-sm">{session.className}</h4>
                         </Link>
-                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium truncate">{session.subject || 'Tutorial Class'}</p>
+                        <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium truncate">{session.subject || 'Tutorial Class'}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 text-right">
                         {session.isCurrent ? (
-                          <div className="flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full border border-rose-100 animate-pulse">
-                             <div className="w-1 h-1 rounded-full bg-rose-600" />
+                          <div className="flex items-center gap-1 bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded-full border border-rose-500/20 animate-pulse">
+                             <div className="w-1 h-1 rounded-full bg-rose-500" />
                              <span className="text-[8px] font-bold uppercase tracking-wider text-nowrap">Live</span>
                           </div>
                         ) : null}
-                         <Link to={`/classrooms/${session.classId}`} className="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-700 transition">Enter Class</Link>
+                         <Link to={`/classrooms/${session.classId}`} className="text-[9px] font-black text-primary uppercase tracking-widest hover:text-primary transition">Enter Class</Link>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="w-full py-8 bg-white rounded-2xl border border-dashed border-slate-200 text-center flex flex-col items-center">
-                    <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center mb-2">
-                       <Clock className="w-5 h-5 text-slate-300" />
+                  <div className="w-full py-8 bg-card rounded-2xl border border-dashed border-border text-center flex flex-col items-center">
+                    <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mb-2">
+                       <Clock className="w-5 h-5 text-muted-foreground/30" />
                     </div>
-                    <p className="text-slate-400 font-bold text-xs">Free Day!</p>
+                    <p className="text-muted-foreground font-bold text-xs italic">Operational Quiet</p>
                   </div>
                 )}
               </div>
@@ -350,24 +353,24 @@ const Dashboard = () => {
               <div className="flex flex-row overflow-x-auto snap-x snap-mandatory gap-3 pb-2 scrollbar-hide">
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                   <div key={day} className="flex flex-col min-w-[42%] sm:min-w-[32%] md:min-w-[24%] lg:min-w-[18%] xl:min-w-[13.5%] snap-center shrink-0">
-                    <h5 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">{day}</h5>
+                    <h5 className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2 ml-1">{day}</h5>
                     <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[200px] scrollbar-hide">
                       {scheduleData.weekly[day] && scheduleData.weekly[day].length > 0 ? (
                         scheduleData.weekly[day].map((session, idx) => (
                           <Link
                             key={idx}
                             to={`/classrooms/${session.classId}`}
-                            className="block p-2 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-indigo-200 hover:-translate-y-0.5 transition-all"
+                            className="block p-2 bg-card rounded-xl border border-border shadow-sm hover:border-indigo-400 hover:-translate-y-0.5 transition-all"
                           >
-                            <p className="text-[9px] font-black text-indigo-600 flex items-center justify-between">
+                            <p className="text-[9px] font-black text-indigo-400 flex items-center justify-between">
                               <span>{session.startTime}</span>
                             </p>
-                            <p className="text-[10px] font-bold text-slate-800 truncate">{session.className}</p>
+                            <p className="text-[10px] font-bold text-card-foreground truncate">{session.className}</p>
                           </Link>
                         ))
                       ) : (
-                        <div className="h-10 border border-dashed border-slate-200 rounded-lg flex items-center justify-center p-2">
-                           <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Quiet</span>
+                        <div className="h-10 border border-dashed border-border rounded-lg flex items-center justify-center p-2">
+                           <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest">Quiet</span>
                         </div>
                       )}
                     </div>
@@ -378,35 +381,35 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow overflow-hidden">
           <button
             onClick={() => setIsRecentExpanded(!isRecentExpanded)}
-            className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition border-b"
+            className="w-full flex items-center justify-between p-6 hover:bg-muted transition border-b border-border"
           >
-            <h3 className="text-lg font-semibold">Recent Activity</h3>
-            {isRecentExpanded ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
+            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Operational Pulse</h3>
+            {isRecentExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground/30" /> : <ChevronDown className="w-5 h-5 text-muted-foreground/30" />}
           </button>
 
           {isRecentExpanded && (
-            <div className="p-6 pt-0 divide-y divide-gray-100">
+            <div className="p-6 pt-0 divide-y divide-border">
               {recentClassrooms.length > 0 ? (
                 recentClassrooms.map((classroom) => (
                   <Link
                     key={classroom._id}
                     to={`/classrooms/${classroom._id}`}
-                    className="flex flex-col md:flex-row md:items-center justify-between py-4 hover:bg-gray-50 transition px-2 rounded-md"
+                    className="flex flex-col md:flex-row md:items-center justify-between py-4 hover:bg-muted transition px-2 rounded-md"
                   >
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-semibold text-gray-800">{classroom.name}</h4>
+                        <h4 className="font-semibold text-foreground">{classroom.name}</h4>
                         {classroom.activities?.map((act, idx) => (
                           <span
                             key={idx}
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium space-x-1 ${act.type === 'meeting' ? 'bg-red-100 text-red-800 animate-pulse' :
-                              act.type === 'assignment' ? 'bg-orange-100 text-orange-800' :
-                                act.type === 'topic' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-green-100 text-green-800'
-                              }`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium space-x-1 ${act.type === 'meeting' ? 'bg-rose-500/10 text-rose-500 animate-pulse' :
+                              act.type === 'assignment' ? 'bg-amber-500/10 text-amber-500' :
+                                act.type === 'topic' ? 'bg-primary/10 text-primary' :
+                                  'bg-emerald-500/10 text-emerald-500'
+                                }`}
                           >
                             {act.type === 'meeting' && <Monitor className="w-3 h-3" />}
                             {act.type === 'assignment' && <AlertCircle className="w-3 h-3" />}
@@ -415,9 +418,9 @@ const Dashboard = () => {
                           </span>
                         ))}
                       </div>
-                      <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                      <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
                         <span className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1 text-gray-400" />
+                          <Calendar className="w-4 h-4 mr-1 opacity-40" />
                           {classroom.schedule && classroom.schedule.length > 0 ? (
                             classroom.schedule.map((session, index) => {
                               const local = convertUTCToLocal(session.dayOfWeek, session.startTime);
@@ -435,21 +438,21 @@ const Dashboard = () => {
                             <span>No schedule available</span>
                           )}
                           {classroom.schedule?.length > 0 && (
-                            <span className="ml-1 text-[10px] font-bold text-indigo-500 uppercase">(Weekly)</span>
+                            <span className="ml-1 text-[10px] font-bold text-indigo-400 uppercase">(Weekly)</span>
                           )}
                         </span>
                         {user?.role !== 'student' && (
                           <span className="flex items-center">
-                            <Users className="w-4 h-4 mr-1 text-gray-400" />
+                            <Users className="w-4 h-4 mr-1 opacity-40" />
                             {classroom.students?.length || 0} enrolled
                           </span>
                         )}
                         <span className="flex items-center">
-                          <Book className="w-4 h-4 mr-1 text-gray-400" />
+                          <Book className="w-4 h-4 mr-1 opacity-40" />
                           {classroom.topics?.length || 0} topics
                         </span>
                         <span className="flex items-center min-w-0 max-w-[200px]">
-                          <School className="w-4 h-4 mr-1 text-gray-400 shrink-0" />
+                          <School className="w-4 h-4 mr-1 opacity-40 shrink-0" />
                           <span className="truncate text-xs" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
                             {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
                             {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
@@ -459,11 +462,11 @@ const Dashboard = () => {
                     </div>
                     <div className="mt-2 md:mt-0 flex flex-wrap items-center gap-2">
                       {classroom.isPaid && classroom.pricing?.amount > 0 ? (
-                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
+                        <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/20">
                           {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
                         </span>
                       ) : (
-                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">
+                        <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20">
                           Free
                         </span>
                       )}
@@ -471,47 +474,49 @@ const Dashboard = () => {
                   </Link>
                 ))
               ) : (
-                <p className="text-gray-500 text-center py-8">No recent activity or classrooms found</p>
+                <div className="text-center py-12">
+                   <p className="text-muted-foreground/30 font-black text-xs uppercase tracking-widest italic">No operational logs found</p>
+                </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow overflow-hidden">
           <button
             onClick={() => setIsMyClassesExpanded(!isMyClassesExpanded)}
-            className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition border-b"
+            className="w-full flex items-center justify-between p-6 hover:bg-muted transition border-b border-border"
           >
-            <h3 className="text-lg font-semibold">
+            <h3 className="text-lg font-semibold text-foreground">
               {user?.role === 'student' ? 'My Enrolled Classrooms' :
                 user?.role === 'teacher' || user?.role === 'personal_teacher' ? 'Classrooms I Teach' :
                   'All Related Classrooms'}
             </h3>
-            {isMyClassesExpanded ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
+            {isMyClassesExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
           </button>
 
           {isMyClassesExpanded && (
-            <div className="p-6 pt-0 divide-y divide-gray-100">
+            <div className="p-6 pt-0 divide-y divide-border">
               {userClassrooms.length > 0 ? (
                 userClassrooms.map((classroom) => (
                   <Link
                     key={classroom._id}
                     to={`/classrooms/${classroom._id}`}
-                    className="flex flex-col md:items-center md:flex-row justify-between py-4 hover:bg-gray-50 transition px-2 rounded-md"
+                    className="flex flex-col md:items-center md:flex-row justify-between py-4 hover:bg-muted transition px-2 rounded-md"
                   >
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">{classroom.name}</h4>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{classroom.description}</p>
-                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-600">
+                      <h4 className="font-semibold text-foreground">{classroom.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{classroom.description}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center min-w-0 max-w-[200px]">
-                          <School className="w-3.5 h-3.5 mr-1 text-gray-400 shrink-0" />
+                          <School className="w-3.5 h-3.5 mr-1 opacity-40 shrink-0" />
                           <span className="truncate text-xs" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
                             {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
                             {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
                           </span>
                         </span>
                         <span className="flex items-center">
-                          <Calendar className="w-3.5 h-3.5 mr-1 text-gray-400" />
+                          <Calendar className="w-3.5 h-3.5 mr-1 opacity-40" />
                           {(() => {
                             if (!classroom.schedule || classroom.schedule.length === 0) return 'No schedule';
                             if (classroom.schedule.length === 1) {
@@ -535,7 +540,7 @@ const Dashboard = () => {
                           const currentTopic = classroom.topics?.find(t => t.status === 'active');
                           if (currentTopic) {
                             return (
-                              <span className="flex items-center bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100">
+                              <span className="flex items-center bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
                                 <Clock className="w-3 h-3 mr-1 animate-pulse" />
                                 Current: {currentTopic.name}
                               </span>
@@ -546,14 +551,16 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="mt-2 md:mt-0">
-                      <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                      <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
                         View Classroom →
                       </span>
                     </div>
                   </Link>
                 ))
               ) : (
-                <p className="text-gray-500 text-center py-8">No classrooms found in this section</p>
+                <div className="text-center py-12">
+                   <p className="text-muted-foreground/30 font-black text-xs uppercase tracking-widest italic">Academy protocol empty</p>
+                </div>
               )}
             </div>
           )}

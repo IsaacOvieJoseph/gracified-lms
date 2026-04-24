@@ -560,36 +560,36 @@ Bob Johnson,bob@example.com,student,`;
   const getRoleColor = (role) => {
     switch (role) {
       case 'root_admin':
-        return 'bg-red-100 text-red-800';
+        return 'bg-rose-500/10 text-rose-500 border border-rose-500/20';
       case 'school_admin':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
       case 'teacher':
       case 'personal_teacher':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20';
       default:
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20';
     }
   };
 
   const [showModalPassword, setShowModalPassword] = useState(false);
 
   if (loading) {
-    return <Layout><div className="text-center py-8">Loading...</div></Layout>;
+    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Loading...</p></div></Layout>;
   }
 
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter italic uppercase">
             {user?.role === 'teacher' || user?.role === 'personal_teacher'
-              ? 'My Students'
-              : 'User Management'}
+              ? 'Role'
+              : <>User <span className="text-primary not-italic">Directory</span></>}
           </h2>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={exportUsersToCSV}
-              className="flex items-center space-x-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              className="flex items-center space-x-2 px-4 py-2.5 bg-muted text-muted-foreground border border-border rounded-xl hover:bg-muted/80 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm"
               title="Export Users"
             >
               <Download className="w-4 h-4" />
@@ -614,11 +614,11 @@ Bob Johnson,bob@example.com,student,`;
                     setShowModalPassword(false);
                     setShowCreateModal(true);
                   }}
-                  className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  className="btn-premium px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-lg shadow-primary/20"
                   title="Create User"
                 >
                   <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Create User</span>
+                  <span className="hidden sm:inline">Add Member</span>
                 </button>
                 <button
                   onClick={() => {
@@ -626,11 +626,11 @@ Bob Johnson,bob@example.com,student,`;
                     setUploadResults(null);
                     setShowBulkUploadModal(true);
                   }}
-                  className="flex items-center space-x-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                  className="px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center space-x-2 hover:bg-primary/20 transition-all font-black text-[10px] uppercase tracking-widest"
                   title="Bulk Upload"
                 >
                   <Upload className="w-4 h-4" />
-                  <span className="hidden sm:inline">Bulk Upload</span>
+                  <span className="hidden sm:inline">Bulk Entry</span>
                 </button>
               </>
             )}
@@ -639,62 +639,72 @@ Bob Johnson,bob@example.com,student,`;
 
         {/* Search Bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <input
             type="text"
             placeholder="Search by name, email, or role..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-4 bg-muted/30 border-2 border-border rounded-2xl text-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-black italic tracking-tight placeholder:opacity-30 placeholder:italic"
           />
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden overflow-x-auto">
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Member Name</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Email Identity</th>
                 {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Account Role</th>
                 )}
                 {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">School</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Associated Academy</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Status</th>
                 {user?.role === 'root_admin' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Actions</th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border/40">
               {filteredUsers.map((u) => (
-                <tr key={u._id}>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-800">{u.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
+                <tr key={u._id} className="hover:bg-primary/5 transition-colors group">
+                  <td className="px-6 py-4 text-sm font-bold text-foreground/80">{u.name}</td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground font-medium">{u.email}</td>
                   {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getRoleColor(u.role)}`}>
+                      <span className={`inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getRoleColor(u.role)}`}>
                         {u.role.replace('_', ' ')}
                       </span>
                     </td>
                   )}
                   {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td className="px-6 py-4 text-sm text-muted-foreground/60 font-medium italic">
                       {Array.isArray(u.schoolId)
                         ? u.schoolId.map(s => s?.name || s).join(', ')
-                        : (u.schoolId?.name || u.schoolName || u.schoolId || '')}
+                        : (u.schoolId?.name || u.schoolName || u.schoolId || 'Individual')}
                     </td>
                   )}
-                  <td className="px-6 py-4 text-sm text-green-600">
-                    {u.isActive !== false ? 'Active' : 'Inactive'}
+                  <td className="px-6 py-4 text-sm">
+                    {u.isActive !== false ? (
+                        <span className="text-emerald-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />
+                            Active
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground/40 font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
+                             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20" />
+                            Inactive
+                        </span>
+                    )}
                   </td>
                   {(user?.role === 'root_admin' || (user?.role === 'school_admin' && u.createdBy === user._id)) && (
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleDelete(u._id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Delete User"
+                        className="p-2 text-muted-foreground/30 hover:text-red-500 transition-colors"
+                        title="Decommission Account"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -706,8 +716,8 @@ Bob Johnson,bob@example.com,student,`;
           </table>
         </div>
         {filteredUsers.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500">
+          <div className="text-center py-12 bg-card rounded-xl border border-border shadow-sm">
+            <p className="text-muted-foreground">
               {searchQuery.trim() !== ''
                 ? 'No users found matching your search'
                 : user?.role === 'teacher' || user?.role === 'personal_teacher'
@@ -720,70 +730,70 @@ Bob Johnson,bob@example.com,student,`;
 
       {
         showCreateModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+          <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 md:p-8">
-              <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full flex flex-col overflow-hidden animate-slide-up">
+              <div className="bg-card rounded-[2.5rem] shadow-2xl max-w-md w-full flex flex-col overflow-hidden animate-slide-up border border-border">
                 {/* Modal Header */}
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div className="p-8 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                    <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
                       <UserPlus className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-slate-900 leading-tight">Create User</h3>
-                      <p className="text-sm text-slate-500 font-medium mt-0.5">Add a new member to the system</p>
+                      <h3 className="text-2xl font-black text-foreground leading-tight">Create User</h3>
+                      <p className="text-sm text-muted-foreground font-medium mt-0.5">Add a new member to the system</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-95"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all active:scale-95"
                   >
                     <X className="w-6 h-6" />
                   </button>
                 </div>
 
                 {/* Modal Body */}
-                <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-card">
                   <form onSubmit={(e) => { setIsCreating(true); handleCreate(e); }} className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                      <label className="text-xs font-black text-muted-foreground uppercase tracking-widest ml-1">Full Name</label>
                       <input
                         type="text"
                         placeholder="e.g. Isaac Ovie Joseph"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all"
+                        className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-2xl font-bold text-foreground focus:bg-card focus:border-primary transition-all"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                      <label className="text-xs font-black text-muted-foreground uppercase tracking-widest ml-1">Email Address</label>
                       <input
                         type="email"
                         placeholder="email@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all"
+                        className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-2xl font-bold text-foreground focus:bg-card focus:border-primary transition-all"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Initial Password</label>
+                      <label className="text-xs font-black text-muted-foreground uppercase tracking-widest ml-1">Initial Password</label>
                       <div className="relative">
                         <input
                           type={showModalPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           value={formData.password}
                           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all pr-12"
+                          className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-2xl font-bold text-foreground focus:bg-card focus:border-primary transition-all pr-12"
                           required
                           minLength="6"
                         />
                         <button
                           type="button"
-                          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200/50 rounded-lg transition-colors text-slate-400"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground"
                           onClick={() => setShowModalPassword(!showModalPassword)}
                         >
                           {showModalPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -792,11 +802,11 @@ Bob Johnson,bob@example.com,student,`;
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Account Role</label>
+                      <label className="text-xs font-black text-muted-foreground uppercase tracking-widest ml-1">Account Role</label>
                       <select
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all appearance-none"
+                        className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-2xl font-bold text-foreground focus:bg-card focus:border-primary transition-all appearance-none"
                         required
                       >
                         <option value="student">Student</option>
@@ -813,48 +823,29 @@ Bob Johnson,bob@example.com,student,`;
 
                     {user?.role === 'school_admin' && (
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Assigned School(s)</label>
+                        <label className="text-xs font-black text-muted-foreground uppercase tracking-widest ml-1">Assign to Schools</label>
                         <Select
                           isMulti
-                          options={[{ value: 'ALL', label: 'All Schools' }, ...schools.map(s => ({ value: s._id, label: s.name }))]}
-                          value={formData.schoolIds && formData.schoolIds.length > 0
-                            ? (formData.schoolIds.length === schools.length
-                              ? [{ value: 'ALL', label: 'All Schools' }]
-                              : formData.schoolIds.map(id => {
-                                if (id === 'ALL') return { value: 'ALL', label: 'All Schools' };
-                                const school = schools.find(s => s._id === id);
-                                return school ? { value: school._id, label: school.name } : null;
-                              }).filter(Boolean))
-                            : (selectedSchools.length > 0
-                              ? selectedSchools.map(id => {
-                                const school = schools.find(s => s._id === id);
-                                return school ? { value: school._id, label: school.name } : null;
-                              }).filter(Boolean)
-                              : [])
-                          }
-                          onChange={selected => {
-                            if (selected.some(opt => opt.value === 'ALL')) {
-                              setFormData({ ...formData, schoolIds: schools.map(s => s._id) });
+                          options={[
+                            { value: 'ALL', label: 'Assign to All Schools' },
+                            ...schools.map(s => ({ value: s._id, label: s.name }))
+                          ]}
+                          value={formData.schoolIds?.map(id => {
+                            const s = schools.find(sch => sch._id === id);
+                            return s ? { value: s._id, label: s.name } : null;
+                          }).filter(Boolean)}
+                          onChange={(selected) => {
+                            if (selected && selected.some(opt => opt.value === 'ALL')) {
+                               setFormData({ ...formData, schoolIds: schools.map(s => s._id) });
                             } else {
-                              setFormData({ ...formData, schoolIds: selected.map(opt => opt.value) });
+                               setFormData({ ...formData, schoolIds: selected ? selected.map(opt => opt.value) : [] });
                             }
                           }}
+                          className="modern-select"
                           classNamePrefix="react-select"
                           placeholder="Search schools..."
-                          styles={{
-                            control: (base) => ({
-                              ...base,
-                              borderRadius: '1rem',
-                              padding: '4px',
-                              border: '2px solid #f8fafc',
-                              backgroundColor: '#f8fafc',
-                              '&:hover': { border: '2px solid #f8fafc' },
-                              boxShadow: 'none'
-                            }),
-                            placeholder: (base) => ({ ...base, color: '#94a3b8', fontWeight: 'bold' }),
-                          }}
                         />
-                        <p className="text-[10px] font-bold text-slate-400 ml-1">
+                        <p className="text-[10px] font-bold text-muted-foreground/30 ml-1">
                           {selectedSchools.length > 0
                             ? `Default: ${schools.find(s => s._id === selectedSchools[0])?.name || 'Current School'}.`
                             : 'Select one or more schools to grant access.'}
@@ -866,7 +857,7 @@ Bob Johnson,bob@example.com,student,`;
                       <button
                         type="button"
                         onClick={() => setShowCreateModal(false)}
-                        className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all uppercase tracking-widest text-xs"
+                        className="flex-1 px-6 py-4 rounded-2xl border-2 border-border font-black text-muted-foreground hover:bg-muted hover:text-foreground transition-all uppercase tracking-widest text-xs"
                       >
                         Discard
                       </button>
@@ -889,24 +880,23 @@ Bob Johnson,bob@example.com,student,`;
       {/* Bulk Upload Modal */}
       {
         showBulkUploadModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+          <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 md:p-8">
-              <div className={`bg-white rounded-[2.5rem] shadow-2xl ${uploadStep === 2 ? 'max-w-6xl' : 'max-w-2xl'} w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh]`}>
+              <div className={`bg-card rounded-[2.5rem] shadow-2xl ${uploadStep === 2 ? 'max-w-6xl' : 'max-w-2xl'} w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh] border border-border`}>
                 {/* Modal Header */}
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div className="p-8 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                    <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
                       <UsersIcon className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-slate-900 leading-tight">Bulk Invitation</h3>
+                      <h3 className="text-2xl font-black text-foreground leading-tight">Bulk Invitation</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex gap-1">
                           {[1, 2, 3].map(step => (
-                            <div key={step} className={`w-4 h-1 rounded-full transition-colors ${uploadStep >= step ? 'bg-primary' : 'bg-slate-100'}`} />
+                            <div key={step} className={`w-4 h-1 rounded-full transition-colors ${uploadStep >= step ? 'bg-primary' : 'bg-muted'}`} />
                           ))}
                         </div>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest ml-1">Step {uploadStep} of 3</p>
                       </div>
                     </div>
                   </div>
@@ -918,36 +908,36 @@ Bob Johnson,bob@example.com,student,`;
                       setParsedData([]);
                       setValidationErrors([]);
                     }}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-95"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all active:scale-95"
                   >
                     <X className="w-6 h-6" />
                   </button>
                 </div>
 
                 {/* Modal Body */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-slate-200">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-muted">
                   {/* Step 1: Upload CSV */}
                   {uploadStep === 1 && (
                     <div className="space-y-8">
-                      <div className="p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 relative overflow-hidden group">
+                      <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
-                          <FileText className="w-24 h-24" />
+                          <FileText className="w-24 h-24 text-primary" />
                         </div>
-                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Requirements</p>
+                        <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-4">Requirements</p>
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100">
-                              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Required Headers</p>
+                            <div className="bg-card p-4 rounded-2xl shadow-sm border border-border">
+                              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Required Headers</p>
                               <div className="flex flex-wrap gap-2">
-                                <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">name</span>
-                                <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">email</span>
+                                <span className="px-2 py-1 bg-foreground text-background text-[10px] font-bold rounded-lg uppercase tracking-wider">name</span>
+                                <span className="px-2 py-1 bg-foreground text-background text-[10px] font-bold rounded-lg uppercase tracking-wider">email</span>
                               </div>
                             </div>
-                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100">
-                              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Optional Headers</p>
+                            <div className="bg-card p-4 rounded-2xl shadow-sm border border-border">
+                              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">Optional Headers</p>
                               <div className="flex flex-wrap gap-2">
-                                <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">role</span>
-                                <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">school</span>
+                                <span className="px-2 py-1 bg-muted text-muted-foreground text-[10px] font-bold rounded-lg uppercase tracking-wider">role</span>
+                                <span className="px-2 py-1 bg-muted text-muted-foreground text-[10px] font-bold rounded-lg uppercase tracking-wider">school</span>
                               </div>
                             </div>
                           </div>
@@ -957,7 +947,7 @@ Bob Johnson,bob@example.com,student,`;
                               'Links expire automatically after 7 days',
                               'Existing emails will be skipped'
                             ].map((text, i) => (
-                              <li key={i} className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                              <li key={i} className="flex items-center gap-3 text-sm font-bold text-foreground/80">
                                 <CheckCircle className="w-4 h-4 text-emerald-500" />
                                 {text}
                               </li>
@@ -966,12 +956,12 @@ Bob Johnson,bob@example.com,student,`;
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-200 rounded-[2.5rem] bg-slate-50 hover:bg-white hover:border-primary transition-all group">
-                        <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:scale-110 transition-all mb-6">
+                      <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-border rounded-[2.5rem] bg-muted/30 hover:bg-card hover:border-primary transition-all group">
+                        <div className="w-20 h-20 bg-card rounded-[2rem] shadow-xl shadow-background flex items-center justify-center text-muted-foreground/30 group-hover:text-primary group-hover:scale-110 transition-all mb-6 border border-border">
                           <Upload className="w-10 h-10" />
                         </div>
-                        <h4 className="text-xl font-black text-slate-900 mb-2">Upload Data Source</h4>
-                        <p className="text-sm text-slate-500 font-medium mb-8">Select a .csv file to begin importing users</p>
+                        <h4 className="text-xl font-black text-foreground mb-2">Upload Data Source</h4>
+                        <p className="text-sm text-muted-foreground font-medium mb-8">Select a .csv file to begin importing users</p>
 
                         <label className="cursor-pointer">
                           <input
@@ -980,15 +970,15 @@ Bob Johnson,bob@example.com,student,`;
                             onChange={(e) => setCsvFile(e.target.files[0])}
                             className="hidden"
                           />
-                          <div className="px-8 py-3 bg-white border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:border-primary hover:text-primary transition-all shadow-sm">
+                          <div className="px-8 py-3 bg-card border-2 border-border rounded-2xl font-black text-foreground/60 hover:border-primary hover:text-primary transition-all shadow-sm">
                             {csvFile ? csvFile.name : 'Choose CSV File'}
                           </div>
                         </label>
 
                         {csvFile && (
-                          <div className="mt-4 flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 animate-in zoom-in">
+                          <div className="mt-4 flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20 animate-in zoom-in">
                             <CheckCircle className="w-4 h-4 text-emerald-500" />
-                            <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">Ready to Process</span>
+                            <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">Ready to Process</span>
                           </div>
                         )}
                       </div>
@@ -996,10 +986,10 @@ Bob Johnson,bob@example.com,student,`;
                       <div className="flex gap-4 pt-4">
                         <button
                           onClick={downloadSampleCSV}
-                          className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                          className="flex-1 px-6 py-4 rounded-2xl border-2 border-border font-black text-muted-foreground hover:bg-muted hover:text-foreground transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                         >
                           <Download className="w-4 h-4" />
-                          Sample Template
+                          Template
                         </button>
                         <button
                           onClick={handleBulkUpload}
@@ -1008,7 +998,7 @@ Bob Johnson,bob@example.com,student,`;
                         >
                           {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
                             <>
-                              <span>Validate Data Source</span>
+                              <span>Verify Intelligence</span>
                               <ArrowRight className="w-5 h-5" />
                             </>
                           )}
@@ -1021,47 +1011,47 @@ Bob Johnson,bob@example.com,student,`;
                   {uploadStep === 2 && (
                     <div className="space-y-8 animate-in slide-in-from-right duration-500">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 text-center">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Records</p>
-                          <p className="text-3xl font-black text-slate-900">{parsedData.length}</p>
+                        <div className="p-6 bg-muted rounded-3xl border border-border text-center">
+                          <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-1">Total Records</p>
+                          <p className="text-3xl font-black text-foreground">{parsedData.length}</p>
                         </div>
-                        <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 text-center">
-                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">Pass Check</p>
-                          <p className="text-3xl font-black text-emerald-600">{parsedData.filter(u => u.valid).length}</p>
+                        <div className="p-6 bg-emerald-500/10 rounded-3xl border border-emerald-500/20 text-center">
+                          <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Pass Check</p>
+                          <p className="text-3xl font-black text-emerald-500">{parsedData.filter(u => u.valid).length}</p>
                         </div>
-                        <div className="p-6 bg-red-50 rounded-3xl border border-red-100 text-center">
-                          <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-1">Failed Check</p>
-                          <p className="text-3xl font-black text-red-600">{validationErrors.length}</p>
+                        <div className="p-6 bg-rose-500/10 rounded-3xl border border-rose-500/20 text-center">
+                          <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1">Failed Check</p>
+                          <p className="text-3xl font-black text-rose-500">{validationErrors.length}</p>
                         </div>
                       </div>
 
                       {validationErrors.length > 0 && (
-                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-3">
+                        <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex items-center gap-3">
                           <AlertCircle className="w-5 h-5 text-amber-500" />
-                          <p className="text-xs font-bold text-amber-700">Records with errors will be skipped automatically during the invite process.</p>
+                          <p className="text-xs font-black text-amber-500 uppercase tracking-widest">Records with errors will be skipped automatically during the invite process.</p>
                         </div>
                       )}
 
-                      <div className="rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm bg-white">
-                        <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
+                      <div className="rounded-[2rem] border border-border overflow-hidden shadow-sm bg-card">
+                        <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted">
                           <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 z-20 bg-slate-900">
+                            <thead className="sticky top-0 z-20 bg-muted border-b border-border">
                               <tr>
-                                {['#', 'Name', 'Email Address', 'Account Role', 'Schools', 'Status'].map(h => (
-                                  <th key={h} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{h}</th>
+                                {['#', 'Member Name', 'Identity Address', 'Account Role', 'Academy Assignments', 'Verification'].map(h => (
+                                  <th key={h} className="px-6 py-4 text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">{h}</th>
                                 ))}
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-border">
                               {parsedData.map((row, idx) => (
-                                <tr key={idx} className={`group hover:bg-slate-50 transition-colors ${!row.valid ? 'bg-red-50/30' : ''}`}>
-                                  <td className="px-6 py-4 text-xs font-black text-slate-300">{row.rowNumber}</td>
+                                <tr key={idx} className={`group hover:bg-muted/30 transition-colors ${!row.valid ? 'bg-rose-500/5' : ''}`}>
+                                  <td className="px-6 py-4 text-xs font-black text-muted-foreground/20">{row.rowNumber}</td>
                                   <td className="px-6 py-4">
                                     <input
                                       type="text"
                                       value={row.name || ''}
                                       onChange={(e) => handleFieldEdit(idx, 'name', e.target.value)}
-                                      className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 placeholder:text-slate-300"
+                                      className="w-full bg-transparent border-none p-0 text-sm font-bold text-foreground focus:ring-0 placeholder:text-muted-foreground/20"
                                     />
                                   </td>
                                   <td className="px-6 py-4">
@@ -1069,14 +1059,14 @@ Bob Johnson,bob@example.com,student,`;
                                       type="email"
                                       value={row.email || ''}
                                       onChange={(e) => handleFieldEdit(idx, 'email', e.target.value)}
-                                      className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 placeholder:text-slate-300"
+                                      className="w-full bg-transparent border-none p-0 text-sm font-bold text-foreground focus:ring-0 placeholder:text-muted-foreground/20"
                                     />
                                   </td>
                                   <td className="px-6 py-4">
                                     <select
                                       value={row.role || 'student'}
                                       onChange={(e) => handleFieldEdit(idx, 'role', e.target.value)}
-                                      className="bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer"
+                                      className="bg-transparent border-none p-0 text-sm font-bold text-foreground focus:ring-0 appearance-none cursor-pointer"
                                     >
                                       <option value="student">Student</option>
                                       <option value="teacher">Teacher</option>
@@ -1090,28 +1080,30 @@ Bob Johnson,bob@example.com,student,`;
                                       value={row.schools?.map(s => ({ value: s, label: s === 'ALL' ? 'All' : s })) || []}
                                       onChange={(sel) => handleFieldEdit(idx, 'schools', sel ? sel.map(o => o.value) : [])}
                                       options={[{ value: 'ALL', label: 'All' }, ...schools.map(s => ({ value: s.name, label: s.name }))]}
-                                      classNamePrefix="small-select"
+                                      classNamePrefix="react-select"
+                                      className="modern-select"
                                       styles={{
                                         control: (base) => ({ ...base, minHeight: '30px', border: 'none', backgroundColor: 'transparent', boxShadow: 'none' }),
                                         valueContainer: (base) => ({ ...base, padding: '0' }),
-                                        multiValue: (base) => ({ ...base, borderRadius: '4px', backgroundColor: '#f1f5f9' }),
-                                        multiValueLabel: (base) => ({ ...base, fontSize: '10px', fontWeight: 'bold' })
+                                        multiValue: (base) => ({ ...base, borderRadius: '4px' }),
+                                        multiValueLabel: (base) => ({ ...base, fontSize: '10px', fontWeight: 'bold' }),
+                                        placeholder: (base) => ({ ...base, fontSize: '10px', color: 'hsl(var(--muted-foreground))' })
                                       }}
                                     />
                                   </td>
                                   <td className="px-6 py-4">
                                     {row.valid ? (
-                                      <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full w-fit border border-emerald-100">
+                                      <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full w-fit border border-emerald-500/20">
                                         <CheckCircle className="w-3.5 h-3.5" />
                                         <span className="text-[10px] font-black uppercase tracking-widest">Valid</span>
                                       </div>
                                     ) : (
                                       <div className="space-y-1">
-                                        <div className="flex items-center gap-1.5 text-red-500 bg-red-50 px-3 py-1 rounded-full w-fit border border-red-100">
+                                        <div className="flex items-center gap-1.5 text-red-500 bg-red-500/10 px-3 py-1 rounded-full w-fit border border-red-500/20">
                                           <XCircle className="w-3.5 h-3.5" />
                                           <span className="text-[10px] font-black uppercase tracking-widest">Invalid</span>
                                         </div>
-                                        <div className="text-[10px] text-red-400 font-bold ml-1">{row.errors[0]}</div>
+                                        <div className="text-[10px] text-red-500 font-bold ml-1">{row.errors[0]}</div>
                                       </div>
                                     )}
                                   </td>
@@ -1122,10 +1114,10 @@ Bob Johnson,bob@example.com,student,`;
                         </div>
                       </div>
 
-                      <div className="flex gap-4 pt-4 sticky bottom-0 bg-white">
+                      <div className="flex gap-4 pt-4 sticky bottom-0 bg-card border-t border-border">
                         <button
                           onClick={() => { setUploadStep(1); setParsedData([]); setValidationErrors([]); }}
-                          className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all uppercase tracking-widest text-xs"
+                          className="flex-1 px-6 py-4 rounded-2xl border-2 border-border font-black text-muted-foreground hover:bg-muted hover:text-foreground transition-all uppercase tracking-widest text-xs"
                         >
                           Reset Source
                         </button>
@@ -1149,34 +1141,34 @@ Bob Johnson,bob@example.com,student,`;
                   {uploadStep === 3 && uploadResults && (
                     <div className="space-y-8 animate-in zoom-in duration-500 text-center py-10">
                       <div className="relative inline-block">
-                        <div className="w-24 h-24 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-200 mx-auto relative z-10">
+                        <div className="w-24 h-24 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-500/30 mx-auto relative z-10">
                           <CheckCircle className="w-12 h-12" />
                         </div>
                         <div className="absolute top-0 left-0 w-24 h-24 bg-emerald-500 rounded-[2rem] animate-ping opacity-20" />
                       </div>
 
                       <div>
-                        <h4 className="text-3xl font-black text-slate-900 mb-2">Bravo! Import Successful.</h4>
-                        <p className="text-slate-500 font-medium">Invitation emails are now flying through outer space to their destinations.</p>
+                        <h4 className="text-3xl font-black text-foreground mb-2 italic">Broadcast <span className="text-primary not-italic">Successful</span></h4>
+                        <p className="text-muted-foreground font-medium">Digital invitations are now traversing the network to their final destinations.</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Delivered</p>
-                          <p className="text-3xl font-black text-emerald-600">{uploadResults.successful}</p>
+                        <div className="p-6 bg-muted rounded-[2rem] border border-border">
+                          <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-1">Delivered</p>
+                          <p className="text-3xl font-black text-emerald-500">{uploadResults.successful}</p>
                         </div>
-                        <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Bounced</p>
-                          <p className="text-3xl font-black text-red-600">{uploadResults.failed}</p>
+                        <div className="p-6 bg-muted rounded-[2rem] border border-border">
+                          <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-1">Bounced</p>
+                          <p className="text-3xl font-black text-rose-500">{uploadResults.failed}</p>
                         </div>
                       </div>
 
                       {uploadResults.errors?.length > 0 && (
-                        <div className="max-w-md mx-auto p-6 bg-red-50/50 rounded-[2rem] border border-red-100 text-left">
-                          <p className="text-xs font-black text-red-400 uppercase tracking-widest mb-4">Error Intelligence Report</p>
+                        <div className="max-w-md mx-auto p-6 bg-rose-500/5 rounded-[2rem] border border-rose-500/10 text-left">
+                          <p className="text-xs font-black text-rose-500/60 uppercase tracking-widest mb-4">Integrity Report</p>
                           <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin">
                             {uploadResults.errors.map((err, idx) => (
-                              <div key={idx} className="flex gap-3 text-xs font-bold text-red-700">
+                              <div key={idx} className="flex gap-3 text-[10px] font-black text-rose-500 uppercase tracking-wider opacity-60">
                                 <span className="opacity-40">#{err.row}</span>
                                 <span>{err.email}: {err.error}</span>
                               </div>
@@ -1211,9 +1203,9 @@ Bob Johnson,bob@example.com,student,`;
         show={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={confirmDelete}
-        title="Delete User"
-        message="Are you sure you want to delete this user? This action cannot be undone."
-        confirmText="Delete"
+        title="Decommission Account"
+        message="Are you sure you want to decommission this account? This action will immediately revoke all access privileges."
+        confirmText="DECOMMISSION"
         isLoading={isDeleting}
       />
     </Layout>

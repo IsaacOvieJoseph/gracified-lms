@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import ThemeToggle from '../components/ThemeToggle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -76,27 +77,28 @@ const PublicSchool = () => {
   const { school, classrooms } = data;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground font-inter selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
       {/* Dynamic Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                 <GraduationCap className="w-6 h-6 text-white" />
              </div>
-             <span className="text-xl font-black text-slate-900 tracking-tighter">Gracified<span className="text-indigo-600">LMS</span></span>
+             <span className="text-xl font-black text-foreground tracking-tighter italic">Gracified<span className="text-primary">LMS</span></span>
           </div>
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <button 
               onClick={handleShare}
-              className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all uppercase tracking-wider"
+              className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-muted text-muted-foreground rounded-xl font-black text-[10px] hover:bg-muted/80 transition-all uppercase tracking-widest border border-border"
             >
               <Share2 className="w-4 h-4" />
               <span>Share Portal</span>
             </button>
             <Link 
               to={`/register/student?redirect=${location.pathname}`}
-              className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-black text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 uppercase tracking-widest"
+              className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-[10px] hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 uppercase tracking-widest"
             >
               Enroll
             </Link>
@@ -129,17 +131,17 @@ const PublicSchool = () => {
 
               <div className="flex flex-wrap gap-4 pt-4">
                  <div className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-md">
-                   <Users className="w-6 h-6 text-indigo-400" />
+                   <Users className="w-6 h-6 text-primary" />
                    <div>
-                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Community</p>
-                     <p className="text-lg font-black text-white">Active Portal</p>
+                     <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">Community</p>
+                     <p className="text-lg font-black text-white italic">Active Students</p>
                    </div>
                  </div>
                  <div className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-md">
-                   <LayoutGrid className="w-6 h-6 text-purple-400" />
+                   <LayoutGrid className="w-6 h-6 text-emerald-400" />
                    <div>
-                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Resources</p>
-                     <p className="text-lg font-black text-white">{classrooms.length} Classrooms</p>
+                     <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">Capacities</p>
+                     <p className="text-lg font-black text-white italic">{classrooms.length} Units</p>
                    </div>
                  </div>
               </div>
@@ -168,19 +170,19 @@ const PublicSchool = () => {
       <section className="max-w-7xl mx-auto px-6 py-32">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
           <div className="space-y-4">
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter">Available Classrooms</h2>
-            <p className="text-lg text-slate-500 font-medium max-w-xl leading-relaxed">
-              Browse our diverse range of learning environments. Each classroom is equipped with specialized tools for an immersive experience.
+            <h2 className="text-4xl md:text-5xl font-black text-foreground tracking-tighter uppercase italic">Operational <span className="text-primary not-italic">Sectors</span></h2>
+            <p className="text-lg text-muted-foreground font-black uppercase tracking-[0.1em] max-w-xl leading-relaxed opacity-60 italic">
+              Discover and learn from verified educational courses. Each program is optimized for rapid skill acquisition.
             </p>
           </div>
           <div className="hidden md:flex gap-4">
-             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-                   <ShieldCheck className="w-6 h-6 text-green-600" />
+             <div className="p-4 bg-card border border-border rounded-[2rem] shadow-sm flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
+                   <ShieldCheck className="w-6 h-6 text-emerald-500" />
                 </div>
                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Quality Assured</p>
-                   <p className="text-sm font-bold text-slate-900">Verified Content</p>
+                   <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-wider">Platform Secure</p>
+                   <p className="text-sm font-black text-foreground uppercase tracking-tight">Verified Intel</p>
                 </div>
              </div>
           </div>
@@ -189,37 +191,37 @@ const PublicSchool = () => {
         {classrooms.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {classrooms.map((cls) => (
-              <div key={cls._id} className="group relative bg-white rounded-[2.5rem] border border-slate-200/60 p-8 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 h-full flex flex-col">
+              <div key={cls._id} className="group relative bg-card rounded-[2.5rem] border border-border p-8 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 h-full flex flex-col">
                 <div className="flex items-start justify-between mb-8">
-                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-                    <BookOpen className="w-8 h-8 text-slate-400 group-hover:text-indigo-600" />
+                  <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <BookOpen className="w-8 h-8 text-muted-foreground/40 group-hover:text-primary" />
                   </div>
-                  <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${cls.isPaid ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}`}>
-                    {cls.isPaid ? 'Premium' : 'Free Access'}
+                  <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${cls.isPaid ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'}`}>
+                    {cls.isPaid ? 'Premium Intel' : 'Public Access'}
                   </div>
                 </div>
 
                 <div className="space-y-4 flex-grow">
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">
+                  <h3 className="text-2xl font-black text-foreground tracking-tight group-hover:text-primary transition-colors italic uppercase">
                     {cls.name}
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">{cls.subject}</span>
-                    <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">{cls.level}</span>
+                    <span className="px-3 py-1 bg-muted text-muted-foreground rounded-lg text-[9px] font-black uppercase tracking-widest border border-border">{cls.subject}</span>
+                    <span className="px-3 py-1 bg-muted text-muted-foreground rounded-lg text-[9px] font-black uppercase tracking-widest border border-border">{cls.level}</span>
                   </div>
-                  <p className="text-slate-500 font-medium leading-relaxed line-clamp-3">
+                  <p className="text-muted-foreground font-medium leading-relaxed line-clamp-3 italic opacity-70">
                     {cls.description || "Join this classroom to explore interactive lessons, participate in discussions, and master your subject with expert guidance."}
                   </p>
                 </div>
 
-                <div className="mt-10 pt-8 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-10 pt-8 border-t border-border/50 flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instructor</span>
-                    <span className="text-sm font-bold text-slate-900 capitalize">{cls.teacherId?.name || "Expert Educator"}</span>
+                    <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest italic">Lead Architect</span>
+                    <span className="text-sm font-black text-foreground uppercase tracking-tighter italic">{cls.teacherId?.name || "Expert Educator"}</span>
                   </div>
                   <Link 
                     to={`/c/${cls.shortCode || cls._id}`}
-                    className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-600 transition-all transform group-hover:translate-x-2 shadow-lg shadow-slate-900/10"
+                    className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center hover:bg-primary/90 transition-all transform group-hover:translate-x-2 shadow-lg shadow-primary/20"
                   >
                     <ArrowRight className="w-5 h-5" />
                   </Link>
@@ -239,29 +241,29 @@ const PublicSchool = () => {
       </section>
 
       {/* Info Blocks */}
-      <section className="bg-white py-32">
+      <section className="bg-background py-32 border-t border-border">
         <div className="max-w-7xl mx-auto px-6">
            <div className="grid md:grid-cols-3 gap-12">
-              <div className="p-10 bg-slate-50 rounded-[3rem] space-y-6 group hover:bg-indigo-600 transition-all duration-500">
-                 <div className="w-14 h-14 bg-white text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <Award className="w-7 h-7" />
+              <div className="p-12 bg-muted/40 rounded-[3rem] border border-border space-y-6 group hover:bg-primary transition-all duration-500 shadow-inner">
+                 <div className="w-16 h-16 bg-card text-primary rounded-[1.5rem] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform border border-border">
+                    <Award className="w-8 h-8" />
                  </div>
-                 <h4 className="text-2xl font-black text-slate-900 group-hover:text-white transition-colors">Quality Assurance</h4>
-                 <p className="text-slate-500 font-medium group-hover:text-white/70 transition-colors">All our classes follow professional standards and regular curriculum reviews.</p>
+                 <h4 className="text-2xl font-black text-foreground group-hover:text-white transition-colors italic uppercase tracking-tighter">Premium Quality</h4>
+                 <p className="text-muted-foreground font-black text-[11px] uppercase tracking-widest group-hover:text-white/70 transition-colors italic opacity-60">All protocols follow elite curriculum standards and rigorous vetting.</p>
               </div>
-              <div className="p-10 bg-slate-50 rounded-[3rem] space-y-6 group hover:bg-indigo-600 transition-all duration-500">
-                 <div className="w-14 h-14 bg-white text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <Globe className="w-7 h-7" />
+              <div className="p-12 bg-muted/40 rounded-[3rem] border border-border space-y-6 group hover:bg-primary transition-all duration-500 shadow-inner">
+                 <div className="w-16 h-16 bg-card text-primary rounded-[1.5rem] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform border border-border">
+                    <Globe className="w-8 h-8" />
                  </div>
-                 <h4 className="text-2xl font-black text-slate-900 group-hover:text-white transition-colors">Global Access</h4>
-                 <p className="text-slate-500 font-medium group-hover:text-white/70 transition-colors">Connect from anywhere in the world and learn at your own comfortable pace.</p>
+                 <h4 className="text-2xl font-black text-foreground group-hover:text-white transition-colors italic uppercase tracking-tighter">Global Access</h4>
+                 <p className="text-muted-foreground font-black text-[11px] uppercase tracking-widest group-hover:text-white/70 transition-colors italic opacity-60">Connect to the grid from any location and optimize at your own pace.</p>
               </div>
-              <div className="p-10 bg-slate-50 rounded-[3rem] space-y-6 group hover:bg-indigo-600 transition-all duration-500">
-                 <div className="w-14 h-14 bg-white text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <ShieldCheck className="w-7 h-7" />
+              <div className="p-12 bg-muted/40 rounded-[3rem] border border-border space-y-6 group hover:bg-primary transition-all duration-500 shadow-inner">
+                 <div className="w-16 h-16 bg-card text-primary rounded-[1.5rem] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform border border-border">
+                    <ShieldCheck className="w-8 h-8" />
                  </div>
-                 <h4 className="text-2xl font-black text-slate-900 group-hover:text-white transition-colors">Secure Platform</h4>
-                 <p className="text-slate-500 font-medium group-hover:text-white/70 transition-colors">Your data and learning progress are protected with industry-standard security.</p>
+                 <h4 className="text-2xl font-black text-foreground group-hover:text-white transition-colors italic uppercase tracking-tighter">Encrypted Core</h4>
+                 <p className="text-muted-foreground font-black text-[11px] uppercase tracking-widest group-hover:text-white/70 transition-colors italic opacity-60">Your operational data and progress are isolated within an encrypted vault.</p>
               </div>
            </div>
         </div>

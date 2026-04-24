@@ -256,30 +256,30 @@ const ExamSubmissions = () => {
                 {/* Header */}
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-4">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-6">
                         <button
                             onClick={() => navigate('/exams')}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors font-bold shrink-0"
+                            className="p-3 hover:bg-muted rounded-2xl transition-all border border-border/50 shadow-sm"
                         >
-                            <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            <ArrowLeft className="w-6 h-6 text-foreground" />
                         </button>
                         <div>
-                            <h1 className="text-xl md:text-2xl font-black text-gray-900 leading-tight">Exam Submissions</h1>
-                            <p className="text-sm md:text-base text-gray-500 font-medium line-clamp-1">Results for: {exam?.title}</p>
+                            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tighter uppercase italic leading-tight">Assessment <span className="text-primary not-italic">Report</span></h1>
+                            <p className="text-[10px] md:text-xs font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Session Intercept: {exam?.title}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <button
                             onClick={exportToCSV}
-                            className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm whitespace-nowrap"
+                            className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-card border border-border rounded-xl font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition-all shadow-sm"
                         >
                             <Download className="w-4 h-4" />
                             <span>Export CSV</span>
                         </button>
                         <button
                             onClick={exportToPDF}
-                            className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 whitespace-nowrap"
+                            className="btn-premium flex-1 md:flex-none"
                         >
                             <FileText className="w-4 h-4" />
                             <span>Export PDF</span>
@@ -289,138 +289,140 @@ const ExamSubmissions = () => {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Total Participants</div>
-                        <div className="text-3xl font-black text-gray-900">{submissions.length}</div>
+                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/20 transition-all group">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Submissions</div>
+                        <div className="text-3xl font-black text-foreground tracking-tighter">{submissions.length}</div>
                     </div>
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Average Score</div>
-                        <div className="text-3xl font-black text-indigo-600">{averageScore}</div>
+                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/20 transition-all group">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Average Intel Score</div>
+                        <div className="text-3xl font-black text-primary tracking-tighter">{averageScore}</div>
                     </div>
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Completion Rate</div>
-                        <div className="text-3xl font-black text-emerald-500">{completionRate}%</div>
+                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-emerald-500/20 transition-all group">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Resolution Rate</div>
+                        <div className="text-3xl font-black text-emerald-500 tracking-tighter">{completionRate}%</div>
                     </div>
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Max Possible</div>
-                        <div className="text-3xl font-black text-gray-900">
+                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/20 transition-all group">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Max Possible</div>
+                        <div className="text-3xl font-black text-foreground tracking-tighter">
                             {exam?.questions?.reduce((acc, q) => acc + (q.maxScore || 1), 0)}
                         </div>
                     </div>
                 </div>
 
                 {/* Search & List */}
-                <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden">
+                    <div className="p-8 border-b border-border/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-muted-foreground/30 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Search by candidate name or email..."
+                                placeholder="Filter students by name or email..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                className="w-full pl-14 pr-6 py-4 bg-muted/20 border-none rounded-[1.5rem] focus:ring-2 focus:ring-primary/20 transition-all font-black text-xs uppercase tracking-widest text-foreground placeholder:text-muted-foreground/30"
                             />
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="bg-gray-50 border-none rounded-2xl px-4 py-3 font-bold text-gray-500 focus:ring-2 focus:ring-indigo-500 transition-all text-xs uppercase tracking-widest outline-none"
+                                className="bg-muted border border-border rounded-xl px-5 py-3 font-black text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all text-[10px] uppercase tracking-[0.2em] outline-none"
                             >
-                                <option value="all">All Submissions</option>
-                                <option value="graded">Graded Only</option>
+                                <option value="all">All Payloads</option>
+                                <option value="graded">Resolved Only</option>
                                 <option value="pending">Needs Review</option>
                             </select>
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto font-inter">
                         <table className="w-full text-left">
-                            <thead className="bg-gray-50/50">
+                            <thead className="bg-muted/50 border-b border-border">
                                 <tr>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Access Mode</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-nowrap">Submitted At</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-nowrap">Time Spent</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Score (%)</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Student Name</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Network Mode</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Resolution Time</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Cycle Duration</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-center">Intel (%)</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-right">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {loading ? (
+                            <tbody className="divide-y divide-border">
+                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-8 py-20 text-center">
-                                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div>
+                                        <td colSpan="6" className="px-8 py-24 text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                                            <p className="mt-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Loading submissions...</p>
                                         </td>
                                     </tr>
                                 ) : filteredSubmissions.length > 0 ? (
                                     filteredSubmissions.map((s) => (
-                                        <tr key={s._id} className="hover:bg-gray-50/50 transition-colors">
+                                        <tr key={s._id} className="hover:bg-muted/30 transition-all group">
                                             <td className="px-8 py-6">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                                                <div className="flex items-center space-x-5">
+                                                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-lg italic shadow-inner">
                                                         {(s.studentId?.name || s.candidateName || '?').charAt(0).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <div className="text-sm font-bold text-gray-900">{s.studentId?.name || s.candidateName}</div>
-                                                        <div className="text-xs text-gray-500">{s.studentId?.email || s.candidateEmail || 'No email provided'}</div>
+                                                        <div className="text-[15px] font-black text-foreground flex items-center gap-2 group-hover:text-primary transition-colors tracking-tight italic uppercase">{s.studentId?.name || s.candidateName}</div>
+                                                        <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{s.studentId?.email || s.candidateEmail || 'No secure email'}</div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 {s.studentId ? (
-                                                    <span className="flex items-center text-xs font-bold text-violet-600 bg-violet-50 px-3 py-1 rounded-full w-fit">
-                                                        <UserCheck className="w-3 h-3 mr-1" /> REGISTERED
+                                                    <span className="flex items-center text-[9px] font-black text-primary bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20 tracking-widest shadow-inner">
+                                                        <UserCheck className="w-3.5 h-3.5 mr-1.5" /> RECOGNIZED
                                                     </span>
                                                 ) : (
-                                                    <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit">
-                                                        <Globe className="w-3 h-3 mr-1" /> GUEST
+                                                    <span className="flex items-center text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 tracking-widest shadow-inner">
+                                                        <Globe className="w-3.5 h-3.5 mr-1.5" /> EXTERNAL
                                                     </span>
                                                 )}
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-gray-900">{formatDisplayDate(s.submittedAt)}</span>
-                                                    <span className="text-[10px] text-gray-400 uppercase tracking-tighter">Completion</span>
+                                                    <span className="text-sm font-black text-foreground tracking-tight">{formatDisplayDate(s.submittedAt)}</span>
+                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Intercept Log</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-gray-900">{formatDuration(s.startedAt, s.submittedAt)}</span>
-                                                    <span className="text-[10px] text-gray-400 flex items-center mt-1 text-nowrap">
+                                                    <span className="text-sm font-black text-foreground tracking-tight">{formatDuration(s.startedAt, s.submittedAt)}</span>
+                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40 flex items-center mt-1">
                                                         Started: {new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-center">
-                                                <div className="inline-flex flex-col space-y-1 items-center">
+                                                <div className="inline-flex flex-col space-y-1.5 items-center">
                                                     <div className="flex items-center space-x-2">
-                                                        <div className="text-2xl font-black text-indigo-600">
+                                                        <div className="text-2xl font-black text-primary tracking-tighter italic">
                                                             {Math.round((s.totalScore / totalMaxScore) * 100)}%
                                                         </div>
-                                                        <Award className="w-4 h-4 text-amber-400" />
+                                                        <Award className="w-4 h-4 text-amber-500" />
                                                     </div>
-                                                    <div className="text-[10px] font-bold text-gray-400 uppercase">
-                                                        {s.totalScore} / {totalMaxScore} Pts
+                                                    <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">
+                                                        {s.totalScore} / {totalMaxScore} Intel
                                                     </div>
                                                     {s.status === 'graded' ? (
-                                                        <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest bg-violet-50 px-2 py-0.5 rounded-md mt-1">Graded</span>
+                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 mt-1">Resolved</span>
                                                     ) : hasTheory && s.status === 'submitted' ? (
-                                                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-md mt-1">Needs Review</span>
+                                                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20 mt-1">Review Required</span>
                                                     ) : s.status === 'submitted' ? (
-                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-md mt-1">Finalized</span>
+                                                        <span className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-lg border border-primary/20 mt-1">Finalized</span>
                                                     ) : (
-                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-md mt-1">In Progress</span>
+                                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest bg-muted px-3 py-1 rounded-lg border border-border mt-1">Active</span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <button
                                                     onClick={() => navigate(`/exams/submissions/detail/${s._id}`)}
-                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                    className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50 group/btn"
+                                                    title="Deep Analysis"
                                                 >
-                                                    <BarChart className="w-5 h-5" />
+                                                    <BarChart className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
                                                 </button>
                                             </td>
                                         </tr>

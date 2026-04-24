@@ -40,10 +40,10 @@ const SectionHeader = ({ title, count, icon: Icon }) => (
       <div className="p-2 bg-primary/10 rounded-lg text-primary">
         <Icon className="w-5 h-5" />
       </div>
-      <h2 className="text-xl font-bold text-slate-800">{title}</h2>
-      <span className="text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full uppercase tracking-widest">{count} Total</span>
+      <h2 className="text-xl font-bold text-foreground">{title}</h2>
+      <span className="text-[10px] font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-full uppercase tracking-widest">{count} Total</span>
     </div>
-    <div className="h-px flex-1 bg-slate-100 mx-6 hidden md:block" />
+    <div className="h-px flex-1 bg-border mx-6 hidden md:block" />
   </div>
 );
 
@@ -224,17 +224,17 @@ const Classrooms = () => {
     const isAdmin = ['root_admin', 'school_admin', 'personal_teacher'].includes(user?.role);
 
     return (
-      <div key={classroom._id} className="card-premium flex flex-col group overflow-hidden bg-white">
-        <div className="relative h-2 bg-gradient-to-r from-primary/40 to-primary/10" />
+      <div key={classroom._id} className="card-premium flex flex-col group overflow-hidden bg-card border border-border shadow-lg transition-all duration-300 hover:shadow-2xl hover:border-primary/20">
+        <div className="relative h-2 bg-gradient-to-r from-primary/40 to-primary/5" />
         <div className="p-6 flex flex-col h-full">
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1 min-w-0 pr-2">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-xl font-bold text-slate-900 truncate group-hover:text-primary transition-colors">{classroom.name}</h3>
-                {isNew && <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">New</span>}
+                <h3 className="text-xl font-black italic text-foreground tracking-tight truncate group-hover:text-primary transition-colors pr-2 pb-1">{classroom.name}</h3>
+                {isNew && <span className="bg-amber-500/10 text-amber-500 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest border border-amber-500/20">New</span>}
               </div>
-              <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
-                <User className="w-3 h-3" />
+              <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">
+                <User className="w-3 h-3 text-primary" />
                 <span>{classroom.teacherId?.name || 'TBA'}</span>
               </div>
             </div>
@@ -242,37 +242,37 @@ const Classrooms = () => {
             <div className="flex flex-col items-end gap-2">
               {classroom.isPaid ? (
                 <div className="text-right">
-                  <div className="text-sm font-bold text-slate-900">{formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}</div>
-                  <div className="text-[9px] font-bold text-primary uppercase tracking-tighter opacity-70">{(classroom.pricing?.type || 'Lecture').replace('_', ' ')}</div>
+                  <div className="text-sm font-black text-foreground italic">{formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}</div>
+                  <div className="text-[9px] font-black text-primary uppercase tracking-widest opacity-70">{(classroom.pricing?.type || 'Lecture').replace('_', ' ')}</div>
                 </div>
               ) : (
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">Free</span>
+                <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-widest">Free</span>
               )}
             </div>
           </div>
 
           <div className="space-y-3 mb-6 flex-1">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Layers className="w-4 h-4 text-slate-300" />
-              <span className="font-medium text-slate-400">Level:</span>
-              <span className="text-slate-700">{classroom.level || 'Other'}</span>
+            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              <Layers className="w-4 h-4 text-primary/40" />
+              <span>Level:</span>
+              <span className="text-foreground">{classroom.level || 'Other'}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Calendar className="w-4 h-4 text-slate-300" />
-              <span className="font-medium text-slate-400">Schedule:</span>
-              <span className="text-slate-700 truncate">{classroom.schedule?.[0]?.dayOfWeek || 'TBA'} {classroom.schedule?.[0]?.startTime || ''}</span>
+            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              <Calendar className="w-4 h-4 text-primary/40" />
+              <span>Schedule:</span>
+              <span className="text-foreground truncate italic">{classroom.schedule?.[0]?.dayOfWeek || 'TBA'} {classroom.schedule?.[0]?.startTime || ''}</span>
             </div>
             {isAdmin && (
-              <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                  <Users className="w-3.5 h-3.5" /> {classroom.students?.length || 0} Enrolled
+              <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <Users className="w-3.5 h-3.5 text-primary" /> {classroom.students?.length || 0} Enrolled
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => handlePublishToggle(classroom._id, classroom.published)} className={`p-1.5 rounded-lg transition ${classroom.published ? 'text-emerald-500 bg-emerald-50' : 'text-slate-400 bg-slate-50'}`}>
+                  <button onClick={() => handlePublishToggle(classroom._id, classroom.published)} className={`p-1.5 rounded-lg transition ${classroom.published ? 'text-emerald-500 bg-emerald-500/10' : 'text-muted-foreground bg-muted'}`}>
                     {publishingClassId === classroom._id ? <Loader2 className="w-4 h-4 animate-spin" /> : (classroom.published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />)}
                   </button>
                   {(user?.role === 'root_admin' || user?.role === 'school_admin' || user?._id === classroom.teacherId?._id) && (
-                    <button onClick={(e) => handleDeleteClick(classroom._id, e)} className="p-1.5 rounded-lg text-red-400 bg-red-50 hover:bg-red-100 transition">
+                    <button onClick={(e) => handleDeleteClick(classroom._id, e)} className="p-1.5 rounded-lg text-rose-500 bg-rose-500/10 hover:bg-rose-500 hover:text-white transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
@@ -290,17 +290,17 @@ const Classrooms = () => {
     );
   };
 
-  if (loading) return <Layout><div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-20" /></div></Layout>;
+  if (loading) return <Layout><div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div></Layout>;
 
   return (
     <Layout>
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 card-premium p-6 shadow-sm">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              Explore Classrooms <Sparkles className="w-6 h-6 text-amber-500" />
+            <h1 className="text-3xl font-black italic text-foreground tracking-tight flex items-center gap-3">
+              Explore Academies <Sparkles className="w-6 h-6 text-amber-500" />
             </h1>
-            <p className="text-slate-400 font-medium mt-1">Discover and manage educational content with ease.</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground mt-1">Discover and manage elite educational modules.</p>
           </div>
           {canCreate && (
             <button
@@ -314,13 +314,13 @@ const Classrooms = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
           <div className="relative group w-full lg:col-span-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input
               type="text"
-              placeholder="Search classes..."
+              placeholder="Filter by title, subject, teacher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 bg-white border-slate-200 h-12 shadow-sm focus:shadow-md"
+              className="w-full pl-12 pr-4 bg-card border-2 border-border h-12 shadow-sm focus:shadow-lg focus:border-primary transition-all outline-none rounded-2xl font-bold italic"
             />
           </div>
           
@@ -330,8 +330,28 @@ const Classrooms = () => {
               value={{ value: selectedSubject, label: selectedSubject }}
               onChange={(sel) => setSelectedSubject(sel?.value || 'All Subjects')}
               className="modern-select"
-              styles={{ control: (base) => ({ ...base, height: '48px', borderRadius: '0.75rem' }) }}
-              components={{ DropdownIndicator: () => <Filter className="w-4 h-4 text-slate-400 mr-4" />, IndicatorSeparator: () => null }}
+              classNamePrefix="react-select"
+              styles={{ 
+                control: (base) => ({ 
+                  ...base, 
+                  height: '48px', 
+                  borderRadius: '1rem', 
+                  backgroundColor: 'var(--bg-card)', 
+                  borderColor: 'var(--border-border)', 
+                  borderWidth: '2px',
+                  fontWeight: '700',
+                  '&:hover': { borderColor: 'var(--primary)' }
+                }),
+                menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
+                option: (base, state) => ({ 
+                  ...base, 
+                  backgroundColor: state.isFocused ? 'var(--bg-muted)' : 'var(--bg-card)',
+                  color: 'var(--text-foreground)',
+                  fontWeight: '700'
+                }),
+                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
+              }}
+              components={{ DropdownIndicator: () => <Filter className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
             />
           </div>
 
@@ -341,8 +361,28 @@ const Classrooms = () => {
               value={{ value: selectedLevel, label: selectedLevel }}
               onChange={(sel) => setSelectedLevel(sel?.value || 'All Levels')}
               className="modern-select"
-              styles={{ control: (base) => ({ ...base, height: '48px', borderRadius: '0.75rem' }) }}
-              components={{ DropdownIndicator: () => <Layers className="w-4 h-4 text-slate-400 mr-4" />, IndicatorSeparator: () => null }}
+              classNamePrefix="react-select"
+              styles={{ 
+                control: (base) => ({ 
+                  ...base, 
+                  height: '48px', 
+                  borderRadius: '1rem', 
+                  backgroundColor: 'var(--bg-card)', 
+                  borderColor: 'var(--border-border)', 
+                  borderWidth: '2px',
+                  fontWeight: '700',
+                  '&:hover': { borderColor: 'var(--primary)' }
+                }),
+                menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
+                option: (base, state) => ({ 
+                  ...base, 
+                  backgroundColor: state.isFocused ? 'var(--bg-muted)' : 'var(--bg-card)',
+                  color: 'var(--text-foreground)',
+                  fontWeight: '700'
+                }),
+                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
+              }}
+              components={{ DropdownIndicator: () => <Layers className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
             />
           </div>
 
@@ -356,8 +396,28 @@ const Classrooms = () => {
               value={{ value: selectedPrice, label: selectedPrice }}
               onChange={(sel) => setSelectedPrice(sel?.value || 'All Prices')}
               className="modern-select"
-              styles={{ control: (base) => ({ ...base, height: '48px', borderRadius: '0.75rem' }) }}
-              components={{ DropdownIndicator: () => <DollarSign className="w-4 h-4 text-slate-400 mr-4" />, IndicatorSeparator: () => null }}
+              classNamePrefix="react-select"
+              styles={{ 
+                control: (base) => ({ 
+                  ...base, 
+                  height: '48px', 
+                  borderRadius: '1rem', 
+                  backgroundColor: 'var(--bg-card)', 
+                  borderColor: 'var(--border-border)', 
+                  borderWidth: '2px',
+                  fontWeight: '700',
+                  '&:hover': { borderColor: 'var(--primary)' }
+                }),
+                menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
+                option: (base, state) => ({ 
+                  ...base, 
+                  backgroundColor: state.isFocused ? 'var(--bg-muted)' : 'var(--bg-card)',
+                  color: 'var(--text-foreground)',
+                  fontWeight: '700'
+                }),
+                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
+              }}
+              components={{ DropdownIndicator: () => <DollarSign className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
             />
           </div>
         </div>
@@ -365,15 +425,15 @@ const Classrooms = () => {
         <div className="space-y-10">
           {user?.role === 'student' && user?.schoolId?.length > 0 ? (
             <>
-              <SectionHeader title="Your Schools" count={classrooms.filter(isMySchoolClass).length} icon={School} />
+              <SectionHeader title="Your Facilities" count={classrooms.filter(isMySchoolClass).length} icon={School} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
                 {classrooms.filter(isMySchoolClass).map(renderClassroomCard)}
               </div>
 
               {classrooms.filter(c => !isMySchoolClass(c)).length > 0 && (
                 <>
-                  <div className="pt-8 mb-6 border-t border-slate-100">
-                    <SectionHeader title="Global Marketplace" count={classrooms.filter(c => !isMySchoolClass(c)).length} icon={Sparkles} />
+                  <div className="pt-12 mb-8 border-t border-border/10">
+                    <SectionHeader title="Global Classrooms" count={classrooms.filter(c => !isMySchoolClass(c)).length} icon={Sparkles} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
                     {classrooms.filter(c => !isMySchoolClass(c)).map(renderClassroomCard)}
@@ -388,105 +448,145 @@ const Classrooms = () => {
           )}
 
           {filteredClassrooms.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border border-slate-100 border-dashed">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                <Search className="w-10 h-10 text-slate-200" />
+            <div className="flex flex-col items-center justify-center py-20 text-center card-premium border-dashed">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
+                <Search className="w-10 h-10 text-muted-foreground/30" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800">No classes matches your search</h3>
-              <p className="text-slate-400 mt-2">Try adjusting your filters or search keywords.</p>
+              <h3 className="text-xl font-bold text-foreground">No classes matches your search</h3>
+              <p className="text-muted-foreground mt-2">Try adjusting your filters or search keywords.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Simplified Create Modal Styling */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white rounded-[2rem] w-full max-w-2xl p-8 shadow-2xl animate-slide-up">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-slate-900">New Classroom</h2>
-                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"><X className="w-6 h-6" /></button>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-xl z-[100] overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-6">
+            <div className="bg-card border border-border rounded-[3rem] w-full max-w-2xl p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-10">
+                <h2 className="text-3xl font-black italic tracking-tighter text-foreground uppercase">Create <span className="text-primary not-italic">Classroom</span></h2>
+                <button onClick={() => setShowCreateModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
               </div>
               <form onSubmit={handleCreate} className="space-y-8 pb-4">
                 {/* Basic Info */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Class Title</label>
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Class Title</label>
                     <input
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g. Advanced Mathematics Masterclass"
-                      className="w-full"
+                      placeholder="e.g. Advanced Quantum Mechanics"
+                      className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
                       required
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
-                      Academic Level
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                      Grade Level
                       <FormFieldHelp content="The grade or difficulty level of this class." />
                     </label>
                     <Select
                       options={levelOptions}
                       value={levelOptions.find(opt => opt.value === formData.level)}
                       onChange={sel => setFormData({ ...formData, level: sel?.value })}
-                      className="modern-select"
+                      classNamePrefix="react-select"
+                      styles={{ 
+                        control: (base) => ({ 
+                          ...base, 
+                          minHeight: '60px', 
+                          borderRadius: '1rem', 
+                          backgroundColor: 'var(--bg-muted)', 
+                          opacity: 0.5,
+                          borderColor: 'var(--border-border)', 
+                          borderWidth: '2px',
+                          fontWeight: '700'
+                        }),
+                        singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                        menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                      }}
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
-                      Subject
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                      Subject Matter
                       <FormFieldHelp content="Categorize your class for better discoverability in the marketplace." />
                     </label>
                     <CreatableSelect
                       options={subjectOptions}
                       value={formData.subject ? { value: formData.subject, label: formData.subject } : null}
                       onChange={sel => setFormData({ ...formData, subject: sel?.value || '' })}
-                      className="modern-select"
+                      classNamePrefix="react-select"
+                      styles={{ 
+                        control: (base) => ({ 
+                          ...base, 
+                          minHeight: '60px', 
+                          borderRadius: '1rem', 
+                          backgroundColor: 'var(--bg-muted)', 
+                          opacity: 0.5,
+                          borderColor: 'var(--border-border)', 
+                          borderWidth: '2px',
+                          fontWeight: '700'
+                        }),
+                        singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                         menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                      }}
                     />
                   </div>
 
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Description</label>
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Description</label>
                     <textarea
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Tell students what this class is about..."
-                      className="w-full min-h-[100px]"
+                      className="w-full min-h-[100px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
                     />
                   </div>
 
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Learning Outcomes</label>
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Learning Outcomes</label>
                     <textarea
                       value={formData.learningOutcomes}
                       onChange={e => setFormData({ ...formData, learningOutcomes: e.target.value })}
-                      placeholder="List what students will achieve (comma separated)..."
-                      className="w-full min-h-[80px]"
+                      placeholder="What will students learn? (comma separated)..."
+                      className="w-full min-h-[80px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
                     />
                   </div>
                 </div>
 
                 {/* Roles & Visibility */}
-                <div className="grid md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                <div className="grid md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-[2rem] border border-border">
                   {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
                     <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign Teacher</label>
+                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign Teacher</label>
                       <Select
                         options={teachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
                         value={teachers.find(t => t._id === formData.teacherId) ? { value: formData.teacherId, label: teachers.find(t => t._id === formData.teacherId).name } : null}
                         onChange={sel => setFormData({ ...formData, teacherId: sel?.value })}
                         placeholder="Select a teacher..."
-                        className="modern-select"
+                        classNamePrefix="react-select"
+                        styles={{ 
+                          control: (base) => ({ 
+                            ...base, 
+                            minHeight: '60px', 
+                            borderRadius: '1rem', 
+                            backgroundColor: 'var(--bg-card)', 
+                            borderColor: 'var(--border-border)', 
+                            borderWidth: '2px',
+                            fontWeight: '700'
+                          }),
+                          singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                        }}
                       />
                     </div>
                   )}
 
                   {user?.role === 'school_admin' && (
                     <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign to Schools</label>
+                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign to Schools</label>
                       <Select
                         isMulti
                         options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
@@ -495,7 +595,21 @@ const Classrooms = () => {
                           return { value: id, label: s?.name || id };
                         })}
                         onChange={sels => setFormData({ ...formData, schoolIds: sels ? sels.map(s => s.value) : [] })}
-                        className="modern-select"
+                        classNamePrefix="react-select"
+                        styles={{ 
+                          control: (base) => ({ 
+                            ...base, 
+                            minHeight: '60px', 
+                            borderRadius: '1rem', 
+                            backgroundColor: 'var(--bg-card)', 
+                            borderColor: 'var(--border-border)', 
+                            borderWidth: '2px',
+                            fontWeight: '700'
+                          }),
+                          multiValue: (base) => ({ ...base, backgroundColor: 'var(--bg-muted)' }),
+                          multiValueLabel: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                        }}
                       />
                     </div>
                   )}
@@ -504,7 +618,7 @@ const Classrooms = () => {
                     {/* Max Capacity */}
                     <div className="space-y-2">
                        <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Limit</span>
+                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Billet Limit</span>
                         <FormFieldHelp content="The maximum number of students allowed to enroll in this class." />
                       </div>
                       <div className="relative">
@@ -513,7 +627,7 @@ const Classrooms = () => {
                           value={formData.capacity}
                           onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 30 })}
                           onWheel={(e) => e.target.blur()}
-                          className="w-full pl-4 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-600 focus:bg-white transition-all outline-none font-bold text-slate-700"
+                          className="w-full pl-4 pr-4 py-3 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all outline-none font-bold text-foreground"
                           min="1"
                           placeholder="30"
                         />
@@ -523,15 +637,15 @@ const Classrooms = () => {
                     {/* Private Toggle */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Visibility</span>
+                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none">Access Channel</span>
                         <FormFieldHelp content="Private classes won't appear in the global marketplace. Only students with a direct link can enroll." />
                       </div>
                       <label 
                         onClick={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
-                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPrivate ? 'border-primary bg-primary/5' : 'border-border bg-card/50 hover:border-border/80'}`}
                       >
-                        <span className={`text-sm font-bold transition-colors ${formData.isPrivate ? 'text-indigo-700' : 'text-slate-600'}`}>Private</span>
-                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${formData.isPrivate ? 'text-primary' : 'text-muted-foreground'}`}>Private</span>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPrivate ? 'bg-primary' : 'bg-muted'}`}>
                           <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPrivate ? 'translate-x-4' : ''}`} />
                         </div>
                       </label>
@@ -540,15 +654,15 @@ const Classrooms = () => {
                     {/* Paid Toggle */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Monetization</span>
+                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none">Monetization</span>
                         <FormFieldHelp content="If enabled, students must pay the specified fee to access content or join lectures." />
                       </div>
                       <label 
                         onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
-                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPaid ? 'border-primary bg-primary/5' : 'border-border bg-card/50 hover:border-border/80'}`}
                       >
-                        <span className={`text-sm font-bold transition-colors ${formData.isPaid ? 'text-indigo-700' : 'text-slate-600'}`}>Paid Class</span>
-                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${formData.isPaid ? 'text-primary' : 'text-muted-foreground'}`}>Premium</span>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPaid ? 'bg-primary' : 'bg-muted'}`}>
                           <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
                         </div>
                       </label>
@@ -557,76 +671,78 @@ const Classrooms = () => {
                 </div>
 
                 {/* Pricing details if paid */}
-                {formData.isPaid && (
-                  <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
-                          Billing Cycle
-                          <FormFieldHelp content="Defines when students are charged: Weekly (every 7 days), Per Lecture (on join), or One Time (enrolment only)." />
-                        </label>
-                        <Select
-                          options={[
-                            { value: 'per_lecture', label: 'Per Lecture' },
-                            { value: 'per_topic', label: 'Per Topic' },
-                            { value: 'weekly', label: 'Weekly' },
-                            { value: 'monthly', label: 'Monthly' },
-                            { value: 'one_time', label: 'One Time Payment' }
-                          ]}
-                          value={{ value: formData.pricing.type, label: formData.pricing.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
-                          onChange={sel => setFormData({ ...formData, pricing: { ...formData.pricing, type: sel?.value } })}
-                          menuPortalTarget={document.body}
-                          styles={{
-                            control: (base) => ({
-                              ...base,
-                              minHeight: '60px',
-                              borderRadius: '1rem',
-                              borderWidth: '2px',
-                              borderColor: '#F1F5F9',
-                              backgroundColor: '#F8FAFC',
-                              fontWeight: '700',
-                              '&:hover': { borderColor: '#E2E8F0' }
-                            }),
-                            menuPortal: base => ({ ...base, zIndex: 9999 })
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
-                          Amount ({import.meta.env.VITE_CURRENCY || 'NGN'})
-                          <FormFieldHelp content="The fee students will pay based on the selected billing cycle." />
-                        </label>
-                        <input
-                          type="number"
-                          value={formData.pricing.amount}
-                          onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 } })}
-                          onWheel={(e) => e.target.blur()}
-                          className="w-full h-[60px] bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-primary focus:bg-white transition-all outline-none px-4 font-bold text-slate-700"
-                          min="0"
-                          placeholder="e.g. 5000"
-                          required={formData.isPaid}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                 {formData.isPaid && (
+                   <div className="p-6 rounded-[2rem] bg-primary/10 border border-primary/20 animate-in fade-in duration-300">
+                     <div className="grid md:grid-cols-2 gap-6">
+                       <div className="space-y-1.5">
+                         <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
+                           Billing Protocol
+                           <FormFieldHelp content="Defines when students are charged: Weekly (every 7 days), Per Lecture (on join), or One Time (enrolment only)." />
+                         </label>
+                         <Select
+                           options={[
+                             { value: 'per_lecture', label: 'Per Lecture' },
+                             { value: 'per_topic', label: 'Per Topic' },
+                             { value: 'weekly', label: 'Weekly' },
+                             { value: 'monthly', label: 'Monthly' },
+                             { value: 'one_time', label: 'One Time Purchase' }
+                           ]}
+                           value={{ value: formData.pricing.type, label: formData.pricing.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                           onChange={sel => setFormData({ ...formData, pricing: { ...formData.pricing, type: sel?.value } })}
+                           menuPortalTarget={document.body}
+                           styles={{
+                             control: (base) => ({
+                               ...base,
+                               minHeight: '60px',
+                               borderRadius: '1rem',
+                               borderWidth: '2px',
+                               borderColor: 'var(--border-border)',
+                               backgroundColor: 'var(--bg-muted)',
+                               fontWeight: '700',
+                               opacity: 0.8,
+                               '&:hover': { borderColor: 'var(--primary)' }
+                             }),
+                             singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                             menuPortal: base => ({ ...base, zIndex: 9999 })
+                           }}
+                         />
+                       </div>
+                       <div className="space-y-1.5">
+                         <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
+                           Value ({import.meta.env.VITE_CURRENCY || 'NGN'})
+                           <FormFieldHelp content="The fee students will pay based on the selected billing cycle." />
+                         </label>
+                         <input
+                           type="number"
+                           value={formData.pricing.amount}
+                           onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 } })}
+                           onWheel={(e) => e.target.blur()}
+                           className="w-full h-[60px] bg-muted/50 border-2 border-border rounded-2xl focus:border-primary focus:bg-card transition-all outline-none px-4 font-black text-foreground italic"
+                           min="0"
+                           placeholder="e.g. 5000"
+                           required={formData.isPaid}
+                         />
+                       </div>
+                     </div>
+                   </div>
+                 )}
 
                 {/* Schedule Builder */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Weekly Schedule</label>
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Temporal Logistics</label>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, schedule: [...formData.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
-                      className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+                      className="text-[9px] font-black text-primary flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded-lg transition-all uppercase tracking-widest border border-primary/20"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add Session
+                      <Plus className="w-3.5 h-3.5" /> Add Schedule Slot
                     </button>
                   </div>
 
                   <div className="space-y-3">
                     {formData.schedule.map((s, idx) => (
-                      <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-slide-up">
+                      <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted/30 rounded-2xl border border-border animate-in slide-in-from-right duration-300">
                         <select
                           value={s.dayOfWeek}
                           onChange={e => {
@@ -634,9 +750,9 @@ const Classrooms = () => {
                             newSched[idx].dayOfWeek = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="flex-1 min-w-[120px] bg-white border-slate-200 rounded-lg text-sm"
+                          className="flex-1 min-w-[120px] bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0"
                         >
-                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d}>{d}</option>)}
+                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d} className="bg-card">{d}</option>)}
                         </select>
                         <input
                           type="time"
@@ -646,9 +762,9 @@ const Classrooms = () => {
                             newSched[idx].startTime = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0"
                         />
-                        <span className="text-slate-400">to</span>
+                        <span className="text-muted-foreground">to</span>
                         <input
                           type="time"
                           value={s.endTime}
@@ -657,7 +773,7 @@ const Classrooms = () => {
                             newSched[idx].endTime = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0"
                         />
                         <button
                           type="button"
@@ -665,21 +781,21 @@ const Classrooms = () => {
                             const newSched = formData.schedule.filter((_, i) => i !== idx);
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
+                          className="p-2.5 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all border border-border/50"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                     {formData.schedule.length === 0 && (
-                      <p className="text-sm text-slate-400 italic text-center py-4">No sessions scheduled yet.</p>
+                      <p className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.2em] italic text-center py-8 bg-muted/20 rounded-2xl border border-dashed border-border/30">No operational windows scheduled yet.</p>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-8 flex gap-4 sticky bottom-0 bg-white pb-2 border-t border-slate-50">
-                  <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">Discard</button>
-                  <button type="submit" className="btn-premium flex-1">Launch Classroom</button>
+                <div className="pt-8 flex gap-4 sticky bottom-0 bg-card/90 backdrop-blur-md pb-2 border-t border-border mt-4">
+                  <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-4 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition">ABORT</button>
+                  <button type="submit" className="btn-premium flex-1">ACTIVATE ACADEMY</button>
                 </div>
               </form>
             </div>
@@ -688,25 +804,25 @@ const Classrooms = () => {
       )}
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl animate-slide-up text-center">
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-300 text-center">
+            <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <Trash2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Classroom?</h3>
-            <p className="text-slate-500 mb-8">This action cannot be undone. All materials and student enrollments will be lost.</p>
+            <h3 className="text-xl font-black italic text-foreground mb-2 uppercase tracking-tight">Decommission Module?</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-8">This action is irreversible. All data and active enrollments will be removed from the platform.</p>
             <div className="flex gap-3">
               <button 
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                className="flex-1 px-6 py-4 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
               >
-                Cancel
+                ABORT
               </button>
               <button 
                 onClick={confirmDelete}
-                className="flex-1 px-6 py-3 rounded-xl bg-red-500 text-white font-bold shadow-lg shadow-red-100 hover:bg-red-600 transition"
+                className="flex-1 px-6 py-4 rounded-2xl bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition"
               >
-                Delete
+                PURGE
               </button>
             </div>
           </div>

@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
-import { User, CreditCard, Save, Camera, Lock, Building, Upload, Eye, EyeOff } from 'lucide-react';
+import { User, CreditCard, Save, Camera, Lock, Building, Upload, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const Profile = () => {
     const { user, setAuthData } = useAuth(); // Use setAuthData to update user
@@ -202,7 +202,7 @@ const Profile = () => {
         return (
             <Layout>
                 <div className="flex justify-center items-center h-screen">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
             </Layout>
         );
@@ -212,32 +212,32 @@ const Profile = () => {
         <Layout>
             <div className="max-w-4xl mx-auto pb-20">
                 <div className="flex items-center gap-4 mb-8">
-                    <div className="p-3 bg-indigo-100 rounded-xl text-indigo-600">
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary border border-primary/20">
                         <User className="w-8 h-8" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-gray-900">Profile Settings</h1>
-                        <p className="text-gray-500">Manage your account information</p>
+                        <h1 className="text-2xl sm:text-3xl font-black text-foreground italic">Profile <span className="text-primary not-italic">Settings</span></h1>
+                        <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] mt-1 opacity-60">Identity & Protocol Management</p>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-card rounded-[2.5rem] shadow-2xl border border-border overflow-hidden">
                     <form onSubmit={handleSubmit} className="p-8 space-y-10">
 
                         {/* Profile Picture Section - Only for Students, Teachers and Root Admins */}
                         {!(user?.role === 'school_admin' || user?.role === 'personal_teacher') && (
-                            <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b pb-8">
+                            <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b border-border pb-8">
                                 <div className="relative group">
-                                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-inner bg-gray-50">
+                                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-muted shadow-inner bg-muted">
                                         {profilePicPreview ? (
                                             <img src={profilePicPreview} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                            <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
                                                 <User className="w-10 h-10" />
                                             </div>
                                         )}
                                     </div>
-                                    <label className="absolute bottom-0 right-0 p-2 bg-indigo-600 text-white rounded-full cursor-pointer hover:bg-indigo-700 transition shadow-lg">
+                                    <label className="absolute bottom-0 right-0 p-2.5 bg-primary text-white rounded-full cursor-pointer hover:bg-primary/90 transition shadow-lg border-2 border-card">
                                         <Camera className="w-4 h-4" />
                                         <input
                                             type="file"
@@ -248,9 +248,9 @@ const Profile = () => {
                                     </label>
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
-                                    <h3 className="text-lg font-bold text-gray-900">Profile Picture</h3>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Upload a new profile picture. Recommended size: 400x400px.
+                                    <h3 className="text-lg font-black text-foreground uppercase tracking-tight">Identity Avatar</h3>
+                                    <p className="text-sm text-muted-foreground mt-1 font-medium">
+                                        Recommended Size: 400x400px.
                                     </p>
                                 </div>
                             </div>
@@ -258,16 +258,16 @@ const Profile = () => {
 
                         {/* Logo Upload Section (for Admins/Teachers) */}
                         {canEditLogo && (
-                            <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b pb-8">
+                            <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b border-border pb-8">
                                 <div className="relative group">
-                                    <div className="w-24 h-24 rounded-xl overflow-hidden border-4 border-gray-100 shadow-inner bg-gray-50 flex items-center justify-center">
+                                    <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-muted shadow-inner bg-muted flex items-center justify-center">
                                         {logoPreview || profilePicPreview ? (
                                             <img src={logoPreview || profilePicPreview} alt="Logo" className="max-w-full max-h-full object-contain" />
                                         ) : (
-                                            <Building className="w-10 h-10 text-gray-400" />
+                                            <Building className="w-10 h-10 text-muted-foreground/20" />
                                         )}
                                     </div>
-                                    <label className="absolute -bottom-2 -right-2 p-2 bg-white text-indigo-600 border border-gray-200 rounded-full cursor-pointer hover:bg-gray-50 transition shadow-sm">
+                                    <label className="absolute -bottom-2 -right-2 p-3 bg-card text-primary border-2 border-border rounded-2xl cursor-pointer hover:bg-muted transition shadow-sm">
                                         <Upload className="w-4 h-4" />
                                         <input
                                             type="file"
@@ -278,9 +278,9 @@ const Profile = () => {
                                     </label>
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
-                                    <h3 className="text-lg font-bold text-gray-900">Brand Logo & Profile Image</h3>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Update your official logo. This will also be used as your profile image across the platform.
+                                    <h3 className="text-lg font-black text-foreground uppercase tracking-tight">Institution Credentials</h3>
+                                    <p className="text-sm text-muted-foreground mt-1 font-medium">
+                                        This asset will be used for official branding & platform identity.
                                     </p>
                                 </div>
                             </div>
@@ -288,102 +288,101 @@ const Profile = () => {
 
                         {/* Personal Info Section */}
                         <div className="space-y-6">
-                            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <User className="w-5 h-5 text-gray-400" /> Personal Information
+                            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 opacity-40">
+                                <User className="w-4 h-4" /> Core Protocol
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Authentication Name</label>
                                     <input
                                         type="text"
                                         name="name"
                                         value={formData.name}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                        className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
                                         placeholder="Your Name"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Secure Email</label>
                                     <input
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         disabled
-                                        className="w-full px-4 py-3 bg-gray-100 border-none rounded-xl text-gray-500 cursor-not-allowed font-medium"
+                                        className="w-full px-4 py-3.5 bg-muted/40 border border-border/10 rounded-2xl text-muted-foreground/20 cursor-not-allowed font-bold"
                                     />
-                                    <p className="text-xs text-gray-400 mt-1">Email cannot be changed directly.</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Change Password Section */}
-                        <div className="space-y-6 border-t pt-8">
-                            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <Lock className="w-5 h-5 text-gray-400" /> Change Password
+                        <div className="space-y-6 border-t border-border pt-8">
+                            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 opacity-40">
+                                <Lock className="w-4 h-4" /> Encryption Key Update
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
+                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Access Pass</label>
                                     <div className="relative">
                                         <input
                                             type={showCurrentPassword ? "text" : "password"}
                                             name="currentPassword"
                                             value={formData.currentPassword}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium pr-10"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold pr-10"
                                             placeholder="••••••••"
                                             autoComplete="new-password"
                                         />
                                         <button
                                             type="button"
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground/30 hover:text-primary transition-colors"
                                             onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                                         >
-                                            {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
+                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">New Access Key</label>
                                     <div className="relative">
                                         <input
                                             type={showNewPassword ? "text" : "password"}
                                             name="newPassword"
                                             value={formData.newPassword}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium pr-10"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold pr-10"
                                             placeholder="••••••••"
                                             autoComplete="new-password"
                                         />
                                         <button
                                             type="button"
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground/30 hover:text-primary transition-colors"
                                             onClick={() => setShowNewPassword(!showNewPassword)}
                                         >
-                                            {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">Min. 6 characters</p>
+                                    <p className="text-[9px] text-muted-foreground/40 font-bold uppercase tracking-widest mt-1.5 ml-1">Minimum 6 Tokens Required</p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
+                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Confirm Protocol</label>
                                     <div className="relative">
                                         <input
                                             type={showConfirmPassword ? "text" : "password"}
                                             name="confirmNewPassword"
                                             value={formData.confirmNewPassword}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium pr-10"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold pr-10"
                                             placeholder="••••••••"
                                             autoComplete="new-password"
                                         />
                                         <button
                                             type="button"
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground/30 hover:text-primary transition-colors"
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                         >
-                                            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
                                 </div>
@@ -392,86 +391,86 @@ const Profile = () => {
 
                         {/* Bank Details Section */}
                         {canEditBankDetails && (
-                            <div className="space-y-6 border-t pt-8">
-                                <div className="flex items-center gap-2">
-                                    <CreditCard className="w-5 h-5 text-gray-400" />
-                                    <h2 className="text-lg font-bold text-gray-900">Payout Details</h2>
+                            <div className="space-y-6 border-t border-border pt-8">
+                                <div className="flex items-center gap-2 opacity-40">
+                                    <CreditCard className="w-4 h-4 text-muted-foreground" />
+                                    <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Payout Intelligence</h2>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Bank Establishment</label>
                                         <input
                                             type="text"
                                             name="bankName"
                                             value={formData.bankName}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
                                             placeholder="e.g. First Bank"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Account Number</label>
+                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Core Identity Number</label>
                                         <input
                                             type="text"
                                             name="accountNumber"
                                             value={formData.accountNumber}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
                                             placeholder="0123456789"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Account Name</label>
+                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Legal Register Name</label>
                                         <input
                                             type="text"
                                             name="accountName"
                                             value={formData.accountName}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
                                             placeholder="As appears on account"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Code (Optional)</label>
+                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Sort Code (Optional)</label>
                                         <input
                                             type="text"
                                             name="bankCode"
                                             value={formData.bankCode}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-                                            placeholder="Sort Code"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
+                                            placeholder="Bank Logic Code"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Payout Frequency</label>
+                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Disbursement Frequency</label>
                                         <select
                                             name="payoutFrequency"
                                             value={formData.payoutFrequency}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold appearance-none"
                                         >
-                                            <option value="daily">Daily</option>
-                                            <option value="weekly">Weekly</option>
-                                            <option value="monthly">Monthly</option>
+                                            <option value="daily">Daily Cycle</option>
+                                            <option value="weekly">Weekly Cycle</option>
+                                            <option value="monthly">Monthly Cycle</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        <div className="pt-4 flex justify-end sticky bottom-0 bg-white p-4 border-t border-gray-100 -mx-8 -mb-8 mt-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                        <div className="pt-4 flex justify-end sticky bottom-0 bg-card/80 backdrop-blur-md p-4 border-t border-border -mx-8 -mb-8 mt-8 shadow-2xl z-20">
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-100 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-95"
+                                className="flex items-center space-x-2 px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:grayscale disabled:opacity-50"
                             >
                                 {saving ? (
-                                    <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
+                                    <Loader2 className="animate-spin h-5 w-5" />
                                 ) : (
                                     <Save className="w-5 h-5" />
                                 )}
-                                <span>{saving ? 'Save Changes' : 'Save Changes'}</span>
+                                <span>{saving ? 'Synchronizing...' : 'Commit Changes'}</span>
                             </button>
                         </div>
                     </form>

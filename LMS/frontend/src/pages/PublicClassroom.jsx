@@ -8,6 +8,7 @@ import {
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 // Set base URL for axios if not already handled by a global config
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -70,24 +71,24 @@ const PublicClassroom = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl max-w-md w-full text-center border border-slate-100">
-          <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+        <div className="bg-card p-8 rounded-[2.5rem] shadow-xl max-w-md w-full text-center border border-border">
+          <div className="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <Info className="w-10 h-10" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-2">Oops!</h2>
-          <p className="text-slate-500 mb-8 font-medium leading-relaxed">{error}</p>
+          <h2 className="text-2xl font-black text-foreground mb-2">Oops!</h2>
+          <p className="text-muted-foreground mb-8 font-medium leading-relaxed">{error}</p>
           <button 
             onClick={() => navigate('/')}
-            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 group shadow-lg"
+            className="w-full py-4 btn-premium rounded-2xl font-bold flex items-center justify-center gap-2 group shadow-lg"
           >
             <span>Back to Home</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -117,7 +118,34 @@ const PublicClassroom = () => {
   const embedUrl = getEmbedUrl(classroom.introVideo);
 
   return (
-    <div className="min-h-screen bg-white font-inter selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-background text-foreground font-inter selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
+       {/* Global Navigation */}
+       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
+          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                   <GraduationCap className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xl font-black text-foreground tracking-tighter italic">Gracified<span className="text-primary">LMS</span></span>
+             </div>
+             <div className="flex items-center gap-4">
+                <ThemeToggle />
+                <button 
+                  onClick={handleShare}
+                  className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-muted text-muted-foreground rounded-xl font-black text-[10px] hover:bg-muted/80 transition-all uppercase tracking-widest border border-border"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Share</span>
+                </button>
+                <button 
+                  onClick={handleEnrollClick}
+                  className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-[10px] hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 uppercase tracking-widest"
+                >
+                  Enroll Now
+                </button>
+             </div>
+          </div>
+       </nav>
       {/* Dynamic Header / Hero Area */}
       <div className="relative overflow-hidden bg-slate-900 text-white pt-24 pb-32">
         <div className="absolute inset-0 opacity-20">
@@ -172,15 +200,15 @@ const PublicClassroom = () => {
             </div>
 
             <div className="lg:block animate-fade-in relative">
-               <div className="absolute -inset-4 bg-indigo-500/20 blur-3xl rounded-[3rem]"></div>
-               <div className="relative bg-white text-slate-900 rounded-[2.5rem] shadow-2xl p-8 border border-slate-100">
+               <div className="absolute -inset-4 bg-primary/20 blur-3xl rounded-[3rem]"></div>
+               <div className="relative bg-card text-foreground rounded-[2.5rem] shadow-2xl p-10 border border-border">
                   <div className="flex items-center justify-between mb-8">
-                    <div className="p-3 bg-indigo-50 rounded-2xl">
-                       <ShieldCheck className="w-6 h-6 text-indigo-600" />
+                    <div className="p-3 bg-primary/10 rounded-2xl">
+                       <ShieldCheck className="w-6 h-6 text-primary" />
                     </div>
                     <button 
                       onClick={handleShare}
-                      className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 hover:text-slate-900 transition-all border border-transparent hover:border-slate-200"
+                      className="p-3 bg-muted text-muted-foreground rounded-2xl hover:bg-muted/80 hover:text-foreground transition-all border border-border"
                     >
                        <Share2 className="w-5 h-5" />
                     </button>
@@ -188,10 +216,10 @@ const PublicClassroom = () => {
 
                   <div className="space-y-6">
                     <div className="flex items-baseline gap-2">
-                       <span className="text-4xl font-black text-slate-900">
+                       <span className="text-4xl font-black text-foreground italic">
                          {classroom.isPaid ? `₦${classroom.pricing?.amount?.toLocaleString() || 0}` : "Free"}
                        </span>
-                       {classroom.isPaid && <span className="text-slate-400 font-bold text-sm">Access Fee</span>}
+                       {classroom.isPaid && <span className="text-muted-foreground font-black uppercase text-[10px] tracking-widest opacity-60 italic">Access Fee</span>}
                     </div>
 
                     <div className="space-y-4">
@@ -203,10 +231,10 @@ const PublicClassroom = () => {
                         `Certificate of completion`
                       ].map((feature, i) => (
                         <div key={i} className="flex items-center gap-3 group">
-                           <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                             <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                           <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                            </div>
-                           <span className="text-slate-600 font-medium group-hover:text-slate-900 transition-colors">{feature}</span>
+                           <span className="text-muted-foreground text-sm font-black uppercase tracking-wide group-hover:text-foreground transition-colors">{feature}</span>
                         </div>
                       ))}
                     </div>
@@ -214,12 +242,12 @@ const PublicClassroom = () => {
                     <div className="pt-6">
                       <button 
                         onClick={handleEnrollClick}
-                        className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all transform hover:-translate-y-1 shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-3 group"
+                        className="w-full py-5 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all transform hover:-translate-y-1 shadow-xl shadow-primary/20 active:scale-95 flex items-center justify-center gap-3 group"
                       >
-                         <span>Join Classroom Now</span>
+                         <span>Join Module Now</span>
                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </button>
-                      <p className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-6 bg-slate-50 py-3 rounded-xl border border-slate-100">
+                      <p className="text-center text-muted-foreground text-[9px] font-black uppercase tracking-[0.2em] mt-6 bg-muted/40 py-3 rounded-xl border border-border italic">
                          Secure Checkout powered by Paystack
                       </p>
                     </div>
@@ -252,42 +280,42 @@ const PublicClassroom = () => {
          <div className="grid lg:grid-cols-3 gap-16">
             <div className="lg:col-span-2 space-y-20">
                {/* About Section */}
-               <section className="space-y-8">
-                  <div className="flex items-center gap-4">
-                     <div className="w-1 h-8 bg-indigo-600 rounded-full"></div>
-                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">About this Class</h2>
-                  </div>
-                  <div className="text-lg text-slate-600 leading-relaxed font-medium space-y-4">
+                <section className="space-y-8">
+                   <div className="flex items-center gap-4">
+                      <div className="w-1.5 h-8 bg-primary rounded-full"></div>
+                      <h2 className="text-3xl font-black text-foreground tracking-tight uppercase italic">Module Overview</h2>
+                   </div>
+                  <div className="text-lg text-muted-foreground leading-relaxed font-bold space-y-4">
                     <p>{classroom.description || "Explore this comprehensive course designed to equip you with real-world skills and expert knowledge."}</p>
                     {classroom.learningOutcomes && (
-                        <div className="mt-8 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4">
-                            <h4 className="font-black text-slate-900 uppercase tracking-widest text-[10px]">What you'll learn</h4>
-                            <p className="italic text-slate-500 whitespace-pre-line">{classroom.learningOutcomes}</p>
+                        <div className="mt-8 p-10 bg-muted/30 rounded-[2.5rem] border border-border space-y-4 italic shadow-inner">
+                            <h4 className="font-black text-foreground uppercase tracking-[0.2em] text-[10px]">What you will learn</h4>
+                            <p className="text-muted-foreground/80 whitespace-pre-line text-base">{classroom.learningOutcomes}</p>
                         </div>
                     )}
                   </div>
                </section>
 
-               {/* Curriculum Section */}
-               <section className="space-y-8">
-                  <div className="flex items-center gap-4">
-                     <div className="w-1 h-8 bg-indigo-600 rounded-full"></div>
-                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">Curriculum ({classroom.topics?.length || 0} Topics)</h2>
-                  </div>
+                {/* Curriculum Section */}
+                <section className="space-y-8">
+                   <div className="flex items-center gap-4">
+                      <div className="w-1.5 h-8 bg-primary rounded-full"></div>
+                      <h2 className="text-3xl font-black text-foreground tracking-tight uppercase italic">Curriculum ({classroom.topics?.length || 0} Modules)</h2>
+                   </div>
                   <div className="space-y-3">
                     {classroom.topics?.map((topic, i) => (
-                      <div key={topic._id} className="group p-6 bg-white border border-slate-100 rounded-3xl hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all flex items-center justify-between">
+                      <div key={topic._id} className="group p-6 bg-card border border-border rounded-3xl hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 transition-all flex items-center justify-between">
                          <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center font-black text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                            <div className="w-12 h-12 bg-muted rounded-2xl flex items-center justify-center font-black text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors italic">
                                {i + 1}
                             </div>
                             <div>
-                               <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{topic.name}</h4>
-                               <p className="text-xs text-slate-400 font-medium mt-1">Topic overview & materials included</p>
+                               <h4 className="font-black text-foreground group-hover:text-primary transition-colors text-lg italic tracking-tight">{topic.name}</h4>
+                               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1 opacity-60">Lessons & Materials Included</p>
                             </div>
                          </div>
                          <div className="hidden sm:block">
-                            <span className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-widest rounded-lg group-hover:bg-indigo-50 group-hover:text-indigo-600">Locked</span>
+                            <span className="px-4 py-1.5 bg-muted text-muted-foreground text-[10px] font-black uppercase tracking-widest rounded-xl group-hover:bg-primary/20 group-hover:text-primary border border-border transition-all">Encrypted</span>
                          </div>
                       </div>
                     ))}
@@ -298,24 +326,24 @@ const PublicClassroom = () => {
             {/* Sidebar Details */}
             <aside className="space-y-12">
                {/* Teacher Section */}
-               <div className="p-8 bg-slate-900 text-white rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-indigo-500/10 blur-3xl rounded-full"></div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-8 border-b border-white/5 pb-4">Instructor</h4>
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center text-2xl font-black text-indigo-400 backdrop-blur-md">
-                       {teacher?.name?.charAt(0) || <Users className="w-8 h-8" />}
+               <div className="p-10 bg-card text-foreground rounded-[3rem] shadow-2xl relative overflow-hidden border border-border">
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-primary/10 blur-3xl rounded-full"></div>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-10 border-b border-border pb-4 italic">Lead Architect</h4>
+                  <div className="flex items-center gap-5 mb-8">
+                    <div className="w-20 h-20 bg-muted rounded-[2rem] border border-border flex items-center justify-center text-3xl font-black text-primary backdrop-blur-md italic">
+                       {teacher?.name?.charAt(0) || <Users className="w-10 h-10" />}
                     </div>
                     <div>
-                       <h5 className="text-xl font-black tracking-tight">{teacher?.name || 'TBA'}</h5>
-                       <p className="text-sm text-indigo-400 font-bold capitalize">{teacher?.role?.replace('_', ' ') || 'Instructor'}</p>
+                       <h5 className="text-2xl font-black tracking-tighter italic">{teacher?.name || 'TBA'}</h5>
+                       <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] mt-1 opacity-80">{teacher?.role?.replace('_', ' ') || 'Instructor'}</p>
                     </div>
                   </div>
                   <div className="space-y-4 pt-4">
-                     <div className="flex items-center gap-3 text-sm text-slate-400 font-medium">
+                     <div className="flex items-center gap-3 text-sm text-muted-foreground font-medium">
                         <GraduationCap className="w-4 h-4" />
                         <span>Certified Platform Instructor</span>
                      </div>
-                     <div className="flex items-center gap-3 text-sm text-slate-400 font-medium">
+                     <div className="flex items-center gap-3 text-sm text-muted-foreground font-medium">
                         <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                         <span>4.9 Instructor Rating</span>
                      </div>
@@ -323,32 +351,32 @@ const PublicClassroom = () => {
                </div>
 
                {/* Schedule Section */}
-               <div className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 border-b border-slate-50 pb-4">Schedule</h4>
-                  <div className="space-y-6">
+               <div className="p-10 bg-card border border-border rounded-[3rem] shadow-2xl">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-10 border-b border-border/50 pb-4 italic">Temporal Logistics</h4>
+                  <div className="space-y-8">
                      {classroom.schedule?.length > 0 ? classroom.schedule.map((slot, i) => (
-                        <div key={i} className="flex flex-col gap-1">
-                           <span className="text-sm font-black text-slate-900">{slot.dayOfWeek}</span>
-                           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                              <Clock className="w-3 h-3" />
+                        <div key={i} className="flex flex-col gap-2">
+                           <span className="text-sm font-black text-foreground uppercase tracking-wider italic">{slot.dayOfWeek}</span>
+                           <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] opacity-70">
+                              <Clock className="w-3.5 h-3.5 text-primary" />
                               <span>{slot.startTime} - {slot.endTime}</span>
                            </div>
                         </div>
                      )) : (
-                        <p className="text-sm text-slate-400 italic">Self-paced learning</p>
+                        <p className="text-[10px] text-muted-foreground italic font-black uppercase tracking-widest opacity-40">Asynchronous / Self-Paced</p>
                      )}
                   </div>
                </div>
 
                {/* Stats / Info */}
                <div className="grid grid-cols-2 gap-4">
-                   <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 text-center">
-                      <p className="text-2xl font-black text-slate-900">100%</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Online</p>
+                   <div className="p-8 bg-muted/40 rounded-[2rem] border border-border text-center shadow-inner">
+                      <p className="text-3xl font-black text-foreground italic">100%</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mt-1 opacity-60">Synchronized</p>
                    </div>
-                   <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 text-center">
-                      <p className="text-2xl font-black text-slate-900">Life</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Access</p>
+                   <div className="p-8 bg-muted/40 rounded-[2rem] border border-border text-center shadow-inner">
+                      <p className="text-3xl font-black text-foreground italic">Elite</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mt-1 opacity-60">Credential</p>
                    </div>
                </div>
             </aside>
@@ -356,17 +384,17 @@ const PublicClassroom = () => {
       </div>
 
       {/* Call to Action Footer */}
-      <footer className="bg-slate-50 py-32 text-center">
-         <div className="max-w-4xl mx-auto px-6 space-y-8">
-            <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Ready to start your journey?</h2>
-            <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto">Join thousands of students across our platform and secure your spot today.</p>
+      <footer className="bg-muted py-32 text-center border-t border-border mt-32">
+         <div className="max-w-4xl mx-auto px-6 space-y-10">
+            <h2 className="text-5xl md:text-7xl font-black text-foreground tracking-tighter uppercase italic">Ready to engage?</h2>
+            <p className="text-xl text-muted-foreground font-black uppercase tracking-[0.1em] max-w-2xl mx-auto italic opacity-70">Enroll in this class and start learning today.</p>
             <div className="pt-8">
               <button 
                 onClick={handleEnrollClick}
-                className="px-12 py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-sm hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-2xl shadow-indigo-600/30 active:scale-95 flex items-center justify-center gap-4 mx-auto group"
+                className="px-16 py-8 bg-primary text-white rounded-[2.5rem] font-black uppercase tracking-widest text-sm hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/30 active:scale-95 flex items-center justify-center gap-6 mx-auto group border border-white/10"
               >
-                 <span>Enroll Now</span>
-                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                 <span>Activate Membership</span>
+                 <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
          </div>

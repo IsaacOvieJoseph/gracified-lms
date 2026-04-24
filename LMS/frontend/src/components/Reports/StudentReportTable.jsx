@@ -60,64 +60,67 @@ const StudentReportTable = ({ students, classroomName }) => {
     };
 
     if (!students || students.length === 0) {
-        return <div className="text-gray-500 text-center py-4">No student data available.</div>;
+        return <div className="text-muted-foreground text-center py-4">No student data available.</div>;
     }
 
     return (
-        <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6">
-                <h3 className="font-bold text-gray-800 text-lg">Student Report Cards</h3>
-                <div className="flex w-full sm:w-auto space-x-2">
+        <div className="bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-border/50 overflow-hidden flex flex-col mt-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                <div>
+                    <h3 className="text-2xl font-black text-foreground italic uppercase tracking-tighter">Student Report Cards</h3>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mt-1 opacity-60">Complete Performance Log</p>
+                </div>
+                <div className="flex w-full sm:w-auto space-x-3">
                     <button
                         onClick={exportCSV}
-                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition border border-green-200"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-5 py-3 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
                     >
                         <FileText size={16} />
-                        <span>CSV</span>
+                        <span>CSV Export</span>
                     </button>
                     <button
                         onClick={exportPDF}
-                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition border border-red-200"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-5 py-3 text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                     >
                         <Download size={16} />
-                        <span>PDF</span>
+                        <span>PDF Export</span>
                     </button>
                 </div>
             </div>
 
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
-                    <thead className="bg-gray-50 text-gray-500">
+                    <thead className="bg-muted/30 text-muted-foreground uppercase text-[10px] font-black tracking-[0.2em] border-b border-border/50">
                         <tr>
-                            <th className="px-4 py-3 rounded-tl-lg">Name</th>
-                            <th className="px-4 py-3">Email</th>
-                            <th className="px-4 py-3 text-center">Assignments</th>
-                            <th className="px-4 py-3 text-center">Avg Score</th>
-                            <th className="px-4 py-3 text-center">Attendance</th>
-                            <th className="px-4 py-3 text-center rounded-tr-lg">Classes</th>
+                            <th className="px-6 py-5">Name</th>
+                            <th className="px-6 py-5">Email</th>
+                            <th className="px-6 py-5 text-center">Assignments</th>
+                            <th className="px-6 py-5 text-center">Average Score</th>
+                            <th className="px-6 py-5 text-center">Attendance</th>
+                            <th className="px-6 py-5 text-center">Classes Attended</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-border/50">
                         {students.map((student) => (
-                            <tr key={student.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-900">{student.name}</td>
-                                <td className="px-4 py-3 text-gray-500">{student.email}</td>
-                                <td className="px-4 py-3 text-center text-gray-600">
+                            <tr key={student.id} className="hover:bg-primary/5 transition-colors">
+                                <td className="px-6 py-5 font-black italic text-foreground tracking-tight">{student.name}</td>
+                                <td className="px-6 py-5 text-muted-foreground/80 font-bold">{student.email}</td>
+                                <td className="px-6 py-5 text-center font-black text-muted-foreground/80">
                                     {student.assignmentsSubmitted} / {student.totalAssignments}
                                 </td>
-                                <td className="px-4 py-3 text-center">
-                                    <span className={`font-bold ${student.averagePercentage >= 70 ? 'text-green-600' :
-                                        student.averagePercentage >= 50 ? 'text-yellow-600' : 'text-red-600'
+                                <td className="px-6 py-5 text-center">
+                                    <span className={`font-black ${student.averagePercentage >= 70 ? 'text-emerald-500' :
+                                        student.averagePercentage >= 50 ? 'text-amber-500' : 'text-rose-500'
                                         }`}>
                                         {student.averagePercentage}%
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 text-center">
-                                    <span className={`font-bold ${student.attendancePercentage >= 75 ? 'text-green-600' : 'text-gray-600'}`}>
+                                <td className="px-6 py-5 text-center">
+                                    <span className={`font-black ${student.attendancePercentage >= 75 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                                         {student.attendancePercentage || 0}%
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 text-center text-gray-600">
+                                <td className="px-6 py-5 text-center font-black text-muted-foreground/80">
                                     {student.classesAttended || 0} / {student.totalClasses || 0}
                                 </td>
                             </tr>

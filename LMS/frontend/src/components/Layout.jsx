@@ -13,6 +13,7 @@ import SubscriptionBlockBanner from './SubscriptionBlockBanner';
 import SchoolSwitcher from './SchoolSwitcher';
 import FeedbackManager from './FeedbackManager';
 import OnboardingTour from './OnboardingTour';
+import ThemeToggle from './ThemeToggle';
 import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
@@ -131,19 +132,19 @@ const Layout = ({ children }) => {
   }
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden font-inter">
+    <div className="flex h-screen bg-background overflow-hidden font-inter">
       <FeedbackManager />
 
       {/* Sidebar - Desktop */}
-      <aside className={`hidden md:flex flex-col border-r border-slate-200 bg-white transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="p-6 flex items-center gap-3">
+      <aside className={`hidden md:flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className="p-6 flex items-center gap-3 border-b border-border/50">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary">
             <img src={logo} alt="Logo" className="w-8 h-8 rounded-lg" />
           </div>
           {!isSidebarCollapsed && (
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+            <span className="text-xl font-bold text-foreground font-outfit tracking-tighter">
               Gracified
-            </h1>
+            </span>
           )}
         </div>
 
@@ -165,9 +166,9 @@ const Layout = ({ children }) => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
-          <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'p-2 rounded-xl bg-slate-50'}`}>
-            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+        <div className="p-4 border-t border-border">
+          <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'p-2 rounded-xl bg-muted'}`}>
+            <div className="w-10 h-10 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center overflow-hidden shrink-0">
               {user?.profilePicture ? (
                 <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
               ) : (
@@ -176,14 +177,14 @@ const Layout = ({ children }) => {
             </div>
             {!isSidebarCollapsed && (
               <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-900 truncate">{user?.name}</p>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{user?.role?.replace('_', ' ')}</p>
+                <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{user?.role?.replace('_', ' ')}</p>
               </div>
             )}
           </div>
           <button
             onClick={handleLogout}
-            className={`mt-4 w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
+            className={`mt-4 w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 rounded-xl transition-colors ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
           >
             <LogOut className="w-5 h-5" />
             {!isSidebarCollapsed && <span>Sign Out</span>}
@@ -194,18 +195,18 @@ const Layout = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Navbar */}
-        <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6">
+        <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition"
+              className="md:hidden p-2 rounded-lg hover:bg-muted transition text-muted-foreground"
             >
-              <Menu className="w-6 h-6 text-slate-600" />
+              <Menu className="w-6 h-6" />
             </button>
-            <div className="hidden md:flex items-center gap-3 text-slate-400">
+            <div className="hidden md:flex items-center gap-3 text-muted-foreground">
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-primary hover:border-primary/30 hover:shadow-sm transition-all"
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/30 hover:shadow-sm transition-all"
                 title="Go Back"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -215,32 +216,33 @@ const Layout = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
 
             <div className="relative" ref={notificationsRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition relative"
+                className="p-2 rounded-xl border border-border hover:bg-muted transition relative"
               >
-                <Bell className="w-5 h-5 text-slate-600" />
+                <Bell className="w-5 h-5 text-muted-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-background"></span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden animate-slide-up">
-                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h4 className="font-bold text-slate-900">Activity</h4>
+                <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-slide-up">
+                  <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+                    <h4 className="font-bold text-foreground">Activity</h4>
                     <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">{unreadCount} New</span>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length > 0 ? (
                       notifications.map(n => (
-                        <div key={n._id} className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition cursor-pointer ${!n.read ? 'bg-primary/[0.02]' : ''}`}>
-                          <p className="text-sm font-medium text-slate-800">{n.message}</p>
+                        <div key={n._id} className={`p-4 border-b border-border last:border-0 hover:bg-muted/50 transition cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}>
+                          <p className="text-sm font-medium text-foreground">{n.message}</p>
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-[10px] text-slate-400 font-medium">{new Date(n.createdAt).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-muted-foreground font-medium">{new Date(n.createdAt).toLocaleDateString()}</span>
                             {!n.read && (
                               <button onClick={() => handleMarkAsRead(n._id)} className="text-[10px] font-bold text-primary hover:underline">Mark as read</button>
                             )}
@@ -248,7 +250,7 @@ const Layout = ({ children }) => {
                         </div>
                       ))
                     ) : (
-                      <div className="p-8 text-center text-slate-400">
+                      <div className="p-8 text-center text-muted-foreground">
                         <Bell className="w-10 h-10 mx-auto mb-2 opacity-10" />
                         <p className="text-sm">No new activity</p>
                       </div>

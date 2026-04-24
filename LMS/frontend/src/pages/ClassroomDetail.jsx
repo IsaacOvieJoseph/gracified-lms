@@ -265,10 +265,11 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
 
   return (
     <div
-      className={`border-2 rounded-lg p-4 transition ${isCurrent ? 'border-blue-400 bg-blue-50' :
-        isDone ? 'border-green-200 bg-green-50 opacity-75' :
-        isNext ? 'border-indigo-300 bg-indigo-50 shadow-sm' :
-        'border-gray-200 bg-white hover:border-gray-300'
+      className={`border-2 rounded-lg p-4 transition ${
+        isCurrent ? 'border-primary/40 bg-primary/10 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]' :
+        isDone ? 'border-emerald-500/20 bg-emerald-500/5 opacity-80' :
+        isNext ? 'border-indigo-500/30 bg-indigo-500/10 shadow-sm' :
+        'border-border bg-card hover:border-border/80'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -285,31 +286,31 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-2 mb-1">
-            <h4 className="font-semibold text-gray-800">{topic.name}</h4>
+            <h4 className="font-bold text-foreground">{topic.name}</h4>
             {isCurrent && (
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">Current</span>
+              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-wider border border-primary/20">Current</span>
             )}
             {isDone && (
-              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Done</span>
+              <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">Done</span>
             )}
             {isNext && (
-              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">Next</span>
+              <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-500/20">Next</span>
             )}
             {isPending && (
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Pending</span>
+              <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded-full text-[10px] font-black uppercase tracking-wider border border-border">Pending</span>
             )}
             {hasVideos && (
-              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
+              <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-purple-500/20 flex items-center gap-1">
                 <Video className="w-3 h-3" /> {recordedVideos.length} Lecture{recordedVideos.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
           {topic.description && (
-            <p className="text-sm text-gray-600 line-clamp-2">{topic.description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{topic.description}</p>
           )}
           {topic.lessonsOutline && (
-            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-              <p className="font-medium text-gray-700 mb-1">Lesson Outline:</p>
+            <div className="mt-2 p-2 bg-muted/30 rounded text-[11px] text-muted-foreground border border-border/50">
+              <p className="font-bold text-foreground/70 mb-1 uppercase tracking-widest text-[9px]">Lesson Outline:</p>
               <p className="line-clamp-3 whitespace-pre-wrap">{topic.lessonsOutline}</p>
             </div>
           )}
@@ -1295,7 +1296,7 @@ const ClassroomDetail = () => {
   const canGradeAssignment = canEdit;
 
   if (loading || userLoading) {
-    return <Layout><div className="text-center py-8">Loading...</div></Layout>;
+    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Loading...</p></div></Layout>;
   }
   if (!user || !user._id) {
     return <Layout><div className="text-center py-8 text-red-600">User session invalid. Please log in again.</div></Layout>;
@@ -1328,13 +1329,13 @@ const ClassroomDetail = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-6">
           {/* Header Row: Title, Tags, Edit Button */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center justify-between lg:justify-start gap-3 mb-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-800 truncate">{classroom.name}</h2>
+              <div className="flex items-center gap-3 min-w-0">
+                  <h2 className="text-2xl md:text-3xl font-black italic text-foreground tracking-tight truncate pr-2 pb-1">{classroom.name}</h2>
                   
                   {/* Mobile-only Action Menu aligned with title */}
                   {canEdit && (
@@ -1405,41 +1406,41 @@ const ClassroomDetail = () => {
 
                 {classroom.isPaid && classroom.pricing?.amount > 0 ? (
                   <div className="flex flex-col">
-                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
                       {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
                     </span>
                     {classroom.pricing?.type && classroom.pricing.type !== 'free' && (
-                      <span className="text-[10px] text-gray-500 font-medium uppercase mt-1 text-center">
+                      <span className="text-[9px] text-muted-foreground font-black uppercase mt-1 text-center tracking-widest">
                         {classroom.pricing.type.replace('_', ' ')}
                       </span>
                     )}
                   </div>
                 ) : (
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
                     Free
                   </span>
                 )}
               </div>
               {classroom.description && (
-                <p className="text-gray-600 text-sm md:text-base">{classroom.description}</p>
+                <p className="text-muted-foreground text-sm md:text-base font-medium">{classroom.description}</p>
               )}
               {classroom.learningOutcomes && (
-                <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
-                  <h4 className="font-semibold text-indigo-900 mb-2">Expected Learning Outcomes</h4>
-                  <p className="text-gray-700 text-sm md:text-base whitespace-pre-wrap">{classroom.learningOutcomes}</p>
+                <div className="mt-4 p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Expected Learning Outcomes</h4>
+                  <p className="text-muted-foreground text-sm md:text-base whitespace-pre-wrap font-medium">{classroom.learningOutcomes}</p>
                 </div>
               )}
               <div className="flex flex-wrap gap-4 mt-2">
                 {classroom.subject && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Book className="w-4 h-4 mr-2" />
-                    <span className="font-medium">Subject:</span> <span className="ml-1">{classroom.subject}</span>
+                  <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    <Book className="w-3.5 h-3.5 mr-2 text-primary" />
+                    <span>Subject:</span> <span className="ml-1 text-foreground">{classroom.subject}</span>
                   </div>
                 )}
                 {classroom.level && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <GraduationCap className="w-4 h-4 mr-2" />
-                    <span className="font-medium">Level:</span> <span className="ml-1">{classroom.level}</span>
+                  <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    <GraduationCap className="w-3.5 h-3.5 mr-2 text-primary" />
+                    <span>Level:</span> <span className="ml-1 text-foreground">{classroom.level}</span>
                   </div>
                 )}
               </div>
@@ -1454,8 +1455,8 @@ const ClassroomDetail = () => {
                     disabled={publishing}
                     className={`h-11 flex items-center gap-2.5 px-5 rounded-xl font-bold text-xs transition-all transform hover:-translate-y-0.5 active:scale-95 border ${
                       classroom.published
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/80 shadow-sm shadow-emerald-100'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-700 shadow-sm shadow-slate-100'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/80 shadow-sm shadow-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-700 shadow-sm shadow-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700 dark:shadow-none'
                     }`}
                   >
                     {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : classroom.published ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 opacity-50" />}
@@ -1469,7 +1470,7 @@ const ClassroomDetail = () => {
                         navigator.clipboard.writeText(shareLink);
                         toast.success('Link copied!');
                       }}
-                      className="h-11 flex items-center gap-2.5 px-5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm shadow-indigo-100 group"
+                      className="h-11 flex items-center gap-2.5 px-5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm shadow-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 dark:hover:bg-indigo-600 dark:hover:text-white group"
                     >
                       <Share2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                       <span>Share</span>
@@ -1478,7 +1479,7 @@ const ClassroomDetail = () => {
 
                   <button
                     onClick={handleOpenEdit}
-                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm"
+                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700"
                   >
                     <Edit className="w-3.5 h-3.5 text-slate-400" />
                     <span>Edit</span>
@@ -1486,7 +1487,7 @@ const ClassroomDetail = () => {
 
                   <button
                     onClick={() => setShowEndClassModal(true)}
-                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-slate-900/10"
+                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-slate-900/10 dark:bg-slate-800 dark:hover:bg-slate-700 border dark:border-slate-700 hover:text-rose-500 hover:border-rose-500/30 dark:hover:text-rose-400"
                   >
                     <Flag className="w-3.5 h-3.5 text-slate-400" />
                     <span>End Class</span>
@@ -1495,7 +1496,7 @@ const ClassroomDetail = () => {
                   {(user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
                     <button
                       onClick={handleDeleteClassroomClick}
-                      className="h-11 flex items-center justify-center w-11 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 border border-rose-100 hover:border-rose-500 shadow-sm"
+                      className="h-11 flex items-center justify-center w-11 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 border border-rose-100 hover:border-rose-500 shadow-sm dark:bg-rose-500/10 dark:border-rose-500/20 dark:hover:bg-rose-500 dark:hover:text-white"
                       title="Delete Classroom"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1509,27 +1510,27 @@ const ClassroomDetail = () => {
           {showEditModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
               <div className="flex min-h-full items-center justify-center p-4">
-                <div className="bg-white rounded-[2rem] w-full max-w-2xl overflow-y-auto p-8 shadow-2xl animate-slide-up">
-                  <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-2xl font-bold text-slate-900">Edit Classroom</h2>
-                    <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"><X className="w-6 h-6" /></button>
+                <div className="bg-card border border-border rounded-[3rem] w-full max-w-2xl p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
+                  <div className="flex justify-between items-center mb-10">
+                    <h2 className="text-3xl font-black italic tracking-tighter text-foreground uppercase">Edit <span className="text-primary not-italic">Classroom</span></h2>
+                    <button onClick={() => setShowEditModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
                   </div>
                   <form onSubmit={handleEditClassroom} className="space-y-8 pb-4">
                     {/* Basic Info */}
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Class Title</label>
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Class Title</label>
                         <input
                           value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                           placeholder="e.g. Advanced Mathematics Masterclass"
-                          className="w-full"
+                          className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
                           required
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
                           Academic Level
                           <FormFieldHelp content="The grade or education level this class is designed for." />
                         </label>
@@ -1537,14 +1538,27 @@ const ClassroomDetail = () => {
                           options={levelOptions}
                           value={levelOptions.find(opt => opt.value === editForm.level)}
                           onChange={sel => setEditForm({ ...editForm, level: sel?.value })}
-                          className="modern-select"
+                          classNamePrefix="react-select"
                           menuPortalTarget={document.body}
-                          styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                          styles={{ 
+                            control: (base) => ({ 
+                              ...base, 
+                              minHeight: '60px', 
+                              borderRadius: '1rem', 
+                              backgroundColor: 'var(--bg-muted)', 
+                              opacity: 0.5,
+                              borderColor: 'var(--border-border)', 
+                              borderWidth: '2px',
+                              fontWeight: '700'
+                            }),
+                            singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                            menuPortal: base => ({ ...base, zIndex: 9999, backgroundColor: 'var(--bg-card)' }) 
+                          }}
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
                           Subject
                           <FormFieldHelp content="Helps students find your class in the search results." />
                         </label>
@@ -1552,24 +1566,37 @@ const ClassroomDetail = () => {
                           options={subjectOptions}
                           value={editForm.subject ? { value: editForm.subject, label: editForm.subject } : null}
                           onChange={sel => setEditForm({ ...editForm, subject: sel?.value || '' })}
-                          className="modern-select"
+                          classNamePrefix="react-select"
                           menuPortalTarget={document.body}
-                          styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                          styles={{ 
+                            control: (base) => ({ 
+                              ...base, 
+                              minHeight: '60px', 
+                              borderRadius: '1rem', 
+                              backgroundColor: 'var(--bg-muted)', 
+                              opacity: 0.5,
+                              borderColor: 'var(--border-border)', 
+                              borderWidth: '2px',
+                              fontWeight: '700'
+                            }),
+                            singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                            menuPortal: base => ({ ...base, zIndex: 9999, backgroundColor: 'var(--bg-card)' }) 
+                          }}
                         />
                       </div>
 
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Description</label>
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Description</label>
                         <textarea
                           value={editForm.description}
                           onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                           placeholder="Tell students what this class is about..."
-                          className="w-full min-h-[100px]"
+                          className="w-full min-h-[100px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
                         />
                       </div>
 
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
                           Intro Video URL
                           <FormFieldHelp content="Paste a YouTube or Vimeo link to show a preview on the public page. (e.g. https://www.youtube.com/watch?v=...)" />
                         </label>
@@ -1578,41 +1605,53 @@ const ClassroomDetail = () => {
                           value={editForm.introVideo}
                           onChange={e => setEditForm({ ...editForm, introVideo: e.target.value })}
                           placeholder="https://www.youtube.com/watch?v=..."
-                          className="w-full"
+                          className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
                         />
                       </div>
 
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Learning Outcomes</label>
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Learning Outcomes</label>
                         <textarea
                           value={editForm.learningOutcomes}
                           onChange={e => setEditForm({ ...editForm, learningOutcomes: e.target.value })}
                           placeholder="List what students will achieve (comma separated)..."
-                          className="w-full min-h-[80px]"
+                          className="w-full min-h-[80px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
                         />
                       </div>
                     </div>
 
                     {/* Roles & Visibility */}
-                    <div className="grid md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <div className="grid md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-[2rem] border border-border">
                       {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
                         <div className="space-y-1.5">
-                          <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign Teacher</label>
+                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign Teacher</label>
                           <Select
                             options={availableTeachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
                             value={availableTeachers.find(t => t._id === editForm.teacherId) ? { value: editForm.teacherId, label: availableTeachers.find(t => t._id === editForm.teacherId).name } : null}
                             onChange={sel => setEditForm({ ...editForm, teacherId: sel?.value })}
                             placeholder="Select a teacher..."
-                            className="modern-select"
+                            classNamePrefix="react-select"
                             menuPortalTarget={document.body}
-                            styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                            styles={{ 
+                              control: (base) => ({ 
+                                ...base, 
+                                minHeight: '60px', 
+                                borderRadius: '1rem', 
+                                backgroundColor: 'var(--bg-card)', 
+                                borderColor: 'var(--border-border)', 
+                                borderWidth: '2px',
+                                fontWeight: '700'
+                              }),
+                              singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                              menuPortal: base => ({ ...base, zIndex: 9999, backgroundColor: 'var(--bg-card)' }) 
+                            }}
                           />
                         </div>
                       )}
 
                       {user?.role === 'school_admin' && (
                         <div className="space-y-1.5">
-                          <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign to Schools</label>
+                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign to Schools</label>
                           <Select
                             isMulti
                             options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
@@ -1621,9 +1660,21 @@ const ClassroomDetail = () => {
                               return { value: id, label: s?.name || id };
                             })}
                             onChange={sels => setEditForm({ ...editForm, schoolIds: sels ? sels.map(s => s.value) : [] })}
-                            className="modern-select"
+                            classNamePrefix="react-select"
                             menuPortalTarget={document.body}
-                            styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                            styles={{ 
+                              control: (base) => ({ 
+                                ...base, 
+                                minHeight: '60px', 
+                                borderRadius: '1rem', 
+                                backgroundColor: 'var(--bg-card)', 
+                                borderColor: 'var(--border-border)', 
+                                borderWidth: '2px',
+                                fontWeight: '700'
+                              }),
+                              singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                              menuPortal: base => ({ ...base, zIndex: 9999, backgroundColor: 'var(--bg-card)' }) 
+                            }}
                           />
                         </div>
                       )}
@@ -1641,7 +1692,7 @@ const ClassroomDetail = () => {
                               value={editForm.capacity}
                               onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) || 30 })}
                               onWheel={(e) => e.target.blur()}
-                              className="w-full pl-4 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-600 focus:bg-white transition-all outline-none font-bold text-slate-700"
+                              className="w-full pl-4 pr-4 py-3 bg-muted/50 border-2 border-border rounded-2xl focus:border-primary focus:bg-muted transition-all outline-none font-bold text-foreground"
                               min="1"
                               placeholder="30"
                             />
@@ -1656,10 +1707,10 @@ const ClassroomDetail = () => {
                           </div>
                           <label 
                             onClick={() => setEditForm({ ...editForm, isPrivate: !editForm.isPrivate })}
-                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPrivate ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPrivate ? 'border-primary bg-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
                           >
-                            <span className={`text-sm font-bold transition-colors ${editForm.isPrivate ? 'text-indigo-700' : 'text-slate-600'}`}>Private Class</span>
-                            <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPrivate ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                            <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${editForm.isPrivate ? 'text-primary' : 'text-muted-foreground'}`}>Private Class</span>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPrivate ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPrivate ? 'translate-x-4' : ''}`} />
                             </div>
                           </label>
@@ -1673,10 +1724,10 @@ const ClassroomDetail = () => {
                           </div>
                           <label 
                             onClick={() => setEditForm({ ...editForm, isPaid: !editForm.isPaid })}
-                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPaid ? 'border-indigo-600 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPaid ? 'border-primary bg-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
                           >
-                            <span className={`text-sm font-bold transition-colors ${editForm.isPaid ? 'text-indigo-700' : 'text-slate-600'}`}>Paid Class</span>
-                            <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPaid ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                            <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${editForm.isPaid ? 'text-primary' : 'text-muted-foreground'}`}>Paid Class</span>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPaid ? 'translate-x-4' : ''}`} />
                             </div>
                           </label>
@@ -1689,7 +1740,7 @@ const ClassroomDetail = () => {
                       <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
                         <div className="grid md:grid-cols-2 gap-6">
                           <div className="space-y-1.5">
-                            <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
+                            <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
                               Billing Cycle
                               <FormFieldHelp content="Determines payment intervals: Monthly/Weekly (subscription), Per Topic/Lecture (gated), or One Time (access forever)." />
                             </label>
@@ -1703,6 +1754,7 @@ const ClassroomDetail = () => {
                               ]}
                               value={{ value: editForm.pricingType, label: editForm.pricingType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
                               onChange={sel => setEditForm({ ...editForm, pricingType: sel?.value })}
+                              classNamePrefix="react-select"
                               menuPortalTarget={document.body}
                               styles={{
                                 control: (base) => ({
@@ -1710,17 +1762,19 @@ const ClassroomDetail = () => {
                                   minHeight: '60px',
                                   borderRadius: '1rem',
                                   borderWidth: '2px',
-                                  borderColor: '#F1F5F9',
-                                  backgroundColor: '#F8FAFC',
+                                  borderColor: 'var(--border-border)',
+                                  backgroundColor: 'var(--bg-muted)',
+                                  opacity: 0.5,
                                   fontWeight: '700',
-                                  '&:hover': { borderColor: '#E2E8F0' }
+                                  '&:hover': { borderColor: 'var(--border-border)' }
                                 }),
-                                menuPortal: base => ({ ...base, zIndex: 9999 })
+                                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                                menuPortal: base => ({ ...base, zIndex: 9999, backgroundColor: 'var(--bg-card)' })
                               }}
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-bold text-primary uppercase tracking-wider flex items-center">
+                            <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
                               Amount ({import.meta.env.VITE_CURRENCY || 'NGN'})
                               <FormFieldHelp content="The price students will pay based on the selected billing cycle." />
                             </label>
@@ -1729,7 +1783,7 @@ const ClassroomDetail = () => {
                               value={editForm.pricingAmount}
                               onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
                               onWheel={(e) => e.target.blur()}
-                              className="w-full h-[60px] bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-primary focus:bg-white transition-all outline-none px-4 font-bold text-slate-700"
+                              className="w-full h-[60px] bg-muted/50 border-2 border-border rounded-2xl focus:border-primary focus:bg-muted transition-all outline-none px-4 font-bold text-foreground"
                               placeholder="0.00"
                               required={editForm.isPaid}
                             />
@@ -1741,7 +1795,7 @@ const ClassroomDetail = () => {
                     {/* Schedule Builder */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Weekly Schedule</label>
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Weekly Schedule</label>
                         <button
                           type="button"
                           onClick={() => setEditForm({ ...editForm, schedule: [...editForm.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
@@ -1753,7 +1807,7 @@ const ClassroomDetail = () => {
 
                       <div className="space-y-3">
                         {editForm.schedule.map((s, idx) => (
-                          <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-slide-up">
+                          <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted/30 rounded-[1.5rem] border border-border animate-slide-up">
                             <select
                               value={s.dayOfWeek}
                               onChange={e => {
@@ -1761,7 +1815,7 @@ const ClassroomDetail = () => {
                                 newSched[idx].dayOfWeek = e.target.value;
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="flex-1 min-w-[120px] bg-white border-slate-200 rounded-lg text-sm"
+                              className="flex-1 min-w-[120px] bg-muted/50 border-none rounded-xl text-xs font-black uppercase tracking-widest p-3 text-foreground outline-none"
                             >
                               {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d}>{d}</option>)}
                             </select>
@@ -1773,9 +1827,9 @@ const ClassroomDetail = () => {
                                 newSched[idx].startTime = e.target.value;
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                              className="w-32 bg-muted/50 border-none rounded-xl text-xs font-black p-3 text-foreground outline-none"
                             />
-                            <span className="text-slate-400">to</span>
+                            <span className="text-muted-foreground/60 font-black italic text-[10px] uppercase">to</span>
                             <input
                               type="time"
                               value={s.endTime}
@@ -1784,7 +1838,7 @@ const ClassroomDetail = () => {
                                 newSched[idx].endTime = e.target.value;
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="w-32 bg-white border-slate-200 rounded-lg text-sm"
+                              className="w-32 bg-muted/50 border-none rounded-xl text-xs font-black p-3 text-foreground outline-none"
                             />
                             <button
                               type="button"
@@ -1792,20 +1846,20 @@ const ClassroomDetail = () => {
                                 const newSched = editForm.schedule.filter((_, i) => i !== idx);
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
+                              className="p-3 text-rose-500 hover:bg-rose-500/10 rounded-xl transition"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         ))}
                         {editForm.schedule.length === 0 && (
-                          <p className="text-sm text-slate-400 italic text-center py-4">No sessions scheduled yet.</p>
+                          <p className="text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest text-center py-4">No sessions scheduled yet.</p>
                         )}
                       </div>
                     </div>
 
-                    <div className="pt-8 flex gap-4 sticky bottom-0 bg-white pb-2 border-t border-slate-50">
-                      <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">Discard</button>
+                    <div className="pt-8 flex gap-4 sticky bottom-0 bg-card pb-2 border-t border-border mt-8">
+                      <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition">Discard</button>
                       <button type="submit" disabled={isEditing} className="btn-premium flex-1">
                         {isEditing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Save Changes'}
                       </button>
@@ -1816,56 +1870,43 @@ const ClassroomDetail = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 border-t border-b border-gray-100 mb-6">
-            <div className="flex items-center space-x-3 text-gray-600">
-              <User className="w-5 h-5 text-gray-400 shrink-0" />
-              <div className="text-sm">
-                <span className="block font-medium text-gray-900">Teacher</span>
-                <span>{classroom.teacherId?.name || 'Unknown Teacher'}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 border-y border-border/50 mb-6 font-bold">
+            <div className="flex items-center space-x-3 text-muted-foreground">
+              <User className="w-5 h-5 text-primary shrink-0" />
+              <div className="text-[10px] uppercase tracking-widest">
+                <span className="block text-foreground/50 mb-0.5">Teacher</span>
+                <span className="text-foreground">{classroom.teacherId?.name || 'Unknown Teacher'}</span>
               </div>
             </div>
-            <div className="flex items-center space-x-3 text-gray-600">
-              <School className="w-5 h-5 text-gray-400 shrink-0" />
-              <div className="text-sm">
-                <span className="block font-medium text-gray-900">School / Tutorial</span>
-                <span className="truncate max-w-[200px] block" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
+            <div className="flex items-center space-x-3 text-muted-foreground">
+              <School className="w-5 h-5 text-primary shrink-0" />
+              <div className="text-[10px] uppercase tracking-widest">
+                <span className="block text-foreground/50 mb-0.5">Academic Host</span>
+                <span className="truncate max-w-[200px] block text-foreground" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
                   {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
                   {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
                 </span>
               </div>
             </div>
-            <div className="flex items-start space-x-3 text-gray-600">
-              <Calendar className="w-5 h-5 mt-0.5 text-gray-400 shrink-0" />
-              <div className="text-sm">
+            <div className="flex items-start space-x-3 text-muted-foreground">
+              <Calendar className="w-5 h-5 mt-0.5 text-primary shrink-0" />
+              <div className="text-[10px] uppercase tracking-widest">
                 {classroom.schedule && classroom.schedule.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
                     {classroom.schedule.map((session, index) => {
                       const local = convertUTCToLocal(session.dayOfWeek, session.startTime);
                       const localEnd = convertUTCToLocal(session.dayOfWeek, session.endTime);
                       return (
-                        <span key={index} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                          {local.dayOfWeek ? local.dayOfWeek.substring(0, 3) : 'N/A'} {local.hhmm}-{localEnd.hhmm} ({local.timezone})
+                        <span key={index} className="bg-muted px-2 py-0.5 rounded text-[9px] border border-border">
+                          {local.dayOfWeek ? local.dayOfWeek.substring(0, 3) : 'N/A'} {local.hhmm}-{localEnd.hhmm}
                         </span>
                       );
                     })}
-                    <div className="w-full mt-1 text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
-                      (Weekly Recurring Sessions)
-                    </div>
                   </div>
                 ) : (
-                  <span className="text-gray-400">No schedule</span>
+                  <span className="text-muted-foreground/30">No schedule set</span>
                 )}
               </div>
-            </div>
-            {user?.role !== 'student' && (
-              <div className="flex items-center space-x-3 text-gray-600">
-                <Users className="w-5 h-5 text-gray-400 shrink-0" />
-                <span className="text-sm">{classroom.students?.length || 0} students</span>
-              </div>
-            )}
-            <div className="flex items-center space-x-3 text-gray-600">
-              <Book className="w-5 h-5 text-gray-400 shrink-0" />
-              <span className="text-sm">{classroom.topics?.length || 0} topics</span>
             </div>
           </div>
 
@@ -2015,7 +2056,7 @@ const ClassroomDetail = () => {
         {!weeklyPaymentRequired && (
           <>
             {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto mt-6 no-scrollbar">
+            <div className="flex border-b border-border bg-card rounded-t-2xl overflow-x-auto mt-6 no-scrollbar">
               {[
                 { id: 'topics', label: 'Topics', icon: Book },
                 ...((isEnrolled || canEdit) ? [
@@ -2028,15 +2069,15 @@ const ClassroomDetail = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${activeTab === tab.id
-                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/30'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  className={`flex items-center space-x-2 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${activeTab === tab.id
+                    ? 'border-primary text-primary bg-primary/5'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
                 >
                   <tab.icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.id === 'exams' && exams.length > 0 && (
-                    <span className="ml-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{exams.length}</span>
+                    <span className="ml-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-bold">{exams.length}</span>
                   )}
                 </button>
               ))}
@@ -2055,12 +2096,12 @@ const ClassroomDetail = () => {
                 {/* Topic Management Section */}
                 {
                   (isEnrolled || canEdit || (!isEnrolled && user?.role === 'student')) && (
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                      <div className="flex justify-between items-center mb-4">
+                    <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
+                      <div className="flex justify-between items-center mb-6">
                         <div>
-                          <h3 className="text-xl font-semibold">Topics</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {classroom.topics?.length || 0} topic{classroom.topics?.length !== 1 ? 's' : ''} created
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-1">Topics</h3>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            {classroom.topics?.length || 0} MODULE{classroom.topics?.length !== 1 ? 'S' : ''} IN SYLLABUS
                           </p>
                         </div>
                         {canEdit && (
@@ -2139,9 +2180,9 @@ const ClassroomDetail = () => {
             {/* Assignment Management Section */}
             {
               (isEnrolled || canEdit) && (
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold">Assignments</h3>
+                <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Assignments</h3>
                     {canCreateAssignment && (
                       <button
                         onClick={() => setShowCreateAssignmentModal(true)}
@@ -2176,66 +2217,50 @@ const ClassroomDetail = () => {
                         };
 
                         return (
-                          <div key={assignment._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                          <div key={assignment._id} className="bg-card border border-border rounded-2xl shadow-lg overflow-hidden group">
                             <div
-                              className="flex flex-col md:flex-row justify-between items-start p-6 cursor-pointer hover:bg-gray-50 transition"
+                              className="flex flex-col md:flex-row justify-between items-start p-6 cursor-pointer hover:bg-muted/50 transition border-b border-transparent hover:border-border"
                               onClick={toggleAssignmentExpanded}
                             >
                               <div className="flex items-start space-x-3 flex-1 mb-4 md:mb-0">
                                 {isAssignmentExpanded ? (
-                                  <ChevronUp className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+                                  <ChevronUp className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                                 ) : (
-                                  <ChevronDown className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+                                  <ChevronDown className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
                                 )}
                                 <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-800">
+                                  <h4 className="font-black text-foreground italic tracking-tight">
                                     {assignment.title}
                                     {assignment.topicId?.name && (
-                                      <span className="ml-2 text-sm font-normal text-gray-500">
-                                        ({assignment.topicId.name})
+                                      <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-primary/60">
+                                        [{assignment.topicId.name}]
                                       </span>
                                     )}
                                   </h4>
                                   {!isAssignmentExpanded && (
-                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{assignment.description}</p>
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1 font-medium">{assignment.description}</p>
                                   )}
                                 </div>
                               </div>
-                              <div className="flex flex-wrap gap-2 items-center md:justify-end flex-shrink-0 w-full md:w-auto ml-8 md:ml-0">
+                              <div className="flex flex-wrap gap-2 items-center md:justify-end flex-shrink-0 w-full md:w-auto ml-8 md:ml-0 font-black">
                                 {assignment.dueDate ? (
-                                  <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Due: {formatDisplayDate(assignment.dueDate)}
+                                  <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-border">
+                                    DUE: {formatDisplayDate(assignment.dueDate)}
                                   </span>
                                 ) : (
-                                  <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
-                                    No Due Date
+                                  <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-border">
+                                    OPEN ENDED
                                   </span>
                                 )}
-                                {assignment.assignmentType === 'mcq' && assignment.publishResultsAt && (
-                                  <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Results: {formatDisplayDate(assignment.publishResultsAt)}
-                                    {/* Only show "Pending" if results not published AND student hasn't submitted yet */}
-                                    {new Date() < new Date(assignment.publishResultsAt) && !isSubmitted && (
-                                      <span className="ml-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-semibold">Pending</span>
-                                    )}
-                                  </span>
-                                )}
-                                {/* Show "Graded" only if graded AND (theory OR MCQ with results published) */}
+                                
                                 {isGraded && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Graded
+                                  <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-emerald-500/20">
+                                    GRADED
                                   </span>
                                 )}
-                                {/* Show "Submitted" only if submitted AND NOT graded */}
                                 {isSubmitted && !isGraded && (
-                                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Submitted
-                                  </span>
-                                )}
-                                {/* Show "Submitted" for MCQ that is graded but results not published yet */}
-                                {isSubmitted && isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt) && (
-                                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Submitted
+                                  <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-amber-500/20">
+                                    SUBMITTED
                                   </span>
                                 )}
                                 {canEdit && (
@@ -2299,9 +2324,9 @@ const ClassroomDetail = () => {
                             </div>
 
                             {isAssignmentExpanded && (
-                              <div className="px-6 pb-6 border-t">
+                               <div className="px-6 pb-6 border-t border-border animate-in fade-in duration-300">
                                 <div className="pt-4">
-                                  <p className="text-sm text-gray-600 mb-4">{assignment.description}</p>
+                                  <p className="text-sm text-muted-foreground mb-4 font-medium leading-relaxed">{assignment.description}</p>
                                 </div>
 
                                 {user?.role === 'student' && isGraded && submission && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
@@ -2424,8 +2449,8 @@ const ClassroomDetail = () => {
 
                                 {/* Teacher/Admin: View and Grade Submissions */}
                                 {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? classroom.teacherId?._id === user?._id : true) && (
-                                  <div className="mt-4 border-t pt-4">
-                                    <h4 className="font-semibold text-gray-700 mb-3">Submissions ({assignment.submissions?.length || 0}):</h4>
+                                  <div className="mt-4 border-t border-border pt-4">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Submissions ({assignment.submissions?.length || 0})</h4>
                                     {assignment.submissions && assignment.submissions.length > 0 ? (
                                       assignment.submissions.map(sub => {
                                         const isExpanded = expandedSubmissions.has(sub._id);
@@ -2442,22 +2467,22 @@ const ClassroomDetail = () => {
                                         };
 
                                         return (
-                                          <div key={sub._id} className="border rounded-lg mb-2 bg-gray-50 overflow-hidden">
+                                          <div key={sub._id} className="border border-border rounded-xl mb-2 bg-muted/30 overflow-hidden">
                                             <div
-                                              className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-100 transition"
+                                              className="flex justify-between items-center p-3 cursor-pointer hover:bg-muted/50 transition"
                                               onClick={toggleExpanded}
                                             >
                                               <div className="flex items-center space-x-2 flex-1">
                                                 {isExpanded ? (
-                                                  <ChevronUp className="w-4 h-4 text-gray-600" />
+                                                  <ChevronUp className="w-4 h-4 text-primary" />
                                                 ) : (
-                                                  <ChevronDown className="w-4 h-4 text-gray-600" />
+                                                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
                                                 )}
                                                 <div className="flex-1">
-                                                  <p className="font-medium text-gray-800">{sub.studentId?.name || 'Unknown Student'}</p>
-                                                  <p className="text-sm text-gray-600">Status: {sub.status}</p>
+                                                  <p className="text-xs font-black uppercase tracking-widest text-foreground">{sub.studentId?.name || 'Unknown Student'}</p>
+                                                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Status: <span className="text-primary">{sub.status}</span></p>
                                                   {sub.status === 'graded' && (
-                                                    <p className="text-sm text-gray-600">Score: {sub.score}/{assignment.maxScore}</p>
+                                                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Score: {sub.score}/{assignment.maxScore}</p>
                                                   )}
                                                 </div>
                                               </div>
@@ -2469,7 +2494,7 @@ const ClassroomDetail = () => {
                                                     setSubmissionToGrade(sub);
                                                     setShowGradeModal(true);
                                                   }}
-                                                  className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+                                                  className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-[10px] font-black uppercase tracking-widest"
                                                 >
                                                   Grade
                                                 </button>
@@ -2481,31 +2506,32 @@ const ClassroomDetail = () => {
                                                     setSubmissionToGrade(sub);
                                                     setShowGradeModal(true);
                                                   }}
-                                                  className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm"
+                                                  className="px-4 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition text-[10px] font-black uppercase tracking-widest"
                                                 >
                                                   Edit Grade
                                                 </button>
                                               )}
                                             </div>
                                             {isExpanded && (
-                                              <div className="px-3 pb-3 pt-0 border-t bg-white">
+                                              <div className="px-3 pb-3 pt-3 border-t border-border bg-card">
                                                 {/* Display answers based on type */}
                                                 {assignment.assignmentType === 'theory' && sub.answers && (
-                                                  <div className="mt-2">
-                                                    <p className="text-sm font-medium text-gray-700 mb-1">Answer:</p>
-                                                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{Array.isArray(sub.answers) ? sub.answers.join('\n') : sub.answers}</p>
+                                                  <div className="p-3 bg-muted/50 rounded-xl border border-border/50">
+                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">Student Response:</p>
+                                                    <p className="text-sm text-foreground whitespace-pre-wrap font-medium">{Array.isArray(sub.answers) ? sub.answers.join('\n') : sub.answers}</p>
                                                   </div>
                                                 )}
                                                 {assignment.assignmentType === 'mcq' && sub.answers && Array.isArray(sub.answers) && (
-                                                  <div className="mt-2">
-                                                    <p className="text-sm font-medium text-gray-700 mb-1">Selected options:</p>
-                                                    <ul className="list-disc list-inside text-sm text-gray-600">
+                                                  <div className="p-3 bg-muted/50 rounded-xl border border-border/50">
+                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">Selected Options:</p>
+                                                    <ul className="space-y-1">
                                                       {sub.answers.map((ans, ansIdx) => (
-                                                        <li key={ansIdx}>
-                                                          {ans}
+                                                        <li key={ansIdx} className="text-xs font-bold flex items-center gap-2">
+                                                          <span className="text-muted-foreground">Q{ansIdx+1}:</span>
+                                                          <span className="text-foreground">{ans}</span>
                                                           {assignment.questions[ansIdx]?.correctOption && (
-                                                            <span className={`ml-2 text-sm font-medium ${ans === assignment.questions[ansIdx].correctOption ? 'text-green-600' : 'text-red-600'}`}>
-                                                              ({ans === assignment.questions[ansIdx].correctOption ? 'Correct' : `Incorrect, Correct: ${assignment.questions[ansIdx].correctOption}`})
+                                                            <span className={`px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest ${ans === assignment.questions[ansIdx].correctOption ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                              {ans === assignment.questions[ansIdx].correctOption ? 'Correct' : `Wrong (Key: ${assignment.questions[ansIdx].correctOption})`}
                                                             </span>
                                                           )}
                                                         </li>
@@ -2513,14 +2539,13 @@ const ClassroomDetail = () => {
                                                     </ul>
                                                   </div>
                                                 )}
-                                                {/* Add display for files if available in sub.files */}
                                               </div>
                                             )}
                                           </div>
                                         );
                                       })
                                     ) : (
-                                      <p className="text-gray-500 text-center py-2">No submissions yet.</p>
+                                      <p className="text-muted-foreground text-center py-4 font-bold text-[10px] uppercase tracking-widest">No intellectual payloads delivered yet.</p>
                                     )}
                                   </div>
                                 )}
@@ -2540,11 +2565,11 @@ const ClassroomDetail = () => {
 
         {activeTab === 'exams' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Class Examinations</h3>
-                  <p className="text-sm text-gray-500 mt-1">Access scheduled assessments and final exams.</p>
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-1">Class Examinations</h3>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Access scheduled assessments and final exams.</p>
                 </div>
                 {canEdit && (
                   <button
@@ -2562,25 +2587,25 @@ const ClassroomDetail = () => {
                   exams.map(exam => {
                     const isPastDue = exam.dueDate && new Date() > new Date(exam.dueDate);
                     return (
-                      <div key={exam._id} className="group bg-gray-50 hover:bg-white rounded-2xl p-6 border border-transparent hover:border-indigo-100 hover:shadow-xl transition-all duration-300">
+                      <div key={exam._id} className="group bg-muted/30 hover:bg-muted/50 rounded-2xl p-6 border border-border hover:border-primary/30 hover:shadow-2xl transition-all duration-300">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                           <div className="flex items-start space-x-4">
-                            <div className={`p-4 rounded-xl ${isPastDue ? 'bg-gray-200 text-gray-500' : 'bg-indigo-100 text-indigo-600'}`}>
+                            <div className={`p-4 rounded-xl shadow-lg ${isPastDue ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary border border-primary/20'}`}>
                               <GraduationCap className="w-6 h-6" />
                             </div>
                             <div>
-                              <h4 className="text-lg font-black text-gray-900 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">{exam.title}</h4>
-                              <p className="text-sm text-gray-500 font-medium line-clamp-1">{exam.description || 'No description provided.'}</p>
+                              <h4 className="text-lg font-black italic text-foreground leading-tight mb-1 group-hover:text-primary transition-colors tracking-tight">{exam.title}</h4>
+                              <p className="text-xs text-muted-foreground font-medium line-clamp-1 italic">{exam.description || 'No detailed briefing provided.'}</p>
 
                               <div className="flex flex-wrap gap-4 mt-3">
-                                <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                  <Clock className="w-3.5 h-3.5 mr-1.5" />
+                                <div className="flex items-center text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                                  <Clock className="w-3.5 h-3.5 mr-1.5 text-primary" />
                                   {exam.duration} Minutes
                                 </div>
                                 {exam.dueDate && (
-                                  <div className={`flex items-center text-[10px] font-black uppercase tracking-widest ${isPastDue ? 'text-rose-500' : 'text-gray-400'}`}>
+                                  <div className={`flex items-center text-[9px] font-black uppercase tracking-[0.2em] ${isPastDue ? 'text-rose-500' : 'text-muted-foreground'}`}>
                                     <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                                    Due: {new Date(exam.dueDate).toLocaleString()}
+                                    DEADLINE: {new Date(exam.dueDate).toLocaleString()}
                                   </div>
                                 )}
                               </div>
@@ -2629,10 +2654,10 @@ const ClassroomDetail = () => {
                     );
                   })
                 ) : (
-                  <div className="text-center py-16 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100">
-                    <GraduationCap className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                    <h5 className="text-gray-900 font-bold">No Exams Scheduled</h5>
-                    <p className="text-sm text-gray-400">There are currently no examinations assigned to this class.</p>
+                  <div className="text-center py-16 bg-muted/10 rounded-[2rem] border-2 border-dashed border-border/50">
+                    <GraduationCap className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
+                    <h5 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">No Exams Scheduled</h5>
+                    <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest">There are currently no examinations assigned to this class.</p>
                   </div>
                 )}
               </div>
@@ -2642,9 +2667,12 @@ const ClassroomDetail = () => {
 
         {activeTab === 'students' && canViewStudents && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">Enrolled Students ({classroom.students?.length || 0}/{classroom.capacity})</h3>
+            <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                   <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-1">Enrolled Students</h3>
+                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{classroom.students?.length || 0} / {classroom.capacity} SEATS FILLED</p>
+                </div>
                 {canManageStudents && (
                   <button
                     onClick={() => {
@@ -2652,7 +2680,7 @@ const ClassroomDetail = () => {
                       fetchAvailableStudents();
                       setShowAddStudentModal(true);
                     }}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                    className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl hover:opacity-90 transition font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span className="hidden md:inline">Add Student</span>
@@ -2662,24 +2690,32 @@ const ClassroomDetail = () => {
               <div className="space-y-2">
                 {classroom.students && classroom.students.length > 0 ? (
                   classroom.students.map((student) => (
-                    <div key={student._id || student} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                      <div>
-                        <p className="font-medium text-gray-800">{typeof student === 'object' ? student.name : 'Loading...'}</p>
-                        <p className="text-sm text-gray-600">{typeof student === 'object' ? student.email : ''}</p>
+                    <div key={student._id || student} className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-2xl hover:bg-muted/40 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs uppercase">
+                          {typeof student === 'object' ? student.name?.charAt(0) : '?'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-foreground italic uppercase tracking-tight">{typeof student === 'object' ? student.name : 'Securing Data...'}</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{typeof student === 'object' ? student.email : ''}</p>
+                        </div>
                       </div>
                       {canManageStudents && (
                         <button
                           onClick={() => handleRemoveStudent(student._id || student)}
-                          className="text-red-600 hover:text-red-800 p-2"
-                          title="Remove student"
+                          className="w-10 h-10 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          title="Revoke Access"
                         >
-                          <X className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-center py-4">No students enrolled yet</p>
+                  <div className="text-center py-12 bg-muted/10 rounded-3xl border-2 border-dashed border-border/50">
+                    <Users className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">No students found in this class.</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -2687,19 +2723,21 @@ const ClassroomDetail = () => {
         )}
 
         {user?.role === 'root_admin' && classroom?.schoolId && (
-          <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+          <div className="bg-card border border-border rounded-2xl shadow-xl p-6 mt-6">
             {/* Teacher Management (Root Admin only - Always visible regardless of tab) */}
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="text-xl font-semibold">Class Management</h3>
-                <div className="mt-2 space-y-1">
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Teacher:</span> {classroom.teacherId?.name} ({classroom.teacherId?.email})
-                  </p>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-4">Administrative Console</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-muted/20 border border-border rounded-2xl font-bold">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">COMMANDING TEACHER</p>
+                    <p className="text-sm text-foreground italic">{classroom.teacherId?.name} ({classroom.teacherId?.email})</p>
+                  </div>
                   {classroom.schoolId?.adminId && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">School Admin:</span> {classroom.schoolId.adminId.name} ({classroom.schoolId.adminId.email})
-                    </p>
+                    <div className="p-4 bg-muted/20 border border-border rounded-2xl font-bold">
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">SCHOOL ADJUTANT</p>
+                      <p className="text-sm text-foreground italic">{classroom.schoolId.adminId.name} ({classroom.schoolId.adminId.email})</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -2709,7 +2747,7 @@ const ClassroomDetail = () => {
                     fetchAvailableTeachers();
                     setShowChangeTeacherModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  className="px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl hover:opacity-90 transition font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 shrink-0 self-start"
                 >
                   Change Teacher
                 </button>
@@ -2763,31 +2801,29 @@ const ClassroomDetail = () => {
 
         {/* Add Student Modal */}
         {showAddStudentModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up">
+              <div className="bg-card border border-border rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-300">
                 <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-2xl font-bold text-slate-900">Add Student</h3>
-                  <button onClick={() => setShowAddStudentModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
-                    <X className="w-6 h-6" />
-                  </button>
+                  <h3 className="text-xl font-black italic tracking-tight text-foreground uppercase">Deploy Candidates</h3>
+                  <button onClick={() => setShowAddStudentModal(false)} className="p-2 hover:bg-muted rounded-xl transition text-muted-foreground"><X className="w-5 h-5" /></button>
                 </div>
-                <form onSubmit={handleAddStudent} className="space-y-8">
-                  <div>
-                    <label>Select Student</label>
+                <form onSubmit={handleAddStudent} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-1">Select Candidate Profile</label>
                     <select
                       value={selectedStudentId}
                       onChange={(e) => setSelectedStudentId(e.target.value)}
-                      className="w-full"
+                      className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground outline-none focus:border-primary transition-all appearance-none"
                     >
-                      <option value="">Select a student to add</option>
+                      <option value="" disabled className="bg-card">Awaiting Selection...</option>
                       {availableStudents.map(student => (
-                        <option key={student._id} value={student._id}>{student.name} ({student.email})</option>
+                        <option key={student._id} value={student._id} className="bg-card">{student.name} ({student.email})</option>
                       ))}
                     </select>
                     {availableStudents.length === 0 && (
-                      <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                        <p className="text-sm text-slate-500">No available students to add at this time.</p>
+                      <div className="mt-4 p-4 bg-muted/20 rounded-2xl border border-dashed border-border text-center">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No unassigned candidates found.</p>
                       </div>
                     )}
                   </div>
@@ -2795,16 +2831,16 @@ const ClassroomDetail = () => {
                     <button
                       type="button"
                       onClick={() => setShowAddStudentModal(false)}
-                      className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                      className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
                     >
-                      Discard
+                      ABORT
                     </button>
                     <button
                       type="submit"
                       disabled={!selectedStudentId || availableStudents.length === 0 || isAddingStudent}
                       className="btn-premium flex-1"
                     >
-                      {isAddingStudent ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enroll Student'}
+                      {isAddingStudent ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'CONFIRM ENROLLMENT'}
                     </button>
                   </div>
                 </form>
@@ -2816,26 +2852,26 @@ const ClassroomDetail = () => {
         {/* Assign Teacher Modal */}
         {
           showChangeTeacherModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] overflow-y-auto">
               <div className="flex min-h-full items-center justify-center p-4">
-                <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-slide-up">
+                <div className="bg-card border border-border rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-300">
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-bold text-slate-900">Assign Teacher</h3>
-                    <button onClick={() => setShowChangeTeacherModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
-                      <X className="w-6 h-6" />
+                    <h3 className="text-xl font-black italic tracking-tight text-foreground uppercase">Assign Command</h3>
+                    <button onClick={() => setShowChangeTeacherModal(false)} className="p-2 hover:bg-muted rounded-xl transition text-muted-foreground">
+                      <X className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="space-y-8">
-                    <div>
-                      <label>Select New Teacher</label>
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-1">Select New Commander</label>
                       <select
                         value={selectedTeacherId}
                         onChange={(e) => setSelectedTeacherId(e.target.value)}
-                        className="w-full"
+                        className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground outline-none focus:border-primary transition-all appearance-none"
                       >
-                        <option value="">Select a teacher</option>
+                        <option value="" disabled className="bg-card">Awaiting Signal...</option>
                         {availableTeachers.map(teacher => (
-                          <option key={teacher._id} value={teacher._id}>{teacher.name} ({teacher.email})</option>
+                          <option key={teacher._id} value={teacher._id} className="bg-card">{teacher.name} ({teacher.email})</option>
                         ))}
                       </select>
                     </div>
@@ -2843,9 +2879,9 @@ const ClassroomDetail = () => {
                       <button
                         type="button"
                         onClick={() => setShowChangeTeacherModal(false)}
-                        className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                        className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
                       >
-                        Discard
+                        CANCEL
                       </button>
                       <button
                         type="button"
@@ -2853,7 +2889,7 @@ const ClassroomDetail = () => {
                         onClick={handleChangeTeacher}
                         className="btn-premium flex-1"
                       >
-                        {isChangingTeacher ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Assign Teacher'}
+                        {isChangingTeacher ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'REASSIGN COMMAND'}
                       </button>
                     </div>
                   </div>
@@ -2873,28 +2909,28 @@ const ClassroomDetail = () => {
 
         {/* Enrollment Payment Modal */}
         {showEnrollmentPaymentModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
+              <div className="bg-card border border-border rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-300">
                 <div className="p-8 pb-0 flex justify-between items-center">
-                  <div className="bg-indigo-50 p-3 rounded-2xl">
-                    <CreditCard className="w-6 h-6 text-indigo-600" />
+                  <div className="bg-primary/10 p-3 rounded-2xl border border-primary/20">
+                    <CreditCard className="w-6 h-6 text-primary" />
                   </div>
                   <button
                     onClick={() => setShowEnrollmentPaymentModal(false)}
-                    className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400"
+                    className="p-2 hover:bg-muted rounded-xl transition text-muted-foreground"
                     disabled={isProcessingPayment}
                   >
                     <X className="w-6 h-6" />
                   </button>
                 </div>
                 <div className="p-8 pt-6 text-center">
-                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Join Classroom</h3>
-                  <p className="text-slate-500 mb-8 px-4">Complete your payment to gain full access to <span className="font-bold text-slate-700">"{classroom.name}"</span>.</p>
+                  <h3 className="text-xl font-black italic tracking-tight text-foreground uppercase mb-2">Initialize Enrollment</h3>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-8 px-4 leading-relaxed">System authorization required to grant access to <span className="text-primary font-black italic">"{classroom.name}"</span>.</p>
 
-                  <div className="bg-slate-50 rounded-[2rem] p-8 mb-8 border border-slate-100">
-                    <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Total Amount</div>
-                    <div className="text-4xl font-black text-slate-900">
+                  <div className="bg-muted/50 rounded-[2.5rem] p-8 mb-8 border border-border shadow-inner">
+                    <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">ACCESS FEE</div>
+                    <div className="text-4xl font-black italic text-foreground tracking-tight">
                       {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
                     </div>
                   </div>
@@ -2903,9 +2939,9 @@ const ClassroomDetail = () => {
                     <button
                       onClick={() => setShowEnrollmentPaymentModal(false)}
                       disabled={isProcessingPayment}
-                      className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                      className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
                     >
-                      Discard
+                      ABORT
                     </button>
                     <button
                       onClick={handleEnrollmentPayment}
@@ -2913,9 +2949,9 @@ const ClassroomDetail = () => {
                       className="btn-premium flex-1"
                     >
                       {isProcessingPayment ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                       ) : (
-                        'Proceed'
+                        'INITIATE PROTOCOL'
                       )}
                     </button>
                   </div>

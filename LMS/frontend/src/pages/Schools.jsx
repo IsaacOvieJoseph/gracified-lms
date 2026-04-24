@@ -51,35 +51,36 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
   };
 
   if (!open) return null;
+
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
+        <div className="bg-card rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up border border-border">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Establish New School</h2>
-            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">Academy <span className="text-primary not-italic">Establishment</span></h2>
+            <button onClick={onClose} className="p-2 hover:bg-primary/20 hover:text-primary rounded-xl transition text-muted-foreground/30 active:scale-90">
               <X className="w-6 h-6" />
             </button>
           </div>
           <form onSubmit={handleCreateSchool} className="space-y-6">
             <div>
-              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">School Name</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">School Name</label>
               <input
                 type="text"
                 placeholder="e.g. Gracified International"
                 value={schoolName}
                 onChange={(e) => setSchoolName(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
+                className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium"
                 required
               />
             </div>
             {user?.role === 'root_admin' && (
               <div>
-                <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Assign Administrator</label>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">Assign Administrator</label>
                 <select
                   value={adminId}
                   onChange={e => setAdminId(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium appearance-none"
                   required
                 >
                   <option value="">Select an administrator</option>
@@ -95,7 +96,7 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                className="flex-1 px-6 py-3 rounded-xl border border-border font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-muted transition"
               >
                 Discard
               </button>
@@ -161,35 +162,35 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
   if (!open || !school) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up">
+        <div className="bg-card rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up border border-border">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Modify School</h2>
-            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
+            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">Reconfigure <span className="text-primary not-italic">Academy</span></h2>
+            <button onClick={onClose} className="p-2 hover:bg-primary/20 hover:text-primary rounded-xl transition text-muted-foreground/30 active:scale-90">
               <X className="w-6 h-6" />
             </button>
           </div>
 
           <form onSubmit={submit} className="space-y-6">
             <div>
-              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">School Name</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">School Name</label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Isaac Ovie Joseph Academy"
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
+                className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium"
                 required
               />
             </div>
 
             {user?.role === 'root_admin' ? (
               <div>
-                <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">School Admin</label>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">School Admin</label>
                 <select
                   value={form.adminId}
                   onChange={e => setForm({ ...form, adminId: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl"
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium appearance-none"
                   required
                 >
                   <option value="">Select Admin</option>
@@ -202,11 +203,11 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
               </div>
             ) : (
               <div>
-                <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Administrator</label>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">Administrator</label>
                 <input
                   type="text"
                   value={school.admin?.name || 'N/A'}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl cursor-not-allowed"
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl cursor-not-allowed text-muted-foreground/40 font-medium"
                   disabled
                 />
               </div>
@@ -216,7 +217,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                className="flex-1 px-6 py-3 rounded-xl border border-border font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-muted transition"
               >
                 Discard
               </button>
@@ -345,15 +346,15 @@ export default function SchoolsPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-900">Schools</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter italic uppercase">School <span className="text-primary not-italic">Management</span></h2>
           {canCreateSchool && (
             <button
               onClick={() => setModalOpen(true)}
-              className="btn-premium"
+              className="btn-premium px-8 py-3 rounded-2xl flex items-center gap-3 shadow-lg shadow-primary/20"
             >
               <Plus className="w-5 h-5" />
-              <span>Create School</span>
+              <span className="font-black text-[10px] uppercase tracking-widest">Establish Establishment</span>
             </button>
           )}
         </div>
@@ -361,16 +362,16 @@ export default function SchoolsPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Search schools..."
-            className="w-full sm:w-80"
+            placeholder="Intercept academy identity..."
+            className="w-full sm:w-96 px-5 py-4 bg-muted/40 border-2 border-border rounded-2xl font-black italic tracking-tight placeholder:opacity-30 placeholder:italic focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        <div className="card-premium overflow-hidden overflow-x-auto">
+        <div className="card-premium overflow-hidden overflow-x-auto border border-border">
           <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
+            <thead className="bg-muted text-muted-foreground border-b border-border">
               <tr>
                 <HeaderCell label="School Name" field="name" sortData={sortData} sortField={sortField} sortDir={sortDir} />
                 <HeaderCell label="Admin Name" field="adminName" sortData={sortData} sortField={sortField} sortDir={sortDir} />
@@ -378,54 +379,60 @@ export default function SchoolsPage() {
                 <HeaderCell label="Teachers" field="teacherCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
                 <HeaderCell label="Students" field="studentCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
                 {canManage && (
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.25em] whitespace-nowrap">Actions</th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-500">Loading...</td>
+                  <td colSpan="6" className="text-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary/30" />
+                  </td>
                 </tr>
               ) : sortedSchools.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-500">No schools found</td>
+                  <td colSpan="6" className="text-center py-20 text-muted-foreground/30 font-bold italic uppercase tracking-widest">No establishments found</td>
                 </tr>
               ) : (
                 sortedSchools.map((school) => (
                   <tr
                     key={school._id}
-                    className="cursor-pointer hover:bg-gray-50"
+                    className="cursor-pointer hover:bg-muted/30 transition-colors"
                     onClick={() => navigate(`/schools/${school._id}`)}
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-800">{school.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{school.admin?.name || "N/A"}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{school.admin?.email || "N/A"}</td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-700">{school.teacherCount}</td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-700">{school.studentCount}</td>
+                    <td className="px-6 py-5 text-sm font-bold text-foreground italic">{school.name}</td>
+                    <td className="px-6 py-5 text-sm text-foreground/70 font-black uppercase tracking-tight">{school.admin?.name || "N/A"}</td>
+                    <td className="px-6 py-5 text-sm text-muted-foreground font-medium">{school.admin?.email || "N/A"}</td>
+                    <td className="px-6 py-5 text-center text-[10px] font-black text-primary uppercase">
+                        <span className="bg-primary/5 px-3 py-1 rounded-full border border-primary/10 tracking-[0.2em]">{school.teacherCount}</span>
+                    </td>
+                    <td className="px-6 py-5 text-center text-[10px] font-black text-emerald-500 uppercase">
+                        <span className="bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10 tracking-[0.2em]">{school.studentCount}</span>
+                    </td>
                     {canManage && (
                       <td
-                        className="px-6 py-4 flex space-x-4"
+                        className="px-6 py-5 flex items-center space-x-2"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => handleShare(school)}
-                          className="text-indigo-600 hover:text-indigo-800"
-                          title="Share School Link"
+                          className="p-2 text-muted-foreground/30 hover:text-primary transition-colors"
+                          title="Share Academy Access"
                         >
                           <Share2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => { setSelectedSchool(school); setEditModalOpen(true); }}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="Edit School"
+                          className="p-2 text-muted-foreground/30 hover:text-blue-500 transition-colors"
+                          title="Reconfigure Academy"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => deleteSchool(school._id)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete School"
+                          className="p-2 text-muted-foreground/30 hover:text-red-500 transition-colors"
+                          title="Decommission Academy"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -456,26 +463,26 @@ export default function SchoolsPage() {
         show={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={confirmDelete}
-        title="Delete School"
-        message="Are you sure you want to delete this school? This action cannot be undone and will affect all related users and classrooms."
-        confirmText="Delete"
+        title="Decommission Academy"
+        message="Are you sure you want to delete this school? This action will permanently remove all associated users and data."
+        confirmText="DECOMMISSION"
         isLoading={isDeleting}
       />
     </Layout>
   );
 }
 
-function HeaderCell({ label, field, sortData, sortField, sortDir, center }) {
+const HeaderCell = ({ label, field, sortData, sortField, sortDir, center = false }) => {
   return (
     <th
-      className={`px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer select-none transition-colors hover:text-primary ${center ? "text-center" : "text-left"
+      className={`px-6 py-5 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.25em] cursor-pointer select-none transition-colors hover:text-primary ${center ? "text-center" : "text-left"
         }`}
       onClick={() => sortData(field)}
     >
-      <div className={`flex items-center space-x-1 ${center ? "justify-center" : ""}`}>
+      <div className={`flex items-center space-x-2 ${center ? "justify-center" : ""}`}>
         <span>{label}</span>
         <ArrowUpDown
-          className={`w-4 h-4 transition-colors ${sortField === field ? "text-primary" : "text-slate-300"
+          className={`w-3.5 h-3.5 transition-colors ${sortField === field ? "text-primary" : "text-muted-foreground/10"
             }`}
         />
       </div>

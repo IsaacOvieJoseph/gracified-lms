@@ -320,7 +320,7 @@ const Assignments = () => {
   };
 
   if (loading || userLoading) {
-    return <Layout><div className="text-center py-8">Loading...</div></Layout>;
+    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Loading...</p></div></Layout>;
   }
   if (!user || !user._id) {
     return <Layout><div className="text-center py-8 text-red-600">User session invalid. Please log in again.</div></Layout>;
@@ -328,9 +328,18 @@ const Assignments = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8">
+        <div className="flex items-center gap-4">
+             <div className="p-3 bg-primary/10 rounded-xl text-primary border border-primary/20">
+                <FileText className="w-8 h-8" />
+             </div>
+             <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-foreground italic">Academy <span className="text-primary not-italic">Assignments</span></h1>
+                <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] mt-1 opacity-60">Objective Tracking & Assessment</p>
+             </div>
+        </div>
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">My Assignments</h2>
+          <div className="flex-1"></div>
           {canCreateAssignment && (
             <button
               onClick={() => setShowCreateAssignmentModal(true)}
@@ -343,14 +352,14 @@ const Assignments = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <div className="relative group">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-primary transition-colors w-5 h-5" />
           <input
             type="text"
-            placeholder="Search by title, description, topic, or classroom..."
+            placeholder="Filter objectives by title, topic, or status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-4 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
           />
         </div>
 
@@ -380,47 +389,47 @@ const Assignments = () => {
               };
 
               return (
-                <div key={assignment._id} className="card-premium overflow-hidden">
+                <div key={assignment._id} className="bg-card rounded-[2rem] border border-border overflow-hidden shadow-xl hover:shadow-2xl transition-all">
                   <div
-                    className="flex justify-between items-start p-6 cursor-pointer hover:bg-gray-50 transition"
+                    className="flex justify-between items-start p-6 cursor-pointer hover:bg-muted/30 transition shadow-inner"
                     onClick={toggleAssignmentExpanded}
                   >
-                    <div className="flex items-start space-x-3 flex-1">
+                    <div className="flex items-start space-x-4 flex-1">
                       {isAssignmentExpanded ? (
-                        <ChevronUp className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+                        <ChevronUp className="w-5 h-5 text-muted-foreground/60 mt-1 flex-shrink-0" />
                       ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+                        <ChevronDown className="w-5 h-5 text-muted-foreground/60 mt-1 flex-shrink-0" />
                       )}
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-800">
+                        <h3 className="text-xl font-black text-foreground tracking-tight underline-offset-4 decoration-primary/30">
                           {assignment.title}
                           {assignment.topicId?.name && (
-                            <span className="ml-2 text-sm font-normal text-gray-500">
-                              ({assignment.topicId.name})
+                            <span className="ml-3 text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] bg-primary/5 px-3 py-1 rounded-full border border-primary/10">
+                              {assignment.topicId.name}
                             </span>
                           )}
                         </h3>
                         {!isAssignmentExpanded && (
-                          <p className="text-gray-600 mt-1 line-clamp-2">{assignment.description}</p>
+                          <p className="text-sm text-muted-foreground mt-2 line-clamp-1 opacity-80 font-medium">{assignment.description}</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
+                    <div className="flex items-center space-x-3 flex-shrink-0">
                       {/* Show "Graded" only if graded AND (theory OR MCQ with results published) */}
                       {isGraded && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                        <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                        <span className="bg-emerald-500/10 text-emerald-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] border border-emerald-500/20 shadow-sm">
                           Graded
                         </span>
                       )}
                       {/* Show "Submitted" only if submitted AND NOT graded (or MCQ graded but results not published yet) */}
                       {isSubmitted && !isGraded && (
-                        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                        <span className="bg-amber-500/10 text-amber-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] border border-amber-500/20 shadow-sm">
                           Submitted
                         </span>
                       )}
                       {/* Show "Submitted" for MCQ that is graded but results not published yet */}
                       {isSubmitted && isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt) && (
-                        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                        <span className="bg-amber-500/10 text-amber-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] border border-amber-500/20 shadow-sm">
                           Submitted
                         </span>
                       )}
@@ -474,10 +483,10 @@ const Assignments = () => {
                               e.stopPropagation();
                               handleDeleteAssignment(assignment._id);
                             }}
-                            className="text-red-500 hover:text-red-700 p-1"
+                            className="text-muted-foreground/30 hover:text-red-500 p-1 transition-colors"
                             title="Delete assignment"
                           >
-                            <X className="w-5 h-5 transition-colors" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
                       )}
@@ -485,27 +494,30 @@ const Assignments = () => {
                   </div>
 
                   {isAssignmentExpanded && (
-                    <div className="px-6 pb-6 border-t">
-                      <div className="pt-4">
-                        <p className="text-gray-600 mb-4">{assignment.description}</p>
+                    <div className="px-8 pb-8 border-t border-border bg-muted/20">
+                      <div className="pt-6">
+                        <p className="text-foreground/70 leading-relaxed font-medium mb-6 text-sm italic border-l-4 border-primary/10 pl-4">{assignment.description}</p>
                       </div>
 
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          Due: {formatDisplayDate(assignment.dueDate)}
+                      <div className="flex flex-wrap items-center gap-6 text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-6 bg-muted/40 p-4 rounded-2xl border border-border/10">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-primary opacity-40" />
+                          <span className="opacity-40">Deadline:</span>
+                          <span className="text-foreground">{formatDisplayDate(assignment.dueDate)}</span>
                         </div>
-                        <div className="flex items-center">
-                          <FileText className="w-4 h-4 mr-1" />
-                          Max Score: {assignment.maxScore}
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-primary opacity-40" />
+                          <span className="opacity-40">Operational Max:</span>
+                          <span className="text-foreground">{assignment.maxScore} Pts</span>
                         </div>
                         {assignment.assignmentType === 'mcq' && assignment.publishResultsAt && (
-                          <div className="flex items-center">
-                            <Book className="w-4 h-4 mr-1" />
-                            Results Publish: {formatDisplayDate(assignment.publishResultsAt)}
+                          <div className="flex items-center gap-2">
+                            <Book className="w-4 h-4 text-primary opacity-40" />
+                            <span className="opacity-40">Results Intel:</span>
+                            <span className="text-foreground">{formatDisplayDate(assignment.publishResultsAt)}</span>
                             {/* Only show "Pending" if results not published AND student hasn't submitted yet */}
                             {new Date() < new Date(assignment.publishResultsAt) && !isSubmitted && (
-                              <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-semibold">
+                              <span className="ml-2 bg-indigo-500/10 text-indigo-500 px-2.5 py-0.5 rounded-full text-[8px] font-black border border-indigo-500/20">
                                 Pending
                               </span>
                             )}
@@ -514,51 +526,58 @@ const Assignments = () => {
                       </div>
 
                       {user?.role === 'student' && isGraded && submission && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                            <span className="font-semibold">
-                              Score: {submission.score}/{assignment.maxScore}
+                        <div className="bg-muted/40 rounded-2xl p-6 mb-6 shadow-inner border border-border">
+                          <div className="flex items-center space-x-3 mb-4">
+                            <CheckCircle className="w-5 h-5 text-emerald-500" />
+                            <span className="text-sm font-black text-foreground uppercase tracking-widest italic">
+                              Resolved Intel: {submission.score}/{assignment.maxScore}
                             </span>
                           </div>
                           {submission.feedback && (
-                            <p className="text-gray-700 mt-2">Feedback: {submission.feedback}</p>
+                            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider mb-6 pb-6 border-b border-border/10 italic opacity-80">Evaluator Note: <span className="text-foreground">{submission.feedback}</span></p>
                           )}
-                          <div className="mt-4 border-t pt-4">
-                            <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
+                          <div className="space-y-6">
+                            <h5 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Operational Payload Details:</h5>
                             {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
-                              <ul className="list-disc list-inside text-gray-700">
+                              <div className="space-y-4">
                                 {assignment.questions.map((q, qIndex) => {
                                   const questionGrade = submission.questionScores?.find(qs => qs.questionIndex === qIndex);
                                   return (
-                                    <li key={qIndex}>
-                                      <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                      Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span><br />
+                                    <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
+                                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 opacity-40">Question {qIndex + 1}</p>
+                                      <p className="text-sm font-bold text-foreground mb-3">{q.questionText}</p>
+                                      <div className="p-4 bg-muted rounded-xl border border-border mb-3">
+                                         <p className="text-sm text-foreground/70 italic whitespace-pre-wrap">{submission.answers[qIndex]}</p>
+                                      </div>
                                       {questionGrade && (
-                                        <span className="ml-2 text-sm font-medium text-green-600">
-                                          Score: {questionGrade.score}/{q.maxScore}
-                                          {questionGrade.feedback && ` - Feedback: ${questionGrade.feedback}`}
-                                        </span>
+                                        <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
+                                          <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-lg border border-emerald-500/20">
+                                            Score: {questionGrade.score}/{q.maxScore}
+                                          </span>
+                                          {questionGrade.feedback && <span className="text-muted-foreground italic opacity-60">Intel Note: {questionGrade.feedback}</span>}
+                                        </div>
                                       )}
-                                    </li>
+                                    </div>
                                   );
                                 })}
-                              </ul>
+                              </div>
                             )}
                             {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
-                              <ul className="list-disc list-inside text-gray-700">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {assignment.questions.map((q, qIndex) => (
-                                  <li key={qIndex}>
-                                    <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                    Your Answer: {submission.answers[qIndex]}
-                                    {q.correctOption && (
-                                      <span className={`ml-2 text-sm font-medium ${submission.answers[qIndex] === q.correctOption ? 'text-green-600' : 'text-red-600'}`}>
-                                        ({submission.answers[qIndex] === q.correctOption ? 'Correct' : `Incorrect, Correct: ${q.correctOption}`})
-                                      </span>
-                                    )}
-                                  </li>
+                                  <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
+                                    <p className="text-xs font-bold text-foreground mb-3">{q.questionText}</p>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                       <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">Input: {submission.answers[qIndex]}</span>
+                                       {q.correctOption && (
+                                         <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${submission.answers[qIndex] === q.correctOption ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
+                                            {submission.answers[qIndex] === q.correctOption ? 'Valid' : `Invalid - Protocol: ${q.correctOption}`}
+                                         </span>
+                                       )}
+                                    </div>
+                                  </div>
                                 ))}
-                              </ul>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -566,38 +585,43 @@ const Assignments = () => {
 
                       {/* Student View: Submitted but not graded, or MCQ graded but results not published yet */}
                       {user?.role === 'student' && isSubmitted && (!isGraded || (assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt))) && (
-                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                          <p className="font-semibold text-blue-600">
+                        <div className="bg-muted rounded-2xl p-6 mb-4 border border-border shadow-inner">
+                          <p className="font-black text-xs uppercase tracking-widest text-indigo-500 mb-4">
                             {isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt)
-                              ? `Results for this MCQ assignment will be published on ${formatDisplayDate(assignment.publishResultsAt)}.`
-                              : 'Your assignment has been submitted and is awaiting grading.'
+                              ? `Operational results for this assessment will be published on ${formatDisplayDate(assignment.publishResultsAt)}.`
+                              : 'Deployment successful. Awaiting command evaluation.'
                             }
                           </p>
-                          <div className="mt-4 border-t pt-4">
-                            <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
-                            {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
-                              <ul className="list-disc list-inside text-gray-700">
-                                {assignment.questions.map((q, qIndex) => (
-                                  <li key={qIndex}>
-                                    <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                    Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                            {assignment.assignmentType === 'theory' && submission.answers && !Array.isArray(submission.answers) && (
-                              <p className="text-gray-700">{submission.answers}</p>
-                            )}
-                            {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
-                              <ul className="list-disc list-inside text-gray-700">
-                                {assignment.questions.map((q, qIndex) => (
-                                  <li key={qIndex}>
-                                    <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
-                                    Your Answer: {submission.answers[qIndex]}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
+                          <div className="mt-4 border-t border-border/10 pt-4">
+                            <h5 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">Your Intel Payload:</h5>
+                            <div className="space-y-4">
+                              {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
+                                <div className="space-y-4">
+                                  {assignment.questions.map((q, qIndex) => (
+                                    <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
+                                      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-40">Objective {qIndex + 1}</p>
+                                      <p className="text-sm font-bold text-foreground mb-2">{q.questionText}</p>
+                                      <div className="p-3 bg-muted rounded-lg border border-border/10">
+                                         <p className="text-sm text-foreground/70 italic whitespace-pre-wrap">{submission.answers[qIndex]}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {assignment.assignmentType === 'theory' && submission.answers && !Array.isArray(submission.answers) && (
+                                <p className="text-sm text-foreground/70 italic bg-card p-4 rounded-xl border border-border/5 whitespace-pre-wrap">{submission.answers}</p>
+                              )}
+                              {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  {assignment.questions.map((q, qIndex) => (
+                                    <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5 flex items-center justify-between">
+                                      <span className="text-xs font-bold text-foreground truncate mr-2">{q.questionText}</span>
+                                      <span className="text-xs font-black text-indigo-500 uppercase tracking-widest bg-indigo-500/5 px-3 py-1 rounded-full border border-indigo-500/10 whitespace-nowrap">Opt {submission.answers[qIndex]}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -625,8 +649,8 @@ const Assignments = () => {
 
                       {/* Teacher/Admin: View and Grade Submissions */}
                       {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? assignment.classroomId?.teacherId?._id === user?._id : true) && (
-                        <div className="mt-4 border-t pt-4">
-                          <h4 className="font-semibold text-gray-700 mb-3">Submissions ({assignment.submissions?.length || 0}):</h4>
+                        <div className="mt-8 border-t border-border pt-6">
+                          <h4 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-4 opacity-40">Deployed Submissions ({assignment.submissions?.length || 0})</h4>
                           {assignment.submissions && assignment.submissions.length > 0 ? (
                             assignment.submissions.map(sub => {
                               const isExpanded = expandedSubmissions.has(sub._id);
@@ -643,23 +667,25 @@ const Assignments = () => {
                               };
 
                               return (
-                                <div key={sub._id} className="border rounded-lg mb-2 bg-gray-50 overflow-hidden">
+                                <div key={sub._id} className="border border-border/10 rounded-2xl mb-3 bg-muted/40 overflow-hidden shadow-sm group/sub hover:border-primary/20 transition-all">
                                   <div
-                                    className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-100 transition"
+                                    className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/60 transition"
                                     onClick={toggleExpanded}
                                   >
-                                    <div className="flex items-center space-x-2 flex-1">
+                                    <div className="flex items-center space-x-3 flex-1">
                                       {isExpanded ? (
-                                        <ChevronUp className="w-4 h-4 text-gray-600" />
+                                        <ChevronUp className="w-4 h-4 text-muted-foreground/30" />
                                       ) : (
-                                        <ChevronDown className="w-4 h-4 text-gray-600" />
+                                        <ChevronDown className="w-4 h-4 text-muted-foreground/30" />
                                       )}
                                       <div className="flex-1">
-                                        <p className="font-medium text-gray-800">{sub.studentId?.name || 'Unknown Student'}</p>
-                                        <p className="text-sm text-gray-600">Status: {sub.status}</p>
-                                        {sub.status === 'graded' && (
-                                          <p className="text-sm text-gray-600">Score: {sub.score}/{assignment.maxScore}</p>
-                                        )}
+                                        <p className="font-bold text-foreground">{sub.studentId?.name || 'Unknown Intel'}</p>
+                                        <div className="flex items-center gap-3 mt-1">
+                                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Status: {sub.status}</span>
+                                          {sub.status === 'graded' && (
+                                            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">Score: {sub.score}/{assignment.maxScore}</span>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                     {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? sub.studentId?._id === user?._id : true) && (
@@ -670,36 +696,41 @@ const Assignments = () => {
                                           setSubmissionToGrade(sub);
                                           setShowGradeModal(true);
                                         }}
-                                        className="btn-premium py-1.5 px-4 text-sm"
+                                        className="text-[10px] font-black text-primary uppercase tracking-widest hover:scale-105 active:scale-95 transition-all bg-card px-5 py-2 rounded-xl border border-border shadow-sm group-hover/sub:bg-primary group-hover/sub:text-white"
                                       >
-                                        Grade
+                                        Evaluate
                                       </button>
                                     )}
                                   </div>
                                   {isExpanded && (
-                                    <div className="px-3 pb-3 pt-0 border-t bg-white">
+                                    <div className="px-6 pb-6 pt-2 border-t border-border/10 bg-muted/20">
                                       {/* Display answers based on type */}
                                       {assignment.assignmentType === 'theory' && sub.answers && (
-                                        <div className="mt-2">
-                                          <p className="text-sm font-medium text-gray-700 mb-1">Answer:</p>
-                                          <p className="text-sm text-gray-600 whitespace-pre-wrap">{Array.isArray(sub.answers) ? sub.answers.join('\n') : sub.answers}</p>
+                                        <div className="mt-4">
+                                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 opacity-40">Intel Payload:</p>
+                                          <div className="p-4 bg-card rounded-xl border border-border shadow-inner">
+                                            <p className="text-sm text-foreground/70 italic whitespace-pre-wrap leading-relaxed">{Array.isArray(sub.answers) ? sub.answers.join('\n\n') : sub.answers}</p>
+                                          </div>
                                         </div>
                                       )}
                                       {assignment.assignmentType === 'mcq' && sub.answers && Array.isArray(sub.answers) && (
-                                        <div className="mt-2">
-                                          <p className="text-sm font-medium text-gray-700 mb-1">Selected options:</p>
-                                          <ul className="list-disc list-inside text-sm text-gray-600">
+                                        <div className="mt-4">
+                                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Student Answers:</p>
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {sub.answers.map((ans, ansIdx) => (
-                                              <li key={ansIdx}>
-                                                {ans}
-                                                {assignment.questions[ansIdx]?.correctOption && (
-                                                  <span className={`ml-2 text-sm font-medium ${ans === assignment.questions[ansIdx].correctOption ? 'text-green-600' : 'text-red-600'}`}>
-                                                    ({ans === assignment.questions[ansIdx].correctOption ? 'Correct' : `Incorrect, Correct: ${assignment.questions[ansIdx].correctOption}`})
-                                                  </span>
-                                                )}
-                                              </li>
+                                              <div key={ansIdx} className="p-3 bg-card rounded-xl border border-border flex items-center justify-between">
+                                                <span className="text-xs font-bold text-foreground">Objective {ansIdx + 1}</span>
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">{ans}</span>
+                                                  {assignment.questions[ansIdx]?.correctOption && (
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${ans === assignment.questions[ansIdx].correctOption ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
+                                                      {ans === assignment.questions[ansIdx].correctOption ? 'Valid' : 'Invalid'}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
                                             ))}
-                                          </ul>
+                                          </div>
                                         </div>
                                       )}
                                     </div>
@@ -718,11 +749,14 @@ const Assignments = () => {
               );
             })
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <p className="text-gray-500">
+            <div className="text-center py-20 bg-card rounded-[2.5rem] border border-border shadow-inner">
+               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 border border-border/10">
+                  <FileText className="w-8 h-8 text-muted-foreground/20" />
+               </div>
+              <p className="text-muted-foreground/30 font-black text-xs uppercase tracking-widest italic">
                 {searchQuery.trim() !== ''
-                  ? 'No assignments found matching your search'
-                  : 'No assignments available'}
+                  ? 'No intel found matching search protocol'
+                  : 'Objective registry is currently empty'}
               </p>
             </div>
           )}

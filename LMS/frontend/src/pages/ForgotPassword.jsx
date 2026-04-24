@@ -4,6 +4,7 @@ import { Lock, Mail, Key, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { validateEmail, validatePassword, passwordRequirements } from '../utils/validation';
 import OTPInput from '../components/OTPInput';
+import ThemeToggle from '../components/ThemeToggle';
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
@@ -119,54 +120,53 @@ const ForgotPassword = () => {
   }, [step]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-blue-50 flex items-center justify-center p-4 md:p-6 font-inter relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 md:p-6 font-inter relative overflow-hidden transition-colors duration-300">
       {/* Ambient background shapes */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-400/5 rounded-full blur-[120px] pointer-events-none" />
 
+      {/* Theme toggle - top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-md relative z-10 animate-slide-up">
-        <div className="card-premium p-8 md:p-10 bg-white/95 backdrop-blur-xl">
-          {/* Header */}
+        <div className="card-premium p-8 md:p-10 bg-card">
           <div className="text-center mb-8">
             <div className="inline-flex p-3 rounded-2xl bg-primary/10 mb-4">
               <Lock className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="font-outfit text-3xl font-bold text-slate-900 mb-2">Reset Password</h1>
-            <p className="text-slate-500">
+            <h1 className="font-outfit text-3xl font-bold text-foreground mb-2">Reset Password</h1>
+            <p className="text-muted-foreground">
               {step === 1 && 'Enter your email to receive a reset code'}
               {step === 2 && 'Enter the OTP sent to your email'}
               {step === 3 && 'Create your new password'}
             </p>
           </div>
 
-          {/* Step 1: Email Input */}
           {step === 1 && (
             <form onSubmit={handleRequestOTP} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-slate-600 ml-1">Email Address</label>
+                <label className="block text-sm font-semibold text-foreground/80 ml-1">Email Address</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                     <Mail className="w-5 h-5" />
                   </div>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-11 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    className="w-full pl-11 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                     placeholder="name@example.com"
                     required
                   />
                 </div>
               </div>
               {error && (
-                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
-                  {error}
-                </div>
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-500 dark:text-red-400 font-medium">{error}</div>
               )}
               {message && (
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
-                  {message}
-                </div>
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{message}</div>
               )}
               <button
                 type="submit"
@@ -178,11 +178,10 @@ const ForgotPassword = () => {
             </form>
           )}
 
-        {/* Step 2: OTP Verification */}
         {step === 2 && (
           <form onSubmit={handleVerifyOTP} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-slate-600 ml-1">Enter OTP</label>
+              <label className="block text-sm font-semibold text-foreground/80 ml-1">Enter OTP</label>
               <div className="flex justify-center mb-4">
                 <OTPInput
                   length={6}
@@ -190,17 +189,13 @@ const ForgotPassword = () => {
                   onChange={setOtp}
                 />
               </div>
-              <p className="text-xs text-slate-400 text-center ml-1">OTP sent to {email || sessionStorage.getItem('resetPasswordEmail')}</p>
+              <p className="text-xs text-muted-foreground text-center ml-1">OTP sent to {email || sessionStorage.getItem('resetPasswordEmail')}</p>
             </div>
             {error && (
-              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
-                {error}
-              </div>
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-500 dark:text-red-400 font-medium">{error}</div>
             )}
             {message && (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
-                {message}
-              </div>
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{message}</div>
             )}
             <button
               type="submit"
@@ -209,7 +204,7 @@ const ForgotPassword = () => {
             >
               {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
-            <div className="flex justify-between items-center mt-4 pt-2 border-t border-slate-200">
+            <div className="flex justify-between items-center mt-4 pt-2 border-t border-border">
               <button
                 type="button"
                 onClick={() => setStep(1)}
@@ -242,66 +237,53 @@ const ForgotPassword = () => {
           </form>
         )}
 
-        {/* Step 3: New Password */}
         {step === 3 && (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-slate-600 ml-1">New Password</label>
+              <label className="block text-sm font-semibold text-foreground/80 ml-1">New Password</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full pl-11 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
+                  className="w-full pl-11 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
                   placeholder="Enter new password"
                   required
                   minLength="6"
                 />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                >
+                <button type="button" className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowNewPassword(!showNewPassword)}>
                   {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-slate-600 ml-1">Confirm Password</label>
+              <label className="block text-sm font-semibold text-foreground/80 ml-1">Confirm Password</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-11 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
+                  className="w-full pl-11 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
                   placeholder="Confirm new password"
                   required
                   minLength="6"
                 />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
+                <button type="button" className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
             {error && (
-              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
-                {error}
-              </div>
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-500 dark:text-red-400 font-medium">{error}</div>
             )}
             {message && (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
-                {message}
-              </div>
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{message}</div>
             )}
             <button
               type="submit"
@@ -318,9 +300,8 @@ const ForgotPassword = () => {
           </form>
         )}
 
-        {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-slate-200">
-          <p className="text-center text-slate-500 text-sm">
+        <div className="mt-8 pt-6 border-t border-border">
+          <p className="text-center text-muted-foreground text-sm">
             <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1">
               ← Back to Login
             </Link>

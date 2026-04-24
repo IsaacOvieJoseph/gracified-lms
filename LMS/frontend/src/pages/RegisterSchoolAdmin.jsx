@@ -5,6 +5,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { validateEmail, validatePassword, passwordRequirements } from '../utils/validation';
 import logo from '../assets/logo.jpg';
+import ThemeToggle from '../components/ThemeToggle';
 
 const RegisterSchoolAdmin = () => {
   const [formData, setFormData] = useState({
@@ -114,174 +115,114 @@ const RegisterSchoolAdmin = () => {
   };
 
   return (
-    <div className="h-screen bg-[#F8FAFC] flex font-inter relative overflow-hidden">
-      {/* Abstract Background Shapes */}
+    <div className="h-screen bg-background text-foreground flex font-inter relative overflow-hidden transition-colors duration-300">
+      {/* Ambient Blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-[120px]" />
 
-      {/* Left Decoration - Visible on Desktop */}
-      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-white border-r border-slate-100 relative z-10">
+      {/* Left Decoration - Desktop */}
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
         <div className="max-w-md text-center">
           <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-3xl shadow-xl mb-8" />
-          <h2 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
+          <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
             Elevate Your <span className="text-primary italic">Learning Experience</span>
           </h2>
-          <p className="text-slate-500 text-lg leading-relaxed">
+          <p className="text-muted-foreground text-lg leading-relaxed">
             The most intuitive management system for modern educational environments.
           </p>
           <div className="mt-12 grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="text-2xl font-bold text-slate-900">10k+</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Students</div>
+            <div className="p-4 rounded-2xl bg-muted border border-border">
+              <div className="text-2xl font-bold text-foreground">10k+</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Students</div>
             </div>
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="text-2xl font-bold text-slate-900">99.9%</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Uptime</div>
+            <div className="p-4 rounded-2xl bg-muted border border-border">
+              <div className="text-2xl font-bold text-foreground">99.9%</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uptime</div>
             </div>
           </div>
-          <br></br>
-          <br></br>
-          <br></br>
-          <p className="mt-8 text-center text-slate-400 text-xs font-medium">
+          <br /><br /><br />
+          <p className="mt-8 text-center text-muted-foreground/60 text-xs font-medium">
             &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
           </p>
-
         </div>
       </div>
 
       {/* Right Form */}
       <div className="flex-1 flex justify-center p-6 pt-10 pb-10 relative z-10">
         <div className="w-full max-w-lg animate-slide-up">
-          <div className="lg:hidden text-center mb-8">
+          <div className="lg:hidden text-center mb-8 relative">
+            <div className="absolute top-0 right-0"><ThemeToggle /></div>
             <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-2xl shadow-lg mb-4" />
-            <h1 className="text-2xl font-bold text-slate-900">Gracified LMS</h1>
+            <h1 className="text-2xl font-bold text-foreground">Gracified LMS</h1>
           </div>
 
-          <div className="card-premium p-8 md:p-10 bg-white/95 backdrop-blur-xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <div className="card-premium p-8 md:p-10 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto relative">
+            <div className="hidden lg:flex absolute top-6 right-6"><ThemeToggle /></div>
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="font-outfit text-3xl font-bold text-slate-900 mb-2">School Admin</h1>
-              <p className="text-slate-500">Register your school and start managing</p>
+              <h1 className="font-outfit text-3xl font-bold text-foreground mb-2">School Admin</h1>
+              <p className="text-muted-foreground">Register your school and start managing</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Full Name */}
               <div className="space-y-1.5">
-                <label htmlFor="name" className="block text-sm font-semibold text-slate-600 ml-1">Full Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  required
-                  className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                />
+                <label htmlFor="name" className="block text-sm font-semibold text-foreground/80 ml-1">Full Name</label>
+                <input type="text" id="name" name="name" value={formData.name} onChange={handleChange}
+                  placeholder="Enter your full name" required
+                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
               </div>
 
-              {/* Email */}
               <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-sm font-semibold text-slate-600 ml-1">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="admin@school.com"
-                  required
-                  className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                />
+                <label htmlFor="email" className="block text-sm font-semibold text-foreground/80 ml-1">Email Address</label>
+                <input type="email" id="email" name="email" value={formData.email} onChange={handleChange}
+                  placeholder="admin@school.com" required
+                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
               </div>
 
-              {/* School Name */}
               <div className="space-y-1.5">
-                <label htmlFor="schoolName" className="block text-sm font-semibold text-slate-600 ml-1">School Name</label>
-                <input
-                  type="text"
-                  id="schoolName"
-                  name="schoolName"
-                  value={formData.schoolName}
-                  onChange={handleChange}
-                  placeholder="e.g. Excellence Academy"
-                  required
-                  className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                />
+                <label htmlFor="schoolName" className="block text-sm font-semibold text-foreground/80 ml-1">School Name</label>
+                <input type="text" id="schoolName" name="schoolName" value={formData.schoolName} onChange={handleChange}
+                  placeholder="e.g. Excellence Academy" required
+                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
               </div>
 
-              {/* Logo Upload */}
               <div className="space-y-1.5">
-                <label htmlFor="logo" className="block text-sm font-semibold text-slate-600 ml-1">School Logo (Optional)</label>
-                <input
-                  type="file"
-                  id="logo"
-                  name="logo"
-                  onChange={handleLogoChange}
-                  accept="image/*"
-                  className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-500 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-semibold file:cursor-pointer"
-                />
-                <p className="text-xs text-slate-400 ml-1">Recommended: Square image, max 2MB</p>
+                <label htmlFor="logo" className="block text-sm font-semibold text-foreground/80 ml-1">School Logo (Optional)</label>
+                <input type="file" id="logo" name="logo" onChange={handleLogoChange} accept="image/*"
+                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-semibold file:cursor-pointer" />
+                <p className="text-xs text-muted-foreground ml-1">Recommended: Square image, max 2MB</p>
               </div>
 
-              {/* Passwords */}
               <div className="space-y-1.5">
-                <label htmlFor="password" className="block text-sm font-semibold text-slate-600 ml-1">Password</label>
-                <div className="relative group">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    required
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
+                <label htmlFor="password" className="block text-sm font-semibold text-foreground/80 ml-1">Password</label>
+                <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} id="password" name="password" value={formData.password} onChange={handleChange}
+                    placeholder="••••••••" required
+                    className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10" />
+                  <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-600 ml-1">Confirm Password</label>
-                <div className="relative group">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    required
-                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-foreground/80 ml-1">Confirm Password</label>
+                <div className="relative">
+                  <input type={showConfirmPassword ? 'text' : 'password'} id="confirmPassword" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
+                    placeholder="••••••••" required
+                    className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10" />
+                  <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
 
-              {/* Error & Message Alerts */}
               {error && (
-                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
-                  {error}
-                </div>
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-500 dark:text-red-400 font-medium">{error}</div>
               )}
               {message && (
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 font-medium">
-                  {message}
-                </div>
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{message}</div>
               )}
 
               {/* Submit Button */}
@@ -294,32 +235,18 @@ const RegisterSchoolAdmin = () => {
               </button>
             </form>
 
-            {/* Footer */}
-            <div className="mt-8 pt-6 border-t border-slate-200">
-              <p className="text-sm text-slate-600 text-center">
+            <div className="mt-8 pt-6 border-t border-border">
+              <p className="text-sm text-muted-foreground text-center">
                 Already have an account?{' '}
-                <Link to={`/login${location.search}`} className="font-semibold text-primary hover:text-primary/80 transition-colors">
-                  Sign in here
-                </Link>
+                <Link to={`/login${location.search}`} className="font-semibold text-primary hover:text-primary/80 transition-colors">Sign in here</Link>
               </p>
             </div>
 
-            {/* Other Account Types */}
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <p className="text-xs text-slate-500 text-center mb-4">Other account types</p>
+            <div className="mt-6 pt-6 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center mb-4">Other account types</p>
               <div className="grid grid-cols-2 gap-3">
-                <Link
-                  to={`/register/student${location.search}`}
-                  className="btn-secondary text-sm py-2 justify-center"
-                >
-                  Student
-                </Link>
-                <Link
-                  to={`/register/personal-teacher${location.search}`}
-                  className="btn-secondary text-sm py-2 justify-center"
-                >
-                  Teacher
-                </Link>
+                <Link to={`/register/student${location.search}`} className="btn-secondary text-sm py-2 justify-center">Student</Link>
+                <Link to={`/register/personal-teacher${location.search}`} className="btn-secondary text-sm py-2 justify-center">Teacher</Link>
               </div>
             </div>
           </div>

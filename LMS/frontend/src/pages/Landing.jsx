@@ -17,6 +17,7 @@ import {
   Mail,
   MessageCircle,
 } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 import logo from '../assets/logo.jpg';
 
 const Landing = () => {
@@ -84,7 +85,7 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter overflow-x-hidden">
+    <div className="min-h-screen bg-background font-inter overflow-x-hidden transition-colors duration-300 text-foreground">
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px]" />
@@ -93,27 +94,28 @@ const Landing = () => {
       </div>
 
       {/* Nav */}
-      <nav className="relative z-20 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
+      <nav className="relative z-20 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20 gap-4">
             <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-shrink">
               <img src={logo} alt="Gracified" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-lg flex-shrink-0" />
-              <span className="font-outfit text-base sm:text-xl font-bold text-slate-900">
-                <span className="hidden sm:inline">Gracified Learning Platform</span>
-                <span className="sm:hidden">Gracified</span>
+              <span className="font-outfit text-base sm:text-xl font-bold text-foreground">
+                <span className="hidden sm:inline text-foreground">Gracified Learning Platform</span>
+                <span className="sm:hidden text-foreground">Gracified</span>
               </span>
             </Link>
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+              <ThemeToggle />
               <a
                 href="#contact"
-                className="px-4 py-2 text-slate-600 font-semibold hover:text-primary transition-colors"
+                className="px-4 py-2 text-muted-foreground font-semibold hover:text-primary transition-colors"
               >
                 Contact Us
               </a>
               <Link
                 to="/login"
-                className="px-4 py-2 text-slate-600 font-semibold hover:text-primary transition-colors"
+                className="px-4 py-2 text-muted-foreground font-semibold hover:text-primary transition-colors"
               >
                 Sign In
               </Link>
@@ -138,17 +140,21 @@ const Landing = () => {
           {/* Mobile menu dropdown */}
           {mobileMenuOpen && (
             <div className="md:hidden py-4 border-t border-slate-200/60 flex flex-col gap-2 animate-slide-up">
+              <div className="px-4 py-3 flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-400 font-semibold">Theme</span>
+                <ThemeToggle />
+              </div>
               <a
                 href="#contact"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-3 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-colors"
+                className="px-4 py-3 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
               >
                 Contact Us
               </a>
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-3 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-colors"
+                className="px-4 py-3 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
               >
                 Sign In
               </Link>
@@ -172,12 +178,12 @@ const Landing = () => {
             <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             The future of education management
           </div>
-          <h1 className="font-outfit text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 tracking-tight mb-4 sm:mb-6 animate-slide-up px-1" style={{ animationDelay: '0.1s' }}>
+          <h1 className="font-outfit text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-foreground tracking-tighter leading-[0.8] mb-6 sm:mb-8 animate-slide-up px-1 italic uppercase" style={{ animationDelay: '0.1s' }}>
             Learn Smarter.
             <br />
-            <span className="text-primary italic">Manage Better.</span>
+            <span className="text-primary not-italic">Manage Better.</span>
           </h1>
-          <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-600 mb-8 sm:mb-10 animate-slide-up px-1" style={{ animationDelay: '0.2s' }}>
+          <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 animate-slide-up px-1" style={{ animationDelay: '0.2s' }}>
             A complete learning management system for schools and independent educators.
             Classrooms, assignments, exams, and analytics—all in one platform.
           </p>
@@ -196,20 +202,20 @@ const Landing = () => {
               Sign In
             </Link>
           </div>
-          <p className="mt-6 text-xs sm:text-sm text-slate-500 animate-slide-up px-2" style={{ animationDelay: '0.4s' }}>
+          <p className="mt-6 text-xs sm:text-sm text-muted-foreground/60 animate-slide-up px-2" style={{ animationDelay: '0.4s' }}>
             No credit card required · Free trial for schools & teachers
           </p>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="relative z-10 py-8 sm:py-12 border-y border-slate-200/60 bg-white/50 backdrop-blur-sm">
+      <section className="relative z-10 py-8 sm:py-12 border-y border-border bg-card/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((stat, i) => (
               <div key={i} className="text-center px-1">
                 <div className="font-outfit text-xl sm:text-2xl md:text-3xl font-bold text-primary">{stat.value}</div>
-                <div className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">{stat.label}</div>
+                <div className="text-xs sm:text-sm font-medium text-muted-foreground mt-0.5 sm:mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -220,10 +226,10 @@ const Landing = () => {
       <section className="relative z-10 py-16 sm:py-20 md:py-28 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="font-outfit text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-              Everything you need to teach and learn
+            <h2 className="text-2xl md:text-4xl font-black text-foreground mb-4 italic uppercase tracking-tighter">
+              Integrated Digital <span className="text-primary not-italic">Infrastructure</span>
             </h2>
-            <p className="max-w-2xl mx-auto text-slate-600">
+            <p className="max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
               Built for modern education. Manage classrooms, track progress, and engage students effectively.
             </p>
           </div>
@@ -231,13 +237,13 @@ const Landing = () => {
             {features.map((feature, i) => (
               <div
                 key={i}
-                className={`group relative p-6 rounded-2xl bg-gradient-to-br ${feature.color} border border-slate-200/60 hover:border-primary/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}
+                className={`group relative p-6 rounded-2xl bg-gradient-to-br ${feature.color} border border-border hover:border-primary/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}
               >
                 <div className={`inline-flex p-3 rounded-xl ${feature.iconBg} mb-4`}>
                   <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="font-outfit text-lg font-bold text-slate-900 mb-2">{feature.title}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{feature.description}</p>
+                <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-white mb-2">{feature.title}</h3>
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -245,47 +251,47 @@ const Landing = () => {
       </section>
 
       {/* Who it's for */}
-      <section className="relative z-10 py-16 sm:py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-white/60">
+      <section className="relative z-10 py-16 sm:py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-white/60 dark:bg-slate-900/60">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="font-outfit text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-              Built for everyone in education
+            <h2 className="text-2xl md:text-4xl font-black text-foreground mb-4 italic uppercase tracking-tighter">
+              Designed for Global <span className="text-primary not-italic">Learners</span>
             </h2>
-            <p className="max-w-2xl mx-auto text-slate-600">
+            <p className="max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
               Whether you run a school or teach independently, Gracified adapts to your workflow.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-            <div className="p-6 sm:p-8 rounded-2xl bg-slate-50 border border-slate-200/60 text-center">
+            <div className="p-6 sm:p-8 rounded-2xl bg-muted border border-border text-center">
               <div className="inline-flex p-4 rounded-2xl bg-primary/10 text-primary mb-6">
                 <School className="w-10 h-10" />
               </div>
-              <h3 className="font-outfit text-xl font-bold text-slate-900 mb-2">School Admins</h3>
-              <p className="text-slate-600 text-sm mb-6">
+              <h3 className="font-outfit text-xl font-bold text-foreground mb-2">School Admins</h3>
+              <p className="text-muted-foreground text-sm mb-6">
                 Manage multiple schools, classrooms, teachers, and students from a single dashboard.
               </p>
               <Link to="/register/school-admin" className="text-primary font-semibold text-sm hover:underline flex items-center justify-center gap-1">
                 Register as School Admin <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="p-6 sm:p-8 rounded-2xl bg-slate-50 border border-slate-200/60 text-center">
+            <div className="p-6 sm:p-8 rounded-2xl bg-muted border border-border text-center">
               <div className="inline-flex p-4 rounded-2xl bg-violet-500/10 text-violet-600 mb-6">
                 <GraduationCap className="w-10 h-10" />
               </div>
-              <h3 className="font-outfit text-xl font-bold text-slate-900 mb-2">Personal Teachers</h3>
-              <p className="text-slate-600 text-sm mb-6">
+              <h3 className="font-outfit text-xl font-bold text-foreground mb-2">Personal Teachers</h3>
+              <p className="text-muted-foreground text-sm mb-6">
                 Create your own tutorial center. Courses, assignments, and payments—all under your brand.
               </p>
               <Link to="/register/personal-teacher" className="text-violet-600 font-semibold text-sm hover:underline flex items-center justify-center gap-1">
                 Register as Teacher <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="p-6 sm:p-8 rounded-2xl bg-slate-50 border border-slate-200/60 text-center">
+            <div className="p-6 sm:p-8 rounded-2xl bg-muted border border-border text-center">
               <div className="inline-flex p-4 rounded-2xl bg-emerald-500/10 text-emerald-600 mb-6">
                 <BookOpen className="w-10 h-10" />
               </div>
-              <h3 className="font-outfit text-xl font-bold text-slate-900 mb-2">Students</h3>
-              <p className="text-slate-600 text-sm mb-6">
+              <h3 className="font-outfit text-xl font-bold text-foreground mb-2">Students</h3>
+              <p className="text-muted-foreground text-sm mb-6">
                 Access classes, submit assignments, take exams, and track your progress.
               </p>
               <Link to="/register/student" className="text-emerald-600 font-semibold text-sm hover:underline flex items-center justify-center gap-1">
@@ -329,18 +335,18 @@ const Landing = () => {
       </section>
 
       {/* Contact Us */}
-      <section id="contact" className="relative z-10 py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-white/60 border-t border-slate-200/60">
+      <section id="contact" className="relative z-10 py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-card/60 border-t border-border">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary mb-6">
             <MessageCircle className="w-8 h-8" />
           </div>
-          <h2 className="font-outfit text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+          <h2 className="font-outfit text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
             We&apos;d Love to Hear From You
           </h2>
-          <p className="text-slate-600 mb-2">
+          <p className="text-muted-foreground mb-2">
             Your thoughts, questions, and feedback matter to us. We&apos;re here and eager to help—whether you have an enquiry about our platform, need support, or simply want to share how we can serve you better.
           </p>
-          <p className="text-slate-600 mb-8">
+          <p className="text-muted-foreground mb-8">
             Reach out anytime. We&apos;re open to your ideas and committed to responding promptly.
           </p>
           <a
@@ -354,19 +360,19 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-200/60 bg-white/80 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="relative z-10 border-t border-border bg-card/80 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 justify-center md:justify-start">
             <img src={logo} alt="Gracified" className="w-8 h-8 rounded-lg flex-shrink-0" />
-            <span className="font-outfit font-bold text-slate-900 text-sm sm:text-base text-center md:text-left">Gracified Learning Platform</span>
+            <span className="font-outfit font-bold text-foreground text-sm sm:text-base text-center md:text-left">Gracified Learning Platform</span>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6 text-sm text-slate-600 flex-wrap justify-center md:justify-end">
+          <div className="flex items-center gap-4 sm:gap-6 text-sm text-muted-foreground flex-wrap justify-center md:justify-end">
             <a href="#contact" className="hover:text-primary font-medium transition-colors">Contact Us</a>
             <Link to="/login" className="hover:text-primary font-medium transition-colors">Sign In</Link>
             <Link to="/register" className="hover:text-primary font-medium transition-colors">Register</Link>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-slate-200/60 text-center text-sm text-slate-500">
+        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground/60">
           &copy; {new Date().getFullYear()} Gracified Learning Platform. All rights reserved.
         </div>
       </footer>

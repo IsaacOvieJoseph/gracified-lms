@@ -37,20 +37,23 @@ const Reports = () => {
 
     return (
         <Layout>
-            <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 sm:p-3 bg-indigo-100 rounded-lg shrink-0">
-                        <BarChart2 className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />
+            <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3.5 bg-primary/10 rounded-2xl shrink-0 border border-primary/20 shadow-lg shadow-primary/5">
+                        <Activity className="w-8 h-8 text-primary animate-pulse-slow" />
                     </div>
                     <div>
-                        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 leading-tight">Performance Reports</h1>
-                        <p className="text-sm sm:text-base text-gray-500 hidden xs:block">View analytics and performance metrics</p>
+                        <h1 className="text-2xl sm:text-4xl font-black text-foreground leading-tight italic uppercase tracking-tighter">Reports & <span className="text-primary not-italic">Analytics</span></h1>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1 opacity-60">Performance Overview</p>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-6 min-h-[500px]">
-                {renderReportView()}
+            <div className="bg-card/30 backdrop-blur-md rounded-[2.5rem] border border-border/50 p-4 sm:p-10 min-h-[600px] shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-primary/5 blur-[100px] rounded-full group-hover:bg-primary/10 transition-colors duration-1000"></div>
+                <div className="relative z-10">
+                    {renderReportView()}
+                </div>
             </div>
         </Layout>
     );

@@ -23,6 +23,23 @@
     --radius: 0.75rem;
   }
 
+  .dark {
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 215 25% 27%;
+    --secondary-foreground: 210 40% 98%;
+    --accent: 215 25% 27%;
+    --accent-foreground: 210 40% 98%;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --muted: 215 25% 15%;
+    --muted-foreground: 215 20% 65%;
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 98%;
+    --border: 215 25% 18%;
+    --ring: 224 76% 48%;
+  }
+
   body {
     margin: 0;
     font-family: 'Inter', sans-serif;
@@ -30,6 +47,7 @@
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   h1,
@@ -41,17 +59,36 @@
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
+    color: hsl(var(--foreground));
   }
 
   input,
   select,
   textarea {
-    @apply bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none text-gray-700 transition-all;
-    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary;
+    @apply bg-muted/60 dark:bg-muted border border-border rounded-xl px-4 py-2.5 outline-none text-foreground transition-all;
+    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background dark:focus:bg-slate-800;
+  }
+
+  /* Override browser autofill white/yellow background — only inset box-shadow can beat it */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px hsl(var(--muted)) inset !important;
+    box-shadow: 0 0 0px 1000px hsl(var(--muted)) inset !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    caret-color: hsl(var(--foreground));
+    transition: background-color 5000s ease-in-out 0s;
   }
 
   label {
-    @apply block text-sm font-semibold text-gray-600 mb-1.5 ml-1;
+    @apply block text-sm font-semibold text-muted-foreground mb-1.5 ml-1;
   }
 }
 
@@ -59,31 +96,26 @@
 
   /* Glassmorphism Utilities */
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/30 dark:border-white/10;
   }
 
   .glass-dark {
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    @apply bg-slate-900/80 dark:bg-black/80 backdrop-blur-xl border border-white/10 dark:border-white/5;
   }
 
   /* Premium Component Styles */
   .card-premium {
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.6);
+    border: 1px solid hsl(var(--border) / 1);
     border-radius: var(--radius);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: hsl(var(--card-foreground));
   }
 
   .card-premium:hover {
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
     transform: translateY(-2px);
-    border-color: hsl(var(--primary) / 0.2);
+    border-color: hsl(var(--primary) / 0.4);
   }
 
   .btn-premium {
@@ -91,6 +123,7 @@
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    border: 1px solid hsl(var(--primary) / 0.2);
   }
 
   .btn-premium:hover {
@@ -111,34 +144,34 @@
   }
 
   .btn-secondary:hover {
-    background: hsl(var(--muted));
-    border-color: hsl(var(--primary) / 0.2);
+    @apply opacity-80;
+    border-color: hsl(var(--primary) / 0.4);
   }
 
   .btn-success {
     @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
     background: #10b981;
     color: white;
-    box-shadow: 0 4px 6px -1px rgb(16 185 129 / 0.1);
+    box-shadow: 0 4px 6px -1px rgb(16 185 129 / 0.2);
   }
 
   .btn-success:hover {
-    background: #059669;
+    opacity: 0.9;
   }
 
   .btn-danger {
     @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
     background: #ef4444;
     color: white;
-    box-shadow: 0 4px 6px -1px rgb(239 68 68 / 0.1);
+    box-shadow: 0 4px 6px -1px rgb(239 68 68 / 0.2);
   }
 
   .btn-danger:hover {
-    background: #dc2626;
+    opacity: 0.9;
   }
 
   .nav-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-slate-500;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-muted-foreground;
   }
 
   .nav-link.active {
@@ -146,24 +179,38 @@
   }
 
   .nav-link:not(.active):hover {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-muted text-foreground;
   }
 
   /* React Select Customization */
   .modern-select .react-select__control {
-    @apply border-slate-200 rounded-xl px-2 py-0.5 shadow-none transition-all duration-200;
+    @apply bg-card border-border rounded-xl px-2 py-0.5 shadow-none transition-all duration-200;
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
   }
 
   .modern-select .react-select__control--is-focused {
     @apply border-primary ring-2 ring-primary/10 !important;
   }
 
+  .modern-select .react-select__single-value {
+    color: hsl(var(--foreground)) !important;
+  }
+
   .modern-select .react-select__menu {
-    @apply rounded-xl border-slate-100 shadow-2xl overflow-hidden;
+    @apply rounded-xl border-border shadow-2xl overflow-hidden mt-2;
+    background-color: hsl(var(--card)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+  }
+
+  .modern-select .react-select__option {
+    @apply transition-colors cursor-pointer;
+    background-color: transparent !important;
+    color: hsl(var(--foreground)) !important;
   }
 
   .modern-select .react-select__option--is-selected {
-    @apply bg-primary !important;
+    @apply bg-primary text-primary-foreground !important;
   }
 
   .modern-select .react-select__option--is-focused {
@@ -176,6 +223,10 @@
 
   .modern-select .react-select__multi-value__label {
     @apply text-primary font-bold text-xs;
+  }
+
+  .modern-select .react-select__input-container {
+    color: hsl(var(--foreground)) !important;
   }
 }
 

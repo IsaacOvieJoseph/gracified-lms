@@ -226,109 +226,115 @@ const Payments = () => {
   };
 
   if (loading) {
-    return <Layout><div className="text-center py-8">Loading...</div></Layout>;
+    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Loading...</p></div></Layout>;
   }
 
   return (
     <Layout>
       {/* Payment modal shown when navigating to payments?classroomId=... */}
       {showPaymentModal && classroomForPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 animate-slide-up">
-            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6">
-              <DollarSign className="w-8 h-8" />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">
-              {topicId ? 'Topic Access' : 'Enrollment'}
-            </h3>
-            <p className="text-slate-500 mb-6">
-              {topicId
-                ? <span>You're about to purchase access to the topic in <strong>{classroomForPayment.name}</strong>.</span>
-                : <span>You're about to enroll in <strong>{classroomForPayment.name}</strong>.</span>
-              }
-            </p>
-            <div className="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Amount Due</div>
-              <div className="text-3xl font-black text-slate-900">
-                {formatAmount(topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0), classroomForPayment.pricing?.currency || 'NGN')}
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <button className="flex-1 btn-secondary" onClick={() => { setShowPaymentModal(false); setClassroomForPayment(null); window.history.replaceState({}, document.title, '/payments'); }}>Cancel</button>
-              <button
-                disabled={isPaying}
-                className="flex-1 btn-premium"
-                onClick={() => handlePayment(classroomForPayment._id, topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0))}
-              >
-                {isPaying ? 'Processing...' : 'Pay Now'}
-              </button>
-            </div>
-            {payError && <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">{payError}</div>}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+          <div className="bg-card w-full max-w-md rounded-[2.5rem] shadow-2xl border border-border overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-8">
+                <div className="w-16 h-16 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary mb-6 shadow-lg shadow-primary/5">
+                  <DollarSign className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-black italic text-foreground tracking-tight uppercase mb-2">
+                  {topicId ? 'Topic Access' : 'Enrollment'}
+                </h3>
+                <p className="text-muted-foreground/80 mb-6 text-sm">
+                  {topicId
+                    ? <span>You're about to purchase access to the topic in <strong className="text-foreground">{classroomForPayment.name}</strong>.</span>
+                    : <span>You're about to enroll in <strong className="text-foreground font-black italic">{classroomForPayment.name}</strong>.</span>
+                  }
+                </p>
+                <div className="bg-muted/30 rounded-2xl p-6 mb-8 border border-border/50">
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-80">Amount Due</div>
+                  <div className="text-4xl font-black text-foreground italic flex items-baseline space-x-2">
+                    <span>{formatAmount(topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0), classroomForPayment.pricing?.currency || 'NGN')}</span>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <button className="flex-1 btn-secondary py-3 text-[10px] font-black uppercase tracking-widest" onClick={() => { setShowPaymentModal(false); setClassroomForPayment(null); window.history.replaceState({}, document.title, '/payments'); }}>Cancel</button>
+                  <button
+                    disabled={isPaying}
+                    className="flex-1 btn-premium py-3 text-[10px] font-black uppercase tracking-widest"
+                    onClick={() => handlePayment(classroomForPayment._id, topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0))}
+                  >
+                    {isPaying ? 'Processing...' : 'Pay Now'}
+                  </button>
+                </div>
+                {payError && <div className="mt-6 p-4 bg-rose-500/10 text-rose-500 rounded-xl text-xs font-black uppercase tracking-wider border border-rose-500/20">{payError}</div>}
+             </div>
           </div>
         </div>
       )}
 
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-slate-900">Payment History</h2>
+      <div className="space-y-6 animate-slide-up mt-8">
+        <div className="px-2">
+          <h2 className="text-2xl sm:text-3xl font-black italic text-foreground tracking-tighter uppercase">Payment <span className="text-primary not-italic hidden xs:inline opacity-80">History</span></h2>
+          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mt-1 opacity-60">Verified Transaction Activity</p>
+        </div>
 
-        <div className="card-premium overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-100">
+        <div className="bg-card/40 backdrop-blur-md rounded-[2.5rem] border border-border/50 shadow-2xl overflow-hidden mt-6 relative group">
+          <div className="absolute top-0 left-0 w-full h-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
+          <div className="overflow-x-auto relative z-10">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead className="bg-muted/30 text-muted-foreground uppercase text-[10px] font-black tracking-[0.2em] border-b border-border/50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Date / Time</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Payer</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Type</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Class/Topic</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Payment Ref</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">{user?.role === 'student' ? 'Amount' : 'Total Paid'}</th>
+                  <th className="px-8 py-6 w-48">Date / Time</th>
+                  <th className="px-8 py-6">Payer</th>
+                  <th className="px-8 py-6">Type</th>
+                  <th className="px-8 py-6">Class/Topic</th>
+                  <th className="px-8 py-6">Payment Ref</th>
+                  <th className="px-8 py-6 text-right">{user?.role === 'student' ? 'Amount' : 'Total Paid'}</th>
                   {user?.role !== 'student' && (
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Net Payout</th>
+                    <th className="px-8 py-6 text-right">Net Payout</th>
                   )}
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Status</th>
+                  <th className="px-8 py-6 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border/50">
                 {payments.length > 0 ? (
                   payments.map((payment) => (
-                    <tr key={payment._id}>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                    <tr key={payment._id} className="hover:bg-primary/5 transition-colors group">
+                      <td className="px-8 py-6 text-muted-foreground/80 font-bold whitespace-nowrap border-r border-border/30">
                         {formatDisplayDate(payment.paymentDate)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                      <td className="px-8 py-6 font-black italic text-foreground whitespace-nowrap tracking-tight">
                         {payment.userId?.name || payment.userId?.email || 'Unknown'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                      <td className="px-8 py-6 text-muted-foreground whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em]">
                         {payment.type.replace('_', ' ')}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-800 whitespace-nowrap">
+                      <td className="px-8 py-6 font-bold text-foreground whitespace-nowrap">
                         {payment.classroomId?.name || payment.topicId?.name || payment.planId?.name || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
+                      <td className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 whitespace-nowrap">
                         {payment.paystackReference || payment.stripePaymentId || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                      <td className="px-8 py-6 font-black italic text-foreground text-right whitespace-nowrap text-lg">
                         {formatAmount(payment.amount, payment.currency || 'NGN')}
                       </td>
                       {user?.role !== 'student' && (
-                        <td className="px-6 py-4 text-sm font-bold text-indigo-600 whitespace-nowrap">
+                        <td className="px-8 py-6 font-black italic text-primary text-right whitespace-nowrap text-lg">
                           {payment.payoutAmount ? formatAmount(payment.payoutAmount, payment.currency || 'NGN') : '---'}
                         </td>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-8 py-6 whitespace-nowrap text-center">
                         {(() => {
                           let displayStatus = payment.status;
                           if (payment.type === 'class_enrollment' && payment.payoutStatus) {
                             displayStatus = payment.payoutStatus === 'paid' ? 'completed' : 'pending';
                           }
                           return (
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${displayStatus === 'completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                              displayStatus === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                displayStatus === 'failed' ? 'bg-red-50 text-red-700 border border-red-100' :
-                                  'bg-slate-50 text-slate-600 border border-slate-100'
+                            <span className={`inline-flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm transition-all ${displayStatus === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-emerald-500/5' :
+                              displayStatus === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-amber-500/5' :
+                                displayStatus === 'failed' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-rose-500/5' :
+                                  'bg-muted/50 text-muted-foreground border border-border/50'
                               }`}>
                               {getStatusIcon(displayStatus)}
-                              <span className="ml-1.5">{displayStatus}</span>
+                              <span className="ml-2">{displayStatus}</span>
                             </span>
                           );
                         })()}
@@ -337,8 +343,8 @@ const Payments = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                      No payment history yet
+                    <td colSpan={user?.role !== 'student' ? "8" : "7"} className="px-8 py-16 text-center text-muted-foreground/40 font-black uppercase tracking-[0.2em] text-[10px] italic">
+                      No payment history yet.
                     </td>
                   </tr>
                 )}

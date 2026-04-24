@@ -60,13 +60,13 @@ const TeacherReport = () => {
     return (
         <div className="space-y-8">
             <div className="w-full max-w-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Classroom</label>
+                <label className="block text-sm font-bold text-muted-foreground mb-2">Select Classroom</label>
                 <Select
                     options={classrooms}
                     value={selectedClass}
                     onChange={setSelectedClass}
-                    className="basic-single"
-                    classNamePrefix="select"
+                    className="modern-select"
+                    classNamePrefix="react-select"
                 />
             </div>
 
@@ -75,52 +75,67 @@ const TeacherReport = () => {
             {!loading && reportData && (
                 <>
                     {/* Top Stats */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 sm:p-6 text-white shadow-lg">
-                            <div className="flex items-center space-x-3 mb-1 sm:mb-2">
-                                <Users className="opacity-80" size={20} />
-                                <h3 className="text-sm sm:text-base font-medium opacity-90">Total Students</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 animate-slide-up">
+                        <div className="bg-primary/10 rounded-[2rem] p-6 text-primary border border-primary/20 shadow-xl transition-all hover:-translate-y-1 group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                                <Users size={64} />
                             </div>
-                            <p className="text-xl sm:text-3xl font-bold">{reportData.classroom.studentCount}</p>
-                        </div>
-                        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm">
-                            <div className="flex items-center space-x-3 mb-1 sm:mb-2 text-green-600">
-                                <FileText size={20} />
-                                <h3 className="text-sm sm:text-base font-medium text-gray-600">Assignments</h3>
+                            <div className="flex items-center space-x-3 mb-4">
+                                <div className="p-3 bg-primary rounded-xl text-white shadow-lg"><Users size={20} /></div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Students</h3>
                             </div>
-                            <p className="text-xl sm:text-3xl font-bold text-gray-800">{reportData.assignmentStats.length}</p>
+                            <p className="text-3xl sm:text-4xl font-black italic">{reportData.classroom.studentCount}</p>
                         </div>
-                        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm">
-                            <div className="flex items-center space-x-3 mb-1 sm:mb-2 text-blue-600">
-                                <TrendingUp size={20} />
-                                <h3 className="text-sm sm:text-base font-medium text-gray-600">Class Avg</h3>
+                        <div className="bg-card/40 backdrop-blur-md border border-border/50 rounded-[2rem] p-6 shadow-xl transition-all hover:-translate-y-1 hover:border-emerald-500/30 group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                                <FileText size={64} className="text-emerald-500" />
+                            </div>
+                            <div className="flex items-center space-x-3 mb-4 text-emerald-500">
+                                <div className="p-3 bg-emerald-500/10 rounded-xl"><FileText size={20} /></div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Assignments</h3>
+                            </div>
+                            <p className="text-3xl sm:text-4xl font-black text-foreground italic">{reportData.assignmentStats.length}</p>
+                        </div>
+                        <div className="bg-card/40 backdrop-blur-md border border-border/50 rounded-[2rem] p-6 shadow-xl transition-all hover:-translate-y-1 hover:border-blue-500/30 group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                                <TrendingUp size={64} className="text-blue-500" />
+                            </div>
+                            <div className="flex items-center space-x-3 mb-4 text-blue-500">
+                                <div className="p-3 bg-blue-500/10 rounded-xl"><TrendingUp size={20} /></div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Class Average</h3>
                             </div>
                             {/* Calculate overall average from assignments avg */}
-                            <p className="text-xl sm:text-3xl font-bold text-gray-800">
+                            <p className="text-3xl sm:text-4xl font-black text-foreground italic">
                                 {(reportData.assignmentStats.reduce((acc, curr) => acc + curr.averageScore, 0) / (reportData.assignmentStats.length || 1)).toFixed(1)}%
                             </p>
                         </div>
                     </div>
 
                     {/* Charts Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                            <h3 className="font-bold text-gray-800 mb-6">Assignment Performance Averages</h3>
-                            <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-200">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                        <div className="bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-border/50 shadow-2xl relative overflow-hidden group hover:border-primary/30 transition-all">
+                            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
+                                <TrendingUp className="w-48 h-48 text-primary" />
+                            </div>
+                            <h3 className="text-sm font-black italic text-foreground mb-8 uppercase tracking-widest px-2 relative z-10">Assignment Performance</h3>
+                            <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-muted relative z-10">
                                 <div className="min-w-[600px] sm:min-w-full h-80">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={reportData.assignmentStats}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <BarChart data={reportData.assignmentStats} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.3} />
                                             <XAxis dataKey="title" hide />
-                                            <YAxis />
-                                            <Tooltip labelStyle={{ color: 'black' }} />
-                                            <Bar dataKey="averageScore" fill="#6366f1" radius={[4, 4, 0, 0]} name="Avg Score ( % )" />
+                                            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} tick={{ fontWeight: 900 }} />
+                                            <Tooltip 
+                                                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
+                                                contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '1.5rem', fontWeight: 900, textTransform: 'uppercase', fontSize: '10px' }}
+                                                itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                            />
+                                            <Bar dataKey="averageScore" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} name="Avg Score (%)" barSize={40} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             </div>
-                            <p className="text-[10px] text-gray-400 mt-2 block sm:hidden text-center">← Swipe to see more →</p>
-                            <p className="text-xs text-center text-gray-400 mt-2">Assignments (Chronological)</p>
+                            <p className="text-[9px] font-black italic text-muted-foreground/40 mt-4 block sm:hidden text-center uppercase tracking-widest relative z-10">← Swipe to analyze →</p>
                         </div>
 
                         {/* Student Leaderboard / At Risk */}

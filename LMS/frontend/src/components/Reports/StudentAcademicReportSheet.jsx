@@ -57,73 +57,76 @@ const StudentAcademicReportSheet = ({ data, studentName }) => {
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col space-y-4 my-8">
-            <div className="flex justify-between items-center">
-                <h3 className="font-bold text-lg text-gray-800">Academic Report Sheet</h3>
-                <div className="flex space-x-2">
+        <div className="bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-border/50 shadow-2xl overflow-hidden flex flex-col space-y-6 my-8 animate-slide-up">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 className="text-2xl font-black text-foreground italic uppercase tracking-tighter">Academic Report Sheet</h3>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mt-1 opacity-60">Official Transcript</p>
+                </div>
+                <div className="flex w-full sm:w-auto space-x-3">
                     <button
                         onClick={exportCSV}
-                        className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-5 py-3 text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
                     >
                         <FileText size={16} />
-                        <span>CSV</span>
+                        <span>CSV Export</span>
                     </button>
                     <button
                         onClick={exportPDF}
-                        className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition"
+                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-5 py-3 text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                     >
                         <Download size={16} />
-                        <span>PDF</span>
+                        <span>PDF Export</span>
                     </button>
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border border-border/50 rounded-2xl">
                 <table className="w-full text-left text-sm border-collapse">
-                    <thead className="bg-gray-50 text-gray-500">
+                    <thead className="bg-muted/30 text-muted-foreground uppercase text-[10px] font-black tracking-[0.2em]">
                         <tr>
-                            <th className="px-4 py-3 rounded-tl-lg border-b border-gray-100">Subject</th>
-                            <th className="px-4 py-3 text-center border-b border-gray-100">Assignments</th>
-                            <th className="px-4 py-3 text-center border-b border-gray-100">Avg Score (%)</th>
-                            <th className="px-4 py-3 text-center border-b border-gray-100">Attendance (%)</th>
-                            <th className="px-4 py-3 text-center rounded-tr-lg border-b border-gray-100">Status</th>
+                            <th className="px-6 py-5 border-b border-border/50">Class Name</th>
+                            <th className="px-6 py-5 text-center border-b border-border/50">Assignments Submitted</th>
+                            <th className="px-6 py-5 text-center border-b border-border/50">Average Score</th>
+                            <th className="px-6 py-5 text-center border-b border-border/50">Attendance</th>
+                            <th className="px-6 py-5 text-center border-b border-border/50">Status</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-border/50 text-sm">
                         {data.map((item, index) => (
-                            <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-4 py-4 font-medium text-gray-900 border-r border-gray-50">
+                            <tr key={index} className="hover:bg-primary/5 transition-colors group">
+                                <td className="px-6 py-5 font-black italic text-foreground tracking-tight border-r border-border/30">
                                     {item.className}
                                 </td>
-                                <td className="px-4 py-4 text-center text-gray-600">
+                                <td className="px-6 py-5 text-center font-black text-muted-foreground/80">
                                     {item.submittedCount} / {item.totalAssignments}
                                 </td>
-                                <td className="px-4 py-4 text-center">
-                                    <span className={`font-bold ${item.averagePercentage >= 70 ? 'text-green-600' :
-                                        item.averagePercentage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                <td className="px-6 py-5 text-center">
+                                    <span className={`font-black ${item.averagePercentage >= 70 ? 'text-emerald-500' :
+                                        item.averagePercentage >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
                                         {item.averagePercentage}%
                                     </span>
                                 </td>
-                                <td className="px-4 py-4 text-center">
-                                    <span className={`font-bold ${(item.attendance?.percentage || 0) >= 75 ? 'text-green-600' : 'text-gray-600'}`}>
+                                <td className="px-6 py-5 text-center">
+                                    <span className={`font-black ${(item.attendance?.percentage || 0) >= 75 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                                         {item.attendance?.percentage || 0}%
                                     </span>
                                 </td>
-                                <td className="px-4 py-4 text-center">
-                                    {item.averagePercentage >= 50 ? (
-                                        <span className="text-green-600 font-bold bg-green-50 px-2 py-1 rounded">Pass</span>
-                                    ) : (
-                                        <span className="text-red-600 font-bold bg-red-50 px-2 py-1 rounded">Fail</span>
-                                    )}
-                                </td>
+                                <td className="px-6 py-5 text-center">
+                                     {item.averagePercentage >= 50 ? (
+                                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shadow-sm">Pass</span>
+                                     ) : (
+                                         <span className="text-[10px] font-black uppercase tracking-widest text-rose-500 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg shadow-sm">Fail</span>
+                                     )}
+                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg flex justify-between items-center text-sm border border-gray-100">
-                <span className="text-gray-500 italic">This is an automated academic transcript generated from your performance data.</span>
-                <span className="font-bold text-indigo-600 uppercase">OFFICIAL</span>
+            <div className="p-5 bg-muted/30 rounded-2xl flex justify-between items-center text-sm border border-border/50">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60">Official Auto-Generated Transcript</span>
+                <span className="text-[10px] font-black tracking-[0.3em] text-primary uppercase shadow-sm">OFFICIAL</span>
             </div>
         </div>
     );
