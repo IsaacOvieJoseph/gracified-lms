@@ -107,6 +107,7 @@ app.use('/api/whiteboard', require('./routes/whiteboard'));
 app.use('/api/notifications/inapp', require('./routes/notifications-inapp'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/schools', require('./routes/schools'));
+app.use('/api/marketing', require('./routes/marketing'));
 app.use('/api/subscription-plans', require('./routes/subscriptionPlans')); // New subscription plans route
 app.use('/api/user-subscriptions', require('./routes/userSubscriptions')); // New user subscriptions route
 app.use('/api/settings', require('./routes/settings'));

@@ -14,6 +14,12 @@ const startScheduler = () => {
                 return processPendingExamResults();
             })().catch(err =>
                 console.error('[ExamResults] Processor failed:', err.message)
+            ),
+            (async () => {
+                const { processMarketingQueue } = require('./marketingProcessor');
+                return processMarketingQueue({ limit: 40 });
+            })().catch(err =>
+                console.error('[Marketing] Queue processor failed:', err.message)
             )
         ]);
     });
@@ -35,6 +41,18 @@ const startScheduler = () => {
     });
 
     console.log('Topic auto-progression scheduler started (running daily at midnight)');
+
+    // Queue automated greetings daily at 7:55 AM server time
+    cron.schedule('55 7 * * *', async () => {
+        try {
+            const { queueDailyGreetings } = require('./marketingProcessor');
+            await queueDailyGreetings();
+        } catch (error) {
+            console.error('[Marketing] Greeting queue failed:', error.message);
+        }
+    });
+
+    console.log('Marketing greetings scheduler started (running daily at 7:55)');
 };
 
 module.exports = { startScheduler };

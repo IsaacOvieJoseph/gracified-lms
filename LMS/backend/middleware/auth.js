@@ -27,6 +27,19 @@ const auth = async (req, res, next) => {
 
     req.user = user;
     req.token = token;
+
+    // Track last active time (throttled to avoid write on every request)
+    try {
+      const now = Date.now();
+      const last = user.lastActiveAt ? new Date(user.lastActiveAt).getTime() : 0;
+      const THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+      if (!last || now - last >= THROTTLE_MS) {
+        user.lastActiveAt = new Date(now);
+        // Save without blocking request latency too much
+        user.save().catch(() => { });
+      }
+    } catch (_) { }
+
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token is not valid' });

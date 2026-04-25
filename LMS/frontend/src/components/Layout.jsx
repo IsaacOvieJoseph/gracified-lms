@@ -115,7 +115,8 @@ const Layout = ({ children }) => {
       { path: '/disbursements', icon: Landmark, label: 'Disbursements' },
       { path: '/subscription-plans-admin', icon: CreditCard, label: 'Subscription Plans' },
       { path: '/feedbacks', icon: MessageSquare, label: 'Feedbacks' },
-      { path: '/platform-settings', icon: Settings, label: 'Platform Settings' }
+      { path: '/platform-settings', icon: Settings, label: 'Platform Settings' },
+      { path: '/marketing', icon: ShieldCheck, label: 'Marketing' }
     ] : []),
   ];
 

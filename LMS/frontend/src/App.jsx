@@ -40,6 +40,7 @@ import TopicManagement from './pages/TopicManagement';
 import PublicClassroom from './pages/PublicClassroom';
 import PublicSchool from './pages/PublicSchool';
 import AdminSubscriptionPlans from './pages/AdminSubscriptionPlans'; // Import new AdminSubscriptionPlans component
+import Marketing from './pages/Marketing';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -314,6 +315,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Reports />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/marketing"
+        element={
+          <PrivateRoute>
+            <Marketing />
           </PrivateRoute>
         }
       />
