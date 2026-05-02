@@ -15,6 +15,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatAmount } from '../utils/currency';
 import FormFieldHelp from '../components/FormFieldHelp';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 
 const levelOptions = [
   { value: 'Pre-Primary', label: 'Pre-Primary' },
@@ -55,6 +56,7 @@ const Classrooms = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s })));
   const [formData, setFormData] = useState({
     name: '', description: '', learningOutcomes: '', subject: '',
@@ -465,7 +467,17 @@ const Classrooms = () => {
             <div className="bg-card border border-border rounded-[3rem] w-full max-w-2xl p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
               <div className="flex justify-between items-center mb-10">
                 <h2 className="text-3xl font-black italic tracking-tighter text-foreground uppercase">Create <span className="text-primary not-italic">Classroom</span></h2>
-                <button onClick={() => setShowCreateModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAIPanel(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Magic Generate
+                  </button>
+                  <button onClick={() => setShowCreateModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
+                </div>
               </div>
               <form onSubmit={handleCreate} className="space-y-8 pb-4">
                 {/* Basic Info */}
@@ -828,6 +840,28 @@ const Classrooms = () => {
           </div>
         </div>
       )}
+
+      <AIAssistantPanel
+        isOpen={showAIPanel}
+        onClose={() => setShowAIPanel(false)}
+        allowedModes={['classroom']}
+        defaultMode="classroom"
+        prefill={{
+          subject: formData.subject,
+          className: formData.name,
+          level: formData.level,
+          teacherHint: formData.description || ''
+        }}
+        onApplyTopic={(data) => {
+          setFormData(prev => ({
+            ...prev,
+            name: data.name || prev.name,
+            description: data.description || prev.description,
+            learningOutcomes: data.learningOutcomes || prev.learningOutcomes
+          }));
+          setShowAIPanel(false);
+        }}
+      />
     </Layout>
   );
 };

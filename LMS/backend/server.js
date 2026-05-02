@@ -77,8 +77,8 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '10kb' })); // Body limit to prevent large payload attacks
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '50mb' })); // Increased limit for AI generation and uploads
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
@@ -117,6 +117,7 @@ app.use('/api/google-auth', googleAuthRouter);
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/exams', require('./routes/exams'));
 app.use('/api/qna', require('./routes/qna'));
+app.use('/api/ai', require('./routes/ai'));
 
 // Connect to MongoDB
 const connectDB = async () => {

@@ -66,15 +66,15 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh]">
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh] border dark:border-slate-800">
           {/* Header */}
-          <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
+          <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 sticky top-0 z-10">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 leading-tight">Grade Submission</h3>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Grade Submission</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <User className="w-3.5 h-3.5 text-slate-400" />
                   <p className="text-sm text-slate-500 font-medium">Student: <span className="text-indigo-600 font-bold">{submissionToGrade.studentId?.name || 'N/A'}</span></p>
@@ -83,7 +83,7 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
             </div>
             <button
               onClick={onClose}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-95"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 transition-all active:scale-95"
             >
               <X className="w-6 h-6" />
             </button>
@@ -92,15 +92,15 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-slate-200">
             {selectedAssignment.assignmentType === 'mcq' && submissionToGrade.answers && Array.isArray(submissionToGrade.answers) && (
-              <div className="p-8 bg-slate-50/50 rounded-[2rem] border border-slate-100/50">
+              <div className="p-8 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2rem] border border-slate-100/50 dark:border-slate-800/50">
                 <div className="flex items-center gap-2 mb-6 text-slate-400 font-black text-xs uppercase tracking-[0.2em]">
                   <FileText className="w-4 h-4" />
                   <span>Submission Review</span>
                 </div>
                 <div className="space-y-4">
                   {selectedAssignment.questions.map((q, qIndex) => (
-                    <div key={qIndex} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition-all hover:border-indigo-100">
-                      <p className="text-sm font-bold text-slate-900 mb-3 leading-relaxed">
+                    <div key={qIndex} className="bg-white dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:border-indigo-100 dark:hover:border-indigo-900/50">
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-200 mb-3 leading-relaxed">
                         <span className="text-indigo-200 mr-2">#{qIndex + 1}</span>
                         {q.questionText}
                       </p>
@@ -137,15 +137,15 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
                     const currentQuestionGrade = questionGrades.find(qg => qg.questionIndex === qIndex) || { score: 0, feedback: '' };
 
                     return (
-                      <div key={qIndex} className="p-8 rounded-[2.5rem] bg-white border-2 border-slate-50 shadow-sm transition-all hover:shadow-md">
+                      <div key={qIndex} className="p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border-2 border-slate-50 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                         <div className="flex items-start gap-4 mb-8">
                           <span className="w-10 h-10 shrink-0 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-lg shadow-indigo-100">
                             {qIndex + 1}
                           </span>
-                          <p className="font-bold text-slate-900 text-lg leading-tight mt-1.5">{question.questionText}</p>
+                          <p className="font-bold text-slate-900 dark:text-white text-lg leading-tight mt-1.5">{question.questionText}</p>
                         </div>
 
-                        <div className="mb-8 p-6 bg-slate-900 rounded-[2rem] border border-slate-800 relative group overflow-hidden">
+                        <div className="mb-8 p-6 bg-slate-900 dark:bg-black rounded-[2rem] border border-slate-800 relative group overflow-hidden">
                           <div className="absolute top-0 right-0 p-4 opacity-10">
                             <FileText className="w-12 h-12 text-white" />
                           </div>
@@ -221,11 +221,11 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
           </div>
 
           {/* Footer */}
-          <div className="p-8 bg-white border-t border-slate-50 flex gap-4">
+          <div className="p-8 bg-white dark:bg-slate-900 border-t border-slate-50 dark:border-slate-800 flex gap-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 font-black text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all uppercase tracking-widest text-xs"
+              className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 font-black text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-200 dark:hover:border-slate-700 transition-all uppercase tracking-widest text-xs"
             >
               Discard Changes
             </button>

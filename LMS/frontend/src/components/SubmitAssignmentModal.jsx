@@ -42,18 +42,18 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full p-8 space-y-6 animate-slide-up">
-          <h3 className="text-2xl font-bold text-slate-900 border-b pb-4">Submit: {assignment.title}</h3>
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-2xl w-full p-8 space-y-6 animate-slide-up border dark:border-slate-800">
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-white border-b dark:border-slate-800 pb-4">Submit: {assignment.title}</h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             {assignment.questions.map((question, qIndex) => (
-              <div key={qIndex} className="p-6 rounded-3xl bg-slate-50 border border-slate-100">
-                <p className="font-bold text-slate-800 mb-4 tracking-tight leading-snug text-lg">Question {qIndex + 1}</p>
-                <div className="text-slate-600 mb-4 whitespace-pre-wrap">{question.questionText}</div>
+              <div key={qIndex} className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <p className="font-bold text-slate-800 dark:text-slate-200 mb-4 tracking-tight leading-snug text-lg">Question {qIndex + 1}</p>
+                <div className="text-slate-600 dark:text-slate-400 mb-4 whitespace-pre-wrap">{question.questionText}</div>
 
                 {assignment.assignmentType === 'mcq' && (
                   <div className="grid grid-cols-1 gap-3">
                     {question.options.map((option, oIndex) => (
-                      <label key={oIndex} className={`flex items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${studentAnswers[qIndex] === option ? 'border-primary bg-primary/5' : 'border-white hover:border-slate-100 hover:bg-white bg-white/50'}`}>
+                      <label key={oIndex} className={`flex items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${studentAnswers[qIndex] === option ? 'border-primary bg-primary/5 dark:bg-primary/10' : 'border-white dark:border-slate-800 hover:border-slate-100 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800 bg-white/50 dark:bg-slate-900/50'}`}>
                         <input
                           type="radio"
                           name={`mcq-question-${qIndex}`}
@@ -62,7 +62,7 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
                           onChange={() => handleAnswerChange(qIndex, option)}
                           className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
                         />
-                        <span className={`ml-3 font-medium ${studentAnswers[qIndex] === option ? 'text-primary font-bold' : 'text-slate-600'}`}>{option}</span>
+                        <span className={`ml-3 font-medium ${studentAnswers[qIndex] === option ? 'text-primary font-bold' : 'text-slate-600 dark:text-slate-300'}`}>{option}</span>
                       </label>
                     ))}
                   </div>
@@ -82,11 +82,11 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
               </div>
             ))}
 
-            <div className="flex gap-4 pt-4 sticky bottom-0 bg-white/80 backdrop-blur-sm -mx-8 -mb-8 p-8">
+            <div className="flex gap-4 pt-4 sticky bottom-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm -mx-8 -mb-8 p-8 border-t dark:border-slate-800">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
               >
                 Cancel
               </button>

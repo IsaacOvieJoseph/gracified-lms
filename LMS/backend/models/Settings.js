@@ -25,6 +25,11 @@ const settingsSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    activeAIProvider: {
+        type: String,
+        enum: ['groq', 'gemini'],
+        default: 'groq'
+    },
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

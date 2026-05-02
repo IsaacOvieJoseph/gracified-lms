@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { Plus, X, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { toLocalISOString } from '../utils/timezone';
 import FormFieldHelp from './FormFieldHelp';
+import AIAssistantPanel from './AIAssistantPanel';
 
 const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics, editAssignment }) => {
   const [createForm, setCreateForm] = useState({
@@ -173,6 +174,8 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
       const submitData = {
         ...createForm,
+        // Convert empty topicId to null to avoid BSON cast errors
+        topicId: createForm.topicId === '' ? null : createForm.topicId,
         // Convert to UTC before sending
         publishResultsAt: createForm.publishResultsAt ? new Date(createForm.publishResultsAt).toISOString() : '',
         dueDate: createForm.dueDate ? new Date(createForm.dueDate).toISOString() : ''
@@ -202,29 +205,46 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
       setIsEvenlyDistributed(false); // Reset checkbox state
       setOverallMaxScoreInput(100); // Reset overall max score input
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error creating assignment');
+      let msg = error.response?.data?.message || 'Error creating assignment';
+      if (msg.includes('Cast to ObjectId failed') || msg.includes('BSONError')) {
+        msg = 'Invalid data provided. Please check selected values like Classroom or Topic.';
+      } else if (msg.toLowerCase().includes('validation failed')) {
+        msg = 'Missing required fields or invalid formatting.';
+      }
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full p-8 animate-slide-up">
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-4xl w-full p-8 animate-slide-up border dark:border-slate-800">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-bold text-slate-900">{editAssignment ? 'Edit Assignment' : 'New Assignment'}</h3>
-            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
-              <X className="w-6 h-6" />
-            </button>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{editAssignment ? 'Edit Assignment' : 'New Assignment'}</h3>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAIPanel(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+              >
+                <Sparkles className="w-4 h-4" />
+                AI Generate
+              </button>
+              <button onClick={onClose} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition text-slate-400 dark:text-slate-500">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
           <form onSubmit={(e) => { setIsSubmitting(true); handleSubmit(e); }} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
-                <label>Assignment Title</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Assignment Title</label>
                 <input
                   type="text"
                   placeholder="e.g. Mid-term Assessment"
@@ -236,7 +256,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               </div>
 
               <div className="md:col-span-2">
-                <label>Description</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Description</label>
                 <textarea
                   placeholder="Instructions for students..."
                   value={createForm.description}
@@ -248,7 +268,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
               {!classroomId && (
                 <div>
-                  <label>Classroom</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Classroom</label>
                   <select
                     value={createForm.classroomId}
                     onChange={(e) => {
@@ -269,7 +289,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
               {availableTopics && availableTopics.length > 0 && (
                 <div className={classroomId ? "md:col-span-2" : ""}>
-                  <label>Topic (Optional)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Topic (Optional)</label>
                   <select
                     value={createForm.topicId}
                     onChange={(e) => setCreateForm({ ...createForm, topicId: e.target.value })}
@@ -284,22 +304,22 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               )}
 
               <div className="md:col-span-2">
-                <label className="flex items-center">
+                <label className="flex items-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5">
                   Assignment Type
                   <FormFieldHelp content="Theory for essay-style answers. MCQ for auto-graded multiple choice questions." />
                 </label>
-                <div className="flex gap-4 p-1 bg-slate-100 rounded-xl w-fit">
+                <div className="flex gap-4 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl w-fit border dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setCreateForm({ ...createForm, assignmentType: 'theory', questions: [{ questionText: '', markingPreference: 'manual', maxScore: 0 }], publishResultsAt: '' })}
-                    className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'theory' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'theory' ? 'bg-white dark:bg-slate-800 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                   >
                     Theory
                   </button>
                   <button
                     type="button"
                     onClick={() => setCreateForm({ ...createForm, assignmentType: 'mcq', questions: [{ questionText: '', options: ['', ''], correctOption: '' }] })}
-                    className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'mcq' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'mcq' ? 'bg-white dark:bg-slate-800 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                   >
                     MCQ
                   </button>
@@ -308,23 +328,23 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
             </div>
 
             {/* Questions Section */}
-            <div className="space-y-4 border-2 border-gray-200 p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-white">
+            <div className="space-y-4 border-2 border-gray-200 dark:border-slate-800 p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-white dark:from-slate-900/50 dark:to-slate-950/50">
               <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-bold text-gray-800 flex items-center">
-                  <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-lg mr-3 text-sm font-extrabold">
+                <h4 className="text-lg font-bold text-gray-800 dark:text-white flex items-center">
+                  <span className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-lg mr-3 text-sm font-extrabold">
                     {createForm.questions.length}
                   </span>
                   Questions
                 </h4>
                 {createForm.assignmentType === 'theory' && (
-                  <label className="inline-flex items-center bg-white px-3 py-2 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-all cursor-pointer">
+                  <label className="inline-flex items-center bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-slate-700 hover:border-indigo-300 transition-all cursor-pointer">
                     <input
                       type="checkbox"
-                      className="form-checkbox h-4 w-4 text-indigo-600 rounded"
+                      className="form-checkbox h-4 w-4 text-indigo-600 rounded bg-transparent border-slate-300"
                       checked={isEvenlyDistributed}
                       onChange={(e) => setIsEvenlyDistributed(e.target.checked)}
                     />
-                    <span className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+                    <span className="ml-2 text-sm font-medium text-gray-700 dark:text-slate-300 flex items-center">
                       Same Weight Per Question
                       <FormFieldHelp content="Distribute the overall score equally among all questions. Ideal for quick multiple-mark theories." />
                     </span>
@@ -344,13 +364,13 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                 </div>
               )}
               {createForm.questions.map((question, qIndex) => (
-                <div key={qIndex} className="space-y-4 p-5 border-2 border-gray-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all">
+                <div key={qIndex} className="space-y-4 p-5 border-2 border-gray-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-sm shadow-md">
                         {qIndex + 1}
                       </span>
-                      <h5 className="text-sm font-bold text-gray-700">Question {qIndex + 1}</h5>
+                      <h5 className="text-sm font-bold text-gray-700 dark:text-slate-300">Question {qIndex + 1}</h5>
                     </div>
                     {createForm.questions.length > 1 && (
                       <button
@@ -364,13 +384,13 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                   </div>
 
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Question Text</label>
+                    <label className="block text-xs font-black uppercase tracking-widest text-gray-500 dark:text-slate-500 mb-2">Question Text</label>
                     <input
                       type="text"
                       value={question.questionText}
                       onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
                       placeholder="What is alphabet before any cluster of t"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-900 placeholder:text-gray-300"
+                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-900 dark:text-white bg-transparent placeholder:text-gray-300 dark:placeholder:text-slate-700"
                       required
                     />
                   </div>
@@ -378,7 +398,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                   {createForm.assignmentType === 'mcq' && (
                     <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-black uppercase tracking-widest text-gray-500">Answer Options</label>
+                        <label className="block text-xs font-black uppercase tracking-widest text-gray-500 dark:text-slate-500">Answer Options</label>
                         <span className="text-xs text-gray-400 font-medium italic">Select correct answer</span>
                       </div>
                       <div className="space-y-2">
@@ -390,8 +410,8 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                             <div
                               key={oIndex}
                               className={`flex items-center gap-3 p-3 rounded-xl transition-all border-2 ${isCorrect
-                                ? 'border-green-400 bg-green-50'
-                                : 'border-gray-200 bg-white hover:border-indigo-200'
+                                ? 'border-green-400 bg-green-50 dark:bg-green-900/10'
+                                : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-200'
                                 }`}
                             >
                               {/* Option Label */}
@@ -408,7 +428,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                                 value={option}
                                 onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
                                 placeholder={optionLabels[oIndex]}
-                                className={`flex-1 px-3 py-2 bg-transparent border-none outline-none font-medium focus:ring-0 ${isCorrect ? 'text-green-900' : 'text-gray-800'
+                                className={`flex-1 px-3 py-2 bg-transparent border-none outline-none font-medium focus:ring-0 ${isCorrect ? 'text-green-900 dark:text-green-400' : 'text-gray-800 dark:text-slate-200'
                                   }`}
                                 required
                               />
@@ -498,7 +518,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
               <div>
-                <label>Due Date</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Due Date</label>
                 <input
                   type="date"
                   value={createForm.dueDate}
@@ -521,7 +541,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                     />
                   </div>
                   <div>
-                    <label>Max Score</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Max Score</label>
                     <input
                       type="number"
                       value={createForm.maxScore}
@@ -553,11 +573,11 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               </div>
             </div>
 
-            <div className="flex gap-4 mt-8 pt-4">
+            <div className="flex gap-4 mt-8 pt-4 border-t dark:border-slate-800">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
               >
                 Discard
               </button>
@@ -572,6 +592,35 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
           </form>
         </div>
       </div>
+
+      <AIAssistantPanel
+        isOpen={showAIPanel}
+        onClose={() => setShowAIPanel(false)}
+        allowedModes={['assignment', 'powerpoint']}
+        defaultMode="assignment"
+        prefill={{
+          topicName: createForm.title || '',
+          teacherHint: createForm.description || '',
+          assignmentType: createForm.assignmentType || 'theory',
+          questionCount: createForm.questions.length || 5,
+          className: availableTopics?.[0]?.classroomId?.name || '',
+          subject: availableTopics?.find(t => t._id === createForm.topicId)?.name || ''
+        }}
+        onApplyAssignment={(data) => {
+          const newType = data.questions?.[0]?.options ? 'mcq' : 'theory';
+          setCreateForm(prev => ({
+            ...prev,
+            title: data.title || prev.title,
+            description: data.description || prev.description,
+            assignmentType: newType,
+            questions: (data.questions || []).map(q => newType === 'mcq'
+              ? { questionText: q.questionText, options: q.options || ['', ''], correctOption: q.correctOption || '', markingPreference: 'manual', maxScore: 0 }
+              : { questionText: q.questionText, markingPreference: q.markingPreference || 'manual', maxScore: q.maxScore || 10 }
+            ),
+          }));
+          setShowAIPanel(false);
+        }}
+      />
     </div>
   );
 };

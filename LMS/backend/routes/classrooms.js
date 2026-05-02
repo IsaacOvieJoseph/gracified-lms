@@ -445,7 +445,9 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       schoolId,
       published,
       isPrivate,
-      introVideo
+      introVideo,
+      learningOutcomes,
+      subject
     } = req.body;
 
     // Validate schedule array
@@ -559,7 +561,9 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       schoolId: finalSchoolId,
       published: published !== undefined ? published : false,
       isPrivate: isPrivate !== undefined ? isPrivate : false,
-      introVideo
+      introVideo,
+      learningOutcomes,
+      subject
     });
 
     await classroom.save();
@@ -621,7 +625,7 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate, introVideo } = req.body;
+    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate, introVideo, learningOutcomes, subject } = req.body;
 
     if (name) classroom.name = name;
     if (description) classroom.description = description;

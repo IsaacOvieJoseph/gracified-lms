@@ -21,7 +21,8 @@ router.get('/', async (req, res) => {
                 vatRate: 0,
                 serviceFeeRate: 0,
                 subjects: defaultSubjects,
-                subscriptionCheckingEnabled: true
+                subscriptionCheckingEnabled: true,
+                activeAIProvider: 'groq'
             });
         } else if (!settings.subjects || settings.subjects.length === 0) {
             // If settings exist but subjects are missing/empty, populate defaults
@@ -42,7 +43,7 @@ router.put('/', auth, async (req, res) => {
             return res.status(403).json({ message: 'Access denied' });
         }
 
-        const { taxRate, vatRate, serviceFeeRate, subjects, subscriptionCheckingEnabled } = req.body;
+        const { taxRate, vatRate, serviceFeeRate, subjects, subscriptionCheckingEnabled, activeAIProvider } = req.body;
 
         let settings = await Settings.findOne();
         if (settings) {
@@ -51,6 +52,7 @@ router.put('/', auth, async (req, res) => {
             settings.serviceFeeRate = serviceFeeRate !== undefined ? serviceFeeRate : settings.serviceFeeRate;
             if (subjects) settings.subjects = subjects;
             if (subscriptionCheckingEnabled !== undefined) settings.subscriptionCheckingEnabled = subscriptionCheckingEnabled;
+            if (activeAIProvider && ['groq', 'gemini'].includes(activeAIProvider)) settings.activeAIProvider = activeAIProvider;
             settings.updatedBy = req.user._id;
             await settings.save();
         } else {
@@ -60,6 +62,7 @@ router.put('/', auth, async (req, res) => {
                 serviceFeeRate,
                 subjects,
                 subscriptionCheckingEnabled: subscriptionCheckingEnabled !== undefined ? subscriptionCheckingEnabled : true,
+                activeAIProvider: activeAIProvider || 'groq',
                 updatedBy: req.user._id
             });
         }

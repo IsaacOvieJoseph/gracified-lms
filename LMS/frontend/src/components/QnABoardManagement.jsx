@@ -104,7 +104,7 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
                             setIsEditing(false);
                             setShowModal(true);
                         }}
-                        className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl hover:opacity-90 transition font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                        className="flex items-center justify-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition font-bold shadow-lg shadow-primary/20"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Create Board</span>

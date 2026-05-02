@@ -120,16 +120,16 @@
 
   .btn-premium {
     @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
+    @apply shadow-sm shadow-indigo-500/20 dark:shadow-none;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     border: 1px solid hsl(var(--primary) / 0.2);
   }
 
   .btn-premium:hover {
     background: hsl(var(--primary) / 0.9);
     transform: translateY(-1px);
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    @apply shadow-md shadow-indigo-500/30 dark:shadow-none;
   }
 
   .btn-premium:active {
@@ -150,9 +150,9 @@
 
   .btn-success {
     @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
+    @apply shadow-sm shadow-emerald-500/20 dark:shadow-none;
     background: #10b981;
     color: white;
-    box-shadow: 0 4px 6px -1px rgb(16 185 129 / 0.2);
   }
 
   .btn-success:hover {
@@ -161,9 +161,9 @@
 
   .btn-danger {
     @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
+    @apply shadow-sm shadow-rose-500/20 dark:shadow-none;
     background: #ef4444;
     color: white;
-    box-shadow: 0 4px 6px -1px rgb(239 68 68 / 0.2);
   }
 
   .btn-danger:hover {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
-import { Settings, Save, Loader2, Percent } from 'lucide-react';
+import { Settings, Save, Loader2, Percent, Zap, Brain } from 'lucide-react';
 
 const PlatformSettings = () => {
     const [loading, setLoading] = useState(true);
@@ -11,7 +11,8 @@ const PlatformSettings = () => {
         taxRate: 0,
         vatRate: 0,
         serviceFeeRate: 0,
-        subscriptionCheckingEnabled: true
+        subscriptionCheckingEnabled: true,
+        activeAIProvider: 'groq'
     });
 
     useEffect(() => {
@@ -86,6 +87,62 @@ const PlatformSettings = () => {
                                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.subscriptionCheckingEnabled ? 'translate-x-6' : 'translate-x-1'}`}
                                 />
                             </button>
+                        </div>
+
+                        {/* AI Provider Selection */}
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-bold text-slate-900 flex items-center gap-2"><Brain className="w-4 h-4 text-violet-600" /> Active AI Provider</h4>
+                                <p className="text-sm text-slate-500 font-medium mt-1">Choose which AI engine powers topic, assignment, exam, and slide generation across the platform.</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Groq Card */}
+                                <button
+                                    type="button"
+                                    onClick={() => setSettings({ ...settings, activeAIProvider: 'groq' })}
+                                    className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                                        settings.activeAIProvider === 'groq'
+                                            ? 'border-violet-500 bg-violet-50 shadow-md shadow-violet-100'
+                                            : 'border-slate-200 bg-white hover:border-violet-200'
+                                    }`}
+                                >
+                                    {settings.activeAIProvider === 'groq' && (
+                                        <span className="absolute top-3 right-3 w-5 h-5 bg-violet-600 rounded-full flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                        </span>
+                                    )}
+                                    <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-700 rounded-xl flex items-center justify-center mb-3">
+                                        <Zap className="w-5 h-5 text-white" />
+                                    </div>
+                                    <p className="font-black text-slate-900">Groq</p>
+                                    <p className="text-xs text-slate-500 mt-1 font-medium">LLaMA 3.3 70B · Ultra fast · Generous free tier</p>
+                                    <span className="inline-block mt-2 text-[10px] font-black uppercase tracking-wider bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Recommended</span>
+                                </button>
+
+                                {/* Gemini Card */}
+                                <button
+                                    type="button"
+                                    onClick={() => setSettings({ ...settings, activeAIProvider: 'gemini' })}
+                                    className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                                        settings.activeAIProvider === 'gemini'
+                                            ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100'
+                                            : 'border-slate-200 bg-white hover:border-blue-200'
+                                    }`}
+                                >
+                                    {settings.activeAIProvider === 'gemini' && (
+                                        <span className="absolute top-3 right-3 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                        </span>
+                                    )}
+                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center mb-3">
+                                        <Brain className="w-5 h-5 text-white" />
+                                    </div>
+                                    <p className="font-black text-slate-900">Gemini</p>
+                                    <p className="text-xs text-slate-500 mt-1 font-medium">Google Gemini · Multimodal · Daily quota</p>
+                                    <span className="inline-block mt-2 text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Google AI</span>
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-400 font-medium italic">⚙️ Configure API keys via <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">backend/.env</code> — GROQ_API_KEY and GEMINI_API_KEY</p>
                         </div>
                         <div className="grid grid-cols-1 gap-6">
                             <div>

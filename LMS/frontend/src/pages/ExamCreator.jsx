@@ -19,6 +19,8 @@ import {
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import FormFieldHelp from '../components/FormFieldHelp';
+import AIAssistantPanel from '../components/AIAssistantPanel';
+import { Sparkles } from 'lucide-react';
 
 const ExamCreator = () => {
     const navigate = useNavigate();
@@ -27,6 +29,7 @@ const ExamCreator = () => {
 
     const [loading, setLoading] = useState(false);
     const [classrooms, setClassrooms] = useState([]);
+    const [showAIPanel, setShowAIPanel] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -153,7 +156,13 @@ const ExamCreator = () => {
             }
             navigate('/exams');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to save exam');
+            let msg = error.response?.data?.message || 'Error saving exam';
+            if (msg.includes('Cast to ObjectId failed') || msg.includes('BSONError')) {
+                msg = 'Invalid data provided. Please check the classroom or other selected options.';
+            } else if (msg.toLowerCase().includes('validation failed')) {
+                msg = 'Some required fields are missing or invalid.';
+            }
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -183,6 +192,14 @@ const ExamCreator = () => {
                             </h1>
                         </div>
                         <div className="flex items-center space-x-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowAIPanel(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                AI Generate
+                            </button>
                             <div className="flex items-center bg-muted rounded-xl px-4 py-2 border border-border">
                                 <span className="text-sm font-bold text-muted-foreground mr-3">Status:</span>
                                 <button
@@ -482,6 +499,36 @@ const ExamCreator = () => {
                     </div>
                 </form>
             </div>
+
+            <AIAssistantPanel
+                isOpen={showAIPanel}
+                onClose={() => setShowAIPanel(false)}
+                allowedModes={['exam', 'powerpoint']}
+                defaultMode="exam"
+                prefill={{
+                    className: classrooms.find(c => c._id === formData.classId)?.name || '',
+                    topicName: formData.title || '',
+                    teacherHint: formData.description || '',
+                    duration: formData.duration || 60,
+                    questionCount: formData.questions.length || 5
+                }}
+                onApplyExam={(data) => {
+                    setFormData(prev => ({
+                        ...prev,
+                        title: data.title || prev.title,
+                        description: data.description || prev.description,
+                        duration: data.duration || prev.duration,
+                        questions: (data.questions || []).map(q => ({
+                            questionText: q.questionText || '',
+                            questionType: q.questionType || 'mcq',
+                            options: q.options || (q.questionType === 'theory' ? [] : ['', '', '', '']),
+                            correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
+                            maxScore: q.maxScore || 1,
+                        })),
+                    }));
+                    setShowAIPanel(false);
+                }}
+            />
         </Layout>
     );
 };

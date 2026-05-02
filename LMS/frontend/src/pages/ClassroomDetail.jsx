@@ -10,6 +10,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatAmount } from '../utils/currency';
 import FormFieldHelp from '../components/FormFieldHelp';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 import CreateAssignmentModal from '../components/CreateAssignmentModal';
 import GradeAssignmentModal from '../components/GradeAssignmentModal';
 import SubmitAssignmentModal from '../components/SubmitAssignmentModal';
@@ -18,6 +19,7 @@ import GoogleMeetAuth from '../components/GoogleMeetAuth';
 import PaymentRequiredModal from '../components/PaymentRequiredModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import QnABoardManagement from '../components/QnABoardManagement';
+import CreateExamModal from '../components/CreateExamModal';
 
 // subjectOptions converted to dynamic state inside component
 
@@ -405,6 +407,7 @@ const ClassroomDetail = () => {
   const [currentCall, setCurrentCall] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s }))); // Dynamic subjects
   const [editForm, setEditForm] = useState({ name: '', description: '', learningOutcomes: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false, isPaid: false, teacherId: '', schoolIds: [] });
@@ -540,6 +543,8 @@ const ClassroomDetail = () => {
   const [assignmentToDelete, setAssignmentToDelete] = useState(null);
   const [isDeletingAssignment, setIsDeletingAssignment] = useState(false);
   const [assignmentToEdit, setAssignmentToEdit] = useState(null);
+  const [showCreateExamModal, setShowCreateExamModal] = useState(false);
+  const [examToEdit, setExamToEdit] = useState(null);
   const [publishing, setPublishing] = useState(false);
   const [notifyingAssignmentId, setNotifyingAssignmentId] = useState(null);
   const [showRemoveStudentModal, setShowRemoveStudentModal] = useState(false);
@@ -1425,9 +1430,16 @@ const ClassroomDetail = () => {
                 <p className="text-muted-foreground text-sm md:text-base font-medium">{classroom.description}</p>
               )}
               {classroom.learningOutcomes && (
-                <div className="mt-4 p-4 bg-primary/5 border border-primary/10 rounded-xl">
-                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Expected Learning Outcomes</h4>
-                  <p className="text-muted-foreground text-sm md:text-base whitespace-pre-wrap font-medium">{classroom.learningOutcomes}</p>
+                <div className="mt-4 p-6 bg-primary/5 border border-primary/10 rounded-2xl">
+                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Expected Learning Outcomes</h4>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
+                    {classroom.learningOutcomes.split(',').map((outcome, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-muted-foreground text-sm font-medium">
+                        <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        <span>{outcome.trim()}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
               <div className="flex flex-wrap gap-4 mt-2">
@@ -1470,7 +1482,7 @@ const ClassroomDetail = () => {
                         navigator.clipboard.writeText(shareLink);
                         toast.success('Link copied!');
                       }}
-                      className="h-11 flex items-center gap-2.5 px-5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm shadow-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 dark:hover:bg-indigo-600 dark:hover:text-white group"
+                      className="h-11 flex items-center gap-2.5 px-5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm shadow-indigo-100 dark:shadow-none dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 dark:hover:bg-indigo-600 dark:hover:text-white group"
                     >
                       <Share2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                       <span>Share</span>
@@ -1479,7 +1491,7 @@ const ClassroomDetail = () => {
 
                   <button
                     onClick={handleOpenEdit}
-                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700"
+                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm dark:shadow-none dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700"
                   >
                     <Edit className="w-3.5 h-3.5 text-slate-400" />
                     <span>Edit</span>
@@ -1487,7 +1499,7 @@ const ClassroomDetail = () => {
 
                   <button
                     onClick={() => setShowEndClassModal(true)}
-                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-slate-900/10 dark:bg-slate-800 dark:hover:bg-slate-700 border dark:border-slate-700 hover:text-rose-500 hover:border-rose-500/30 dark:hover:text-rose-400"
+                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-slate-900/10 dark:shadow-none dark:bg-slate-800 dark:hover:bg-slate-700 border dark:border-slate-700 hover:text-rose-500 hover:border-rose-500/30 dark:hover:text-rose-400"
                   >
                     <Flag className="w-3.5 h-3.5 text-slate-400" />
                     <span>End Class</span>
@@ -1513,7 +1525,17 @@ const ClassroomDetail = () => {
                 <div className="bg-card border border-border rounded-[3rem] w-full max-w-2xl p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
                   <div className="flex justify-between items-center mb-10">
                     <h2 className="text-3xl font-black italic tracking-tighter text-foreground uppercase">Edit <span className="text-primary not-italic">Classroom</span></h2>
-                    <button onClick={() => setShowEditModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowAIPanel(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Magic Generate
+                      </button>
+                      <button onClick={() => setShowEditModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
+                    </div>
                   </div>
                   <form onSubmit={handleEditClassroom} className="space-y-8 pb-4">
                     {/* Basic Info */}
@@ -1986,7 +2008,7 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleStartZoom}
-                        className="btn-premium flex-1 sm:flex-none shadow-indigo-200"
+                        className="btn-premium flex-1 sm:flex-none shadow-sm shadow-indigo-200 dark:shadow-none"
                       >
                         <Video className="w-5 h-5" />
                         <span>{label}</span>
@@ -1999,7 +2021,7 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleJoinCall}
-                        className="btn-premium flex-1 sm:flex-none shadow-indigo-200"
+                        className="btn-premium flex-1 sm:flex-none shadow-sm shadow-indigo-200 dark:shadow-none"
                       >
                         <Video className="w-5 h-5" />
                         <span>Attend Lecture</span>
@@ -2107,7 +2129,7 @@ const ClassroomDetail = () => {
                         {canEdit && (
                           <button
                             onClick={() => navigate(`/classrooms/${id}/manage-topics`)}
-                            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition shadow-md"
+                            className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition shadow-sm shadow-green-200 dark:shadow-none font-bold"
                           >
                             <Book className="w-4 h-4" />
                             <span>Manage Topics</span>
@@ -2186,7 +2208,7 @@ const ClassroomDetail = () => {
                     {canCreateAssignment && (
                       <button
                         onClick={() => setShowCreateAssignmentModal(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-sm shadow-blue-200 dark:shadow-none font-bold"
                       >
                         <Plus className="w-4 h-4" />
                         <span className="hidden md:inline">Create Assignment</span>
@@ -2573,8 +2595,11 @@ const ClassroomDetail = () => {
                 </div>
                 {canEdit && (
                   <button
-                    onClick={() => navigate(`/exams/create?classId=${id}`)}
-                    className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 font-bold"
+                    onClick={() => {
+                      setExamToEdit(null);
+                      setShowCreateExamModal(true);
+                    }}
+                    className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-sm shadow-indigo-200 dark:shadow-none font-bold"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Create Exam</span>
@@ -2622,7 +2647,10 @@ const ClassroomDetail = () => {
                                   Submissions
                                 </button>
                                 <button
-                                  onClick={() => navigate(`/exams/edit/${exam._id}`)}
+                                  onClick={() => {
+                                    setExamToEdit(exam);
+                                    setShowCreateExamModal(true);
+                                  }}
                                   className="p-2.5 bg-yellow-50 text-yellow-600 border border-yellow-100 rounded-xl hover:bg-yellow-100 transition"
                                   title="Edit Exam"
                                 >
@@ -2637,7 +2665,7 @@ const ClassroomDetail = () => {
                                 disabled={isPastDue || !exam.isPublished}
                                 className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${isPastDue || !exam.isPublished
                                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100'
+                                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none'
                                   }`}
                               >
                                 {isPastDue ? 'Expired' : !exam.isPublished ? 'Unpublished' : (
@@ -2680,7 +2708,7 @@ const ClassroomDetail = () => {
                       fetchAvailableStudents();
                       setShowAddStudentModal(true);
                     }}
-                    className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl hover:opacity-90 transition font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                    className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl hover:opacity-90 transition font-black text-[10px] uppercase tracking-widest shadow-sm shadow-primary/20 dark:shadow-none"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span className="hidden md:inline">Add Student</span>
@@ -2798,6 +2826,20 @@ const ClassroomDetail = () => {
             />
           )
         }
+
+        {/* Create Exam Modal */}
+        {showCreateExamModal && (
+          <CreateExamModal
+            show={showCreateExamModal}
+            onClose={() => {
+              setShowCreateExamModal(false);
+              setExamToEdit(null);
+            }}
+            onSubmitSuccess={fetchExams}
+            classroomId={id}
+            editExam={examToEdit}
+          />
+        )}
 
         {/* Add Student Modal */}
         {showAddStudentModal && (
@@ -3053,6 +3095,28 @@ const ClassroomDetail = () => {
           message="Are you sure you want to remove this student from the classroom? They will lose access to all course materials."
           confirmText="Remove"
           isLoading={isRemovingStudent}
+        />
+
+        <AIAssistantPanel
+          isOpen={showAIPanel}
+          onClose={() => setShowAIPanel(false)}
+          allowedModes={['classroom']}
+          defaultMode="classroom"
+          prefill={{
+            subject: editForm.subject,
+            className: editForm.name,
+            level: editForm.level,
+            teacherHint: editForm.description || ''
+          }}
+          onApplyTopic={(data) => {
+            setEditForm(prev => ({
+              ...prev,
+              name: data.name || prev.name,
+              description: data.description || prev.description,
+              learningOutcomes: data.learningOutcomes || prev.learningOutcomes
+            }));
+            setShowAIPanel(false);
+          }}
         />
       </div >
     </Layout >

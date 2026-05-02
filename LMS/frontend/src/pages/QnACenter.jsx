@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { MessageSquare, ThumbsUp, Send, User as UserIcon, CheckCircle, Clock, EyeOff } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Send, User as UserIcon, CheckCircle, Clock, EyeOff, Sparkles } from 'lucide-react';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout'; // Or we can use a minimalist layout like ExamCenter
@@ -22,6 +23,7 @@ const QnACenter = () => {
     const [authorName, setAuthorName] = useState(user?.name || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [stayAnonymous, setStayAnonymous] = useState(false);
+    const [showAIPanel, setShowAIPanel] = useState(false);
 
     const fetchBoardAndQuestions = async (isInitial = false) => {
         try {
@@ -159,7 +161,17 @@ const QnACenter = () => {
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Ask a Question</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">Ask a Question</h2>
+                        <button
+                            type="button"
+                            onClick={() => setShowAIPanel(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-md active:scale-95"
+                        >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Magic Assistant
+                        </button>
+                    </div>
                     <form onSubmit={handleSubmitQuestion} className="space-y-4">
                         {!user && board.allowAnonymous && (
                             <div>
@@ -287,6 +299,18 @@ const QnACenter = () => {
                     )}
                 </div>
             </main>
+
+            <AIAssistantPanel
+                isOpen={showAIPanel}
+                onClose={() => setShowAIPanel(false)}
+                allowedModes={['qna']}
+                defaultMode="qna"
+                prefill={{
+                    subject: board?.classroomId?.name || '',
+                    topicName: board?.topicId?.name || '',
+                    qnaQuestion: newQuestion
+                }}
+            />
         </div>
     );
 };

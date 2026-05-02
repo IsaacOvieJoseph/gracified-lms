@@ -12,6 +12,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, Lock } from 'lucide-react';
 import FormFieldHelp from '../components/FormFieldHelp';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 
 const TopicManagement = () => {
     const { id: classroomId } = useParams();
@@ -37,6 +38,7 @@ const TopicManagement = () => {
     });
     const [showPaidTopics, setShowPaidTopics] = useState(false);
     const [classroom, setClassroom] = useState(null);
+    const [showAIPanel, setShowAIPanel] = useState(false);
 
     // Progression states
     const [showProgressionModal, setShowProgressionModal] = useState(false);
@@ -113,7 +115,13 @@ const TopicManagement = () => {
             fetchTopics();
             fetchCurrentTopic();
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Error saving topic');
+            let msg = error.response?.data?.message || 'Error saving topic';
+            if (msg.includes('Cast to ObjectId failed') || msg.includes('BSONError')) {
+                msg = 'Invalid data provided. Please check the classroom or other selected options.';
+            } else if (msg.toLowerCase().includes('validation failed')) {
+                msg = 'Some required fields are missing or invalid.';
+            }
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -390,13 +398,23 @@ const TopicManagement = () => {
                     {/* Left Side: Creation/Editing Form */}
                     <div className="lg:col-span-5">
                         <div className="bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border sticky top-24">
-                            <h3 className="text-xs font-black mb-8 text-foreground flex items-center gap-2 uppercase tracking-[0.2em] italic">
-                                {editingTopic ? (
-                                    <><Pencil className="w-5 h-5 text-primary" /> Edit Topic</>
-                                ) : (
-                                    <><Plus className="w-5 h-5 text-primary" /> Create New Topic</>
-                                )}
-                            </h3>
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xs font-black text-foreground flex items-center gap-2 uppercase tracking-[0.2em] italic">
+                                    {editingTopic ? (
+                                        <><Pencil className="w-5 h-5 text-primary" /> Edit Topic</>
+                                    ) : (
+                                        <><Plus className="w-5 h-5 text-primary" /> Create New Topic</>
+                                    )}
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAIPanel(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                                >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    AI Assist
+                                </button>
+                            </div>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div>
@@ -779,6 +797,31 @@ const TopicManagement = () => {
                 message="Are you sure you want to delete this topic? This cannot be undone."
                 confirmText="Delete"
                 isLoading={isDeleting}
+            />
+            <AIAssistantPanel
+                isOpen={showAIPanel}
+                onClose={() => setShowAIPanel(false)}
+                allowedModes={['topic', 'powerpoint']}
+                defaultMode="topic"
+                prefill={{
+                    className: classroom?.name || '',
+                    subject: classroom?.subject || '',
+                    topicName: formData.name || '',
+                    teacherHint: formData.description || '',
+                }}
+                onApplyTopic={(data) => {
+                    setFormData(prev => ({
+                        ...prev,
+                        name: data.name || prev.name,
+                        description: data.description || prev.description,
+                        lessonsOutline: data.lessonsOutline || prev.lessonsOutline,
+                        duration: data.suggestedDurationDays
+                            ? { mode: 'day', value: data.suggestedDurationDays }
+                            : prev.duration,
+                    }));
+                    setShowCreateForm(true);
+                    setShowAIPanel(false);
+                }}
             />
         </Layout>
     );
