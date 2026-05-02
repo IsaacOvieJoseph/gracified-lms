@@ -27,7 +27,8 @@ const notificationSchema = new mongoose.Schema({
       'topic_activated', // Added for topic activation notifications
       'new_class_created',
       'class_published',
-      'classroom_ended'
+      'classroom_ended',
+      'marketing_job'
     ],
     required: true,
   },

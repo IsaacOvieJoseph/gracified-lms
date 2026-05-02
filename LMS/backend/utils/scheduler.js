@@ -20,6 +20,12 @@ const startScheduler = () => {
                 return processMarketingQueue({ limit: 40 });
             })().catch(err =>
                 console.error('[Marketing] Queue processor failed:', err.message)
+            ),
+            (async () => {
+                const { processMarketingJobs } = require('./marketingProcessor');
+                return processMarketingJobs({ maxRecipientsPerTick: 20 });
+            })().catch(err =>
+                console.error('[Marketing] Job processor failed:', err.message)
             )
         ]);
     });

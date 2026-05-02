@@ -366,6 +366,74 @@ router.put('/lists/:id', async (req, res) => {
   }
 });
 
+router.post('/lists/:id/add-contacts', async (req, res) => {
+  try {
+    const { recipientIds, recipientEmails } = req.body || {};
+
+    const list = await MarketingList.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (!list) return res.status(404).json({ message: 'List not found' });
+
+    const User = require('../models/User');
+
+    let emails = [];
+    if (Array.isArray(recipientEmails)) {
+      emails = recipientEmails.map((e) => (e || '').toString().toLowerCase().trim()).filter(Boolean);
+    }
+
+    if (Array.isArray(recipientIds)) {
+      for (const raw of recipientIds) {
+        const id = (raw || '').toString();
+        if (!id) continue;
+        if (id.startsWith('user:')) {
+          const userId = id.slice('user:'.length);
+          const u = await User.findById(userId).select('email');
+          if (u?.email) emails.push(u.email.toLowerCase().trim());
+        } else {
+          const c = await MarketingContact.findById(id).select('email');
+          if (c?.email) emails.push(c.email.toLowerCase().trim());
+        }
+      }
+    }
+
+    emails = Array.from(new Set(emails));
+    if (!emails.length) return res.status(400).json({ message: 'No recipients' });
+
+    const addedIds = [];
+    for (const email of emails) {
+      // Ensure contact exists (for lms_user this will create one)
+      let contact = await MarketingContact.findOne({ email });
+      if (!contact) {
+        const u = await User.findOne({ email })
+          .populate('schoolId', 'name')
+          .populate('tutorialId', 'name')
+          .select('email name role schoolId tutorialId');
+        const schoolName = Array.isArray(u?.schoolId) ? u.schoolId.map((s) => s?.name).filter(Boolean).join(', ') : u?.schoolId?.name || '';
+        const tutorialName = u?.tutorialId?.name || '';
+        const [firstName, ...rest] = (u?.name || '').split(' ').filter(Boolean);
+        contact = await MarketingContact.create({
+          email,
+          firstName: firstName || '',
+          lastName: rest.join(' '),
+          company: schoolName || tutorialName || '',
+          title: u?.role || '',
+          source: 'lms_user',
+        });
+      }
+      if (!contact.unsubscribed) addedIds.push(contact._id);
+    }
+
+    await MarketingList.updateOne(
+      { _id: list._id },
+      { $addToSet: { contactIds: { $each: addedIds } } }
+    );
+
+    const updated = await MarketingList.findById(list._id).populate('contactIds', 'email firstName lastName');
+    res.json({ message: 'Added', list: updated, added: addedIds.length });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 router.delete('/lists/:id', async (req, res) => {
   try {
     await MarketingList.deleteOne({ _id: req.params.id, createdBy: req.user._id });
@@ -543,6 +611,41 @@ router.post('/send', async (req, res) => {
     }
 
     res.json({ message: 'Done', results });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+router.post('/send-async', async (req, res) => {
+  try {
+    const { templateId, recipientIds } = req.body || {};
+    if (!templateId) return res.status(400).json({ message: 'templateId is required' });
+    if (!Array.isArray(recipientIds) || recipientIds.length === 0) return res.status(400).json({ message: 'recipientIds is required' });
+
+    const template = await MarketingTemplate.findOne({ _id: templateId, createdBy: req.user._id });
+    if (!template) return res.status(404).json({ message: 'Template not found' });
+
+    const MarketingJob = require('../models/MarketingJob');
+    const job = await MarketingJob.create({
+      type: 'bulk_send',
+      createdBy: req.user._id,
+      status: 'queued',
+      payload: { templateId, recipientIds: recipientIds.map((x) => (x || '').toString()) },
+      progress: { total: recipientIds.length, processed: 0, sent: 0, skipped: 0, failed: 0, lastError: '' },
+    });
+
+    res.status(202).json({ message: 'Queued', jobId: job._id });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+router.get('/jobs/:id', async (req, res) => {
+  try {
+    const MarketingJob = require('../models/MarketingJob');
+    const job = await MarketingJob.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    res.json({ job });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

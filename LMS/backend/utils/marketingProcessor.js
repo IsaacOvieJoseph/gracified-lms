@@ -3,6 +3,8 @@ const MarketingCampaign = require('../models/MarketingCampaign');
 const MarketingTemplate = require('../models/MarketingTemplate');
 const MarketingContact = require('../models/MarketingContact');
 const MarketingHoliday = require('../models/MarketingHoliday');
+const MarketingJob = require('../models/MarketingJob');
+const Notification = require('../models/Notification');
 const { sendEmail } = require('./email');
 
 function renderWithContact(template, contact) {
@@ -214,4 +216,125 @@ async function processMarketingQueue({ limit = 50 } = {}) {
 }
 
 module.exports = { processMarketingQueue, queueDailyGreetings };
+
+async function resolveRecipientsFromIds(recipientIds) {
+  const User = require('../models/User');
+
+  const emails = [];
+  for (const raw of recipientIds || []) {
+    const id = (raw || '').toString();
+    if (!id) continue;
+    if (id.startsWith('user:')) {
+      const userId = id.slice('user:'.length);
+      const u = await User.findById(userId).select('email');
+      if (u?.email) emails.push(u.email.toLowerCase().trim());
+    } else {
+      const c = await MarketingContact.findById(id).select('email');
+      if (c?.email) emails.push(c.email.toLowerCase().trim());
+    }
+  }
+  return Array.from(new Set(emails));
+}
+
+async function ensureMarketingContactForEmail(email) {
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  if (!normalizedEmail) return null;
+
+  let contact = await MarketingContact.findOne({ email: normalizedEmail });
+  if (contact) return contact;
+
+  const User = require('../models/User');
+  const u = await User.findOne({ email: normalizedEmail })
+    .populate('schoolId', 'name')
+    .populate('tutorialId', 'name')
+    .select('email name role schoolId tutorialId');
+
+  const schoolName = Array.isArray(u?.schoolId) ? u.schoolId.map((s) => s?.name).filter(Boolean).join(', ') : u?.schoolId?.name || '';
+  const tutorialName = u?.tutorialId?.name || '';
+  const [firstName, ...rest] = (u?.name || '').split(' ').filter(Boolean);
+
+  contact = await MarketingContact.create({
+    email: normalizedEmail,
+    firstName: firstName || '',
+    lastName: rest.join(' '),
+    company: schoolName || tutorialName || '',
+    title: u?.role || '',
+    source: 'lms_user',
+  });
+  return contact;
+}
+
+async function processMarketingJobs({ maxRecipientsPerTick = 20 } = {}) {
+  const job = await MarketingJob.findOne({ status: { $in: ['queued', 'running'] } }).sort({ createdAt: 1 });
+  if (!job) return { processedJobs: 0 };
+
+  if (job.status === 'queued') {
+    job.status = 'running';
+    await job.save();
+  }
+
+  try {
+    const template = await MarketingTemplate.findById(job.payload.templateId);
+    if (!template) throw new Error('Template not found');
+
+    const allEmails = await resolveRecipientsFromIds(job.payload.recipientIds || []);
+    if (!job.progress.total) {
+      job.progress.total = allEmails.length;
+    }
+
+    // Process next chunk
+    const startIdx = job.progress.processed;
+    const chunk = allEmails.slice(startIdx, startIdx + maxRecipientsPerTick);
+
+    for (const email of chunk) {
+      try {
+        const contact = await ensureMarketingContactForEmail(email);
+        if (!contact || contact.unsubscribed) {
+          job.progress.skipped += 1;
+          job.progress.processed += 1;
+          continue;
+        }
+
+        const subject = renderWithContact(template.subject, contact);
+        const html = renderWithContact(template.html, contact) + buildUnsubscribeHtml(contact);
+        await sendEmail({ to: email, subject, html, isSystemEmail: true });
+        job.progress.sent += 1;
+        job.progress.processed += 1;
+      } catch (e) {
+        job.progress.failed += 1;
+        job.progress.processed += 1;
+        job.progress.lastError = e.message || 'send_failed';
+      }
+    }
+
+    // Job completion
+    if (job.progress.processed >= job.progress.total) {
+      job.status = 'completed';
+      await Notification.create({
+        userId: job.createdBy,
+        type: 'marketing_job',
+        message: `Marketing bulk send completed. Sent ${job.progress.sent}, skipped ${job.progress.skipped}, failed ${job.progress.failed}.`,
+        entityRef: 'User',
+        entityId: job.createdBy,
+      });
+    }
+
+    await job.save();
+    return { processedJobs: 1, jobId: job._id, status: job.status };
+  } catch (e) {
+    job.status = 'failed';
+    job.progress.lastError = e.message || 'job_failed';
+    await job.save();
+    await Notification.create({
+      userId: job.createdBy,
+      type: 'marketing_job',
+      message: `Marketing bulk send failed: ${job.progress.lastError}`,
+      entityRef: 'User',
+      entityId: job.createdBy,
+    });
+    return { processedJobs: 1, jobId: job._id, status: 'failed' };
+  }
+}
+
+module.exports.processMarketingJobs = processMarketingJobs;
 

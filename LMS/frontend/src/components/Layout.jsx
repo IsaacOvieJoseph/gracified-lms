@@ -274,15 +274,15 @@ const Layout = ({ children }) => {
               </button>
 
               {showProfileDropdown && (
-                <div className="absolute right-0 mt-3 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 py-2 animate-slide-up">
-                  <div className="px-4 py-3 border-b border-slate-50 mb-1">
-                    <p className="text-sm font-bold text-slate-800 truncate">{user?.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                <div className="absolute right-0 mt-3 w-56 bg-card border border-border rounded-2xl shadow-2xl z-50 py-2 animate-slide-up">
+                  <div className="px-4 py-3 border-b border-border/50 mb-1">
+                    <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                   </div>
-                  <button onClick={() => { setShowProfileDropdown(false); navigate('/profile'); }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-slate-600 text-sm font-medium transition-colors">
+                  <button onClick={() => { setShowProfileDropdown(false); navigate('/profile'); }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-muted text-foreground text-sm font-medium transition-colors">
                     <User className="w-4 h-4" /> Account Settings
                   </button>
-                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 text-red-500 text-sm font-bold transition-colors">
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-500/10 text-red-500 text-sm font-bold transition-colors">
                     <LogOut className="w-4 h-4" /> Sign Out
                   </button>
                 </div>
@@ -307,11 +307,11 @@ const Layout = ({ children }) => {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[100] md:hidden">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col p-6 animate-slide-in-right">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-card flex flex-col p-6 animate-slide-in-right">
             <div className="flex items-center justify-between mb-8">
               <img src={logo} alt="Logo" className="w-10 h-10 rounded-xl" />
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-slate-400">
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-muted-foreground">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -322,7 +322,7 @@ const Layout = ({ children }) => {
                 </NavLink>
               ))}
             </nav>
-            <div className="mt-auto pt-6 border-t border-slate-100">
+            <div className="mt-auto pt-6 border-t border-border">
               <button onClick={handleLogout} className="w-full btn-danger shadow-red-200">
                 <LogOut className="w-5 h-5" /> Sign Out
               </button>

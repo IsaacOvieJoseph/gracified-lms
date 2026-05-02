@@ -413,6 +413,27 @@ router.post('/login', async (req, res) => {
       }
     }
 
+    // Check if 2FA is enabled for this user
+    if (user.twoFAEnabled) {
+      const { generateAndSend2FAOTP, generateTempLoginToken } = require('../utils/twoFA');
+      
+      // Generate temp login token
+      const tempToken = generateTempLoginToken(user);
+      await user.save();
+
+      // Send 2FA OTP
+      generateAndSend2FAOTP(user).catch(err => {
+        console.error('Error sending 2FA OTP email during login:', err.message);
+      });
+
+      return res.status(202).json({
+        message: 'A verification code has been sent to your email. Please verify to complete login.',
+        requiresVerification: true,
+        tempToken,
+        email: user.email,
+      });
+    }
+
     // Increment loginCount
     user.loginCount = (user.loginCount || 0) + 1;
     await user.save();

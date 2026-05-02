@@ -119,6 +119,41 @@ const userSchema = new mongoose.Schema({
     default: null,
     index: true,
   },
+  // 2FA fields
+  twoFAEnabled: {
+    type: Boolean,
+    default: function() {
+      // Root admin always has 2FA enabled
+      return this.role === 'root_admin';
+    },
+  },
+  twoFASecret: {
+    type: String,
+    default: null,
+  },
+  twoFAOTP: {
+    type: String,
+    default: null,
+  },
+  twoFAOTPExpires: {
+    type: Date,
+    default: null,
+  },
+  twoFABackupCodes: [{
+    code: String,
+    used: {
+      type: Boolean,
+      default: false,
+    },
+  }],
+  tempLoginToken: {
+    type: String,
+    default: null,
+  },
+  tempLoginTokenExpires: {
+    type: Date,
+    default: null,
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

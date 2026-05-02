@@ -23,6 +23,45 @@ const btnClass =
 const primaryBtnClass =
   'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition';
 
+const selectStyles = {
+  control: (base, state) => ({
+    ...base,
+    backgroundColor: 'hsl(var(--background))',
+    borderColor: state.isFocused ? 'hsl(var(--primary) / 0.4)' : 'hsl(var(--border))',
+    boxShadow: state.isFocused ? '0 0 0 2px hsl(var(--primary) / 0.20)' : 'none',
+    borderRadius: 12,
+    minHeight: 44,
+  }),
+  menu: (base) => ({
+    ...base,
+    backgroundColor: 'hsl(var(--card))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: 12,
+    overflow: 'hidden',
+    zIndex: 60,
+  }),
+  menuList: (base) => ({
+    ...base,
+    backgroundColor: 'hsl(var(--card))',
+  }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--muted))' : 'hsl(var(--card))',
+    color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+    cursor: 'pointer',
+  }),
+  singleValue: (base) => ({ ...base, color: 'hsl(var(--foreground))' }),
+  input: (base) => ({ ...base, color: 'hsl(var(--foreground))' }),
+  placeholder: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
+  multiValue: (base) => ({ ...base, backgroundColor: 'hsl(var(--muted))' }),
+  multiValueLabel: (base) => ({ ...base, color: 'hsl(var(--foreground))' }),
+  multiValueRemove: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
+  noOptionsMessage: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
+  loadingMessage: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
+  group: (base) => ({ ...base, backgroundColor: 'hsl(var(--card))' }),
+  groupHeading: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))', backgroundColor: 'hsl(var(--muted))' }),
+};
+
 export default function Marketing() {
   const [activeTab, setActiveTab] = useState('contacts');
   const [loading, setLoading] = useState(false);
@@ -234,6 +273,35 @@ export default function Marketing() {
       refreshAll();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to send');
+    }
+  };
+
+  // ----------------------
+  // Add to List modal
+  // ----------------------
+  const [addToListModalOpen, setAddToListModalOpen] = useState(false);
+  const [selectedListForAdd, setSelectedListForAdd] = useState(null);
+
+  const openAddToListModal = () => {
+    if (selectedCount === 0) return toast.error('Select at least 1 contact');
+    setSelectedListForAdd(null);
+    setAddToListModalOpen(true);
+  };
+
+  const addContactsToList = async () => {
+    if (!selectedListForAdd) return toast.error('Select a list');
+    try {
+      const contactIds = Array.from(selectedIds);
+      await api.post(`/marketing/lists/${selectedListForAdd.value}/add-contacts`, {
+        contactIds,
+      });
+      toast.success(`Added ${contactIds.length} contacts to list`);
+      setAddToListModalOpen(false);
+      setSelectedListForAdd(null);
+      clearSelection();
+      refreshAll();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to add contacts to list');
     }
   };
 
@@ -469,6 +537,9 @@ export default function Marketing() {
                         <X className="w-4 h-4" /> Clear ({selectedCount})
                       </button>
                     )}
+                    <button className={primaryBtnClass} onClick={openAddToListModal} disabled={selectedCount === 0}>
+                      <ListIcon className="w-4 h-4" /> Add to list
+                    </button>
                     <button className={primaryBtnClass} onClick={openSendBulk} disabled={selectedCount === 0}>
                       <Send className="w-4 h-4" /> Send bulk
                     </button>
@@ -556,6 +627,7 @@ export default function Marketing() {
                   value={newList.contactIds}
                   onChange={(v) => setNewList((s) => ({ ...s, contactIds: v || [] }))}
                   options={contactOptions}
+                  styles={selectStyles}
                 />
               </div>
               <button className={primaryBtnClass} onClick={createList}>
@@ -643,7 +715,7 @@ export default function Marketing() {
               <input className={inputClass} placeholder="Description" value={newCampaign.description} onChange={(e) => setNewCampaign((s) => ({ ...s, description: e.target.value }))} />
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">List *</p>
-                <Select value={newCampaign.listId} onChange={(v) => setNewCampaign((s) => ({ ...s, listId: v }))} options={listOptions} />
+                <Select value={newCampaign.listId} onChange={(v) => setNewCampaign((s) => ({ ...s, listId: v }))} options={listOptions} styles={selectStyles} />
               </div>
               <div className="space-y-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Steps</p>
@@ -660,6 +732,7 @@ export default function Marketing() {
                       }
                       options={templateOptions}
                       placeholder="Choose template"
+                      styles={selectStyles}
                     />
                     <input
                       className={inputClass}
@@ -751,7 +824,7 @@ export default function Marketing() {
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Template *</p>
-                <Select value={newHoliday.templateId} onChange={(v) => setNewHoliday((s) => ({ ...s, templateId: v }))} options={templateOptions} />
+                <Select value={newHoliday.templateId} onChange={(v) => setNewHoliday((s) => ({ ...s, templateId: v }))} options={templateOptions} styles={selectStyles} />
               </div>
               <label className="flex items-center gap-2 text-sm font-bold">
                 <input type="checkbox" checked={!!newHoliday.enabled} onChange={(e) => setNewHoliday((s) => ({ ...s, enabled: e.target.checked }))} />
@@ -849,13 +922,45 @@ export default function Marketing() {
 
             <div className="space-y-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Template</p>
-              <Select value={sendTemplate} onChange={setSendTemplate} options={templateOptions} placeholder="Choose a template" />
+              <Select value={sendTemplate} onChange={setSendTemplate} options={templateOptions} placeholder="Choose a template" styles={selectStyles} />
               <div className="flex justify-end gap-2 pt-3">
                 <button className={btnClass} onClick={() => setSendModalOpen(false)}>
                   Cancel
                 </button>
                 <button className={primaryBtnClass} onClick={sendNow}>
                   <Send className="w-4 h-4" /> Send now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addToListModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setAddToListModalOpen(false)} />
+          <div className="relative w-full max-w-xl bg-card border border-border rounded-3xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-lg font-black">Add to list</h3>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-70 mt-1">
+                  {selectedCount} contacts selected
+                </p>
+              </div>
+              <button className={btnClass} onClick={() => setAddToListModalOpen(false)}>
+                <X className="w-4 h-4" /> Close
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Choose list</p>
+              <Select value={selectedListForAdd} onChange={setSelectedListForAdd} options={listOptions} placeholder="Select a list" styles={selectStyles} />
+              <div className="flex justify-end gap-2 pt-3">
+                <button className={btnClass} onClick={() => setAddToListModalOpen(false)}>
+                  Cancel
+                </button>
+                <button className={primaryBtnClass} onClick={addContactsToList}>
+                  <ListIcon className="w-4 h-4" /> Add now
                 </button>
               </div>
             </div>
