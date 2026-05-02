@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, X, Loader2, Wand2, BookOpen, FileText, Presentation, ChevronDown, ChevronRight, Check, Copy, Download, Zap, Brain, School, HelpCircle } from 'lucide-react';
+import { Sparkles, X, Loader2, Wand2, BookOpen, Clock, FileText, Presentation, ChevronDown, ChevronRight, Check, Copy, Download, Zap, Brain, School, HelpCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 
@@ -12,6 +12,7 @@ const MODES = {
   classroom: { label: 'Generate Class', icon: School, color: 'from-emerald-600 to-teal-600', endpoint: '/ai/generate-classroom', resultKey: 'classroom' },
   powerpoint: { label: 'Generate Slides', icon: Presentation, color: 'from-amber-600 to-orange-600', endpoint: '/ai/generate-powerpoint', resultKey: 'presentation' },
   qna: { label: 'Q&A Assistant', icon: HelpCircle, color: 'from-amber-500 to-orange-500', endpoint: '/ai/qna-assistant', resultKey: 'qna' },
+  syllabus: { label: 'Generate Syllabus', icon: BookOpen, color: 'from-indigo-600 to-blue-600', endpoint: '/ai/generate-syllabus', resultKey: 'syllabus' },
 };
 
 // ── Field component ───────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
               </div>
             )}
             <div className="flex items-center gap-2 text-xs text-violet-600 font-bold">
-              <span>⏱ Suggested: {result.suggestedDurationDays} days</span>
+              <span>⏱ Suggested: {result.duration?.value || 7} {result.duration?.mode || 'day'}(s)</span>
             </div>
           </div>
         )}
@@ -75,6 +76,46 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
           className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20 dark:shadow-none"
         >
           <Check className="w-4 h-4" /> Apply to Form
+        </button>
+      </div>
+    );
+  }
+
+  if (mode === 'syllabus') {
+    const topics = result.topics || [];
+    return (
+      <div className="space-y-4 animate-in slide-in-from-bottom-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-black text-indigo-600 uppercase tracking-widest">✨ AI Generated Syllabus</h4>
+          <span className="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded-full">{topics.length} Topics</span>
+        </div>
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          {topics.map((t, idx) => (
+            <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-[10px] font-black text-indigo-600">
+                  {idx + 1}
+                </div>
+                <p className="font-bold text-slate-900 dark:text-white text-sm">{t.name}</p>
+                <div className="ml-auto flex items-center gap-1 text-[9px] font-black text-indigo-500 uppercase bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-full">
+                  <Clock className="w-2.5 h-2.5" />
+                  {t.duration?.value || 7}{t.duration?.mode?.charAt(0) || 'd'}
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2">{t.description}</p>
+              {t.lessonsOutline && (
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg italic">
+                  Outline: {t.lessonsOutline.substring(0, 100)}...
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => onApply(topics)}
+          className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/20 dark:shadow-none"
+        >
+          <Sparkles className="w-4 h-4" /> Import Syllabus
         </button>
       </div>
     );
@@ -254,6 +295,7 @@ const AIAssistantPanel = ({
   allowedModes = ['topic', 'assignment', 'exam', 'powerpoint'],
   defaultMode = 'topic',
   prefill = {},
+  onApply,
   onApplyTopic,
   onApplyAssignment,
   onApplyExam,
@@ -286,9 +328,10 @@ const AIAssistantPanel = ({
     }
   }, [isOpen]);
 
-  // Sync form with prefill when panel opens
+  // Sync form and mode with prefill when panel opens
   useEffect(() => {
     if (isOpen) {
+      setMode(defaultMode);
       setForm({
         subject: prefill.subject || '',
         className: prefill.className || '',
@@ -304,7 +347,7 @@ const AIAssistantPanel = ({
       });
       setResult(null);
     }
-  }, [isOpen]); // Only sync when opening to avoid losing user input in AI panel
+  }, [isOpen, defaultMode]); // Sync when opening or when mode changes externally
 
   const handleDownloadPptx = async (presentationData) => {
     setDownloadingPptx(true);
@@ -347,6 +390,8 @@ const AIAssistantPanel = ({
         slideCount: form.slideCount,
         duration: form.duration,
         question: form.qnaQuestion,
+        description: prefill.description, // Added
+        outcomes: prefill.outcomes,        // Added
         context: `${form.subject} ${form.topicName}`,
       };
       const res = await api.post(modeConfig.endpoint, payload);
@@ -360,18 +405,22 @@ const AIAssistantPanel = ({
   };
 
   const handleApply = (data) => {
-    let finalData = { ...data };
+    let finalData = Array.isArray(data) ? [...data] : { ...data };
     
     // Ensure learning outcomes are a string if it's a classroom result
     if (mode === 'classroom' && Array.isArray(finalData.learningOutcomes)) {
       finalData.learningOutcomes = finalData.learningOutcomes.join(', ');
     }
 
-    if (mode === 'topic' && onApplyTopic) onApplyTopic(finalData);
-    if (mode === 'assignment' && onApplyAssignment) onApplyAssignment(finalData);
-    if (mode === 'exam' && onApplyExam) onApplyExam(finalData);
-    if (mode === 'classroom' && onApplyTopic) onApplyTopic(finalData);
-    toast.success('Applied to form!');
+    if (onApply) {
+      onApply(finalData);
+    } else {
+      if (mode === 'topic' && onApplyTopic) onApplyTopic(finalData);
+      if (mode === 'assignment' && onApplyAssignment) onApplyAssignment(finalData);
+      if (mode === 'exam' && onApplyExam) onApplyExam(finalData);
+      if (mode === 'classroom' && onApplyTopic) onApplyTopic(finalData);
+    }
+    toast.success('Applied successfully!');
   };
 
   if (!isOpen) return null;

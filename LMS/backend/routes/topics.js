@@ -809,6 +809,49 @@ router.post('/:id/progress', auth, async (req, res) => {
   }
 });
 
+// Bulk create topics for a classroom
+router.post('/bulk-create/:classroomId', auth, subscriptionCheck, async (req, res) => {
+  try {
+    const { topics } = req.body;
+    const { classroomId } = req.params;
+
+    if (!topics || !Array.isArray(topics)) {
+      return res.status(400).json({ message: 'topics must be an array' });
+    }
+
+    const classroom = await Classroom.findById(classroomId);
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+
+    // Check permissions
+    const isOwner = classroom.teacherId.toString() === req.user._id.toString();
+    const isSchoolAdmin = req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom);
+
+    if (req.user.role !== 'root_admin' && !isOwner && !isSchoolAdmin) {
+      return res.status(403).json({ message: 'Unauthorized to manage topics for this classroom' });
+    }
+
+    // Get current topic count for ordering
+    const existingCount = await Topic.countDocuments({ classroomId });
+
+    const topicsToCreate = topics.map((t, idx) => ({
+      ...t,
+      classroomId,
+      order: existingCount + idx,
+      status: 'pending'
+    }));
+
+    const created = await Topic.insertMany(topicsToCreate);
+
+    // Update classroom topics array
+    classroom.topics.push(...created.map(t => t._id));
+    await classroom.save();
+
+    res.json({ success: true, count: created.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
 
 

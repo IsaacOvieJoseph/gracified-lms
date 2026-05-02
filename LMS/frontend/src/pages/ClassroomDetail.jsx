@@ -408,6 +408,8 @@ const ClassroomDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiMode, setAiMode] = useState('classroom');
+  const [loadingTopics, setLoadingTopics] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s }))); // Dynamic subjects
   const [editForm, setEditForm] = useState({ name: '', description: '', learningOutcomes: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false, isPaid: false, teacherId: '', schoolIds: [] });
@@ -515,6 +517,20 @@ const ClassroomDetail = () => {
       toast.error(error.response?.data?.message || 'Error updating classroom');
     } finally {
       setIsEditing(false);
+    }
+  };
+
+  const handleApplySyllabus = async (topics) => {
+    setLoadingTopics(true);
+    try {
+      await api.post(`/topics/bulk-create/${id}`, { topics });
+      toast.success(`${topics.length} topics added to syllabus!`);
+      fetchClassroom();
+      setShowAIPanel(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to apply syllabus');
+    } finally {
+      setLoadingTopics(false);
     }
   };
   const [isEditing, setIsEditing] = useState(false); // Added loading state
@@ -2133,13 +2149,26 @@ const ClassroomDetail = () => {
                           </p>
                         </div>
                         {canEdit && (
-                          <button
-                            onClick={() => navigate(`/classrooms/${id}/manage-topics`)}
-                            className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition shadow-sm shadow-green-200 dark:shadow-none font-bold"
-                          >
-                            <Book className="w-4 h-4" />
-                            <span>Manage Topics</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setAiMode('syllabus');
+                                setShowAIPanel(true);
+                              }}
+                              className="flex items-center justify-center space-x-2 px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition shadow-lg shadow-violet-200 dark:shadow-none font-bold"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              <span className="hidden sm:inline">Magic Generate</span>
+                              <span className="sm:hidden">AI</span>
+                            </button>
+                            <button
+                              onClick={() => navigate(`/classrooms/${id}/manage-topics`)}
+                              className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition shadow-sm shadow-green-200 dark:shadow-none font-bold"
+                            >
+                              <Book className="w-4 h-4" />
+                              <span>Manage Topics</span>
+                            </button>
+                          </div>
                         )}
                       </div>
 
@@ -3106,22 +3135,28 @@ const ClassroomDetail = () => {
         <AIAssistantPanel
           isOpen={showAIPanel}
           onClose={() => setShowAIPanel(false)}
-          allowedModes={['classroom']}
-          defaultMode="classroom"
+          allowedModes={aiMode === 'syllabus' ? ['syllabus'] : ['classroom']}
+          defaultMode={aiMode}
           prefill={{
-            subject: editForm.subject,
-            className: editForm.name,
-            level: editForm.level,
-            teacherHint: editForm.description || ''
+            subject: classroom?.subject || editForm.subject,
+            className: classroom?.name || editForm.name,
+            level: classroom?.level || editForm.level,
+            description: classroom?.description || editForm.description,
+            outcomes: classroom?.learningOutcomes || editForm.learningOutcomes,
+            teacherHint: classroom?.description || editForm.description || ''
           }}
-          onApplyTopic={(data) => {
-            setEditForm(prev => ({
-              ...prev,
-              name: data.name || prev.name,
-              description: data.description || prev.description,
-              learningOutcomes: data.learningOutcomes || prev.learningOutcomes
-            }));
-            setShowAIPanel(false);
+          onApply={(data) => {
+            if (aiMode === 'syllabus') {
+              handleApplySyllabus(data);
+            } else {
+              setEditForm(prev => ({
+                ...prev,
+                name: data.name || prev.name,
+                description: data.description || prev.description,
+                learningOutcomes: data.learningOutcomes || prev.learningOutcomes
+              }));
+              setShowAIPanel(false);
+            }
           }}
         />
       </div >

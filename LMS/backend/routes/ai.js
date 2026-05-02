@@ -116,8 +116,9 @@ Return ONLY this JSON structure:
   "name": "Topic title (max 60 chars)",
   "description": "2-3 sentence description of what students will learn",
   "lessonsOutline": "Bullet outline of 4-6 key lessons, each starting with •",
-  "suggestedDurationDays": 7
-}`;
+  "duration": { "mode": "day", "value": 7 }
+}
+Duration mode can be "day", "week", or "month".`;
 
         const raw = await callAI(prompt);
         const result = parseJSON(raw);
@@ -284,6 +285,40 @@ Return ONLY this JSON structure:
         const result = parseJSON(raw);
         res.json({ success: true, qna: result });
     } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─── POST /api/ai/generate-syllabus ──────────────────────────────────────────
+router.post('/generate-syllabus', auth, async (req, res) => {
+    try {
+        const { className, subject, level, description, outcomes, teacherHint } = req.body;
+        const prompt = `Generate a comprehensive syllabus (list of topics) for a school course.
+Class Name: "${className || 'General'}"
+Subject: "${subject || 'General'}"
+Level: "${level || 'General'}"
+Context: "${description || 'None'}"
+Outcomes: "${outcomes || 'None'}"
+Teacher Preferences: "${teacherHint || 'None'}"
+
+Return ONLY a JSON object with this exact structure:
+{
+  "topics": [
+    {
+      "name": "Concise topic title",
+      "description": "1-2 sentence description",
+      "lessonsOutline": "• Lesson 1\\n• Lesson 2\\n• Lesson 3",
+      "duration": { "mode": "day", "value": 7 }
+    }
+  ]
+}
+Provide between 5 and 10 topics that form a logical learning progression. Duration mode can be "day", "week", or "month".`;
+
+        const raw = await callAI(prompt);
+        const result = parseJSON(raw);
+        res.json({ success: true, syllabus: result });
+    } catch (err) {
+        console.error('AI generate-syllabus error:', err.message);
         res.status(500).json({ message: err.message });
     }
 });
