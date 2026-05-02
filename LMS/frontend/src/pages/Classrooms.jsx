@@ -56,6 +56,7 @@ const Classrooms = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s })));
   const [formData, setFormData] = useState({
@@ -176,6 +177,7 @@ const Classrooms = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    setIsCreating(true);
     try {
       const submitData = {
         ...formData,
@@ -198,6 +200,7 @@ const Classrooms = () => {
       fetchClassrooms();
       toast.success('Classroom created');
     } catch (error) { toast.error('Error creating classroom'); }
+    finally { setIsCreating(false); }
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -807,7 +810,9 @@ const Classrooms = () => {
 
                 <div className="pt-8 flex gap-4 sticky bottom-0 bg-card/90 backdrop-blur-md pb-2 border-t border-border mt-4">
                   <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-4 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition">ABORT</button>
-                  <button type="submit" className="btn-premium flex-1">ACTIVATE ACADEMY</button>
+                  <button type="submit" disabled={isCreating} className="btn-premium flex-1">
+                    {isCreating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'ACTIVATE ACADEMY'}
+                  </button>
                 </div>
               </form>
             </div>

@@ -414,27 +414,27 @@ const TopicDisplay = ({ classroomId }) => {
 
     if (loading) {
         return (
-            <div className="bg-white rounded-lg shadow-sm p-8 animate-pulse border border-slate-100">
+            <div className="bg-card rounded-lg shadow-sm p-8 animate-pulse border border-border">
                 <div className="flex items-start gap-5 mb-6">
                     <div className="flex-1">
-                        <div className="h-2 bg-slate-100 rounded-full w-24 mb-3"></div>
-                        <div className="h-8 bg-slate-50 rounded-2xl w-2/3"></div>
+                        <div className="h-2 bg-muted rounded-full w-24 mb-3"></div>
+                        <div className="h-8 bg-muted/50 rounded-2xl w-2/3"></div>
                     </div>
                 </div>
-                <div className="bg-slate-50 rounded-3xl h-[600px] border border-slate-100"></div>
+                <div className="bg-muted/30 rounded-3xl h-[600px] border border-border"></div>
             </div>
         );
     }
 
     if (!currentTopic) {
         return (
-            <div className="bg-white rounded-3xl shadow-sm p-12 border-2 border-dashed border-slate-200 text-center flex flex-col items-center gap-5">
-                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm">
-                    <Book className="w-10 h-10 text-slate-200" />
+            <div className="bg-card rounded-3xl shadow-sm p-12 border-2 border-dashed border-border text-center flex flex-col items-center gap-5">
+                <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center border border-border shadow-sm">
+                    <Book className="w-10 h-10 text-muted-foreground/20" />
                 </div>
                 <div>
-                   <p className="font-black text-slate-800 text-2xl tracking-tight">Focusing on your Future</p>
-                   <p className="text-slate-400 text-sm mt-1 max-w-sm mx-auto font-medium">Your instructor is preparing the upcoming lecture topic. Please check back shortly for updates.</p>
+                   <p className="font-black text-foreground text-2xl tracking-tight">Focusing on your Future</p>
+                   <p className="text-muted-foreground text-sm mt-1 max-w-sm mx-auto font-medium">Your instructor is preparing the upcoming lecture topic. Please check back shortly for updates.</p>
                 </div>
                 <button className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-black transition-all">
                     View Course Details
@@ -444,24 +444,24 @@ const TopicDisplay = ({ classroomId }) => {
     }
 
     return (
-        <div className={`bg-white rounded-2xl shadow-sm p-8 border-t-4 transition-all ${currentTopic.status === 'active' ? 'border-slate-400' : 'border-slate-200'}`}>
+        <div className={`bg-card rounded-2xl shadow-sm p-8 border-t-4 transition-all ${currentTopic.status === 'active' ? 'border-primary' : 'border-border'}`}>
             <div className="flex flex-col gap-6">
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center flex-wrap gap-3 mb-3">
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">{currentTopic.name}</h3>
-                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200`}>
+                            <h3 className="text-2xl font-black text-foreground tracking-tight">{currentTopic.name}</h3>
+                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-muted text-muted-foreground border border-border`}>
                                 {currentTopic.status === 'active' ? 'Current Focus' : currentTopic.status}
                             </span>
                             {hasCurrentVideos && (
-                                <span className="px-3 py-1 bg-slate-50 text-slate-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-100">
+                                <span className="px-3 py-1 bg-muted/50 text-muted-foreground rounded-full text-[9px] font-black uppercase tracking-widest border border-border">
                                     {recordedVideos.length} Chapters
                                 </span>
                             )}
                         </div>
 
                         {currentTopic.description && (
-                            <p className="text-slate-500 text-lg leading-relaxed max-w-4xl">{currentTopic.description}</p>
+                            <p className="text-muted-foreground text-lg leading-relaxed max-w-4xl">{currentTopic.description}</p>
                         )}
                     </div>
                 </div>
@@ -479,7 +479,7 @@ const TopicDisplay = ({ classroomId }) => {
                                         return renderCurrentVideo(v, idx);
                                     })()
                                 ) : (
-                                    <div className="p-12 text-center text-slate-600 flex flex-col items-center gap-4">
+                                    <div className="p-12 text-center text-muted-foreground/60 flex flex-col items-center gap-4">
                                         <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
                                             <Play className="w-6 h-6 opacity-20" />
                                         </div>
@@ -536,47 +536,47 @@ const TopicDisplay = ({ classroomId }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     {currentTopic.lessonsOutline && (
-                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div className="bg-muted/50 p-6 rounded-2xl border border-border">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2 bg-white rounded-xl border border-slate-100">
-                                    <Book className="w-4 h-4 text-slate-500" />
+                                <div className="p-2 bg-card rounded-xl border border-border">
+                                    <Book className="w-4 h-4 text-muted-foreground/40" />
                                 </div>
-                                <h5 className="font-bold text-slate-800 uppercase tracking-widest text-[9px]">Module Outline</h5>
+                                <h5 className="font-bold text-foreground/80 uppercase tracking-widest text-[9px]">Module Outline</h5>
                             </div>
-                            <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed px-1">{currentTopic.lessonsOutline}</p>
+                            <p className="text-muted-foreground text-sm whitespace-pre-wrap leading-relaxed px-1">{currentTopic.lessonsOutline}</p>
                         </div>
                     )}
 
                     <div className="flex flex-col gap-6">
                         <div className="grid grid-cols-2 gap-4">
                             {getDurationText(currentTopic.duration) && (
-                                <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                <div className="p-4 bg-card border border-border rounded-xl">
                                     <div className="flex items-center gap-2 mb-1.5 px-1">
-                                        <Clock className="w-3.5 h-3.5 text-slate-300" />
-                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total Duration</span>
+                                        <Clock className="w-3.5 h-3.5 text-muted-foreground/30" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Duration</span>
                                     </div>
-                                    <p className="text-sm font-bold text-slate-700 px-1">{getDurationText(currentTopic.duration)}</p>
+                                    <p className="text-sm font-bold text-foreground px-1">{getDurationText(currentTopic.duration)}</p>
                                 </div>
                             )}
 
                             {currentTopic.startedAt && (
-                                <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                                <div className="p-4 bg-card border border-border rounded-xl">
                                     <div className="flex items-center gap-2 mb-1.5 px-1">
-                                        <Calendar className="w-3.5 h-3.5 text-slate-300" />
-                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Launch Date</span>
+                                        <Calendar className="w-3.5 h-3.5 text-muted-foreground/30" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Launch Date</span>
                                     </div>
-                                    <p className="text-sm font-bold text-slate-700 px-1">{formatDisplayDate(currentTopic.startedAt)}</p>
+                                    <p className="text-sm font-bold text-foreground px-1">{formatDisplayDate(currentTopic.startedAt)}</p>
                                 </div>
                             )}
                         </div>
 
                         {currentTopic.expectedEndDate && currentTopic.status === 'active' && (
-                            <div className="p-5 bg-slate-50 rounded-xl border border-slate-100">
-                                <div className="flex items-center gap-3 text-slate-400 mb-2">
+                            <div className="p-5 bg-muted/50 rounded-xl border border-border">
+                                <div className="flex items-center gap-3 text-muted-foreground mb-2">
                                     <Calendar className="w-4 h-4" />
                                     <span className="text-[9px] font-bold uppercase tracking-widest">Completion Target</span>
                                 </div>
-                                <p className="text-slate-700 text-lg font-black">{formatDisplayDate(currentTopic.expectedEndDate)}</p>
+                                <p className="text-foreground text-lg font-black">{formatDisplayDate(currentTopic.expectedEndDate)}</p>
                             </div>
                         )}
                     </div>
@@ -584,14 +584,14 @@ const TopicDisplay = ({ classroomId }) => {
             </div>
 
             {user && !['root_admin', 'school_admin', 'personal_teacher', 'teacher'].includes(user.role) && showPaidTopics && topicStatus && (
-                <div className="mt-12 pt-8 border-t border-slate-100">
-                    <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+                <div className="mt-12 pt-8 border-t border-border">
+                    <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-6 flex items-center gap-2">
                         <CheckCircle className="w-3 h-3" /> Progress Markers
                     </h4>
                     <div className="flex flex-wrap gap-2.5">
                         {topicStatus.allTopics.map(topic => (
-                            <div key={topic._id} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${topic.isPaid ? 'bg-slate-50 border-slate-100 text-slate-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
-                                <div className={`p-1 rounded-md ${topic.isPaid ? 'bg-slate-200 text-slate-600' : 'bg-slate-200 text-slate-400'}`}>
+                            <div key={topic._id} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${topic.isPaid ? 'bg-muted border-border text-foreground' : 'bg-muted/50 border-border text-muted-foreground'}`}>
+                                <div className={`p-1 rounded-md ${topic.isPaid ? 'bg-background text-foreground' : 'bg-background text-muted-foreground'}`}>
                                     {topic.isPaid ? <CheckCircle className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                                 </div>
                                 <span className="text-[10px] font-bold">{topic.name}</span>

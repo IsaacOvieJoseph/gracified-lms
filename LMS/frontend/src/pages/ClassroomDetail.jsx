@@ -1426,36 +1426,6 @@ const ClassroomDetail = () => {
                   </span>
                 )}
               </div>
-              {classroom.description && (
-                <p className="text-muted-foreground text-sm md:text-base font-medium">{classroom.description}</p>
-              )}
-              {classroom.learningOutcomes && (
-                <div className="mt-4 p-6 bg-primary/5 border border-primary/10 rounded-2xl">
-                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Expected Learning Outcomes</h4>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
-                    {classroom.learningOutcomes.split(',').map((outcome, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-muted-foreground text-sm font-medium">
-                        <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                        <span>{outcome.trim()}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div className="flex flex-wrap gap-4 mt-2">
-                {classroom.subject && (
-                  <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    <Book className="w-3.5 h-3.5 mr-2 text-primary" />
-                    <span>Subject:</span> <span className="ml-1 text-foreground">{classroom.subject}</span>
-                  </div>
-                )}
-                {classroom.level && (
-                  <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    <GraduationCap className="w-3.5 h-3.5 mr-2 text-primary" />
-                    <span>Level:</span> <span className="ml-1 text-foreground">{classroom.level}</span>
-                  </div>
-                )}
-              </div>
             </div>
 
             {canEdit && (
@@ -1517,6 +1487,42 @@ const ClassroomDetail = () => {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Full Width Content: Description & Outcomes */}
+          <div className="space-y-6 mb-8">
+            {classroom.description && (
+              <p className="text-muted-foreground text-sm md:text-base font-medium leading-relaxed max-w-4xl">{classroom.description}</p>
+            )}
+            
+            {classroom.learningOutcomes && (
+              <div className="p-6 bg-primary/5 border border-primary/10 rounded-[2rem]">
+                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Expected Learning Outcomes</h4>
+                <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-8">
+                  {classroom.learningOutcomes.split(',').map((outcome, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-muted-foreground text-sm font-medium">
+                      <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span>{outcome.trim()}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-6">
+              {classroom.subject && (
+                <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-xl border border-border/50">
+                  <Book className="w-3.5 h-3.5 mr-2 text-primary" />
+                  <span>Subject:</span> <span className="ml-2 text-foreground">{classroom.subject}</span>
+                </div>
+              )}
+              {classroom.level && (
+                <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-xl border border-border/50">
+                  <GraduationCap className="w-3.5 h-3.5 mr-2 text-primary" />
+                  <span>Level:</span> <span className="ml-2 text-foreground">{classroom.level}</span>
+                </div>
+              )}
+            </div>
           </div>
           {/* Edit Classroom Modal */}
           {showEditModal && (

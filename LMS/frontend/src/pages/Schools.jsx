@@ -362,7 +362,7 @@ export default function SchoolsPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Intercept academy identity..."
+            placeholder="Search school..."
             className="w-full sm:w-96 px-5 py-4 bg-muted/40 border-2 border-border rounded-2xl font-black italic tracking-tight placeholder:opacity-30 placeholder:italic focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
