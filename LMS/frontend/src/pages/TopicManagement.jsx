@@ -3,14 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
     X, Plus, Trash2, Loader2, CheckCircle, Clock, Circle, Play, Flag, Book, 
     Pencil, GripVertical, RotateCcw, Video, Upload, AlertCircle, 
-    ChevronDown, ChevronUp, ArrowLeft, Link as LinkIcon 
+    ChevronDown, ChevronUp, ArrowLeft, Link as LinkIcon, Sparkles, BookOpen, Layers, Zap, Lock,
+    School
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Layout from '../components/Layout';
 import ConfirmationModal from '../components/ConfirmationModal';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Lock } from 'lucide-react';
 import FormFieldHelp from '../components/FormFieldHelp';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 
@@ -20,6 +20,7 @@ const TopicManagement = () => {
     const { user } = useAuth();
     
     const [topics, setTopics] = useState([]);
+    const [totalDuration, setTotalDuration] = useState('N/A');
     const [currentTopic, setCurrentTopic] = useState(null);
     const [loading, setLoading] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -67,7 +68,26 @@ const TopicManagement = () => {
     const fetchTopics = async () => {
         try {
             const response = await api.get(`/topics/classroom/${classroomId}`);
-            setTopics(response.data.topics || []);
+            const fetchedTopics = response.data.topics || [];
+            setTopics(fetchedTopics);
+
+            // Calculate total duration
+            let totalDays = 0;
+            fetchedTopics.forEach(t => {
+                if (t.duration && t.duration.mode !== 'not_sure') {
+                    const val = t.duration.value || 1;
+                    if (t.duration.mode === 'day') totalDays += val;
+                    if (t.duration.mode === 'week') totalDays += val * 7;
+                    if (t.duration.mode === 'month') totalDays += val * 30;
+                }
+            });
+
+            if (totalDays > 0) {
+                const weeks = Math.ceil(totalDays / 7);
+                setTotalDuration(`~${weeks} Week${weeks !== 1 ? 's' : ''}`);
+            } else {
+                setTotalDuration('N/A');
+            }
         } catch (error) {
             console.error('Error fetching topics:', error);
         }
@@ -182,6 +202,20 @@ const TopicManagement = () => {
             setShowProgressionModal(false);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Error completing topic');
+        }
+    };
+
+    const handleApplySyllabus = async (topicsToImport) => {
+        setLoading(true);
+        try {
+            await api.post(`/topics/bulk-create/${classroomId}`, { topics: topicsToImport });
+            toast.success(`${topicsToImport.length} topics added to syllabus!`);
+            fetchTopics();
+            setShowAIPanel(false);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to apply syllabus');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -377,20 +411,44 @@ const TopicManagement = () => {
         <Layout>
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8 card-premium p-6">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
+                    <div className="flex items-center gap-5 w-full md:w-auto">
                         <button 
                             onClick={() => navigate(`/classrooms/${classroomId}`)}
-                            className="w-12 h-12 flex items-center justify-center bg-muted text-muted-foreground rounded-2xl hover:bg-primary hover:text-white transition-all active:scale-95"
+                            className="w-14 h-14 flex items-center justify-center bg-card border border-border text-muted-foreground rounded-2xl hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
                         >
                             <ArrowLeft className="w-6 h-6" />
                         </button>
                         <div>
-                            <h1 className="text-3xl font-black text-foreground italic uppercase tracking-tighter">Manage Topics</h1>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1">Curriculum Builder</p>
+                            <h1 className="text-4xl font-black text-foreground italic uppercase tracking-tighter">Manage Topics</h1>
                             {classroom && (
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic opacity-70">Classroom: {classroom.name}</p>
+                                <p className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                                    <School className="w-3 h-3" /> {classroom.name}
+                                </p>
                             )}
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="bg-card border border-border p-4 rounded-3xl flex items-center gap-6 shadow-sm">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60">Modules</span>
+                                <span className="text-xl font-black text-primary">{topics.length}</span>
+                            </div>
+                            <div className="w-px h-8 bg-border" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60">Duration</span>
+                                <span className="text-xl font-black text-foreground italic">{totalDuration}</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowAIPanel(true)}
+                            className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all active:scale-95"
+                            title="AI Syllabus Assistant"
+                        >
+                            <Sparkles className="w-6 h-6" />
+                        </button>
                     </div>
                 </div>
 
@@ -399,21 +457,15 @@ const TopicManagement = () => {
                     <div className="lg:col-span-5">
                         <div className="bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border sticky top-24">
                             <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-xs font-black text-foreground flex items-center gap-2 uppercase tracking-[0.2em] italic">
-                                    {editingTopic ? (
-                                        <><Pencil className="w-5 h-5 text-primary" /> Edit Topic</>
-                                    ) : (
-                                        <><Plus className="w-5 h-5 text-primary" /> Create New Topic</>
-                                    )}
-                                </h3>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAIPanel(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
-                                >
-                                    <Sparkles className="w-3.5 h-3.5" />
-                                    AI Assist
-                                </button>
+                                <div>
+                                    <h3 className="text-sm font-black text-foreground flex items-center gap-2 uppercase tracking-widest italic mb-1">
+                                        {editingTopic ? 'Edit Module' : 'New Module'}
+                                    </h3>
+                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Building your journey</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                                    {editingTopic ? <Pencil className="w-5 h-5" /> : <Plus className="w-6 h-6" />}
+                                </div>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
@@ -566,199 +618,207 @@ const TopicManagement = () => {
                                     return (
                                         <div
                                             key={topic._id}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, index)}
-                                            onDragOver={(e) => handleDragOver(e, index)}
-                                            onDrop={(e) => handleDrop(e, index)}
-                                            className={`bg-card border-2 rounded-[2rem] p-8 transition-all group shadow-sm ${draggedIndex === index ? 'opacity-50 scale-95' : ''} ${isCurrent ? 'border-primary shadow-2xl shadow-primary/10' : isDone ? 'border-emerald-500/20' : 'border-border hover:border-primary/20'}`}
+                                            className="relative pl-12 pb-12 last:pb-0"
                                         >
-                                            {/* Topic Header */}
-                                                <div className="flex items-start justify-between gap-4 mb-8">
-                                                <div className="flex items-start gap-4 flex-1">
-                                                    <div className="mt-1 text-muted-foreground/30 cursor-grab active:cursor-grabbing flex-shrink-0 group-hover:text-primary transition-colors">
-                                                        <GripVertical className="w-6 h-6" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center flex-wrap gap-2 mb-3">
-                                                            <h4 className="text-xl font-black text-foreground italic tracking-tighter uppercase">{topic.name}</h4>
-                                                            {isCurrent && <span className="px-3 py-1 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Active Lesson</span>}
-                                                            {isDone && <span className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">Done</span>}
-                                                            {hasVideos && (
-                                                                <span className="px-3 py-1 bg-muted border border-border text-foreground rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                                                                    <Video className="w-2.5 h-2.5 text-primary" /> {recordedVideos.length} Assets
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-muted-foreground text-xs mb-4 line-clamp-2 italic font-black uppercase tracking-widest opacity-60 leading-relaxed">"{topic.description}"</p>
-                                                        <div className="flex items-center gap-5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
-                                                            <span className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-primary" /> {getDurationText(topic.duration)}</span>
-                                                            {topic.isPaid && <span className="text-emerald-500 flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20"><AlertCircle className="w-3.5 h-3.5" /> ₦{topic.price}</span>}
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                            {/* Timeline Line */}
+                                            {index !== topics.length - 1 && (
+                                                <div className="absolute left-[23px] top-12 bottom-0 w-1 bg-gradient-to-b from-primary/20 to-transparent" />
+                                            )}
 
-                                                <div className="flex items-center gap-1">
-                                                    {topic.status === 'pending' && (
-                                                        <button onClick={() => handleActivate(topic._id)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition" title="Activate Topic"><Play className="w-5 h-5 fill-current" /></button>
-                                                    )}
-                                                    {isCurrent && (
-                                                        <button onClick={() => handleComplete(topic._id)} className="p-2.5 text-emerald-600 hover:bg-emerald-500/10 rounded-xl transition" title="Mark Complete"><CheckCircle className="w-5 h-5" /></button>
-                                                    )}
-                                                    {isDone && (
-                                                        <button onClick={() => handleReactivate(topic._id)} className="p-2.5 text-orange-600 hover:bg-orange-500/10 rounded-xl transition" title="Reactivate"><RotateCcw className="w-5 h-5" /></button>
-                                                    )}
-                                                    <button onClick={() => openEditForm(topic)} className="p-2.5 text-indigo-600 hover:bg-indigo-500/10 rounded-xl transition"><Pencil className="w-5 h-5" /></button>
-                                                    <button onClick={() => handleDelete(topic._id)} className="p-2.5 text-red-600 hover:bg-red-500/10 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
-                                                </div>
+                                            {/* Timeline Node */}
+                                            <div className={`absolute left-0 top-1 w-12 h-12 rounded-2xl flex items-center justify-center z-10 border-4 border-card transition-all ${isCurrent ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                                {isDone ? <CheckCircle className="w-6 h-6" /> : <span className="font-black italic">{index + 1}</span>}
                                             </div>
 
-                                            {/* Video Management Section */}
-                                            <div className="bg-muted/30 rounded-2xl p-6 border border-border">
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <h5 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/40">Lecture Videos</h5>
-                                                    <div className="flex items-center gap-2">
-                                                        <button 
-                                                            onClick={() => setShowUrlInput(isShowingUrlInput ? null : topic._id)}
-                                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isShowingUrlInput ? 'bg-primary text-white' : 'bg-card text-primary border border-primary/20 hover:bg-primary/5'}`}
-                                                        >
-                                                            <LinkIcon className="w-3 h-3" />
-                                                            External URL
-                                                            <FormFieldHelp content="Attach videos from external platforms like YouTube or Google Drive." />
-                                                        </button>
+                                            <div className={`bg-card border-2 rounded-[2.5rem] p-8 transition-all group shadow-sm ${isCurrent ? 'border-primary shadow-2xl shadow-primary/10' : isDone ? 'border-emerald-500/20 opacity-80' : 'border-border hover:border-primary/20 hover:shadow-xl hover:shadow-muted/50'}`}>
+                                                {/* Topic Header */}
+                                                <div className="flex items-start justify-between gap-4 mb-8">
+                                                    <div className="flex items-start gap-4 flex-1">
+                                                        <div className="mt-1 text-muted-foreground/30 cursor-grab active:cursor-grabbing flex-shrink-0 group-hover:text-primary transition-colors">
+                                                            <GripVertical className="w-6 h-6" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center flex-wrap gap-2 mb-3">
+                                                                <h4 className="text-xl font-black text-foreground italic tracking-tighter uppercase">{topic.name}</h4>
+                                                                {isCurrent && <span className="px-3 py-1 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Active Lesson</span>}
+                                                                {isDone && <span className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">Done</span>}
+                                                                {hasVideos && (
+                                                                    <span className="px-3 py-1 bg-muted border border-border text-foreground rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                                                        <Video className="w-2.5 h-2.5 text-primary" /> {recordedVideos.length} Assets
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-muted-foreground text-xs mb-4 line-clamp-2 italic font-black uppercase tracking-widest opacity-60 leading-relaxed">"{topic.description}"</p>
+                                                            <div className="flex items-center gap-5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
+                                                                <span className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-primary" /> {getDurationText(topic.duration)}</span>
+                                                                {topic.isPaid && <span className="text-emerald-500 flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20"><AlertCircle className="w-3.5 h-3.5" /> ₦{topic.price}</span>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
-                                                        {/* Premium Upload logic */}
-                                                        {(() => {
-                                                            const isPremium = user?.role === 'root_admin' || 
-                                                                              user?.subscriptionPlan?.name === 'Premium';
-                                                            
-                                                            if (isPremium) {
-                                                                return (
-                                                                    <label className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border text-foreground/60 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-muted transition-all">
-                                                                        <Upload className="w-3 h-3 text-primary" />
-                                                                        Upload File
-                                                                        <FormFieldHelp content="Securely upload video files directly to our cloud storage." />
-                                                                        <input
-                                                                            type="file"
-                                                                            accept="video/*"
-                                                                            className="hidden"
-                                                                            onChange={(e) => handleVideoFileChange(e, topic._id)}
-                                                                            disabled={uploadingVideo}
-                                                                        />
-                                                                    </label>
-                                                                );
-                                                            } else {
-                                                                return (
-                                                                    <div 
-                                                                        className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border text-muted-foreground/40 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-not-allowed group relative"
-                                                                        title="File upload is a Premium feature"
-                                                                    >
-                                                                        <Lock className="w-3 h-3" />
-                                                                        Upload File
-                                                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none font-black uppercase tracking-widest">
-                                                                            Premium Plan Required
-                                                                        </div>
-                                                                        <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
-                                                                    </div>
-                                                                );
-                                                            }
-                                                        })()}
+                                                    <div className="flex items-center gap-1">
+                                                        {topic.status === 'pending' && (
+                                                            <button onClick={() => handleActivate(topic._id)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition" title="Activate Topic"><Play className="w-5 h-5 fill-current" /></button>
+                                                        )}
+                                                        {isCurrent && (
+                                                            <button onClick={() => handleComplete(topic._id)} className="p-2.5 text-emerald-600 hover:bg-emerald-500/10 rounded-xl transition" title="Mark Complete"><CheckCircle className="w-5 h-5" /></button>
+                                                        )}
+                                                        {isDone && (
+                                                            <button onClick={() => handleReactivate(topic._id)} className="p-2.5 text-orange-600 hover:bg-orange-500/10 rounded-xl transition" title="Reactivate"><RotateCcw className="w-5 h-5" /></button>
+                                                        )}
+                                                        <button onClick={() => openEditForm(topic)} className="p-2.5 text-indigo-600 hover:bg-indigo-500/10 rounded-xl transition"><Pencil className="w-5 h-5" /></button>
+                                                        <button onClick={() => handleDelete(topic._id)} className="p-2.5 text-red-600 hover:bg-red-500/10 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
                                                     </div>
                                                 </div>
 
-                                                {/* URL Input Form */}
-                                                {isShowingUrlInput && (
-                                                    <div className="mb-6 p-4 bg-muted/50 rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
-                                                        <div className="flex gap-2">
-                                                            <input
-                                                                type="url"
-                                                                placeholder="Paste video URL (YouTube, Drive, etc.)"
-                                                                value={videoUrl}
-                                                                onChange={(e) => setVideoUrl(e.target.value)}
-                                                                className="flex-1 px-4 py-2 rounded-lg bg-card border border-border text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-                                                            />
+                                                {/* Video Management Section */}
+                                                <div className="bg-muted/30 rounded-2xl p-6 border border-border">
+                                                    <div className="flex items-center justify-between mb-6">
+                                                        <h5 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/40">Lecture Videos</h5>
+                                                        <div className="flex items-center gap-2">
                                                             <button 
-                                                                onClick={() => handleAddVideoUrl(topic._id)}
-                                                                disabled={!videoUrl || uploadingVideo}
-                                                                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold disabled:opacity-50"
+                                                                onClick={() => setShowUrlInput(isShowingUrlInput ? null : topic._id)}
+                                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isShowingUrlInput ? 'bg-primary text-white' : 'bg-card text-primary border border-primary/20 hover:bg-primary/5'}`}
                                                             >
-                                                                Add
+                                                                <LinkIcon className="w-3 h-3" />
+                                                                External URL
+                                                                <FormFieldHelp content="Attach videos from external platforms like YouTube or Google Drive." />
                                                             </button>
-                                                        </div>
-                                                    </div>
-                                                )}
 
-                                                {isUploadingThis && (
-                                                    <div className="mb-6 space-y-2">
-                                                        <div className="flex justify-between text-[10px] font-black uppercase text-primary">
-                                                            <span>Uploading...</span>
-                                                            <span>{uploadProgress}%</span>
-                                                        </div>
-                                                        <div className="w-full h-1.5 bg-primary/10 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {hasVideos ? (
-                                                    <div className="space-y-3">
-                                                        {[...recordedVideos].sort((a,b) => (a.order||0) - (b.order||0)).map((vid, vIdx, arr) => {
-                                                            const isRemoving = removingVideoId === `${topic._id}-${vid._id}`;
-                                                            return (
-                                                                <div key={vid._id} className="flex items-center gap-4 bg-card p-3 rounded-xl border border-border group/vid">
-                                                                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-black text-xs">
-                                                                        {vIdx + 1}
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="text-sm font-bold text-foreground truncate">{vid.label}</span>
-                                                                            {vid.videoType === 'url' ? (
-                                                                                <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[8px] font-black uppercase tracking-widest">URL</span>
-                                                                            ) : (
-                                                                                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[8px] font-black uppercase tracking-widest">FILE</span>
-                                                                            )}
+                                                            {/* Premium Upload logic */}
+                                                            {(() => {
+                                                                const isPremium = user?.role === 'root_admin' || 
+                                                                                  user?.subscriptionPlan?.name === 'Premium';
+                                                                
+                                                                if (isPremium) {
+                                                                    return (
+                                                                        <label className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border text-foreground/60 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-muted transition-all">
+                                                                            <Upload className="w-3 h-3 text-primary" />
+                                                                            Upload File
+                                                                            <FormFieldHelp content="Securely upload video files directly to our cloud storage." />
+                                                                            <input
+                                                                                type="file"
+                                                                                accept="video/*"
+                                                                                className="hidden"
+                                                                                onChange={(e) => handleVideoFileChange(e, topic._id)}
+                                                                                disabled={uploadingVideo}
+                                                                            />
+                                                                        </label>
+                                                                    );
+                                                                } else {
+                                                                    return (
+                                                                        <div 
+                                                                            className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border text-muted-foreground/40 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-not-allowed group relative"
+                                                                            title="File upload is a Premium feature"
+                                                                        >
+                                                                            <Lock className="w-3 h-3" />
+                                                                            Upload File
+                                                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none font-black uppercase tracking-widest">
+                                                                                Premium Plan Required
+                                                                            </div>
+                                                                            <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
                                                                         </div>
-                                                                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">{vid.originalName || vid.url}</p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1 opacity-0 group-hover/vid:opacity-100 transition-opacity">
-                                                                        <button 
-                                                                            disabled={vIdx === 0}
-                                                                            onClick={() => {
-                                                                                const newOrder = arr.map(v => v._id);
-                                                                                [newOrder[vIdx], newOrder[vIdx-1]] = [newOrder[vIdx-1], newOrder[vIdx]];
-                                                                                handleReorderVideos(topic._id, newOrder);
-                                                                            }}
-                                                                            className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
-                                                                        >
-                                                                            <ChevronUp className="w-4 h-4" />
-                                                                        </button>
-                                                                        <button 
-                                                                            disabled={vIdx === arr.length - 1}
-                                                                            onClick={() => {
-                                                                                const newOrder = arr.map(v => v._id);
-                                                                                [newOrder[vIdx], newOrder[vIdx+1]] = [newOrder[vIdx+1], newOrder[vIdx]];
-                                                                                handleReorderVideos(topic._id, newOrder);
-                                                                            }}
-                                                                            className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
-                                                                        >
-                                                                            <ChevronDown className="w-4 h-4" />
-                                                                        </button>
-                                                                        <button 
-                                                                            onClick={() => handleRemoveVideo(topic._id, vid._id)}
-                                                                            className="p-1.5 hover:bg-red-500/10 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
-                                                                        >
-                                                                            {isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                                                    );
+                                                                }
+                                                            })()}
+                                                        </div>
                                                     </div>
-                                                ) : (
-                                                    <div className="py-8 text-center border-2 border-dashed border-border rounded-xl bg-card/50">
-                                                        <Video className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
-                                                        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">No lectures attached</p>
-                                                    </div>
-                                                )}
+
+                                                    {/* URL Input Form */}
+                                                    {isShowingUrlInput && (
+                                                        <div className="mb-6 p-4 bg-muted/50 rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type="url"
+                                                                    placeholder="Paste video URL (YouTube, Drive, etc.)"
+                                                                    value={videoUrl}
+                                                                    onChange={(e) => setVideoUrl(e.target.value)}
+                                                                    className="flex-1 px-4 py-2 rounded-lg bg-card border border-border text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                                                                />
+                                                                <button 
+                                                                    onClick={() => handleAddVideoUrl(topic._id)}
+                                                                    disabled={!videoUrl || uploadingVideo}
+                                                                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold disabled:opacity-50"
+                                                                >
+                                                                    Add
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {isUploadingThis && (
+                                                        <div className="mb-6 space-y-2">
+                                                            <div className="flex justify-between text-[10px] font-black uppercase text-primary">
+                                                                <span>Uploading...</span>
+                                                                <span>{uploadProgress}%</span>
+                                                            </div>
+                                                            <div className="w-full h-1.5 bg-primary/10 rounded-full overflow-hidden">
+                                                                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {hasVideos ? (
+                                                        <div className="space-y-3">
+                                                            {[...recordedVideos].sort((a,b) => (a.order||0) - (b.order||0)).map((vid, vIdx, arr) => {
+                                                                const isRemoving = removingVideoId === `${topic._id}-${vid._id}`;
+                                                                return (
+                                                                    <div key={vid._id} className="flex items-center gap-4 bg-card p-3 rounded-xl border border-border group/vid">
+                                                                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-black text-xs">
+                                                                            {vIdx + 1}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-sm font-bold text-foreground truncate">{vid.label}</span>
+                                                                                {vid.videoType === 'url' ? (
+                                                                                    <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[8px] font-black uppercase tracking-widest">URL</span>
+                                                                                ) : (
+                                                                                    <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[8px] font-black uppercase tracking-widest">FILE</span>
+                                                                                )}
+                                                                            </div>
+                                                                            <p className="text-[10px] text-muted-foreground truncate mt-0.5">{vid.originalName || vid.url}</p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 opacity-0 group-hover/vid:opacity-100 transition-opacity">
+                                                                            <button 
+                                                                                disabled={vIdx === 0}
+                                                                                onClick={() => {
+                                                                                    const newOrder = arr.map(v => v._id);
+                                                                                    [newOrder[vIdx], newOrder[vIdx-1]] = [newOrder[vIdx-1], newOrder[vIdx]];
+                                                                                    handleReorderVideos(topic._id, newOrder);
+                                                                                }}
+                                                                                className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
+                                                                            >
+                                                                                <ChevronUp className="w-4 h-4" />
+                                                                            </button>
+                                                                            <button 
+                                                                                disabled={vIdx === arr.length - 1}
+                                                                                onClick={() => {
+                                                                                    const newOrder = arr.map(v => v._id);
+                                                                                    [newOrder[vIdx], newOrder[vIdx+1]] = [newOrder[vIdx+1], newOrder[vIdx]];
+                                                                                    handleReorderVideos(topic._id, newOrder);
+                                                                                }}
+                                                                                className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
+                                                                            >
+                                                                                <ChevronDown className="w-4 h-4" />
+                                                                            </button>
+                                                                            <button 
+                                                                                onClick={() => handleRemoveVideo(topic._id, vid._id)}
+                                                                                className="p-1.5 hover:bg-red-500/10 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
+                                                                            >
+                                                                                {isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="py-8 text-center border-2 border-dashed border-border rounded-xl bg-card/50">
+                                                            <Video className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
+                                                            <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">No lectures attached</p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -801,26 +861,32 @@ const TopicManagement = () => {
             <AIAssistantPanel
                 isOpen={showAIPanel}
                 onClose={() => setShowAIPanel(false)}
-                allowedModes={['topic', 'powerpoint']}
-                defaultMode="topic"
+                allowedModes={['syllabus', 'topic', 'powerpoint']}
+                defaultMode="syllabus"
                 prefill={{
                     className: classroom?.name || '',
                     subject: classroom?.subject || '',
+                    description: classroom?.description || '',
+                    outcomes: classroom?.learningOutcomes || '',
                     topicName: formData.name || '',
                     teacherHint: formData.description || '',
                 }}
-                onApplyTopic={(data) => {
-                    setFormData(prev => ({
-                        ...prev,
-                        name: data.name || prev.name,
-                        description: data.description || prev.description,
-                        lessonsOutline: data.lessonsOutline || prev.lessonsOutline,
-                        duration: data.suggestedDurationDays
-                            ? { mode: 'day', value: data.suggestedDurationDays }
-                            : prev.duration,
-                    }));
-                    setShowCreateForm(true);
-                    setShowAIPanel(false);
+                onApply={(data) => {
+                    if (data.topics) {
+                        // Handle syllabus import
+                        handleApplySyllabus(data.topics);
+                    } else {
+                        // Handle single topic import
+                        setFormData(prev => ({
+                            ...prev,
+                            name: data.name || prev.name,
+                            description: data.description || prev.description,
+                            lessonsOutline: data.lessonsOutline || prev.lessonsOutline,
+                            duration: data.duration || prev.duration,
+                        }));
+                        setShowCreateForm(true);
+                        setShowAIPanel(false);
+                    }
                 }}
             />
         </Layout>
