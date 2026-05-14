@@ -328,9 +328,9 @@ const ExamSubmissions = () => {
                                 onChange={(e) => setStatusFilter(e.target.value)}
                                 className="bg-muted border border-border rounded-xl px-5 py-3 font-black text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all text-[10px] uppercase tracking-[0.2em] outline-none"
                             >
-                                <option value="all">All Payloads</option>
-                                <option value="graded">Resolved Only</option>
-                                <option value="pending">Needs Review</option>
+                                <option value="all">All</option>
+                                <option value="graded">Resolved</option>
+                                <option value="pending">Review</option>
                             </select>
                         </div>
                     </div>
@@ -340,10 +340,10 @@ const ExamSubmissions = () => {
                             <thead className="bg-muted/50 border-b border-border">
                                 <tr>
                                     <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Student Name</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Network Mode</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Resolution Time</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Cycle Duration</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-center">Intel (%)</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Student Type</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Submitted At</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Time Taken</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-center">Score (%)</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-right">Action</th>
                                 </tr>
                             </thead>

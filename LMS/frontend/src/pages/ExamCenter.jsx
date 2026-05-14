@@ -30,6 +30,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import gracifiedLogo from '../assets/logo.jpg';
+import MathText from '../components/MathText';
 
 const ExamCenter = () => {
     const { token } = useParams();
@@ -552,7 +553,7 @@ const ExamCenter = () => {
                                             <div className="flex items-start justify-between gap-4 mb-4">
                                                 <div className="flex-1">
                                                     <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-1">Question {idx + 1}</span>
-                                                    <h4 className="font-bold text-foreground text-lg leading-snug">{q.questionText}</h4>
+                                                    <h4 className="font-bold text-foreground text-lg leading-snug"><MathText text={q.questionText} /></h4>
                                                 </div>
                                                 <div className={`flex-shrink-0 px-3 py-1 rounded-full flex items-center space-x-2 ${isCorrect ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                                                     {isCorrect ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
@@ -563,12 +564,12 @@ const ExamCenter = () => {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="p-4 rounded-xl bg-card border border-border">
                                                     <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] block mb-1">Your Response</span>
-                                                    <p className="font-bold text-foreground text-sm">{studentAns?.answer || 'No response provided'}</p>
+                                                    <p className="font-bold text-foreground text-sm"><MathText text={studentAns?.answer || 'No response provided'} /></p>
                                                 </div>
                                                 {q.questionType === 'mcq' && (
                                                     <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                                                         <span className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em] block mb-1">Correct Answer</span>
-                                                        <p className="font-bold text-emerald-500 text-sm">{q.correctOption}</p>
+                                                        <p className="font-bold text-emerald-500 text-sm"><MathText text={q.correctOption} /></p>
                                                     </div>
                                                 )}
                                             </div>
@@ -652,7 +653,7 @@ const ExamCenter = () => {
                                 </div>
 
                                 <h3 className="text-xl md:text-3xl font-black text-foreground mb-8 leading-tight tracking-tight">
-                                    {currentQuestion?.questionText}
+                                    <MathText text={currentQuestion?.questionText} />
                                 </h3>
 
                                 <div className="flex-1">
@@ -674,7 +675,9 @@ const ExamCenter = () => {
                                                         {String.fromCharCode(65 + oIdx)}
                                                     </div>
                                                     <span className={`text-sm md:text-lg font-bold transition-colors ${answers[currentQuestionIndex] === opt ? 'text-foreground' : 'text-muted-foreground'
-                                                        }`}>{opt}</span>
+                                                        }`}>
+                                                        <MathText text={opt} />
+                                                    </span>
                                                 </button>
                                             ))}
                                         </div>

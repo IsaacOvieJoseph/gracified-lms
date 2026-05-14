@@ -275,18 +275,44 @@ exports.getClassPerformance = async (req, res) => {
 exports.getSchoolPerformance = async (req, res) => {
     try {
         const { schoolId } = req.params;
+        let schools = [];
+        let reportName = "";
 
-        const school = await School.findById(schoolId);
-        if (!school) return res.status(404).json({ message: 'School not found' });
+        if (schoolId === 'all') {
+            if (req.user.role === 'root_admin') {
+                schools = await School.find();
+                reportName = "Global Combined Report";
+            } else if (req.user.role === 'school_admin') {
+                schools = await School.find({ adminId: req.user._id });
+                reportName = "All Managed Schools";
+            } else {
+                return res.status(403).json({ message: 'Not authorized' });
+            }
+        } else {
+            const school = await School.findById(schoolId);
+            if (!school) return res.status(404).json({ message: 'School not found' });
 
-        // Authorization: Check if user is root_admin or the school's admin
-        if (req.user.role !== 'root_admin' && school.adminId.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'Not authorized' });
+            // Authorization: Check if user is root_admin or the school's admin
+            if (req.user.role !== 'root_admin' && school.adminId.toString() !== req.user._id.toString()) {
+                return res.status(403).json({ message: 'Not authorized' });
+            }
+            schools = [school];
+            reportName = school.name;
         }
 
-        // Get all classrooms for this school
-        const classrooms = await Classroom.find({ schoolId: schoolId });
-        const classroomIds = classrooms.map(c => c._id);
+        if (schools.length === 0) {
+            return res.json({
+                schoolName: reportName,
+                totalStudents: 0,
+                totalClassrooms: 0,
+                overallAverage: 0,
+                classPerformance: []
+            });
+        }
+
+        // Get all classrooms for these schools
+        const schoolIds = schools.map(s => s._id);
+        const classrooms = await Classroom.find({ schoolId: { $in: schoolIds } });
 
         // Aggregate data
         const totalStudents = new Set();
@@ -297,7 +323,6 @@ exports.getSchoolPerformance = async (req, res) => {
 
         const classPerformance = [];
 
-        // We can do this more efficiently with aggregation pipeline, but loop is fine for now
         for (const classroom of classrooms) {
             classroom.students.forEach(s => totalStudents.add(s.toString()));
 
@@ -329,7 +354,6 @@ exports.getSchoolPerformance = async (req, res) => {
             const totalClassSessions = await CallSession.countDocuments({ classroomId: classroom._id });
             let totalStudentAttendancePctSum = 0;
 
-            // This loop could be heavy for large schools, optimize later if needed
             if (totalClassSessions > 0 && classroom.students.length > 0) {
                 for (const st of classroom.students) {
                     const att = await Attendance.countDocuments({ classroomId: classroom._id, studentId: st });
@@ -349,7 +373,7 @@ exports.getSchoolPerformance = async (req, res) => {
         }
 
         res.json({
-            schoolName: school.name,
+            schoolName: reportName,
             totalStudents: totalStudents.size,
             totalClassrooms: classrooms.length,
             overallAverage: globalMaxScoreSum > 0 ? parseFloat(((globalScoreSum / globalMaxScoreSum) * 100).toFixed(2)) : 0,
@@ -393,15 +417,26 @@ exports.getAdminOverview = async (req, res) => {
 exports.getAllStudentsReport = async (req, res) => {
     try {
         const user = req.user;
+        const { schoolId } = req.query;
         let classrooms = [];
 
         // 1. Identify relevant classrooms
         if (user.role === 'personal_teacher' || user.role === 'teacher') {
             classrooms = await Classroom.find({ teacherId: user._id }).populate('students', 'name email');
-        } else if (user.role === 'school_admin') {
-            const schools = await School.find({ adminId: user._id });
-            const schoolIds = schools.map(s => s._id);
-            classrooms = await Classroom.find({ schoolId: { $in: schoolIds } }).populate('students', 'name email');
+        } else if (user.role === 'school_admin' || user.role === 'root_admin') {
+            let filter = {};
+            if (user.role === 'school_admin') {
+                const managedSchools = await School.find({ adminId: user._id });
+                const managedSchoolIds = managedSchools.map(s => s._id);
+                filter = { schoolId: { $in: managedSchoolIds } };
+            }
+
+            // Apply specific school filter if provided and not 'all'
+            if (schoolId && schoolId !== 'all') {
+                filter.schoolId = schoolId;
+            }
+
+            classrooms = await Classroom.find(filter).populate('students', 'name email');
         } else {
             return res.status(403).json({ message: 'Not authorized' });
         }

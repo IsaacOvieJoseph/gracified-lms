@@ -39,37 +39,50 @@ const SchoolAdminReport = () => {
         fetchClassDetails();
     }, [viewingClass]);
 
-    // Fetch Admin's Schools on mount
+    // Fetch report when selected school changes or header school changes
     useEffect(() => {
-        const fetchSchools = async () => {
+        const syncSelectedSchool = async () => {
             try {
-                // For school admin, /api/schools returns their managed schools
+                // Get selected school from localStorage (synced with header)
+                const savedStr = localStorage.getItem('selectedSchools');
+                const saved = savedStr ? JSON.parse(savedStr) : [];
+                const activeId = saved[0];
+
+                // Fetch school list to get names and check if activeId is valid
                 const res = await api.get('/schools');
-
-                // The backend for GET /api/schools for school_admin returns { schools: [...] }
                 const schoolList = res.data.schools || [];
-                const options = schoolList.map(s => ({ value: s._id, label: s.name }));
+                setSchools(schoolList.map(s => ({ value: s._id, label: s.name })));
 
-                setSchools(options);
-
-                if (options.length > 0) {
-                    setSelectedSchool(options[0]);
+                let targetSchool = null;
+                if (activeId) {
+                    const found = schoolList.find(s => s._id === activeId);
+                    if (found) targetSchool = { value: found._id, label: found.name };
                 } else {
-                    setLoading(false); // No schools found
+                    // "All Schools" selected in header (empty array)
+                    targetSchool = { value: 'all', label: 'All Schools' };
                 }
+
+                // Final fallback
+                if (!targetSchool && schoolList.length > 0) {
+                    targetSchool = { value: 'all', label: 'All Schools' };
+                }
+
+                setSelectedSchool(targetSchool);
             } catch (error) {
-                console.error(error);
-                toast.error("Failed to fetch schools");
+                console.error("Sync error:", error);
                 setLoading(false);
             }
         };
 
-        if (user) {
-            fetchSchools();
-        }
-    }, [user]);
+        syncSelectedSchool();
 
-    // Fetch report when selected school changes
+        // Listen for global school changes
+        const handleGlobalChange = () => syncSelectedSchool();
+        window.addEventListener('schoolSelectionChanged', handleGlobalChange);
+        return () => window.removeEventListener('schoolSelectionChanged', handleGlobalChange);
+    }, []);
+
+    // Fetch report when selectedSchool state updates
     useEffect(() => {
         if (!selectedSchool) return;
 
@@ -78,7 +91,6 @@ const SchoolAdminReport = () => {
             try {
                 const res = await api.get(`/reports/school/${selectedSchool.value}`);
                 setReportData(res.data);
-
             } catch (error) {
                 console.error(error);
                 toast.error("Failed to fetch school report");
@@ -112,45 +124,7 @@ const SchoolAdminReport = () => {
                     </div>
                 </div>
 
-                {/* School Selector if multiple schools */}
-                {schools.length > 1 && (
-                    <div className="w-full md:w-72">
-                        <Select
-                            options={schools}
-                            value={selectedSchool}
-                            onChange={setSelectedSchool}
-                            placeholder="Switch School"
-                            className="modern-select"
-                            classNamePrefix="react-select"
-                            styles={{ 
-                                control: (base) => ({ 
-                                    ...base, 
-                                    height: '52px', 
-                                    borderRadius: '1rem', 
-                                    backgroundColor: 'var(--bg-card)', 
-                                    borderColor: 'var(--border-border)', 
-                                    borderWidth: '2px',
-                                    fontWeight: '900',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.1em',
-                                    fontSize: '11px',
-                                    '&:hover': { borderColor: 'var(--primary)' }
-                                }),
-                                menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)', zIndex: 100 }),
-                                option: (base, state) => ({ 
-                                    ...base, 
-                                    backgroundColor: state.isFocused ? 'var(--bg-muted)' : 'var(--bg-card)',
-                                    color: 'var(--text-foreground)',
-                                    fontWeight: '900',
-                                    textTransform: 'uppercase',
-                                    fontSize: '10px',
-                                    letterSpacing: '0.1em'
-                                }),
-                                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
-                            }}
-                        />
-                    </div>
-                )}
+                {/* Internal school selector removed - uses header switcher */}
             </div>
 
             {/* Key Metrics */}

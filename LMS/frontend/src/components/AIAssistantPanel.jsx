@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Sparkles, X, Loader2, Wand2, BookOpen, Clock, FileText, Presentation, ChevronDown, ChevronRight, Check, Copy, Download, Zap, Brain, School, HelpCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
+import MathText from './MathText';
 
 // ── Modes ─────────────────────────────────────────────────────────────────────
 const MODES = {
@@ -130,15 +131,23 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
         <div className={`bg-${color}-50 dark:bg-${color}-950/20 border border-${color}-200 dark:border-${color}-800/50 rounded-2xl p-4 space-y-3`}>
           <p className="font-black text-slate-900 dark:text-white">{result.title}</p>
           <p className="text-sm text-slate-600 dark:text-slate-400">{result.description}</p>
-          <div className={`text-xs font-bold text-${color}-600 bg-${color}-100 px-3 py-1 rounded-full w-fit`}>
-            {questions.length} Questions
+          <div className="flex gap-2">
+            <div className={`text-xs font-bold text-${color}-600 bg-${color}-100 px-3 py-1 rounded-full w-fit`}>
+              {questions.length} Questions
+            </div>
+            {result.duration && (
+              <div className={`text-xs font-bold text-${color}-600 bg-${color}-100 px-3 py-1 rounded-full w-fit flex items-center gap-1`}>
+                <Clock className="w-3 h-3" />
+                {result.duration} Mins
+              </div>
+            )}
           </div>
         </div>
         <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
           {questions.slice(0, 5).map((q, i) => (
             <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Q{i + 1}: {q.questionText}</p>
-              {q.options && <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Options: {q.options.join(' / ')}</p>}
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Q{i + 1}: <MathText text={q.questionText} /></p>
+              {q.options && <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Options: {q.options.map((opt, idx) => <span key={idx}>{idx > 0 && ' / '}<MathText text={opt} /></span>)}</p>}
             </div>
           ))}
           {questions.length > 5 && <p className="text-[10px] text-slate-400 text-center">+{questions.length - 5} more questions</p>}

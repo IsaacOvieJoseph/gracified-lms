@@ -11,13 +11,20 @@ const AllStudentsReportTable = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
+        const handler = () => fetchStudents();
+        window.addEventListener('schoolSelectionChanged', handler);
         fetchStudents();
+        return () => window.removeEventListener('schoolSelectionChanged', handler);
     }, []);
 
     const fetchStudents = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/reports/all-students');
+            const savedStr = localStorage.getItem('selectedSchools');
+            const saved = savedStr ? JSON.parse(savedStr) : [];
+            const schoolId = saved[0] || 'all';
+
+            const res = await api.get(`/reports/all-students?schoolId=${schoolId}`);
             setData(res.data);
         } catch (error) {
             console.error(error);

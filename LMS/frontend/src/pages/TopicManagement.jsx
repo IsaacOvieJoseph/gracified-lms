@@ -399,7 +399,7 @@ const TopicManagement = () => {
         });
         setEditingTopic(topic);
         setShowCreateForm(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+
     };
 
     const getDurationText = (duration) => {
@@ -449,154 +449,170 @@ const TopicManagement = () => {
                         >
                             <Sparkles className="w-6 h-6" />
                         </button>
+                        <button
+                            onClick={() => { resetForm(); setShowCreateForm(true); }}
+                            className="h-14 px-6 bg-primary text-white rounded-2xl flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95 font-black uppercase tracking-widest text-[10px]"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Add Topic
+                        </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left Side: Creation/Editing Form */}
-                    <div className="lg:col-span-5">
-                        <div className="bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border sticky top-24">
-                            <div className="flex items-center justify-between mb-8">
-                                <div>
-                                    <h3 className="text-sm font-black text-foreground flex items-center gap-2 uppercase tracking-widest italic mb-1">
-                                        {editingTopic ? 'Edit Module' : 'New Module'}
-                                    </h3>
-                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Building your journey</p>
-                                </div>
-                                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                                    {editingTopic ? <Pencil className="w-5 h-5" /> : <Plus className="w-6 h-6" />}
-                                </div>
-                            </div>
+                <div className="max-w-4xl mx-auto">
+                    {/* Creation/Editing Form Modal */}
+                    {showCreateForm && (
+                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto py-10">
+                            <div className="bg-card rounded-[3rem] p-10 shadow-2xl border border-border w-full max-w-2xl relative animate-in fade-in zoom-in duration-300">
+                                <button 
+                                    onClick={resetForm}
+                                    className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-red-500 hover:text-white transition-all active:scale-95 z-10"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div>
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground mb-3 block tracking-widest italic opacity-60">Topic Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Introduction to Calculus"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-5 py-4 rounded-2xl bg-muted/50 border-2 border-border focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-foreground font-black italic tracking-tight placeholder:opacity-30 placeholder:italic"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="text-sm font-bold text-muted-foreground mb-2 block">Description</label>
-                                    <textarea
-                                        placeholder="What will students learn in this topic?"
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
-                                        rows="3"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="text-sm font-bold text-muted-foreground mb-2 block">Lesson Outline</label>
-                                    <textarea
-                                        placeholder="Briefly outline the lessons..."
-                                        value={formData.lessonsOutline}
-                                        onChange={(e) => setFormData({ ...formData, lessonsOutline: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
-                                        rows="3"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-bold text-muted-foreground mb-2 flex items-center">
-                                            Duration Mode
-                                            <FormFieldHelp content="Choose a time unit (Days, Weeks, Months) to estimate the duration of this topic." />
-                                        </label>
-                                        <select
-                                            value={formData.duration.mode}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                duration: { ...formData.duration, mode: e.target.value }
-                                            })}
-                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
-                                        >
-                                            <option value="not_sure">Not Sure</option>
-                                            <option value="day">Day(s)</option>
-                                            <option value="week">Week(s)</option>
-                                            <option value="month">Month(s)</option>
-                                        </select>
+                                <div className="flex items-center gap-5 mb-10">
+                                    <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 shadow-inner">
+                                        {editingTopic ? <Pencil className="w-7 h-7" /> : <Plus className="w-8 h-8" />}
                                     </div>
-
                                     <div>
-                                        <label className="text-sm font-bold text-muted-foreground mb-2 block">Value</label>
+                                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter italic mb-1">
+                                            {editingTopic ? 'Edit Module' : 'New Module'}
+                                        </h3>
+                                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-50">Building your journey</p>
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase text-muted-foreground mb-3 block tracking-widest italic opacity-60">Topic Name</label>
                                         <input
-                                            type="number"
-                                            min="1"
-                                            value={formData.duration.value}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                duration: { ...formData.duration, value: parseInt(e.target.value) || 1 }
-                                            })}
-                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
-                                            disabled={formData.duration.mode === 'not_sure'}
+                                            type="text"
+                                            placeholder="e.g. Introduction to Calculus"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            className="w-full px-5 py-4 rounded-2xl bg-muted/50 border-2 border-border focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-foreground font-black italic tracking-tight placeholder:opacity-30 placeholder:italic"
+                                            required
                                         />
                                     </div>
-                                </div>
 
-                                {showPaidTopics && (
-                                    <div className="pt-2">
-                                        <div className="flex items-center gap-6 p-4 bg-muted rounded-2xl border border-border">
-                                            <label className="flex items-center gap-3 mb-0 ml-0 cursor-pointer">
-                                                <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${formData.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                                                    <input
-                                                        type="checkbox"
-                                                        className="hidden"
-                                                        checked={formData.isPaid}
-                                                        onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                                                    />
-                                                    <div className={`bg-card w-4 h-4 rounded-full shadow-sm transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
-                                                </div>
-                                                <span className="font-bold text-foreground flex items-center">
-                                                    Paid Topic
-                                                    <FormFieldHelp content="If enabled, students must pay an individual fee to unlock this topic and its materials." />
-                                                </span>
+                                    <div>
+                                        <label className="text-sm font-bold text-muted-foreground mb-2 block">Description</label>
+                                        <textarea
+                                            placeholder="What will students learn in this topic?"
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                            rows="3"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-bold text-muted-foreground mb-2 block">Lesson Outline</label>
+                                        <textarea
+                                            placeholder="Briefly outline the lessons..."
+                                            value={formData.lessonsOutline}
+                                            onChange={(e) => setFormData({ ...formData, lessonsOutline: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                            rows="3"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-bold text-muted-foreground mb-2 flex items-center">
+                                                Duration Mode
+                                                <FormFieldHelp content="Choose a time unit (Days, Weeks, Months) to estimate the duration of this topic." />
                                             </label>
-                                            {formData.isPaid && (
-                                                <div className="flex-1 flex items-center gap-2">
-                                                    <span className="font-bold text-muted-foreground">₦</span>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={formData.price}
-                                                        onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                                                        placeholder="Price"
-                                                        className="flex-1 px-3 py-1.5 rounded-lg bg-card border border-border text-foreground"
-                                                    />
-                                                </div>
-                                            )}
+                                            <select
+                                                value={formData.duration.mode}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    duration: { ...formData.duration, mode: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                            >
+                                                <option value="not_sure">Not Sure</option>
+                                                <option value="day">Day(s)</option>
+                                                <option value="week">Week(s)</option>
+                                                <option value="month">Month(s)</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-bold text-muted-foreground mb-2 block">Value</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={formData.duration.value}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    duration: { ...formData.duration, value: parseInt(e.target.value) || 1 }
+                                                })}
+                                                className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                                disabled={formData.duration.mode === 'not_sure'}
+                                            />
                                         </div>
                                     </div>
-                                )}
 
-                                <div className="flex gap-4 pt-6">
-                                    <button
-                                        type="button"
-                                        onClick={resetForm}
-                                        className="flex-1 px-6 py-4 rounded-2xl border-2 border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition-all active:scale-95"
-                                    >
-                                        CANCEL
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="btn-premium flex-1 py-4 flex items-center justify-center text-[10px]"
-                                    >
-                                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingTopic ? 'UPDATE' : 'CREATE')}
-                                    </button>
-                                </div>
-                            </form>
+                                    {showPaidTopics && (
+                                        <div className="pt-2">
+                                            <div className="flex items-center gap-6 p-4 bg-muted rounded-2xl border border-border">
+                                                <label className="flex items-center gap-3 mb-0 ml-0 cursor-pointer">
+                                                    <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${formData.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="hidden"
+                                                            checked={formData.isPaid}
+                                                            onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                                                        />
+                                                        <div className={`bg-card w-4 h-4 rounded-full shadow-sm transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                                                    </div>
+                                                    <span className="font-bold text-foreground flex items-center">
+                                                        Paid Topic
+                                                        <FormFieldHelp content="If enabled, students must pay an individual fee to unlock this topic and its materials." />
+                                                    </span>
+                                                </label>
+                                                {formData.isPaid && (
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        <span className="font-bold text-muted-foreground">₦</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={formData.price}
+                                                            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                                                            placeholder="Price"
+                                                            className="flex-1 px-3 py-1.5 rounded-lg bg-card border border-border text-foreground"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-4 pt-6">
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="flex-1 px-6 py-4 rounded-2xl border-2 border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition-all active:scale-95"
+                                        >
+                                            CANCEL
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="btn-premium flex-1 py-4 flex items-center justify-center text-[10px]"
+                                        >
+                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingTopic ? 'UPDATE' : 'CREATE')}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Right Side: Topics List */}
-                    <div className="lg:col-span-7">
+                    {/* Topics List */}
+                    <div className="w-full">
                         <div className="space-y-6">
                             {topics.length === 0 ? (
                                 <div className="text-center py-20 bg-card rounded-[2.5rem] border-2 border-dashed border-border">
@@ -618,7 +634,12 @@ const TopicManagement = () => {
                                     return (
                                         <div
                                             key={topic._id}
-                                            className="relative pl-12 pb-12 last:pb-0"
+                                            className={`relative pl-12 pb-12 last:pb-0 transition-all duration-300 ${draggedIndex === index ? 'opacity-30 scale-95' : 'opacity-100'}`}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, index)}
+                                            onDragOver={(e) => handleDragOver(e, index)}
+                                            onDrop={(e) => handleDrop(e, index)}
+                                            onDragEnd={() => setDraggedIndex(null)}
                                         >
                                             {/* Timeline Line */}
                                             {index !== topics.length - 1 && (

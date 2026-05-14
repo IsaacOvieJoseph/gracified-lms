@@ -196,10 +196,10 @@ router.post('/generate-exam', auth, async (req, res) => {
         const mcqSchema = `{
   "title": "Formal exam title",
   "description": "Exam instructions for candidates (2-3 sentences)",
-  "duration": ${duration || 60},
+  "duration": 45,
   "questions": [
     {
-      "questionText": "Question text",
+      "questionText": "Question text. Use LaTeX for math like \\( 2x^2 \\) or \\( \\\\frac{1}{2} \\)",
       "questionType": "mcq",
       "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
       "correctOptionIndex": 0,
@@ -207,20 +207,21 @@ router.post('/generate-exam', auth, async (req, res) => {
     }
   ]
 }
-IMPORTANT: correctOptionIndex is the 0-based index of the correct option.`;
+IMPORTANT: Use LaTeX for any mathematical expressions, enclosed in \\( ... \\). duration should be a reasonable number of minutes. correctOptionIndex is 0-based.`;
 
         const theorySchema = `{
   "title": "Formal theory exam title",
   "description": "Exam instructions for candidates (2-3 sentences)",
-  "duration": ${duration || 60},
+  "duration": 60,
   "questions": [
     {
-      "questionText": "Question text",
+      "questionText": "Question text. Use LaTeX for math like \\( x = \\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a} \\)",
       "questionType": "theory",
       "maxScore": 10
     }
   ]
-}`;
+}
+IMPORTANT: Use LaTeX for any mathematical expressions, enclosed in \\( ... \\). duration should be a reasonable number of minutes.`;
 
         const prompt = `Generate a formal ${type.toUpperCase()} examination as a JSON object.
 
@@ -228,9 +229,13 @@ Class: "${className || 'General'}"
 Topic / Coverage: "${topicName || subject}"
 Subject: "${subject || topicName}"
 Level: "${level || 'General'}"
-Duration: ${duration || 60} minutes
 Number of questions: ${count}
 Teacher notes: "${teacherHint || 'None'}"
+
+Calculate and provide a "duration" (in minutes) that is appropriate for answering all ${count} ${type} questions at the specified ${level} level.
+
+CRITICAL: Use LaTeX for all mathematical notation, powers, fractions, and formulas. Enclose LaTeX math in \\( and \\).
+Example: "Solve \\( 2x^2 + 5x - 3 = 0 \\)" or "Calculate \\( \\\\frac{3}{4} \\) of 100".
 
 Return ONLY this JSON structure:
 ${type === 'mcq' ? mcqSchema : theorySchema}`;
