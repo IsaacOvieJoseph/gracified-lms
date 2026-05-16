@@ -327,13 +327,44 @@ const AIAssistantPanel = ({
     duration: 60,
     qnaQuestion: '',
   });
+  const [suggestions, setSuggestions] = useState({
+    subjects: [],
+    classNames: [],
+    levels: [],
+    topics: []
+  });
 
   const modeConfig = MODES[mode];
 
-  // Fetch active provider once on open
+  // Fetch active provider and suggestions once on open
   useEffect(() => {
-    if (isOpen && !provider) {
-      api.get('/ai/provider').then(r => setProvider(r.data.provider)).catch(() => {});
+    if (isOpen) {
+      if (!provider) {
+        api.get('/ai/provider').then(r => setProvider(r.data.provider)).catch(() => { });
+      }
+
+      // Fetch classrooms and topics for suggestions
+      const fetchData = async () => {
+        try {
+          const [classRes, topicsRes] = await Promise.all([
+            api.get('/classrooms'),
+            api.get('/topics/user/all').catch(() => ({ data: [] })) // Fallback if no specific route
+          ]);
+
+          const classrooms = classRes.data.classrooms || [];
+          const topics = Array.isArray(topicsRes.data) ? topicsRes.data : [];
+
+          setSuggestions({
+            subjects: [...new Set(classrooms.map(c => c.subject).filter(Boolean))],
+            classNames: [...new Set(classrooms.map(c => c.name).filter(Boolean))],
+            levels: [...new Set(classrooms.map(c => c.level).filter(Boolean))],
+            topics: [...new Set(topics.map(t => t.name).filter(Boolean))]
+          });
+        } catch (err) {
+          console.error('Failed to fetch suggestions:', err);
+        }
+      };
+      fetchData();
     }
   }, [isOpen]);
 
@@ -492,15 +523,63 @@ const AIAssistantPanel = ({
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Datalists for suggestions */}
+          <datalist id="ai-subjects">
+            {suggestions.subjects.map((s, i) => <option key={i} value={s} />)}
+          </datalist>
+          <datalist id="ai-classnames">
+            {suggestions.classNames.map((c, i) => <option key={i} value={c} />)}
+          </datalist>
+          <datalist id="ai-levels">
+            {suggestions.levels.map((l, i) => <option key={i} value={l} />)}
+          </datalist>
+          <datalist id="ai-topics">
+            {suggestions.topics.map((t, i) => <option key={i} value={t} />)}
+          </datalist>
+
           {/* Common fields */}
           <Field label="Subject / Topic Area">
-            <input className={inputCls} placeholder="e.g. Mathematics, Biology, History..." value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} />
+            <input 
+              className={inputCls} 
+              list="ai-subjects"
+              placeholder="e.g. Mathematics, Biology, History..." 
+              value={form.subject} 
+              onChange={e => setForm({ ...form, subject: e.target.value })} 
+            />
           </Field>
 
           {(mode !== 'topic' && mode !== 'classroom' && mode !== 'qna') && (
-            <Field label="Topic Name (for context)">
-              <input className={inputCls} placeholder="e.g. Photosynthesis, World War II..." value={form.topicName} onChange={e => setForm({ ...form, topicName: e.target.value })} />
-            </Field>
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Class Name">
+                  <input 
+                    className={inputCls} 
+                    list="ai-classnames"
+                    placeholder="e.g. Grade 10-A" 
+                    value={form.className} 
+                    onChange={e => setForm({ ...form, className: e.target.value })} 
+                  />
+                </Field>
+                <Field label="Difficulty Level">
+                  <input 
+                    className={inputCls} 
+                    list="ai-levels"
+                    placeholder="e.g. Beginner, Advanced" 
+                    value={form.level} 
+                    onChange={e => setForm({ ...form, level: e.target.value })} 
+                  />
+                </Field>
+              </div>
+              <Field label="Specific Topic">
+                <input 
+                  className={inputCls} 
+                  list="ai-topics"
+                  placeholder="e.g. Quadratic Equations" 
+                  value={form.topicName} 
+                  onChange={e => setForm({ ...form, topicName: e.target.value })} 
+                />
+              </Field>
+            </>
           )}
 
           {(mode === 'qna') && (

@@ -14,13 +14,15 @@ import {
     ChevronUp,
     CheckCircle2,
     AlertCircle,
-    HelpCircle
+    HelpCircle,
+    Eye
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import FormFieldHelp from '../components/FormFieldHelp';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import { Sparkles } from 'lucide-react';
+import MathText from '../components/MathText';
 
 const ExamCreator = () => {
     const navigate = useNavigate();
@@ -192,15 +194,27 @@ const ExamCreator = () => {
                             </h1>
                         </div>
                         <div className="flex items-center space-x-3">
+                            {isEditing && (
+                                <button
+                                    type="button"
+                                    onClick={() => window.open(`/exam-center/${formData.linkToken}?preview=true`, '_blank')}
+                                    className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-muted text-muted-foreground rounded-xl text-xs font-black uppercase tracking-wider hover:bg-muted/80 transition-all border border-border active:scale-95"
+                                    title="View Live Exam"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Preview</span>
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => setShowAIPanel(true)}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                                className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                                title="AI Generation"
                             >
                                 <Sparkles className="w-4 h-4" />
-                                AI Generate
+                                <span className="hidden sm:inline">AI Generate</span>
                             </button>
-                            <div className="flex items-center bg-muted rounded-xl px-4 py-2 border border-border">
+                            <div className="hidden md:flex items-center bg-muted rounded-xl px-4 py-2 border border-border">
                                 <span className="text-sm font-bold text-muted-foreground mr-3">Status:</span>
                                 <button
                                     type="button"
@@ -213,13 +227,14 @@ const ExamCreator = () => {
                                     {formData.isPublished ? 'Published' : 'Draft'}
                                 </button>
                             </div>
-                            <button
+                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                                className="flex items-center space-x-2 px-4 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                                title={isEditing ? 'Update Exam' : 'Create Exam'}
                             >
                                 {loading ? <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" /> : <Save className="w-5 h-5" />}
-                                <span>{isEditing ? 'Update Exam' : 'Create Exam'}</span>
+                                <span className="hidden sm:inline">{isEditing ? 'Update' : 'Create'}</span>
                             </button>
                         </div>
                     </div>
@@ -409,6 +424,12 @@ const ExamCreator = () => {
                                                     onChange={(e) => handleQuestionChange(qIndex, 'questionText', e.target.value)}
                                                     className="w-full px-0 py-2 bg-transparent border-b-2 border-border focus:border-primary transition-all font-black text-lg text-foreground placeholder:text-muted-foreground/20 outline-none"
                                                 />
+                                                {q.questionText?.match(/\\\(|\\\[|\$\$/) && (
+                                                    <div className="mt-2 p-3 bg-primary/5 rounded-xl border border-primary/10 text-sm italic">
+                                                        <span className="text-[9px] font-black uppercase text-primary/40 block mb-1">Live Math Preview</span>
+                                                        <MathText text={q.questionText} />
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="w-full md:w-32 space-y-2">
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center">
@@ -444,32 +465,38 @@ const ExamCreator = () => {
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-4">Aswer Options (Select correct ones)</label>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     {q.options.map((opt, oIndex) => (
-                                                        <div
-                                                            key={oIndex}
-                                                            className={`flex items-center p-3 rounded-2xl transition-all border-2 ${q.correctOptionIndex === oIndex
-                                                                ? 'border-emerald-500/50 bg-emerald-500/10 shadow-sm'
-                                                                : 'border-muted bg-muted/30 focus-within:bg-card focus-within:border-primary/30'
-                                                                }`}
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleQuestionChange(qIndex, 'correctOptionIndex', oIndex)}
-                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${q.correctOptionIndex === oIndex
-                                                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                                                    : 'bg-muted border-2 border-border text-transparent'
+                                                        <React.Fragment key={oIndex}>
+                                                            <div
+                                                                className={`flex items-center p-3 rounded-2xl transition-all border-2 ${q.correctOptionIndex === oIndex
+                                                                    ? 'border-emerald-500/50 bg-emerald-500/10 shadow-sm'
+                                                                    : 'border-muted bg-muted/30 focus-within:bg-card focus-within:border-primary/30'
                                                                     }`}
                                                             >
-                                                                <CheckCircle2 className="w-4 h-4" />
-                                                            </button>
-                                                            <input
-                                                                type="text"
-                                                                required
-                                                                placeholder={`Option ${oIndex + 1}`}
-                                                                value={opt}
-                                                                onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                                                                className="ml-4 flex-1 bg-transparent border-none outline-none font-bold text-foreground focus:ring-0 placeholder:text-muted-foreground/20"
-                                                            />
-                                                        </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleQuestionChange(qIndex, 'correctOptionIndex', oIndex)}
+                                                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${q.correctOptionIndex === oIndex
+                                                                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                                                        : 'bg-muted border-2 border-border text-transparent'
+                                                                        }`}
+                                                                >
+                                                                    <CheckCircle2 className="w-4 h-4" />
+                                                                </button>
+                                                                <input
+                                                                    type="text"
+                                                                    required
+                                                                    placeholder={`Option ${oIndex + 1}`}
+                                                                    value={opt}
+                                                                    onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
+                                                                    className="ml-4 flex-1 bg-transparent border-none outline-none font-bold text-foreground focus:ring-0 placeholder:text-muted-foreground/20"
+                                                                />
+                                                            </div>
+                                                            {opt?.match(/\\\(|\\\[|\$\$/) && (
+                                                                <div className="mt-1 ml-10 p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/10 text-xs italic">
+                                                                    <MathText text={opt} />
+                                                                </div>
+                                                            )}
+                                                        </React.Fragment>
                                                     ))}
                                                 </div>
                                             </div>

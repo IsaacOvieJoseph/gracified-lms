@@ -234,8 +234,14 @@ Teacher notes: "${teacherHint || 'None'}"
 
 Calculate and provide a "duration" (in minutes) that is appropriate for answering all ${count} ${type} questions at the specified ${level} level.
 
-CRITICAL: Use LaTeX for all mathematical notation, powers, fractions, and formulas. Enclose LaTeX math in \\( and \\).
-Example: "Solve \\( 2x^2 + 5x - 3 = 0 \\)" or "Calculate \\( \\\\frac{3}{4} \\) of 100".
+CRITICAL: All mathematical notation MUST be enclosed in double dollar signs: $$ math $$.
+CRITICAL JSON ESCAPING: You MUST escape backslashes in your JSON strings. Use \\\\frac, \\\\sqrt, \\\\pm, etc. (four backslashes in your internal logic to result in two backslashes in the raw JSON string).
+If you output \f (single backslash), the JSON will break. Always use \\\\f.
+
+Examples: 
+- "Solve $$ 2x^2 + 5x - 3 = 0 $$" 
+- "Calculate $$ \\\\frac{3}{4} $$ of 100"
+- "Using the quadratic formula $$ x = \\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a} $$"
 
 Return ONLY this JSON structure:
 ${type === 'mcq' ? mcqSchema : theorySchema}`;

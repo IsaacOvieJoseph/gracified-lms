@@ -35,6 +35,8 @@ import MathText from '../components/MathText';
 const ExamCenter = () => {
     const { token } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const isPreview = new URLSearchParams(location.search).get('preview') === 'true';
     const { user } = useAuth();
 
     const [exam, setExam] = useState(null);
@@ -143,6 +145,12 @@ const ExamCenter = () => {
                 if (typeof window !== 'undefined') {
                     window.localStorage.removeItem(STORAGE_KEY);
                 }
+            } else if (isPreview) {
+                // Bypass start screen in preview mode
+                setQuestions(data.questions);
+                setStarted(true);
+                setTimeLeft(data.duration * 60);
+                toast.success("Preview Mode: Viewing as Instructor");
             }
         } catch (error) {
             if (error.response?.status === 410) {
@@ -189,6 +197,13 @@ const ExamCenter = () => {
         clearInterval(timerRef.current);
 
         try {
+            if (isPreview) {
+                toast.success('Preview submitted successfully (simulation)');
+                setFinished(true);
+                setSubmissionStatus('graded');
+                setScore(0);
+                return;
+            }
             const response = await api.post(`/exams/submissions/${submissionIdRef.current}/submit`, {
                 answers: answersRef.current
             });
@@ -715,7 +730,7 @@ const ExamCenter = () => {
                                     onClick={() => submitExam()}
                                     className="flex items-center space-x-2 px-8 py-3 bg-emerald-500 text-white rounded-xl font-black text-sm hover:shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all uppercase tracking-widest"
                                 >
-                                    <span>Finalize</span>
+                                    <span>Submit</span>
                                     <Send className="w-5 h-5 ml-1" />
                                 </button>
                             ) : (
