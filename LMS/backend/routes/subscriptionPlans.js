@@ -4,6 +4,18 @@ const { auth, authorize } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all subscription plans
+/**
+ * @swagger
+ * /api/subscription-plans:
+ *   get:
+ *     summary: Get all available subscription plans
+ *     tags: [Subscription Plans]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of plans
+ */
 router.get('/', auth, async (req, res) => {
   try {
     let query = { isActive: true };
@@ -18,6 +30,24 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get a single subscription plan by ID
+/**
+ * @swagger
+ * /api/subscription-plans/{id}:
+ *   get:
+ *     summary: Get a subscription plan by ID
+ *     tags: [Subscription Plans]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Plan details
+ */
 router.get('/:id', auth, async (req, res) => {
   try {
     const plan = await SubscriptionPlan.findById(req.params.id);
@@ -31,6 +61,28 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Create a new subscription plan (Admin only)
+/**
+ * @swagger
+ * /api/subscription-plans:
+ *   post:
+ *     summary: Create a new subscription plan (Root Admin)
+ *     tags: [Subscription Plans]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - planType
+ *               - price
+ *     responses:
+ *       201:
+ *         description: Plan created
+ */
 router.post('/', auth, authorize('root_admin'), async (req, res) => {
   try {
     const { name, description, planType, price, durationDays, revenueSharePercentage, features } = req.body;

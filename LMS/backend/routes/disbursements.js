@@ -7,6 +7,18 @@ const { auth, authorize } = require('../middleware/auth');
 const { sendEmail } = require('../utils/email');
 
 // Get all pending disbursements (Root Admin)
+/**
+ * @swagger
+ * /api/disbursements/pending:
+ *   get:
+ *     summary: Get all pending disbursements (Root Admin)
+ *     tags: [Disbursements]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending payouts
+ */
 router.get('/pending', auth, authorize('root_admin'), async (req, res) => {
     try {
         const payments = await Payment.find({ payoutStatus: 'pending' })
@@ -22,6 +34,18 @@ router.get('/pending', auth, authorize('root_admin'), async (req, res) => {
 });
 
 // Get disbursement history (Root Admin)
+/**
+ * @swagger
+ * /api/disbursements/history:
+ *   get:
+ *     summary: Get disbursement history (Root Admin)
+ *     tags: [Disbursements]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of processed payouts
+ */
 router.get('/history', auth, authorize('root_admin'), async (req, res) => {
     try {
         const payments = await Payment.find({ payoutStatus: { $in: ['approved', 'paid'] } })
@@ -38,6 +62,24 @@ router.get('/history', auth, authorize('root_admin'), async (req, res) => {
 
 // Approve and Pay disbursement (Root Admin)
 // In a real app, this might initiate a Paystack transfer
+/**
+ * @swagger
+ * /api/disbursements/approve/{paymentId}:
+ *   post:
+ *     summary: Approve and mark a disbursement as paid (Root Admin)
+ *     tags: [Disbursements]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: paymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Payout approved
+ */
 router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, res) => {
     try {
         const payment = await Payment.findById(req.params.paymentId)
@@ -179,6 +221,18 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
 });
 
 // Get current user's (Teacher/School Admin) payout history
+/**
+ * @swagger
+ * /api/disbursements/my-payouts:
+ *   get:
+ *     summary: Get current user's payout history (Teacher/School Admin)
+ *     tags: [Disbursements]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of personal payouts
+ */
 router.get('/my-payouts', auth, async (req, res) => {
     try {
         const payouts = await Payment.find({ payoutOwnerId: req.user._id })

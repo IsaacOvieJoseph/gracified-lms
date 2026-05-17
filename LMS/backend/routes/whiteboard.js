@@ -6,6 +6,24 @@ const router = express.Router();
 
 // Return the active session info for a classroom.
 // If a session exists and has active users, return sessionId; otherwise, return saved whiteboardUrl if present.
+/**
+ * @swagger
+ * /api/whiteboard/{classroomId}:
+ *   get:
+ *     summary: Get the active whiteboard session for a classroom
+ *     tags: [Whiteboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session details or stored URL
+ */
 router.get('/:classroomId', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId);
@@ -50,6 +68,24 @@ router.get('/:classroomId', auth, async (req, res) => {
 });
 
 // Allow teacher/admin to create/publish a persistent whiteboard URL (stored in DB)
+/**
+ * @swagger
+ * /api/whiteboard/{classroomId}/publish:
+ *   post:
+ *     summary: Publish a persistent whiteboard URL for a classroom
+ *     tags: [Whiteboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Whiteboard published
+ */
 router.post('/:classroomId/publish', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId);

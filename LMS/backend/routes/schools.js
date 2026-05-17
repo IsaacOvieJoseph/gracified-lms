@@ -4,6 +4,31 @@ const { auth, authorize } = require('../middleware/auth');
 const router = express.Router();
 
 // Create a school (root admin or school admin)
+/**
+ * @swagger
+ * /api/schools:
+ *   post:
+ *     summary: Create a new school
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               adminId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: School created
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     const User = require('../models/User');
@@ -44,6 +69,16 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
 });
 
 // GET PUBLIC SCHOOLS (For Registration lists)
+/**
+ * @swagger
+ * /api/schools/public:
+ *   get:
+ *     summary: Get list of public schools
+ *     tags: [Schools]
+ *     responses:
+ *       200:
+ *         description: List of public schools
+ */
 router.get('/public', async (req, res) => {
   try {
     const schools = await School.find().select('_id name');
@@ -54,6 +89,22 @@ router.get('/public', async (req, res) => {
 });
 
 // GET PUBLIC SCHOOL BY IDENTIFIER (shortCode or ID)
+/**
+ * @swagger
+ * /api/schools/public/{identifier}:
+ *   get:
+ *     summary: Get public details of a school by ID or shortCode
+ *     tags: [Schools]
+ *     parameters:
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School details
+ */
 router.get('/public/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
@@ -85,6 +136,18 @@ router.get('/public/:identifier', async (req, res) => {
 });
 
 // GET ALL SCHOOLS (Root Admin) or MY SCHOOL (School Admin)
+/**
+ * @swagger
+ * /api/schools:
+ *   get:
+ *     summary: Get schools (Root Admin sees all, School Admin sees theirs)
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of schools
+ */
 router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     let query = {};
@@ -115,6 +178,24 @@ router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) 
 });
 
 // GET SCHOOL BY ID (Authorized)
+/**
+ * @swagger
+ * /api/schools/{id}:
+ *   get:
+ *     summary: Get school by ID
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School details
+ */
 router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     let query = { _id: req.params.id };
@@ -143,6 +224,24 @@ router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, re
 });
 
 // DELETE SCHOOL (Root Admin Only)
+/**
+ * @swagger
+ * /api/schools/{id}:
+ *   delete:
+ *     summary: Delete a school (Root Admin only)
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School deleted
+ */
 router.delete("/:id", auth, authorize('root_admin'), async (req, res) => {
   try {
     const deleted = await School.findByIdAndDelete(req.params.id);

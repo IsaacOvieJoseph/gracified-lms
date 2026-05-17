@@ -119,6 +119,14 @@ app.use('/api/exams', require('./routes/exams'));
 app.use('/api/qna', require('./routes/qna'));
 app.use('/api/ai', require('./routes/ai'));
 
+// Swagger Documentation
+const { swaggerUi, specs } = require('./config/swagger');
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(specs);
+});
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 // Connect to MongoDB
 const connectDB = async () => {
   try {

@@ -1,0 +1,4771 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Gracified LMS API",
+        "version": "1.0.0",
+        "description": "API documentation for the Gracified Learning Management System",
+        "contact": {
+            "name": "Developer Support"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:5000",
+            "description": "Development server"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+    },
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ],
+    "paths": {
+        "/api/ai/provider": {
+            "get": {
+                "summary": "Get the currently active AI provider (Groq or Gemini)",
+                "tags": [
+                    "AI Services"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "AI provider details"
+                    }
+                }
+            }
+        },
+        "/api/ai/generate-topic": {
+            "post": {
+                "summary": "Generate a structured class topic using AI",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "subject"
+                                ],
+                                "properties": {
+                                    "subject": {
+                                        "type": "string"
+                                    },
+                                    "level": {
+                                        "type": "string"
+                                    },
+                                    "className": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Topic generated"
+                    }
+                }
+            }
+        },
+        "/api/ai/generate-assignment": {
+            "post": {
+                "summary": "Generate an assignment using AI",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "topicName": {
+                                        "type": "string"
+                                    },
+                                    "assignmentType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "mcq",
+                                            "theory"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Assignment generated"
+                    }
+                }
+            }
+        },
+        "/api/ai/generate-exam": {
+            "post": {
+                "summary": "Generate a formal examination using AI",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "topicName": {
+                                        "type": "string"
+                                    },
+                                    "examType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "mcq",
+                                            "theory"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Exam generated"
+                    }
+                }
+            }
+        },
+        "/api/ai/generate-classroom": {
+            "post": {
+                "summary": "Generate classroom details using AI",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "subject": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Classroom details generated"
+                    }
+                }
+            }
+        },
+        "/api/ai/qna-assistant": {
+            "post": {
+                "summary": "Academic assistant for students (Q&A)",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "question"
+                                ],
+                                "properties": {
+                                    "question": {
+                                        "type": "string"
+                                    },
+                                    "context": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Answer generated"
+                    }
+                }
+            }
+        },
+        "/api/ai/generate-syllabus": {
+            "post": {
+                "summary": "Generate a multi-topic syllabus using AI",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "subject": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Syllabus generated"
+                    }
+                }
+            }
+        },
+        "/api/ai/generate-powerpoint": {
+            "post": {
+                "summary": "Generate a PowerPoint presentation outline using AI",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "topicName": {
+                                        "type": "string"
+                                    },
+                                    "slideCount": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "PPT outline generated"
+                    }
+                }
+            }
+        },
+        "/api/ai/download-powerpoint": {
+            "post": {
+                "summary": "Convert a presentation JSON to a real .pptx file",
+                "tags": [
+                    "AI Services"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "presentation"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "PPTX file buffer",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.presentationml.presentation": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/assignments": {
+            "get": {
+                "summary": "Get all assignments relevant to the authenticated user",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of assignments"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new assignment",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "title",
+                                    "classroomId",
+                                    "assignmentType",
+                                    "questions"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "classroomId": {
+                                        "type": "string"
+                                    },
+                                    "assignmentType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "mcq",
+                                            "theory"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Assignment created"
+                    }
+                }
+            }
+        },
+        "/api/assignments/classroom/{classroomId}": {
+            "get": {
+                "summary": "Get assignments for a specific classroom",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of classroom assignments"
+                    }
+                }
+            }
+        },
+        "/api/assignments/{id}": {
+            "get": {
+                "summary": "Get assignment by ID",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Assignment details"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update an assignment",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Assignment updated"
+                    }
+                }
+            }
+        },
+        "/api/assignments/{id}/submit": {
+            "post": {
+                "summary": "Submit an assignment",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "answers": {
+                                        "type": "array",
+                                        "items": {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Assignment submitted"
+                    }
+                }
+            }
+        },
+        "/api/assignments/{id}/grade": {
+            "put": {
+                "summary": "Grade a general submission (MCQ auto or Manual)",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "studentId",
+                                    "score"
+                                ],
+                                "properties": {
+                                    "studentId": {
+                                        "type": "string"
+                                    },
+                                    "score": {
+                                        "type": "number"
+                                    },
+                                    "feedback": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Graded successfully"
+                    }
+                }
+            }
+        },
+        "/api/assignments/{id}/grade-theory": {
+            "put": {
+                "summary": "Grade a theory assignment with per-question scores",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "studentId",
+                                    "questionScores"
+                                ],
+                                "properties": {
+                                    "studentId": {
+                                        "type": "string"
+                                    },
+                                    "questionScores": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Theory graded"
+                    }
+                }
+            }
+        },
+        "/api/assignments/{id}/results": {
+            "get": {
+                "summary": "Get results for an assignment",
+                "tags": [
+                    "Assignments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Assignment results"
+                    }
+                }
+            }
+        },
+        "/api/auth/upload-logo": {
+            "post": {
+                "summary": "Upload a logo (school or tutorial)",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "logo": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logo uploaded successfully"
+                    },
+                    "400": {
+                        "description": "No file uploaded or invalid file"
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "summary": "Register a new user",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "role"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "school_admin",
+                                            "personal_teacher",
+                                            "teacher",
+                                            "student"
+                                        ]
+                                    },
+                                    "schoolName": {
+                                        "type": "string"
+                                    },
+                                    "tutorialName": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Registration successful, OTP sent"
+                    },
+                    "400": {
+                        "description": "User already exists"
+                    },
+                    "403": {
+                        "description": "Root admin registration forbidden"
+                    }
+                }
+            }
+        },
+        "/api/auth/verify-otp": {
+            "post": {
+                "summary": "Verify email with OTP",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "otp"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "otp": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Email verified, returns token"
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
+                    }
+                }
+            }
+        },
+        "/api/auth/resend-otp": {
+            "post": {
+                "summary": "Resend verification OTP",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP sent"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "summary": "Login user",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful"
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    },
+                    "403": {
+                        "description": "Email not verified"
+                    }
+                }
+            }
+        },
+        "/api/auth/me": {
+            "get": {
+                "summary": "Get current logged in user profile",
+                "tags": [
+                    "Authentication"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current user data"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "/api/auth/forgot-password": {
+            "post": {
+                "summary": "Request password reset OTP",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset OTP sent (even if user doesn't exist)"
+                    }
+                }
+            }
+        },
+        "/api/auth/verify-reset-otp": {
+            "post": {
+                "summary": "Verify password reset OTP",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "otp"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "otp": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified"
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
+                    }
+                }
+            }
+        },
+        "/api/auth/resend-reset-otp": {
+            "post": {
+                "summary": "Resend password reset OTP",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reset OTP sent"
+                    }
+                }
+            }
+        },
+        "/api/auth/reset-password": {
+            "post": {
+                "summary": "Reset password with OTP",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "otp",
+                                    "newPassword"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "otp": {
+                                        "type": "string"
+                                    },
+                                    "newPassword": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful"
+                    },
+                    "400": {
+                        "description": "Invalid OTP or password too short"
+                    }
+                }
+            }
+        },
+        "/api/auth/test-email": {
+            "post": {
+                "summary": "Test email configuration (admin/debug)",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Test email sent"
+                    }
+                }
+            }
+        },
+        "/api/auth/set-password": {
+            "post": {
+                "summary": "Set password for invited users",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "token",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password set successful"
+                    },
+                    "400": {
+                        "description": "Invalid or expired token"
+                    }
+                }
+            }
+        },
+        "/api/auth/verify-invite/{token}": {
+            "get": {
+                "summary": "Verify invite token",
+                "tags": [
+                    "Authentication"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "token",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token is valid"
+                    },
+                    "400": {
+                        "description": "Invalid or expired token"
+                    }
+                }
+            }
+        },
+        "/api/auth/profile": {
+            "put": {
+                "summary": "Update user profile settings",
+                "tags": [
+                    "Authentication"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "defaultPricingType": {
+                                        "type": "string"
+                                    },
+                                    "profilePicture": {
+                                        "type": "string"
+                                    },
+                                    "currentPassword": {
+                                        "type": "string"
+                                    },
+                                    "newPassword": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/public/{identifier}": {
+            "get": {
+                "summary": "Get classroom details by shortCode or ID (Public)",
+                "tags": [
+                    "Classrooms"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Classroom details"
+                    },
+                    "404": {
+                        "description": "Classroom not found"
+                    }
+                }
+            }
+        },
+        "/api/classrooms": {
+            "get": {
+                "summary": "Get all classrooms accessible to the user",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of classrooms"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new classroom",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "schedule",
+                                    "pricing"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "schedule": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "pricing": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Classroom created"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/active-meetings": {
+            "get": {
+                "summary": "Get all active lecture sessions for user's classrooms",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of active sessions"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/feedback/pending": {
+            "get": {
+                "summary": "Get pending feedback requests for student",
+                "tags": [
+                    "Feedback"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of pending feedback requests"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/feedback": {
+            "post": {
+                "summary": "Submit feedback for a classroom or platform",
+                "tags": [
+                    "Feedback"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "requestId",
+                                    "rating"
+                                ],
+                                "properties": {
+                                    "requestId": {
+                                        "type": "string"
+                                    },
+                                    "rating": {
+                                        "type": "number"
+                                    },
+                                    "comment": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Feedback submitted"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/feedback/request": {
+            "post": {
+                "summary": "Request feedback from users (Root Admin)",
+                "tags": [
+                    "Feedback"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "targetRole": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Feedback request sent"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/feedback/all": {
+            "get": {
+                "summary": "Get all completed feedbacks (Root Admin)",
+                "tags": [
+                    "Feedback"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of feedbacks"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}": {
+            "get": {
+                "summary": "Get classroom details by ID",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Classroom details"
+                    },
+                    "404": {
+                        "description": "Classroom not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update classroom details",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Classroom updated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Classroom not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a classroom",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Classroom deleted"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/publish": {
+            "put": {
+                "summary": "Publish or unpublish a classroom",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "published": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status updated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/enroll": {
+            "post": {
+                "summary": "Enroll current student in a classroom",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Enrolled successfully"
+                    },
+                    "400": {
+                        "description": "Already enrolled or classroom full"
+                    },
+                    "404": {
+                        "description": "Classroom not found"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/leave": {
+            "post": {
+                "summary": "Student unenrolls from a classroom",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully left the class"
+                    },
+                    "403": {
+                        "description": "Only students can leave"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/students": {
+            "post": {
+                "summary": "Add a student to a classroom (Admin/Teacher only)",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "studentId"
+                                ],
+                                "properties": {
+                                    "studentId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Student added"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/students/{studentId}": {
+            "delete": {
+                "summary": "Remove a student from a classroom",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "studentId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Student removed"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/teacher": {
+            "put": {
+                "summary": "Update classroom teacher (Root Admin only)",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "teacherId"
+                                ],
+                                "properties": {
+                                    "teacherId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Teacher updated"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/call/start": {
+            "post": {
+                "summary": "Start a live lecture call",
+                "tags": [
+                    "Classroom Calls"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "isPaid": {
+                                        "type": "boolean"
+                                    },
+                                    "amount": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Call session started"
+                    },
+                    "403": {
+                        "description": "Google auth required or access denied"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/call": {
+            "get": {
+                "summary": "Get the latest call link for a classroom",
+                "tags": [
+                    "Classroom Calls"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Call link details"
+                    },
+                    "404": {
+                        "description": "No active call found"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/call/attend": {
+            "post": {
+                "summary": "Mark attendance for a call session",
+                "tags": [
+                    "Classroom Calls"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance marked"
+                    }
+                }
+            }
+        },
+        "/api/classrooms/{id}/end": {
+            "post": {
+                "summary": "End a classroom session (unenroll students, reset assignments)",
+                "tags": [
+                    "Classrooms"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Classroom ended and reset"
+                    }
+                }
+            }
+        },
+        "/api/disbursements/pending": {
+            "get": {
+                "summary": "Get all pending disbursements (Root Admin)",
+                "tags": [
+                    "Disbursements"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of pending payouts"
+                    }
+                }
+            }
+        },
+        "/api/disbursements/history": {
+            "get": {
+                "summary": "Get disbursement history (Root Admin)",
+                "tags": [
+                    "Disbursements"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of processed payouts"
+                    }
+                }
+            }
+        },
+        "/api/disbursements/approve/{paymentId}": {
+            "post": {
+                "summary": "Approve and mark a disbursement as paid (Root Admin)",
+                "tags": [
+                    "Disbursements"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "paymentId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payout approved"
+                    }
+                }
+            }
+        },
+        "/api/disbursements/my-payouts": {
+            "get": {
+                "summary": "Get current user's payout history (Teacher/School Admin)",
+                "tags": [
+                    "Disbursements"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of personal payouts"
+                    }
+                }
+            }
+        },
+        "/api/exams": {
+            "post": {
+                "summary": "Create a new exam",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "title",
+                                    "duration",
+                                    "questions"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "duration": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Exam created"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get exams (assigned to student or created by teacher/admin)",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of exams"
+                    }
+                }
+            }
+        },
+        "/api/exams/{id}": {
+            "get": {
+                "summary": "Get exam by ID",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exam details"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update an exam",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exam updated"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete an exam",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exam deleted"
+                    }
+                }
+            }
+        },
+        "/api/exams/public/{token}": {
+            "get": {
+                "summary": "Get basic exam info by token (Public)",
+                "tags": [
+                    "Exams"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "token",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exam info"
+                    }
+                }
+            }
+        },
+        "/api/exams/public/{token}/start": {
+            "post": {
+                "summary": "Start an exam attempt",
+                "tags": [
+                    "Exams"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "token",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "candidateName": {
+                                        "type": "string"
+                                    },
+                                    "candidateEmail": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Attempt started"
+                    }
+                }
+            }
+        },
+        "/api/exams/submissions/{id}/submit": {
+            "post": {
+                "summary": "Submit exam answers",
+                "tags": [
+                    "Exams"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "answers": {
+                                        "type": "array",
+                                        "items": {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Exam submitted"
+                    }
+                }
+            }
+        },
+        "/api/exams/{id}/submissions": {
+            "get": {
+                "summary": "Get all submissions for an exam",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of submissions"
+                    }
+                }
+            }
+        },
+        "/api/exams/submissions/detail/{id}": {
+            "get": {
+                "summary": "Get full submission details",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Submission details"
+                    }
+                }
+            }
+        },
+        "/api/exams/submissions/detail/{id}/grade": {
+            "patch": {
+                "summary": "Update grades for theory questions",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "questionGrades": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Grading updated"
+                    }
+                }
+            }
+        },
+        "/api/exams/class/{classId}": {
+            "get": {
+                "summary": "Get exams for a specific classroom",
+                "tags": [
+                    "Exams"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of classroom exams"
+                    }
+                }
+            }
+        },
+        "/api/google-auth/start-consent": {
+            "get": {
+                "summary": "Redirect to Google OAuth consent screen",
+                "tags": [
+                    "Google Auth"
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "userId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect to Google"
+                    }
+                }
+            }
+        },
+        "/api/google-auth/url": {
+            "get": {
+                "summary": "Get Google OAuth authorization URL",
+                "tags": [
+                    "Google Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OAuth URL"
+                    }
+                }
+            }
+        },
+        "/api/google-auth/save-token": {
+            "post": {
+                "summary": "Exchange auth code for refresh token and save to user",
+                "tags": [
+                    "Google Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "code",
+                                    "userId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token saved"
+                    }
+                }
+            }
+        },
+        "/api/marketing/unsubscribe/{token}": {
+            "get": {
+                "summary": "Public endpoint to unsubscribe a contact via token",
+                "tags": [
+                    "Marketing"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "token",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Unsubscribed successfully"
+                    }
+                }
+            }
+        },
+        "/api/marketing/contacts": {
+            "get": {
+                "summary": "Get all marketing contacts and LMS users (Root Admin)",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "search",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "tag",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of contacts"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new marketing contact manually",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Contact created"
+                    }
+                }
+            }
+        },
+        "/api/marketing/contacts/import-csv": {
+            "post": {
+                "summary": "Bulk import contacts from a CSV file",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "csvFile": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Import complete"
+                    }
+                }
+            }
+        },
+        "/api/marketing/lists": {
+            "get": {
+                "summary": "Get all marketing lists created by the admin",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of mailing lists"
+                    }
+                }
+            }
+        },
+        "/api/marketing/templates": {
+            "get": {
+                "summary": "Get all email templates",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of templates"
+                    }
+                }
+            }
+        },
+        "/api/marketing/send": {
+            "post": {
+                "summary": "Send an email template to selected recipients (Synchronous)",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "templateId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Emails sent"
+                    }
+                }
+            }
+        },
+        "/api/marketing/send-async": {
+            "post": {
+                "summary": "Queue a bulk email job (Asynchronous)",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "templateId",
+                                    "recipientIds"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Job queued"
+                    }
+                }
+            }
+        },
+        "/api/marketing/campaigns": {
+            "get": {
+                "summary": "Get all drip campaigns",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of campaigns"
+                    }
+                }
+            }
+        },
+        "/api/marketing/holidays": {
+            "get": {
+                "summary": "Get configured holiday greetings",
+                "tags": [
+                    "Marketing"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of holidays"
+                    }
+                }
+            }
+        },
+        "/api/notifications-inapp": {
+            "get": {
+                "summary": "Get in-app notifications for the logged-in user",
+                "tags": [
+                    "In-App Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of notifications"
+                    }
+                }
+            }
+        },
+        "/api/notifications-inapp/{id}/read": {
+            "put": {
+                "summary": "Mark a specific notification as read",
+                "tags": [
+                    "In-App Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notification updated"
+                    }
+                }
+            }
+        },
+        "/api/notifications-inapp/mark-all-read": {
+            "put": {
+                "summary": "Mark all notifications for the user as read",
+                "tags": [
+                    "In-App Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notifications updated"
+                    }
+                }
+            }
+        },
+        "/api/notifications/class-reminder/{classroomId}": {
+            "post": {
+                "summary": "Send class reminder (Internal)",
+                "tags": [
+                    "Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reminders sent"
+                    }
+                }
+            }
+        },
+        "/api/notifications/assignment-reminder/{assignmentId}": {
+            "post": {
+                "summary": "Send assignment reminder (Internal)",
+                "tags": [
+                    "Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "assignmentId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reminders sent"
+                    }
+                }
+            }
+        },
+        "/api/notifications/assignment-result/{assignmentId}/{studentId}": {
+            "post": {
+                "summary": "Send assignment result notification (Internal)",
+                "tags": [
+                    "Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "assignmentId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "studentId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Result sent"
+                    }
+                }
+            }
+        },
+        "/api/notifications/payment-notification": {
+            "post": {
+                "summary": "Send payment notification (Internal)",
+                "tags": [
+                    "Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notification sent"
+                    }
+                }
+            }
+        },
+        "/api/notifications/payout-notification": {
+            "post": {
+                "summary": "Send payout notification (Internal)",
+                "tags": [
+                    "Notifications"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notification sent"
+                    }
+                }
+            }
+        },
+        "/api/notifications/trigger-reminders": {
+            "get": {
+                "summary": "Trigger all scheduled reminders and exam processing (Cron)",
+                "tags": [
+                    "Notifications"
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "secret",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reminders triggered"
+                    }
+                }
+            }
+        },
+        "/api/payments/paystack/initiate": {
+            "post": {
+                "summary": "Initiate a Paystack transaction",
+                "tags": [
+                    "Payments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "amount"
+                                ],
+                                "properties": {
+                                    "amount": {
+                                        "type": "number"
+                                    },
+                                    "classroomId": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Paystack auth URL"
+                    }
+                }
+            }
+        },
+        "/api/payments/paystack/verify": {
+            "get": {
+                "summary": "Verify a Paystack transaction by reference",
+                "tags": [
+                    "Payments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "reference",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment verified"
+                    }
+                }
+            }
+        },
+        "/api/payments/create-intent": {
+            "post": {
+                "summary": "Create a Stripe payment intent",
+                "tags": [
+                    "Payments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "amount"
+                                ],
+                                "properties": {
+                                    "amount": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Stripe client secret"
+                    }
+                }
+            }
+        },
+        "/api/payments/confirm": {
+            "post": {
+                "summary": "Confirm Stripe payment and process enrollment",
+                "tags": [
+                    "Payments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "paymentIntentId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment confirmed"
+                    }
+                }
+            }
+        },
+        "/api/payments/free-subscription": {
+            "post": {
+                "summary": "Activate a free trial or $0 subscription",
+                "tags": [
+                    "Payments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "planId"
+                                ],
+                                "properties": {
+                                    "planId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subscribed successfully"
+                    }
+                }
+            }
+        },
+        "/api/payments/history": {
+            "get": {
+                "summary": "Get payment history for the authenticated user",
+                "tags": [
+                    "Payments"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of payments"
+                    }
+                }
+            }
+        },
+        "/api/qna/classroom/{classroomId}": {
+            "get": {
+                "summary": "Get all Q&A boards for a specific classroom",
+                "tags": [
+                    "Q&A"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of Q&A boards"
+                    }
+                }
+            }
+        },
+        "/api/qna/board": {
+            "post": {
+                "summary": "Create a new Q&A board",
+                "tags": [
+                    "Q&A"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "title",
+                                    "classroomId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Board created"
+                    }
+                }
+            }
+        },
+        "/api/qna/board/{id}/questions": {
+            "get": {
+                "summary": "Get all questions for a specific Q&A board",
+                "tags": [
+                    "Q&A"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of questions"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Post a question to a Q&A board",
+                "tags": [
+                    "Q&A"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "text"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Question posted"
+                    }
+                }
+            }
+        },
+        "/api/reports/student/me": {
+            "get": {
+                "summary": "Get performance report for the logged-in student",
+                "tags": [
+                    "Reports"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Student performance data"
+                    }
+                }
+            }
+        },
+        "/api/reports/class/{classId}": {
+            "get": {
+                "summary": "Get performance report for a specific classroom",
+                "tags": [
+                    "Reports"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Classroom performance data"
+                    }
+                }
+            }
+        },
+        "/api/reports/admin/overview": {
+            "get": {
+                "summary": "Get system-wide overview report (Root Admin)",
+                "tags": [
+                    "Reports"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Admin overview data"
+                    }
+                }
+            }
+        },
+        "/api/schools": {
+            "post": {
+                "summary": "Create a new school",
+                "tags": [
+                    "Schools"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "adminId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "School created"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get schools (Root Admin sees all, School Admin sees theirs)",
+                "tags": [
+                    "Schools"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of schools"
+                    }
+                }
+            }
+        },
+        "/api/schools/public": {
+            "get": {
+                "summary": "Get list of public schools",
+                "tags": [
+                    "Schools"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of public schools"
+                    }
+                }
+            }
+        },
+        "/api/schools/public/{identifier}": {
+            "get": {
+                "summary": "Get public details of a school by ID or shortCode",
+                "tags": [
+                    "Schools"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "School details"
+                    }
+                }
+            }
+        },
+        "/api/schools/{id}": {
+            "get": {
+                "summary": "Get school by ID",
+                "tags": [
+                    "Schools"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "School details"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a school (Root Admin only)",
+                "tags": [
+                    "Schools"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "School deleted"
+                    }
+                }
+            }
+        },
+        "/api/settings": {
+            "get": {
+                "summary": "Get current system settings and subjects",
+                "tags": [
+                    "Settings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "System settings"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update system settings (Root Admin)",
+                "tags": [
+                    "Settings"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Settings updated"
+                    }
+                }
+            }
+        },
+        "/api/settings/add-subject": {
+            "post": {
+                "summary": "Add a new subject to the global list",
+                "tags": [
+                    "Settings"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "subject"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subject added"
+                    }
+                }
+            }
+        },
+        "/api/subscription-plans": {
+            "get": {
+                "summary": "Get all available subscription plans",
+                "tags": [
+                    "Subscription Plans"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of plans"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new subscription plan (Root Admin)",
+                "tags": [
+                    "Subscription Plans"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "planType",
+                                    "price"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Plan created"
+                    }
+                }
+            }
+        },
+        "/api/subscription-plans/{id}": {
+            "get": {
+                "summary": "Get a subscription plan by ID",
+                "tags": [
+                    "Subscription Plans"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Plan details"
+                    }
+                }
+            }
+        },
+        "/api/topics/reorder": {
+            "put": {
+                "summary": "Reorder topics within a classroom",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "orderedIds"
+                                ],
+                                "properties": {
+                                    "orderedIds": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reordered successfully"
+                    }
+                }
+            }
+        },
+        "/api/topics/classroom/{classroomId}": {
+            "get": {
+                "summary": "Get all topics for a classroom",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of topics"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}": {
+            "get": {
+                "summary": "Get topic by ID",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Topic details"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update a topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Topic updated"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Topic deleted"
+                    }
+                }
+            }
+        },
+        "/api/topics": {
+            "post": {
+                "summary": "Create a new topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "classroomId"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "classroomId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Topic created"
+                    }
+                }
+            }
+        },
+        "/api/topics/classroom/{classroomId}/current": {
+            "get": {
+                "summary": "Get current active topic for a classroom",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current topic details"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/complete": {
+            "post": {
+                "summary": "Mark topic as complete",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Topic marked as complete"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/set-next": {
+            "put": {
+                "summary": "Set the next topic manually",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "nextTopicId"
+                                ],
+                                "properties": {
+                                    "nextTopicId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Next topic set"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/activate": {
+            "post": {
+                "summary": "Activate a topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Topic activated"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/reset": {
+            "post": {
+                "summary": "Reset topic to pending",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Topic reset"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/upload-video": {
+            "post": {
+                "summary": "Upload a recorded video for a topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "video": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Video uploaded"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/add-video-url": {
+            "post": {
+                "summary": "Add an external video URL to a topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "url"
+                                ],
+                                "properties": {
+                                    "url": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Video URL added"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/videos/{videoId}": {
+            "delete": {
+                "summary": "Delete a video from a topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "videoId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Video deleted"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/videos/{videoId}/label": {
+            "put": {
+                "summary": "Update video label",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "videoId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "label": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Label updated"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/videos/reorder": {
+            "put": {
+                "summary": "Reorder videos in a topic",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "orderedVideoIds"
+                                ],
+                                "properties": {
+                                    "orderedVideoIds": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Videos reordered"
+                    }
+                }
+            }
+        },
+        "/api/topics/{id}/progress": {
+            "get": {
+                "summary": "Get user progress for a topic",
+                "tags": [
+                    "Topic Progress"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Progress details"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Update user progress for a topic",
+                "tags": [
+                    "Topic Progress"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "videoId": {
+                                        "type": "string"
+                                    },
+                                    "isLastActive": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Progress updated"
+                    }
+                }
+            }
+        },
+        "/api/topics/bulk-create/{classroomId}": {
+            "post": {
+                "summary": "Bulk create topics for a classroom",
+                "tags": [
+                    "Topics"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "topics"
+                                ],
+                                "properties": {
+                                    "topics": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Topics created"
+                    }
+                }
+            }
+        },
+        "/api/users": {
+            "get": {
+                "summary": "Get all users (Root Admin, School Admin, Personal Teacher)",
+                "tags": [
+                    "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "schoolId",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "role",
+                        "schema": {
+                            "type": "string",
+                            "description": "Comma separated list of roles"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of users"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new user (Admin only)",
+                "tags": [
+                    "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "role"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string"
+                                    },
+                                    "schoolId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created"
+                    },
+                    "403": {
+                        "description": "Permission denied"
+                    }
+                }
+            }
+        },
+        "/api/users/{id}": {
+            "get": {
+                "summary": "Get user by ID",
+                "tags": [
+                    "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User data"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update user details",
+                "tags": [
+                    "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated"
+                    },
+                    "403": {
+                        "description": "Permission denied"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a user",
+                "tags": [
+                    "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deleted"
+                    },
+                    "403": {
+                        "description": "Permission denied"
+                    }
+                }
+            }
+        },
+        "/api/users/bulk-invite": {
+            "post": {
+                "summary": "Bulk invite users via CSV",
+                "tags": [
+                    "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "csvFile": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "role": {
+                                        "type": "string"
+                                    },
+                                    "schoolId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Processing results"
+                    },
+                    "400": {
+                        "description": "No file uploaded"
+                    }
+                }
+            }
+        },
+        "/api/users/my-students": {
+            "get": {
+                "summary": "Get all students for the logged in teacher",
+                "tags": [
+                    "Users"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of students"
+                    }
+                }
+            }
+        },
+        "/api/user-subscriptions/me": {
+            "get": {
+                "summary": "Get current user's active subscription",
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscription details"
+                    }
+                }
+            }
+        },
+        "/api/user-subscriptions": {
+            "get": {
+                "summary": "Get all user subscriptions (Admin only)",
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user subscriptions"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create or update a user subscription manually (Admin only)",
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "planId",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subscription updated"
+                    }
+                }
+            }
+        },
+        "/api/user-subscriptions/issue-free-access": {
+            "post": {
+                "summary": "Issue free access to multiple users (Root Admin)",
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userIds",
+                                    "durationDays"
+                                ],
+                                "properties": {
+                                    "userIds": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "durationDays": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Access issued"
+                    }
+                }
+            }
+        },
+        "/api/whiteboard/{classroomId}": {
+            "get": {
+                "summary": "Get the active whiteboard session for a classroom",
+                "tags": [
+                    "Whiteboard"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session details or stored URL"
+                    }
+                }
+            }
+        },
+        "/api/whiteboard/{classroomId}/publish": {
+            "post": {
+                "summary": "Publish a persistent whiteboard URL for a classroom",
+                "tags": [
+                    "Whiteboard"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Whiteboard published"
+                    }
+                }
+            }
+        },
+        "/api/zoom/create-meeting/{classroomId}": {
+            "post": {
+                "summary": "Create a new Zoom meeting for a classroom",
+                "tags": [
+                    "Zoom"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meeting created"
+                    }
+                }
+            }
+        },
+        "/api/zoom/meeting/{classroomId}": {
+            "get": {
+                "summary": "Get details of the active Zoom meeting for a classroom",
+                "tags": [
+                    "Zoom"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "classroomId",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meeting details"
+                    }
+                }
+            }
+        }
+    },
+    "tags": []
+}

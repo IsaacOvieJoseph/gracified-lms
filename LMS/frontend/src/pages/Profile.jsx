@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
-import { User, CreditCard, Save, Camera, Lock, Building, Upload, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { User, CreditCard, Save, Camera, Lock, Building, Upload, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
 
 const Profile = () => {
     const { user, setAuthData } = useAuth(); // Use setAuthData to update user
@@ -22,7 +22,8 @@ const Profile = () => {
         payoutFrequency: 'weekly',
         currentPassword: '',
         newPassword: '',
-        confirmNewPassword: ''
+        confirmNewPassword: '',
+        twoFAEnabled: false
     });
 
     const [profilePicFile, setProfilePicFile] = useState(null);
@@ -48,7 +49,8 @@ const Profile = () => {
                         accountNumber: user.bankDetails?.accountNumber || '',
                         accountName: user.bankDetails?.accountName || '',
                         paystackRecipientCode: user.bankDetails?.paystackRecipientCode || '',
-                        payoutFrequency: user.payoutPreference?.frequency || 'weekly'
+                        payoutFrequency: user.payoutPreference?.frequency || 'weekly',
+                        twoFAEnabled: user.twoFAEnabled || false
                     }));
 
                     if (user.profilePicture) {
@@ -319,7 +321,7 @@ const Profile = () => {
                         {/* Change Password Section */}
                         <div className="space-y-6 border-t border-border pt-8">
                             <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 opacity-40">
-                                <Lock className="w-4 h-4" /> Encryption Key Update
+                                <Lock className="w-4 h-4" /> Change Password
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
@@ -388,6 +390,31 @@ const Profile = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Two-Factor Authentication Section - Hidden for Root Admin as it is mandatory */}
+                        {user?.role !== 'root_admin' && (
+                            <div className="space-y-6 border-t border-border pt-8">
+                                <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 opacity-40">
+                                    <Shield className="w-4 h-4" /> Two-Factor Authentication
+                                </h2>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-muted/40 border border-border rounded-2xl gap-4">
+                                    <div>
+                                        <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Enable 2FA Verification</h3>
+                                        <p className="text-xs text-muted-foreground font-medium mt-1">Require an email verification code when logging into your account for enhanced security.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                        <input 
+                                            type="checkbox" 
+                                            name="twoFAEnabled"
+                                            checked={formData.twoFAEnabled} 
+                                            onChange={(e) => setFormData({...formData, twoFAEnabled: e.target.checked})}
+                                            className="sr-only peer" 
+                                        />
+                                        <div className="w-14 h-7 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary shadow-inner"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Bank Details Section */}
                         {canEditBankDetails && (
@@ -470,7 +497,7 @@ const Profile = () => {
                                 ) : (
                                     <Save className="w-5 h-5" />
                                 )}
-                                <span>{saving ? 'Synchronizing...' : 'Commit Changes'}</span>
+                                <span>{saving ? 'Synchronizing...' : 'Save Changes'}</span>
                             </button>
                         </div>
                     </form>

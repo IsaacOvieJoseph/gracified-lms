@@ -7,6 +7,24 @@ const Classroom = require('../models/Classroom');
 const crypto = require('crypto');
 
 // Get all QnA boards for a classroom
+/**
+ * @swagger
+ * /api/qna/classroom/{classroomId}:
+ *   get:
+ *     summary: Get all Q&A boards for a specific classroom
+ *     tags: [Q&A]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of Q&A boards
+ */
 router.get('/classroom/:classroomId', auth, async (req, res) => {
     try {
         const qnas = await QnABoard.find({ classroomId: req.params.classroomId }).populate('topicId', 'name');
@@ -17,6 +35,27 @@ router.get('/classroom/:classroomId', auth, async (req, res) => {
 });
 
 // Create QnA board
+/**
+ * @swagger
+ * /api/qna/board:
+ *   post:
+ *     summary: Create a new Q&A board
+ *     tags: [Q&A]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - classroomId
+ *     responses:
+ *       201:
+ *         description: Board created
+ */
 router.post('/board', auth, authorize('school_admin', 'personal_teacher', 'teacher'), async (req, res) => {
     try {
         const { title, description, topicId, classroomId, isPublic, allowAnonymous, hideQuestions } = req.body;
@@ -107,6 +146,22 @@ router.delete('/board/:id', auth, authorize('school_admin', 'personal_teacher', 
 });
 
 // Get questions for a board
+/**
+ * @swagger
+ * /api/qna/board/{id}/questions:
+ *   get:
+ *     summary: Get all questions for a specific Q&A board
+ *     tags: [Q&A]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of questions
+ */
 router.get('/board/:id/questions', async (req, res) => {
     try {
         const questions = await QnAQuestion.find({ boardId: req.params.id }).sort({ createdAt: -1 });
@@ -117,6 +172,30 @@ router.get('/board/:id/questions', async (req, res) => {
 });
 
 // Add a question
+/**
+ * @swagger
+ * /api/qna/board/{id}/questions:
+ *   post:
+ *     summary: Post a question to a Q&A board
+ *     tags: [Q&A]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - text
+ *     responses:
+ *       201:
+ *         description: Question posted
+ */
 router.post('/board/:id/questions', async (req, res) => {
     try {
         const { text, authorName, authorId } = req.body;

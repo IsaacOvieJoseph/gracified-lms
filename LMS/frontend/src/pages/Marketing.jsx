@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import Select from 'react-select';
-import { Mail, Users, List as ListIcon, FileText, Calendar, Play, Pause, Upload, RefreshCw, Send, Filter, X } from 'lucide-react';
+import { Mail, Users, List as ListIcon, FileText, Calendar, Play, Pause, Upload, RefreshCw, Send, Filter, X, Sparkles } from 'lucide-react';
 
 const tabs = [
   { key: 'contacts', label: 'Contacts', icon: Users },
@@ -330,6 +330,28 @@ export default function Marketing() {
   // Template form
   // ----------------------
   const [newTemplate, setNewTemplate] = useState({ name: '', kind: 'cold', subject: '', html: '' });
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [generatingAI, setGeneratingAI] = useState(false);
+
+  const generateTemplateAI = async () => {
+    if (!aiPrompt) return toast.error('Please enter a prompt to generate the template');
+    setGeneratingAI(true);
+    try {
+      const res = await api.post('/ai/generate-marketing-email', { prompt: aiPrompt, kind: newTemplate.kind }, { skipLoader: true });
+      if (res.data.success && res.data.email) {
+        setNewTemplate((s) => ({
+          ...s,
+          subject: res.data.email.subject || s.subject,
+          html: res.data.email.html || s.html,
+        }));
+        toast.success('Template generated successfully!');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to generate template via AI');
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
 
   const createTemplate = async () => {
     if (!newTemplate.name || !newTemplate.subject || !newTemplate.html) return toast.error('Template name, subject and HTML are required');
@@ -337,6 +359,7 @@ export default function Marketing() {
       await api.post('/marketing/templates', newTemplate);
       toast.success('Template created');
       setNewTemplate({ name: '', kind: 'cold', subject: '', html: '' });
+      setAiPrompt('');
       refreshAll();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to create template');
@@ -662,6 +685,26 @@ export default function Marketing() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
               <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Create template</h3>
+              
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-4 space-y-3">
+                <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                  <Sparkles className="w-4 h-4" /> AI Generator
+                </div>
+                <textarea
+                  className={`${inputClass} min-h-[80px] text-xs border-primary/20`}
+                  placeholder="E.g. A festive greeting email for Christmas offering a 20% discount..."
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                />
+                <button 
+                  className={`${primaryBtnClass} w-full`} 
+                  onClick={generateTemplateAI}
+                  disabled={generatingAI}
+                >
+                  <Sparkles className={`w-4 h-4 ${generatingAI ? 'animate-pulse' : ''}`} />
+                  {generatingAI ? 'Generating...' : 'Auto-Generate Subject & Content'}
+                </button>
+              </div>
               <input className={inputClass} placeholder="Template name *" value={newTemplate.name} onChange={(e) => setNewTemplate((s) => ({ ...s, name: e.target.value }))} />
               <select className={inputClass} value={newTemplate.kind} onChange={(e) => setNewTemplate((s) => ({ ...s, kind: e.target.value }))}>
                 {['cold', 'followup', 'birthday', 'anniversary', 'festive', 'general'].map((k) => (

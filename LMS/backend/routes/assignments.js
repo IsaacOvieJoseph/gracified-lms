@@ -24,6 +24,18 @@ const hasSchoolAccess = (user, classroom) => {
 };
 
 // Get all assignments relevant to the user
+/**
+ * @swagger
+ * /api/assignments:
+ *   get:
+ *     summary: Get all assignments relevant to the authenticated user
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of assignments
+ */
 router.get('/', auth, async (req, res) => {
   try {
     let query = {};
@@ -56,6 +68,24 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get assignments for a classroom
+/**
+ * @swagger
+ * /api/assignments/classroom/{classroomId}:
+ *   get:
+ *     summary: Get assignments for a specific classroom
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of classroom assignments
+ */
 router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) => {
   try {
     // First check if classroom exists and owner's subscription is valid
@@ -146,6 +176,24 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
 });
 
 // Get assignment by ID
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   get:
+ *     summary: Get assignment by ID
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Assignment details
+ */
 router.get('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
@@ -216,6 +264,37 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Create assignment
+/**
+ * @swagger
+ * /api/assignments:
+ *   post:
+ *     summary: Create a new assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - classroomId
+ *               - assignmentType
+ *               - questions
+ *             properties:
+ *               title:
+ *                 type: string
+ *               classroomId:
+ *                 type: string
+ *               assignmentType:
+ *                 type: string
+ *                 enum: [mcq, theory]
+ *     responses:
+ *       201:
+ *         description: Assignment created
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const { title, description, classroomId, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt, published } = req.body;
@@ -311,6 +390,29 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 });
 
 // Update assignment
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   put:
+ *     summary: Update an assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Assignment updated
+ */
 router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const { title, description, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt, published } = req.body;
@@ -428,6 +530,34 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
 });
 
 // Submit assignment (Student)
+/**
+ * @swagger
+ * /api/assignments/{id}/submit:
+ *   post:
+ *     summary: Submit an assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               answers:
+ *                 type: array
+ *                 items: {}
+ *     responses:
+ *       200:
+ *         description: Assignment submitted
+ */
 router.post('/:id/submit', auth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
@@ -549,6 +679,40 @@ router.post('/:id/submit', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/assignments/{id}/grade:
+ *   put:
+ *     summary: Grade a general submission (MCQ auto or Manual)
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *               - score
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *               score:
+ *                 type: number
+ *               feedback:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Graded successfully
+ */
 router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
@@ -642,6 +806,40 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
 });
 
 // Grade theory assignment (Teacher/Admin) - Manual or AI Placeholder
+/**
+ * @swagger
+ * /api/assignments/{id}/grade-theory:
+ *   put:
+ *     summary: Grade a theory assignment with per-question scores
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *               - questionScores
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *               questionScores:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Theory graded
+ */
 router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
@@ -767,6 +965,24 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
 });
 
 // Get assignment results (Student/Teacher/Admin)
+/**
+ * @swagger
+ * /api/assignments/{id}/results:
+ *   get:
+ *     summary: Get results for an assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Assignment results
+ */
 router.get('/:id/results', auth, subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)

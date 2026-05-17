@@ -4,6 +4,16 @@ const Settings = require('../models/Settings');
 const { auth } = require('../middleware/auth');
 
 // Get current settings
+/**
+ * @swagger
+ * /api/settings:
+ *   get:
+ *     summary: Get current system settings and subjects
+ *     tags: [Settings]
+ *     responses:
+ *       200:
+ *         description: System settings
+ */
 router.get('/', async (req, res) => {
     try {
         let settings = await Settings.findOne();
@@ -37,6 +47,24 @@ router.get('/', async (req, res) => {
 });
 
 // Update settings (Root Admin only)
+/**
+ * @swagger
+ * /api/settings:
+ *   put:
+ *     summary: Update system settings (Root Admin)
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Settings updated
+ */
 router.put('/', auth, async (req, res) => {
     try {
         if (req.user.role !== 'root_admin') {
@@ -74,6 +102,26 @@ router.put('/', auth, async (req, res) => {
 });
 
 // Add a new subject (Accessible to teachers/admins creating classrooms)
+/**
+ * @swagger
+ * /api/settings/add-subject:
+ *   post:
+ *     summary: Add a new subject to the global list
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - subject
+ *     responses:
+ *       200:
+ *         description: Subject added
+ */
 router.post('/add-subject', auth, async (req, res) => {
     try {
         const { subject } = req.body;

@@ -54,6 +54,31 @@ const hasSchoolAccess = (user, classroom) => {
 };
 
 // Reorder topics
+/**
+ * @swagger
+ * /api/topics/reorder:
+ *   put:
+ *     summary: Reorder topics within a classroom
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderedIds
+ *             properties:
+ *               orderedIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Reordered successfully
+ */
 router.put('/reorder', auth, subscriptionCheck, async (req, res) => {
   try {
     const { orderedIds } = req.body;
@@ -82,6 +107,24 @@ router.put('/reorder', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Get topics for a classroom
+/**
+ * @swagger
+ * /api/topics/classroom/{classroomId}:
+ *   get:
+ *     summary: Get all topics for a classroom
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of topics
+ */
 router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) => {
   try {
     // First check if classroom exists and owner's subscription is valid
@@ -153,6 +196,24 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
 });
 
 // Get topic by ID
+/**
+ * @swagger
+ * /api/topics/{id}:
+ *   get:
+ *     summary: Get topic by ID
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Topic details
+ */
 router.get('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const topic = await Topic.findById(req.params.id)
@@ -221,6 +282,32 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Create topic
+/**
+ * @swagger
+ * /api/topics:
+ *   post:
+ *     summary: Create a new topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - classroomId
+ *             properties:
+ *               name:
+ *                 type: string
+ *               classroomId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Topic created
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const { name, description, classroomId, order, materials, isPaid, price, duration } = req.body;
@@ -272,6 +359,32 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 });
 
 // Update topic
+/**
+ * @swagger
+ * /api/topics/{id}:
+ *   put:
+ *     summary: Update a topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Topic updated
+ */
 router.put('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const topic = await Topic.findById(req.params.id).populate('classroomId');
@@ -300,6 +413,24 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Delete topic
+/**
+ * @swagger
+ * /api/topics/{id}:
+ *   delete:
+ *     summary: Delete a topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Topic deleted
+ */
 router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const topic = await Topic.findById(req.params.id).populate('classroomId');
@@ -339,6 +470,24 @@ const {
 } = require('../utils/topicProgressionHelper');
 
 // Get current active topic for a classroom
+/**
+ * @swagger
+ * /api/topics/classroom/{classroomId}/current:
+ *   get:
+ *     summary: Get current active topic for a classroom
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Current topic details
+ */
 router.get('/classroom/:classroomId/current', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId);
@@ -354,6 +503,24 @@ router.get('/classroom/:classroomId/current', auth, subscriptionCheck, async (re
 });
 
 // Mark topic as complete (authorized roles only)
+/**
+ * @swagger
+ * /api/topics/{id}/complete:
+ *   post:
+ *     summary: Mark topic as complete
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Topic marked as complete
+ */
 router.post('/:id/complete', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const { activateNext = true } = req.body;
@@ -385,6 +552,35 @@ router.post('/:id/complete', auth, authorize('root_admin', 'school_admin', 'teac
 });
 
 // Set next topic manually (authorized roles only)
+/**
+ * @swagger
+ * /api/topics/{id}/set-next:
+ *   put:
+ *     summary: Set the next topic manually
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nextTopicId
+ *             properties:
+ *               nextTopicId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Next topic set
+ */
 router.put('/:id/set-next', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const { nextTopicId } = req.body;
@@ -420,6 +616,24 @@ router.put('/:id/set-next', auth, authorize('root_admin', 'school_admin', 'teach
 });
 
 // Activate a topic (start it)
+/**
+ * @swagger
+ * /api/topics/{id}/activate:
+ *   post:
+ *     summary: Activate a topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Topic activated
+ */
 router.post('/:id/activate', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const topic = await Topic.findById(req.params.id).populate('classroomId');
@@ -449,6 +663,24 @@ router.post('/:id/activate', auth, authorize('root_admin', 'school_admin', 'teac
 });
 
 // Reset a topic to pending (for completed topics)
+/**
+ * @swagger
+ * /api/topics/{id}/reset:
+ *   post:
+ *     summary: Reset topic to pending
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Topic reset
+ */
 router.post('/:id/reset', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const topic = await Topic.findById(req.params.id).populate('classroomId');
@@ -493,6 +725,33 @@ router.post('/:id/reset', auth, authorize('root_admin', 'school_admin', 'teacher
 
 
 // Upload recorded video to a topic
+/**
+ * @swagger
+ * /api/topics/{id}/upload-video:
+ *   post:
+ *     summary: Upload a recorded video for a topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               video:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Video uploaded
+ */
 router.post('/:id/upload-video',
   auth,
   authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
@@ -567,6 +826,35 @@ router.post('/:id/upload-video',
 );
 
 // Add video URL to a topic
+/**
+ * @swagger
+ * /api/topics/{id}/add-video-url:
+ *   post:
+ *     summary: Add an external video URL to a topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - url
+ *             properties:
+ *               url:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Video URL added
+ */
 router.post('/:id/add-video-url',
   auth,
   authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
@@ -630,6 +918,29 @@ const checkVideoEditPermissions = async (req, res, next) => {
 };
 
 // Delete recorded video from a topic
+/**
+ * @swagger
+ * /api/topics/{id}/videos/{videoId}:
+ *   delete:
+ *     summary: Delete a video from a topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: videoId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Video deleted
+ */
 router.delete('/:id/videos/:videoId',
   auth,
   authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
@@ -673,6 +984,37 @@ router.delete('/:id/videos/:videoId',
 );
 
 // Update recorded video label
+/**
+ * @swagger
+ * /api/topics/{id}/videos/{videoId}/label:
+ *   put:
+ *     summary: Update video label
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: videoId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Label updated
+ */
 router.put('/:id/videos/:videoId/label',
   auth,
   authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
@@ -704,6 +1046,37 @@ router.put('/:id/videos/reorder',
   auth,
   authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'),
   checkVideoEditPermissions,
+/**
+ * @swagger
+ * /api/topics/{id}/videos/reorder:
+ *   put:
+ *     summary: Reorder videos in a topic
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderedVideoIds
+ *             properties:
+ *               orderedVideoIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Videos reordered
+ */
   async (req, res) => {
     try {
       const topic = req.topic;
@@ -752,6 +1125,24 @@ const TopicProgress = require('../models/TopicProgress');
 // ─── Topic Progression tracking (User specific) ──────────────────────────────
 
 // Get user's progress for a specific topic
+/**
+ * @swagger
+ * /api/topics/{id}/progress:
+ *   get:
+ *     summary: Get user progress for a topic
+ *     tags: [Topic Progress]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Progress details
+ */
 router.get('/:id/progress', auth, async (req, res) => {
   try {
     const progress = await TopicProgress.findOne({
@@ -770,6 +1161,34 @@ router.get('/:id/progress', auth, async (req, res) => {
 });
 
 // Update user's progress for a specific topic
+/**
+ * @swagger
+ * /api/topics/{id}/progress:
+ *   post:
+ *     summary: Update user progress for a topic
+ *     tags: [Topic Progress]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               videoId:
+ *                 type: string
+ *               isLastActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Progress updated
+ */
 router.post('/:id/progress', auth, async (req, res) => {
   try {
     const { videoId, isLastActive = true } = req.body;
@@ -810,6 +1229,37 @@ router.post('/:id/progress', auth, async (req, res) => {
 });
 
 // Bulk create topics for a classroom
+/**
+ * @swagger
+ * /api/topics/bulk-create/{classroomId}:
+ *   post:
+ *     summary: Bulk create topics for a classroom
+ *     tags: [Topics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - topics
+ *             properties:
+ *               topics:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Topics created
+ */
 router.post('/bulk-create/:classroomId', auth, subscriptionCheck, async (req, res) => {
   try {
     const { topics } = req.body;

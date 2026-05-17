@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { sendBrevoEmail } = require('./brevo');
+const { sendEmail } = require('./email');
 
 /**
  * Generate a 6-digit OTP
@@ -36,7 +36,7 @@ async function send2FAOTP(user, otp) {
       <p>If you didn't request this code, please ignore this email.</p>
     `;
 
-    await sendBrevoEmail({
+    await sendEmail({
       to: user.email,
       subject: 'Your 2FA Verification Code',
       html: emailContent,

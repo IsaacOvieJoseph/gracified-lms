@@ -4,6 +4,18 @@ const { auth } = require('../middleware/auth');
 const router = express.Router();
 
 // Get in-app notifications for the logged-in user
+/**
+ * @swagger
+ * /api/notifications-inapp:
+ *   get:
+ *     summary: Get in-app notifications for the logged-in user
+ *     tags: [In-App Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of notifications
+ */
 router.get('/', auth, async (req, res) => {
   try {
     const notifications = await Notification.find({ userId: req.user._id })
@@ -17,6 +29,24 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Mark a specific notification as read
+/**
+ * @swagger
+ * /api/notifications-inapp/{id}/read:
+ *   put:
+ *     summary: Mark a specific notification as read
+ *     tags: [In-App Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification updated
+ */
 router.put('/:id/read', auth, async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -36,6 +66,18 @@ router.put('/:id/read', auth, async (req, res) => {
 });
 
 // Mark all notifications for the user as read
+/**
+ * @swagger
+ * /api/notifications-inapp/mark-all-read:
+ *   put:
+ *     summary: Mark all notifications for the user as read
+ *     tags: [In-App Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications updated
+ */
 router.put('/mark-all-read', auth, async (req, res) => {
   try {
     await Notification.updateMany(

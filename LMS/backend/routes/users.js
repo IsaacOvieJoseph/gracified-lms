@@ -23,6 +23,32 @@ const upload = multer({
 });
 
 // Get all users (Root Admin, School Admin, Personal Teacher)
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Get all users (Root Admin, School Admin, Personal Teacher)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: schoolId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           description: Comma separated list of roles
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
 router.get('/', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     let query = {};
@@ -77,6 +103,26 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'personal_teacher'
 });
 
 // Get user by ID
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Get user by ID
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User data
+ *       404:
+ *         description: User not found
+ */
 router.get('/:id', auth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
@@ -90,6 +136,42 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Create user (Root Admin, School Admin)
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: Create a new user (Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               schoolId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created
+ *       403:
+ *         description: Permission denied
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     const { name, email, password, role, schoolId } = req.body;
@@ -158,6 +240,33 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
 });
 
 // Bulk CSV upload with invite links
+/**
+ * @swagger
+ * /api/users/bulk-invite:
+ *   post:
+ *     summary: Bulk invite users via CSV
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               csvFile:
+ *                 type: string
+ *                 format: binary
+ *               role:
+ *                 type: string
+ *               schoolId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Processing results
+ *       400:
+ *         description: No file uploaded
+ */
 router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), upload.single('csvFile'), async (req, res) => {
   try {
     if (!req.file) {
@@ -336,6 +445,38 @@ router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), uploa
 });
 
 // Update user
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   put:
+ *     summary: Update user details
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated
+ *       403:
+ *         description: Permission denied
+ *       404:
+ *         description: User not found
+ */
 router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     const targetUser = await User.findById(req.params.id);
@@ -369,6 +510,26 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, re
 });
 
 // Delete user (Root Admin, School Admin for their own users)
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Delete a user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted
+ *       403:
+ *         description: Permission denied
+ */
 router.delete('/:id', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     const targetUser = await User.findById(req.params.id);
@@ -391,6 +552,18 @@ router.delete('/:id', auth, authorize('root_admin', 'school_admin'), async (req,
 });
 
 // Get students for a teacher
+/**
+ * @swagger
+ * /api/users/my-students:
+ *   get:
+ *     summary: Get all students for the logged in teacher
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of students
+ */
 router.get('/my-students', auth, authorize('teacher', 'personal_teacher'), async (req, res) => {
   try {
     const Classroom = require('../models/Classroom');

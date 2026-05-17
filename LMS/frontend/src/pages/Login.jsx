@@ -4,6 +4,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.jpg';
 import { validateEmail } from '../utils/validation';
+import api from '../utils/api';
 import ThemeToggle from '../components/ThemeToggle';
 
 const Login = () => {
@@ -12,7 +13,14 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  
+  // 2FA state
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  const { login, setAuthData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,6 +41,10 @@ const Login = () => {
         const params = new URLSearchParams(location.search);
         const redirectTo = params.get('redirect') || '/dashboard';
         navigate(redirectTo);
+      } else if (result.requiresVerification) {
+        setTempToken(result.tempToken);
+        setShow2FAModal(true);
+        setError('');
       } else if (result.redirectToVerify && result.email) {
         navigate('/verify-email', { state: { email: result.email } });
       } else if (result.trialExpired) {
@@ -44,6 +56,32 @@ const Login = () => {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setError('');
+    setOtpLoading(true);
+    try {
+      const response = await api.post('/auth/verify-2fa-login', { tempToken, otp }, { skipLoader: true });
+      const { token, user, trialExpired, subscriptionExpired } = response.data;
+      
+      const cleanedUser = {
+        ...user,
+        schoolId: user.schoolId || [],
+        tutorialId: user.tutorialId || null,
+      };
+
+      setAuthData(token, cleanedUser, trialExpired, subscriptionExpired);
+      
+      const params = new URLSearchParams(location.search);
+      const redirectTo = params.get('redirect') || '/dashboard';
+      navigate(redirectTo);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Verification failed. Please check your code.');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -103,74 +141,135 @@ const Login = () => {
               <p className="text-muted-foreground text-base">Enter your credentials to access your account</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-7">
-              <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Email Address</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
-                    <Mail className="w-5 h-5" />
+            {!show2FAModal ? (
+              <form onSubmit={handleSubmit} className="space-y-7">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Email Address</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-11 bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
+                      placeholder="name@example.com"
+                      required
+                    />
                   </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-11 bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
-                    placeholder="name@example.com"
-                    required
-                  />
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Password</label>
-                  <Link to="/forgot-password" title="Recover password" className="text-xs font-bold text-primary hover:underline">
-                    Forgot Password?
-                  </Link>
-                </div>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
-                    <Lock className="w-5 h-5" />
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Password</label>
+                    <Link to="/forgot-password" title="Recover password" className="text-xs font-bold text-primary hover:underline">
+                      Forgot Password?
+                    </Link>
                   </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-11 bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
-                    placeholder="••••••••"
-                    required
-                  />
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-11 bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 dark:text-red-400 text-xs font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-premium w-full mt-2"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Sign In</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerify2FA} className="space-y-7 animate-slide-up">
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl text-primary text-sm font-medium mb-6">
+                  A verification code has been sent to your email. Please enter it below to complete sign in.
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Verification Code (OTP)</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="w-full pl-11 text-center tracking-[0.5em] font-mono text-lg bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
+                      placeholder="000000"
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 dark:text-red-400 text-xs font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-4">
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                    onClick={() => {
+                      setShow2FAModal(false);
+                      setOtp('');
+                      setError('');
+                    }}
+                    disabled={otpLoading}
+                    className="flex-1 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-semibold rounded-xl transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={otpLoading || otp.length < 6}
+                    className="flex-[2] btn-premium"
+                  >
+                    {otpLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                    ) : (
+                      <>
+                        <span>Verify Code</span>
+                        <ArrowRight className="w-4 h-4 ml-2 inline-block" />
+                      </>
+                    )}
                   </button>
                 </div>
-              </div>
-
-              {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 dark:text-red-400 text-xs font-medium">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-premium w-full mt-2"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <span>Sign In</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
+              </form>
+            )}
 
             <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
               Don't have an account?{' '}

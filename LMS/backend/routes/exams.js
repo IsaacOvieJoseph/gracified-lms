@@ -25,6 +25,33 @@ const hasSchoolAccess = (user, schoolId) => {
 // @route   POST /api/exams
 // @desc    Create an exam
 // @access  Teacher/Admin
+/**
+ * @swagger
+ * /api/exams:
+ *   post:
+ *     summary: Create a new exam
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - duration
+ *               - questions
+ *             properties:
+ *               title:
+ *                 type: string
+ *               duration:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Exam created
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
         const { title, description, duration, accessMode, startTime, endTime, questions, schoolId, classId, dueDate } = req.body;
@@ -84,6 +111,18 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 // @route   GET /api/exams
 // @desc    Get exams (Student: assigned/taken, Teacher/Admin: created/school-wide)
 // @access  Authenticated Users
+/**
+ * @swagger
+ * /api/exams:
+ *   get:
+ *     summary: Get exams (assigned to student or created by teacher/admin)
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of exams
+ */
 router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher', 'student'), async (req, res) => {
     try {
         let exams = [];
@@ -144,6 +183,24 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'person
 // @route   GET /api/exams/:id
 // @desc    Get exam by ID
 // @access  Teacher/Admin
+/**
+ * @swagger
+ * /api/exams/{id}:
+ *   get:
+ *     summary: Get exam by ID
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Exam details
+ */
 router.get('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
         const exam = await Exam.findById(req.params.id)
@@ -184,6 +241,24 @@ router.get('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
 // @route   PUT /api/exams/:id
 // @desc    Update exam
 // @access  Teacher/Admin
+/**
+ * @swagger
+ * /api/exams/{id}:
+ *   put:
+ *     summary: Update an exam
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Exam updated
+ */
 router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
         const exam = await Exam.findById(req.params.id);
@@ -204,6 +279,24 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
 // @route   DELETE /api/exams/:id
 // @desc    Delete exam
 // @access  Teacher/Admin
+/**
+ * @swagger
+ * /api/exams/{id}:
+ *   delete:
+ *     summary: Delete an exam
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Exam deleted
+ */
 router.delete('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
         const exam = await Exam.findById(req.params.id);
@@ -225,6 +318,22 @@ router.delete('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', '
 // @route   GET /api/exams/public/:token
 // @desc    Get basic exam info by token
 // @access  Public
+/**
+ * @swagger
+ * /api/exams/public/{token}:
+ *   get:
+ *     summary: Get basic exam info by token (Public)
+ *     tags: [Exams]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Exam info
+ */
 router.get('/public/:token', async (req, res) => {
     try {
         const tokenOrId = req.params.token;
@@ -358,6 +467,32 @@ router.get('/public/:token', async (req, res) => {
 // @route   POST /api/exams/public/:token/start
 // @desc    Start an exam attempt
 // @access  Public (Optional Auth)
+/**
+ * @swagger
+ * /api/exams/public/{token}/start:
+ *   post:
+ *     summary: Start an exam attempt
+ *     tags: [Exams]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               candidateName:
+ *                 type: string
+ *               candidateEmail:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Attempt started
+ */
 router.post('/public/:token/start', async (req, res) => {
     try {
         const tokenOrId = req.params.token;
@@ -477,6 +612,32 @@ router.post('/public/:token/start', async (req, res) => {
 // @route   POST /api/exams/submissions/:id/submit
 // @desc    Submit exam answers
 // @access  Public (tracked by submission ID)
+/**
+ * @swagger
+ * /api/exams/submissions/{id}/submit:
+ *   post:
+ *     summary: Submit exam answers
+ *     tags: [Exams]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               answers:
+ *                 type: array
+ *                 items: {}
+ *     responses:
+ *       200:
+ *         description: Exam submitted
+ */
 router.post('/submissions/:id/submit', async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -598,6 +759,24 @@ router.post('/submissions/:id/submit', async (req, res) => {
 // @route   GET /api/exams/:id/submissions
 // @desc    Get all submissions for an exam
 // @access  Teacher/Admin
+/**
+ * @swagger
+ * /api/exams/{id}/submissions:
+ *   get:
+ *     summary: Get all submissions for an exam
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of submissions
+ */
 router.get('/:id/submissions', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
         const exam = await Exam.findById(req.params.id);
@@ -620,6 +799,24 @@ router.get('/:id/submissions', auth, authorize('root_admin', 'school_admin', 'te
 // @route   GET /api/exams/submissions/detail/:id
 // @desc    Get full submission details
 // @access  Teacher/Admin
+/**
+ * @swagger
+ * /api/exams/submissions/detail/{id}:
+ *   get:
+ *     summary: Get full submission details
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Submission details
+ */
 router.get('/submissions/detail/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
         const submission = await ExamSubmission.findById(req.params.id)
@@ -645,6 +842,35 @@ router.get('/submissions/detail/:id', auth, authorize('root_admin', 'school_admi
 // @route   PATCH /api/exams/submissions/detail/:id/grade
 // @desc    Update grades for theory questions
 // @access  Teacher/Admin
+/**
+ * @swagger
+ * /api/exams/submissions/detail/{id}/grade:
+ *   patch:
+ *     summary: Update grades for theory questions
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               questionGrades:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Grading updated
+ */
 router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
         const submission = await ExamSubmission.findById(req.params.id).populate('examId');
@@ -718,6 +944,24 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
 // @route   GET /api/exams/class/:classId
 // @desc    Get exams for a specific classroom
 // @access  Registered Student / Teacher
+/**
+ * @swagger
+ * /api/exams/class/{classId}:
+ *   get:
+ *     summary: Get exams for a specific classroom
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of classroom exams
+ */
 router.get('/class/:classId', auth, async (req, res) => {
     try {
         const exams = await Exam.find({ classId: req.params.classId, isPublished: true }).sort({ createdAt: -1 });

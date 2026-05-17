@@ -15,6 +15,24 @@ const { sendEmail } = require('../utils/email');
 const router = express.Router();
 
 // Public: Get classroom by shortCode for preview
+/**
+ * @swagger
+ * /api/classrooms/public/{identifier}:
+ *   get:
+ *     summary: Get classroom details by shortCode or ID (Public)
+ *     tags: [Classrooms]
+ *     parameters:
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom details
+ *       404:
+ *         description: Classroom not found
+ */
 router.get('/public/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
@@ -62,7 +80,20 @@ router.get('/public/:identifier', async (req, res) => {
   }
 });
 
-// Get all classrooms
+/**
+ * @swagger
+ * /api/classrooms:
+ *   get:
+ *     summary: Get all classrooms accessible to the user
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of classrooms
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/', auth, subscriptionCheck, async (req, res) => {
   try {
     let query = {};
@@ -145,6 +176,18 @@ router.get('/', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Get all active meetings for user's classrooms
+/**
+ * @swagger
+ * /api/classrooms/active-meetings:
+ *   get:
+ *     summary: Get all active lecture sessions for user's classrooms
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active sessions
+ */
 router.get('/active-meetings', auth, async (req, res) => {
   try {
     let classroomQuery = {};
@@ -174,6 +217,18 @@ router.get('/active-meetings', auth, async (req, res) => {
 });
 
 // Get pending feedback requests for student
+/**
+ * @swagger
+ * /api/classrooms/feedback/pending:
+ *   get:
+ *     summary: Get pending feedback requests for student
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending feedback requests
+ */
 router.get('/feedback/pending', auth, async (req, res) => {
   try {
     const feedbackRequests = await FeedbackRequest.find({
@@ -187,6 +242,34 @@ router.get('/feedback/pending', auth, async (req, res) => {
 });
 
 // Submit feedback
+/**
+ * @swagger
+ * /api/classrooms/feedback:
+ *   post:
+ *     summary: Submit feedback for a classroom or platform
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - requestId
+ *               - rating
+ *             properties:
+ *               requestId:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Feedback submitted
+ */
 router.post('/feedback', auth, async (req, res) => {
   try {
     const { requestId, rating, comment } = req.body;
@@ -212,6 +295,29 @@ router.post('/feedback', auth, async (req, res) => {
 });
 
 // Trigger platform feedback request (Root Admin)
+/**
+ * @swagger
+ * /api/classrooms/feedback/request:
+ *   post:
+ *     summary: Request feedback from users (Root Admin)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               targetRole:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Feedback request sent
+ */
 router.post('/feedback/request', auth, authorize('root_admin'), async (req, res) => {
   try {
     const { targetRole, message } = req.body;
@@ -249,6 +355,18 @@ router.post('/feedback/request', auth, authorize('root_admin'), async (req, res)
 });
 
 // Get all feedbacks (Root Admin)
+/**
+ * @swagger
+ * /api/classrooms/feedback/all:
+ *   get:
+ *     summary: Get all completed feedbacks (Root Admin)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of feedbacks
+ */
 router.get('/feedback/all', auth, authorize('root_admin'), async (req, res) => {
   try {
     const feedbacks = await FeedbackRequest.find({ status: 'completed' })
@@ -262,6 +380,18 @@ router.get('/feedback/all', auth, authorize('root_admin'), async (req, res) => {
 });
 
 // Get pending feedback requests for student
+/**
+ * @swagger
+ * /api/classrooms/feedback/pending:
+ *   get:
+ *     summary: Get pending feedback requests for student
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending feedback requests
+ */
 router.get('/feedback/pending', auth, async (req, res) => {
   try {
     const feedbackRequests = await FeedbackRequest.find({
@@ -275,6 +405,34 @@ router.get('/feedback/pending', auth, async (req, res) => {
 });
 
 // Submit feedback
+/**
+ * @swagger
+ * /api/classrooms/feedback:
+ *   post:
+ *     summary: Submit feedback for a classroom or platform
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - requestId
+ *               - rating
+ *             properties:
+ *               requestId:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Feedback submitted
+ */
 router.post('/feedback', auth, async (req, res) => {
   try {
     const { requestId, rating, comment } = req.body;
@@ -300,6 +458,26 @@ router.post('/feedback', auth, async (req, res) => {
 });
 
 // Get classroom by ID
+/**
+ * @swagger
+ * /api/classrooms/{id}:
+ *   get:
+ *     summary: Get classroom details by ID
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom details
+ *       404:
+ *         description: Classroom not found
+ */
 router.get('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id)
@@ -432,6 +610,41 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Create classroom
+/**
+ * @swagger
+ * /api/classrooms:
+ *   post:
+ *     summary: Create a new classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - schedule
+ *               - pricing
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               schedule:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               pricing:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Classroom created
+ *       400:
+ *         description: Invalid input
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const {
@@ -594,6 +807,38 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 });
 
 // Update classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}:
+ *   put:
+ *     summary: Update classroom details
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Classroom updated
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Classroom not found
+ */
 router.put('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
@@ -671,6 +916,26 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Delete classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}:
+ *   delete:
+ *     summary: Delete a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom deleted
+ *       403:
+ *         description: Access denied
+ */
 router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
@@ -709,6 +974,34 @@ router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Publish/Unpublish classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}/publish:
+ *   put:
+ *     summary: Publish or unpublish a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               published:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Status updated
+ *       403:
+ *         description: Access denied
+ */
 router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
@@ -781,6 +1074,28 @@ router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'person
 });
 
 // Enroll student (after payment or free class)
+/**
+ * @swagger
+ * /api/classrooms/{id}/enroll:
+ *   post:
+ *     summary: Enroll current student in a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Enrolled successfully
+ *       400:
+ *         description: Already enrolled or classroom full
+ *       404:
+ *         description: Classroom not found
+ */
 router.post('/:id/enroll', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id).populate('teacherId schoolId');
@@ -885,6 +1200,26 @@ router.post('/:id/enroll', auth, async (req, res) => {
 });
 
 // Leave classroom (student unenrolls themselves)
+/**
+ * @swagger
+ * /api/classrooms/{id}/leave:
+ *   post:
+ *     summary: Student unenrolls from a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully left the class
+ *       403:
+ *         description: Only students can leave
+ */
 router.post('/:id/leave', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
@@ -925,6 +1260,37 @@ router.post('/:id/leave', auth, async (req, res) => {
 });
 
 // Add student to classroom (School Admin, Personal Teacher, Root Admin)
+/**
+ * @swagger
+ * /api/classrooms/{id}/students:
+ *   post:
+ *     summary: Add a student to a classroom (Admin/Teacher only)
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Student added
+ *       403:
+ *         description: Access denied
+ */
 router.post('/:id/students', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const { studentId } = req.body;
@@ -989,6 +1355,29 @@ router.post('/:id/students', auth, authorize('root_admin', 'school_admin', 'pers
 });
 
 // Remove student from classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}/students/{studentId}:
+ *   delete:
+ *     summary: Remove a student from a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Student removed
+ */
 router.delete('/:id/students/:studentId', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id).populate('teacherId');
@@ -1037,6 +1426,35 @@ router.delete('/:id/students/:studentId', auth, authorize('root_admin', 'school_
 });
 
 // Update teacher (Root Admin only, for non-personal teacher classes)
+/**
+ * @swagger
+ * /api/classrooms/{id}/teacher:
+ *   put:
+ *     summary: Update classroom teacher (Root Admin only)
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - teacherId
+ *             properties:
+ *               teacherId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Teacher updated
+ */
 router.put('/:id/teacher', auth, authorize('root_admin'), subscriptionCheck, async (req, res) => {
   try {
     const { teacherId } = req.body;
@@ -1131,6 +1549,36 @@ const notifyStudentsLectureStart = async (classroom, initiator, link) => {
 };
 
 // Start a class call (teacher, personal_teacher owner, school_admin of school, root_admin)
+/**
+ * @swagger
+ * /api/classrooms/{id}/call/start:
+ *   post:
+ *     summary: Start a live lecture call
+ *     tags: [Classroom Calls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isPaid:
+ *                 type: boolean
+ *               amount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Call session started
+ *       403:
+ *         description: Google auth required or access denied
+ */
 router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id)
@@ -1331,6 +1779,26 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Get latest call link for a classroom (join) - allowed for enrolled students, teacher, school admin of school, personal teacher owner, root_admin
+/**
+ * @swagger
+ * /api/classrooms/{id}/call:
+ *   get:
+ *     summary: Get the latest call link for a classroom
+ *     tags: [Classroom Calls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Call link details
+ *       404:
+ *         description: No active call found
+ */
 router.get('/:id/call', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id).populate('students').populate('schoolId');
@@ -1403,6 +1871,24 @@ router.get('/:id/call', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Mark attendance for a student joining a call
+/**
+ * @swagger
+ * /api/classrooms/{id}/call/attend:
+ *   post:
+ *     summary: Mark attendance for a call session
+ *     tags: [Classroom Calls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Attendance marked
+ */
 router.post('/:id/call/attend', auth, subscriptionCheck, async (req, res) => {
   try {
     if (req.user.role !== 'student') {
@@ -1453,6 +1939,24 @@ router.post('/:id/call/attend', auth, subscriptionCheck, async (req, res) => {
 });
 
 // End Classroom - Removes students, resets assignments/topics, requests feedback
+/**
+ * @swagger
+ * /api/classrooms/{id}/end:
+ *   post:
+ *     summary: End a classroom session (unenroll students, reset assignments)
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom ended and reset
+ */
 router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);

@@ -6,6 +6,24 @@ const { auth } = require('../middleware/auth');
 const router = express.Router();
 
 // Create Zoom meeting
+/**
+ * @swagger
+ * /api/zoom/create-meeting/{classroomId}:
+ *   post:
+ *     summary: Create a new Zoom meeting for a classroom
+ *     tags: [Zoom]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Meeting created
+ */
 router.post('/create-meeting/:classroomId', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId)
@@ -76,6 +94,24 @@ router.post('/create-meeting/:classroomId', auth, async (req, res) => {
 });
 
 // Get Zoom meeting details
+/**
+ * @swagger
+ * /api/zoom/meeting/{classroomId}:
+ *   get:
+ *     summary: Get details of the active Zoom meeting for a classroom
+ *     tags: [Zoom]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Meeting details
+ */
 router.get('/meeting/:classroomId', auth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId);

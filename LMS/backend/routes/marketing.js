@@ -48,6 +48,22 @@ function buildUnsubscribeHtml(contact) {
 // =========================
 // Public unsubscribe endpoint
 // =========================
+/**
+ * @swagger
+ * /api/marketing/unsubscribe/{token}:
+ *   get:
+ *     summary: Public endpoint to unsubscribe a contact via token
+ *     tags: [Marketing]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Unsubscribed successfully
+ */
 router.get('/unsubscribe/:token', async (req, res) => {
   try {
     const { token } = req.params;
@@ -72,6 +88,27 @@ router.use(auth, authorize('root_admin'));
 // =========================
 // Contacts
 // =========================
+/**
+ * @swagger
+ * /api/marketing/contacts:
+ *   get:
+ *     summary: Get all marketing contacts and LMS users (Root Admin)
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: tag
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of contacts
+ */
 router.get('/contacts', async (req, res) => {
   try {
     const { search, tag, unsubscribed, includeUsers } = req.query;
@@ -201,6 +238,26 @@ router.get('/contacts', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/marketing/contacts:
+ *   post:
+ *     summary: Create a new marketing contact manually
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *     responses:
+ *       201:
+ *         description: Contact created
+ */
 router.post('/contacts', async (req, res) => {
   try {
     const payload = req.body || {};
@@ -254,6 +311,27 @@ router.delete('/contacts/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/marketing/contacts/import-csv:
+ *   post:
+ *     summary: Bulk import contacts from a CSV file
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               csvFile:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Import complete
+ */
 router.post('/contacts/import-csv', upload.single('csvFile'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No CSV file uploaded' });
@@ -328,6 +406,18 @@ router.post('/contacts/import-csv', upload.single('csvFile'), async (req, res) =
 // =========================
 // Lists
 // =========================
+/**
+ * @swagger
+ * /api/marketing/lists:
+ *   get:
+ *     summary: Get all marketing lists created by the admin
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of mailing lists
+ */
 router.get('/lists', async (req, res) => {
   try {
     const lists = await MarketingList.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
@@ -446,6 +536,18 @@ router.delete('/lists/:id', async (req, res) => {
 // =========================
 // Templates
 // =========================
+/**
+ * @swagger
+ * /api/marketing/templates:
+ *   get:
+ *     summary: Get all email templates
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of templates
+ */
 router.get('/templates', async (req, res) => {
   try {
     const templates = await MarketingTemplate.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
@@ -541,6 +643,26 @@ async function ensureMarketingContact({ email, name, role, school, tutorial }) {
   return contact;
 }
 
+/**
+ * @swagger
+ * /api/marketing/send:
+ *   post:
+ *     summary: Send an email template to selected recipients (Synchronous)
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateId
+ *     responses:
+ *       200:
+ *         description: Emails sent
+ */
 router.post('/send', async (req, res) => {
   try {
     const { templateId, recipientEmails, recipientIds } = req.body || {};
@@ -616,6 +738,27 @@ router.post('/send', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/marketing/send-async:
+ *   post:
+ *     summary: Queue a bulk email job (Asynchronous)
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateId
+ *               - recipientIds
+ *     responses:
+ *       202:
+ *         description: Job queued
+ */
 router.post('/send-async', async (req, res) => {
   try {
     const { templateId, recipientIds } = req.body || {};
@@ -654,6 +797,18 @@ router.get('/jobs/:id', async (req, res) => {
 // =========================
 // Campaigns
 // =========================
+/**
+ * @swagger
+ * /api/marketing/campaigns:
+ *   get:
+ *     summary: Get all drip campaigns
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of campaigns
+ */
 router.get('/campaigns', async (req, res) => {
   try {
     const campaigns = await MarketingCampaign.find({ createdBy: req.user._id })
@@ -759,6 +914,18 @@ router.post('/campaigns/:id/pause', async (req, res) => {
 // =========================
 // Holidays (festive greetings)
 // =========================
+/**
+ * @swagger
+ * /api/marketing/holidays:
+ *   get:
+ *     summary: Get configured holiday greetings
+ *     tags: [Marketing]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of holidays
+ */
 router.get('/holidays', async (req, res) => {
   try {
     const holidays = await MarketingHoliday.find({ createdBy: req.user._id }).sort({ month: 1, day: 1 });

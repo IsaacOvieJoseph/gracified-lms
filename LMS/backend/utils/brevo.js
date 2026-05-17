@@ -1,4 +1,4 @@
-const SibApiV3Sdk = require('sib-api-v3-sdk');
+const SibApiV3Sdk = require('@getbrevo/brevo');
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 
 // Set your API key from environment variable for security

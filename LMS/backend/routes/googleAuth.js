@@ -3,6 +3,27 @@ const { google } = require('googleapis');
 const User = require('../models/User');
 const router = express.Router();
 // Step 0: Start consent flow (redirect user to Google)
+/**
+ * @swagger
+ * /api/google-auth/start-consent:
+ *   get:
+ *     summary: Redirect to Google OAuth consent screen
+ *     tags: [Google Auth]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       302:
+ *         description: Redirect to Google
+ */
 router.get('/start-consent', async (req, res) => {
   const { userId, classroomId, debug } = req.query;
   if (!userId || !classroomId) return res.status(400).send('Missing userId or classroomId');
@@ -69,6 +90,16 @@ router.get('/oauth-callback', async (req, res) => {
 // Duplicate removed
 
 // Step 1: Get Google OAuth URL for user to authorize
+/**
+ * @swagger
+ * /api/google-auth/url:
+ *   get:
+ *     summary: Get Google OAuth authorization URL
+ *     tags: [Google Auth]
+ *     responses:
+ *       200:
+ *         description: OAuth URL
+ */
 router.get('/url', async (req, res) => {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
@@ -84,6 +115,25 @@ router.get('/url', async (req, res) => {
 });
 
 // Step 2: Exchange code for refresh token and save to user
+/**
+ * @swagger
+ * /api/google-auth/save-token:
+ *   post:
+ *     summary: Exchange auth code for refresh token and save to user
+ *     tags: [Google Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *               - userId
+ *     responses:
+ *       200:
+ *         description: Token saved
+ */
 router.post('/save-token', async (req, res) => {
   const { code, userId } = req.body;
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;

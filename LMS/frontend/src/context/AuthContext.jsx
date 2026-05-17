@@ -80,7 +80,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password }, { skipLoader: true });
-      const { token, user, redirectToVerify, trialExpired, subscriptionExpired } = response.data;
+      const { token, user, redirectToVerify, trialExpired, subscriptionExpired, requiresVerification, tempToken } = response.data;
+
+      if (requiresVerification) {
+        return { success: false, requiresVerification: true, email: email, tempToken: tempToken, message: response.data.message };
+      }
 
       if (redirectToVerify) {
         return { success: false, redirectToVerify: true, email: email, message: response.data.message };

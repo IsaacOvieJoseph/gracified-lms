@@ -186,6 +186,33 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
 
 // Paystack integration
 // Initiate a Paystack transaction and return authorization URL
+/**
+ * @swagger
+ * /api/payments/paystack/initiate:
+ *   post:
+ *     summary: Initiate a Paystack transaction
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: number
+ *               classroomId:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Paystack auth URL
+ */
 router.post('/paystack/initiate', auth, async (req, res) => {
   try {
     const { amount, classroomId, topicId, planId, type, returnUrl } = req.body;
@@ -229,6 +256,24 @@ router.post('/paystack/initiate', auth, async (req, res) => {
 });
 
 // Verify Paystack transaction by reference and process enrollment/payment
+/**
+ * @swagger
+ * /api/payments/paystack/verify:
+ *   get:
+ *     summary: Verify a Paystack transaction by reference
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: reference
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Payment verified
+ */
 router.get('/paystack/verify', auth, async (req, res) => {
   try {
     const { reference } = req.query;
@@ -602,6 +647,29 @@ router.post('/paystack/webhook', express.raw({ type: 'application/json' }), asyn
   }
 });
 // Create payment intent
+/**
+ * @swagger
+ * /api/payments/create-intent:
+ *   post:
+ *     summary: Create a Stripe payment intent
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Stripe client secret
+ */
 router.post('/create-intent', auth, async (req, res) => {
   try {
     const { type, classroomId, topicId, amount } = req.body;
@@ -632,6 +700,26 @@ router.post('/create-intent', auth, async (req, res) => {
 });
 
 // Confirm payment and enroll
+/**
+ * @swagger
+ * /api/payments/confirm:
+ *   post:
+ *     summary: Confirm Stripe payment and process enrollment
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentIntentId
+ *     responses:
+ *       200:
+ *         description: Payment confirmed
+ */
 router.post('/confirm', auth, async (req, res) => {
   try {
     const { paymentIntentId, type, classroomId, topicId, amount } = req.body;
@@ -712,6 +800,29 @@ router.post('/confirm', auth, async (req, res) => {
 });
 
 // Handle free trial and 0-price PAYG activations (User-facing 'Payment API' for free plans)
+/**
+ * @swagger
+ * /api/payments/free-subscription:
+ *   post:
+ *     summary: Activate a free trial or $0 subscription
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - planId
+ *             properties:
+ *               planId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Subscribed successfully
+ */
 router.post('/free-subscription', auth, async (req, res) => {
   try {
     const { planId } = req.body;
@@ -776,6 +887,18 @@ router.post('/free-subscription', auth, async (req, res) => {
 });
 
 // Get payment history
+/**
+ * @swagger
+ * /api/payments/history:
+ *   get:
+ *     summary: Get payment history for the authenticated user
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of payments
+ */
 router.get('/history', auth, async (req, res) => {
   try {
     let query = { userId: req.user._id };

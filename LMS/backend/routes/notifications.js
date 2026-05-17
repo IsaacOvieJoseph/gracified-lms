@@ -11,6 +11,24 @@ const { processPendingExamResults } = require('../utils/examNotificationHelper')
 
 
 // Send class reminder
+/**
+ * @swagger
+ * /api/notifications/class-reminder/{classroomId}:
+ *   post:
+ *     summary: Send class reminder (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reminders sent
+ */
 router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId)
@@ -58,6 +76,24 @@ router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
 });
 
 // Send assignment reminder
+/**
+ * @swagger
+ * /api/notifications/assignment-reminder/{assignmentId}:
+ *   post:
+ *     summary: Send assignment reminder (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reminders sent
+ */
 router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId)
@@ -118,6 +154,29 @@ router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res)
 });
 
 // Send assignment result
+/**
+ * @swagger
+ * /api/notifications/assignment-result/{assignmentId}/{studentId}:
+ *   post:
+ *     summary: Send assignment result notification (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Result sent
+ */
 router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId)
@@ -200,6 +259,27 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
 });
 
 // Send payment notification
+/**
+ * @swagger
+ * /api/notifications/payment-notification:
+ *   post:
+ *     summary: Send payment notification (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - status
+ *     responses:
+ *       200:
+ *         description: Notification sent
+ */
 router.post('/payment-notification', internalAuth, async (req, res) => {
   try {
     const { userId, type, amount, status } = req.body;
@@ -242,6 +322,24 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
 });
 
 // Send payout notification
+/**
+ * @swagger
+ * /api/notifications/payout-notification:
+ *   post:
+ *     summary: Send payout notification (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Notification sent
+ */
 router.post('/payout-notification', internalAuth, async (req, res) => {
   try {
     const { userId, amount, status, classroomId } = req.body;
@@ -283,6 +381,22 @@ router.post('/payout-notification', internalAuth, async (req, res) => {
 /**
  * Trigger for external cron jobs (e.g., cron-job.org)
  * GET /api/notifications/trigger-reminders?secret=YOUR_CRON_SECRET
+ */
+/**
+ * @swagger
+ * /api/notifications/trigger-reminders:
+ *   get:
+ *     summary: Trigger all scheduled reminders and exam processing (Cron)
+ *     tags: [Notifications]
+ *     parameters:
+ *       - in: query
+ *         name: secret
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reminders triggered
  */
 router.get('/trigger-reminders', async (req, res) => {
   try {

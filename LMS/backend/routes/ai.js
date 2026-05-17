@@ -89,6 +89,16 @@ const parseJSON = (text) => {
 
 // ─── GET /api/ai/provider ─────────────────────────────────────────────────────
 // Returns the currently active AI provider (public — frontend can display it)
+/**
+ * @swagger
+ * /api/ai/provider:
+ *   get:
+ *     summary: Get the currently active AI provider (Groq or Gemini)
+ *     tags: [AI Services]
+ *     responses:
+ *       200:
+ *         description: AI provider details
+ */
 router.get('/provider', async (req, res) => {
     try {
         const settings = await Settings.findOne();
@@ -99,6 +109,33 @@ router.get('/provider', async (req, res) => {
 });
 
 // ─── POST /api/ai/generate-topic ─────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/generate-topic:
+ *   post:
+ *     summary: Generate a structured class topic using AI
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - subject
+ *             properties:
+ *               subject:
+ *                 type: string
+ *               level:
+ *                 type: string
+ *               className:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Topic generated
+ */
 router.post('/generate-topic', auth, async (req, res) => {
     try {
         const { className, subject, level, teacherHint } = req.body;
@@ -130,6 +167,30 @@ Duration mode can be "day", "week", or "month".`;
 });
 
 // ─── POST /api/ai/generate-assignment ────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/generate-assignment:
+ *   post:
+ *     summary: Generate an assignment using AI
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               topicName:
+ *                 type: string
+ *               assignmentType:
+ *                 type: string
+ *                 enum: [mcq, theory]
+ *     responses:
+ *       200:
+ *         description: Assignment generated
+ */
 router.post('/generate-assignment', auth, async (req, res) => {
     try {
         const { className, topicName, subject, level, assignmentType, questionCount, teacherHint } = req.body;
@@ -185,6 +246,30 @@ ${type === 'mcq' ? mcqSchema : theorySchema}`;
 });
 
 // ─── POST /api/ai/generate-exam ──────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/generate-exam:
+ *   post:
+ *     summary: Generate a formal examination using AI
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               topicName:
+ *                 type: string
+ *               examType:
+ *                 type: string
+ *                 enum: [mcq, theory]
+ *     responses:
+ *       200:
+ *         description: Exam generated
+ */
 router.post('/generate-exam', auth, async (req, res) => {
     try {
         const { className, topicName, subject, level, questionCount, duration, teacherHint, examType } = req.body;
@@ -256,6 +341,27 @@ ${type === 'mcq' ? mcqSchema : theorySchema}`;
 });
 
 // ─── POST /api/ai/generate-classroom ──────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/generate-classroom:
+ *   post:
+ *     summary: Generate classroom details using AI
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               subject:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Classroom details generated
+ */
 router.post('/generate-classroom', auth, async (req, res) => {
     try {
         const { subject, level, className, teacherHint } = req.body;
@@ -280,6 +386,31 @@ Return ONLY this JSON structure:
 });
 
 // ─── POST /api/ai/qna-assistant ───────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/qna-assistant:
+ *   post:
+ *     summary: Academic assistant for students (Q&A)
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - question
+ *             properties:
+ *               question:
+ *                 type: string
+ *               context:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Answer generated
+ */
 router.post('/qna-assistant', auth, async (req, res) => {
     try {
         const { question, context } = req.body;
@@ -301,6 +432,27 @@ Return ONLY this JSON structure:
 });
 
 // ─── POST /api/ai/generate-syllabus ──────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/generate-syllabus:
+ *   post:
+ *     summary: Generate a multi-topic syllabus using AI
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               subject:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Syllabus generated
+ */
 router.post('/generate-syllabus', auth, async (req, res) => {
     try {
         const { className, subject, level, description, outcomes, teacherHint } = req.body;
@@ -336,6 +488,29 @@ Provide between 5 and 10 topics that form a logical learning progression. Durati
 
 // ─── POST /api/ai/generate-powerpoint ────────────────────────────────────────
 // Returns JSON outline (for preview in the panel)
+/**
+ * @swagger
+ * /api/ai/generate-powerpoint:
+ *   post:
+ *     summary: Generate a PowerPoint presentation outline using AI
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               topicName:
+ *                 type: string
+ *               slideCount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: PPT outline generated
+ */
 router.post('/generate-powerpoint', auth, async (req, res) => {
     try {
         const { topicName, className, subject, level, slideCount, teacherHint } = req.body;
@@ -386,6 +561,31 @@ Slide types: "title" (first only), "content", "activity", "summary", "quiz".`;
 
 // ─── POST /api/ai/download-powerpoint ────────────────────────────────────────
 // Accepts a presentation JSON and returns a real .pptx binary file
+/**
+ * @swagger
+ * /api/ai/download-powerpoint:
+ *   post:
+ *     summary: Convert a presentation JSON to a real .pptx file
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - presentation
+ *     responses:
+ *       200:
+ *         description: PPTX file buffer
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.presentationml.presentation:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
 router.post('/download-powerpoint', auth, async (req, res) => {
     try {
         const { presentation } = req.body;
@@ -625,6 +825,56 @@ router.post('/download-powerpoint', auth, async (req, res) => {
     } catch (err) {
         console.error('AI download-powerpoint error:', err.message);
         console.error(err.stack);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─── POST /api/ai/generate-marketing-email ──────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/generate-marketing-email:
+ *   post:
+ *     summary: Generate a marketing email template
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *               kind:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email generated
+ */
+router.post('/generate-marketing-email', auth, async (req, res) => {
+    try {
+        const { prompt, kind } = req.body;
+        if (!prompt) return res.status(400).json({ message: 'prompt is required' });
+
+        const schema = `{
+  "subject": "Catchy email subject line",
+  "html": "The HTML content of the email"
+}
+IMPORTANT: Provide well-formatted HTML suitable for an email body. Do not include full <html> tags, just the content (like <div>, <p>, <h2>). You can use placeholders like {{firstName}} and {{company}}.`;
+
+        const fullPrompt = `Generate a marketing email of type "${kind || 'general'}" based on the following instruction:
+"${prompt}"
+
+Return ONLY this JSON structure:
+${schema}`;
+
+        const raw = await callAI(fullPrompt);
+        const result = parseJSON(raw);
+        res.json({ success: true, email: result });
+    } catch (err) {
+        console.error('AI generate-marketing-email error:', err.message);
         res.status(500).json({ message: err.message });
     }
 });

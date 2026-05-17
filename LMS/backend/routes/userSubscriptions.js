@@ -6,6 +6,18 @@ const { auth, authorize } = require('../middleware/auth');
 const router = express.Router();
 
 // Get current user's subscription
+/**
+ * @swagger
+ * /api/user-subscriptions/me:
+ *   get:
+ *     summary: Get current user's active subscription
+ *     tags: [User Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Subscription details
+ */
 router.get('/me', auth, async (req, res) => {
   try {
     const userSubscription = await UserSubscription.findOne({ userId: req.user._id })
@@ -21,6 +33,18 @@ router.get('/me', auth, async (req, res) => {
 });
 
 // Get all user subscriptions (Admin only)
+/**
+ * @swagger
+ * /api/user-subscriptions:
+ *   get:
+ *     summary: Get all user subscriptions (Admin only)
+ *     tags: [User Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user subscriptions
+ */
 router.get('/', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     let query = {};
@@ -43,6 +67,28 @@ router.get('/', auth, authorize('root_admin', 'school_admin'), async (req, res) 
 });
 
 // Create/Update user subscription (Admin only for direct creation, or internal for trial activation)
+/**
+ * @swagger
+ * /api/user-subscriptions:
+ *   post:
+ *     summary: Create or update a user subscription manually (Admin only)
+ *     tags: [User Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - planId
+ *               - status
+ *     responses:
+ *       200:
+ *         description: Subscription updated
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     const { userId, planId, status, startDate, endDate, paymentId, stripeSubscriptionId } = req.body;
@@ -102,6 +148,34 @@ router.patch('/:id/status', auth, authorize('root_admin', 'school_admin'), async
 });
 
 // Issue free access to users (Root Admin only)
+/**
+ * @swagger
+ * /api/user-subscriptions/issue-free-access:
+ *   post:
+ *     summary: Issue free access to multiple users (Root Admin)
+ *     tags: [User Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userIds
+ *               - durationDays
+ *             properties:
+ *               userIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               durationDays:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Access issued
+ */
 router.post('/issue-free-access', auth, authorize('root_admin'), async (req, res) => {
   try {
     const { userIds, durationDays } = req.body;

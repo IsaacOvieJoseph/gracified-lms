@@ -44,6 +44,27 @@ const upload = multer({
 });
 
 // Logo upload endpoint
+/**
+ * @swagger
+ * /api/auth/upload-logo:
+ *   post:
+ *     summary: Upload a logo (school or tutorial)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               logo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Logo uploaded successfully
+ *       400:
+ *         description: No file uploaded or invalid file
+ */
 router.post('/upload-logo', upload.single('logo'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
@@ -207,7 +228,45 @@ const generateAndSendOTP = async (user) => {
 // };
 // ==========================================================
 
-// Register
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [school_admin, personal_teacher, teacher, student]
+ *               schoolName:
+ *                 type: string
+ *               tutorialName:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registration successful, OTP sent
+ *       400:
+ *         description: User already exists
+ *       403:
+ *         description: Root admin registration forbidden
+ */
 router.post('/register', async (req, res) => {
   try {
     let { name, email, password, role, schoolName, tutorialName, bankName, bankCode, accountNumber, accountName, payoutFrequency, schoolId, logoUrl } = req.body;
@@ -297,7 +356,32 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Verify OTP
+/**
+ * @swagger
+ * /api/auth/verify-otp:
+ *   post:
+ *     summary: Verify email with OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified, returns token
+ *       400:
+ *         description: Invalid or expired OTP
+ */
 router.post('/verify-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
@@ -347,6 +431,29 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 // Resend OTP
+/**
+ * @swagger
+ * /api/auth/resend-otp:
+ *   post:
+ *     summary: Resend verification OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent
+ *       404:
+ *         description: User not found
+ */
 router.post('/resend-otp', async (req, res) => {
   try {
     let { email } = req.body;
@@ -372,7 +479,34 @@ router.post('/resend-otp', async (req, res) => {
   }
 });
 
-// Login
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ *       403:
+ *         description: Email not verified
+ */
 router.post('/login', async (req, res) => {
   try {
     let { email, password } = req.body;
@@ -413,8 +547,8 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Check if 2FA is enabled for this user
-    if (user.twoFAEnabled) {
+    // Check if 2FA is enabled for this user (Root Admins always have 2FA enabled)
+    if (user.twoFAEnabled || user.role === 'root_admin') {
       const { generateAndSend2FAOTP, generateTempLoginToken } = require('../utils/twoFA');
       
       // Generate temp login token
@@ -464,7 +598,8 @@ router.post('/login', async (req, res) => {
         bankDetails: user.bankDetails,
         payoutPreference: user.payoutPreference,
         subscriptionPlan: user.subscriptionPlan,
-        loginCount: user.loginCount
+        loginCount: user.loginCount,
+        twoFAEnabled: user.role === 'root_admin' ? true : user.twoFAEnabled
       },
       trialExpired,
       subscriptionExpired,
@@ -474,7 +609,134 @@ router.post('/login', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/verify-2fa-login:
+ *   post:
+ *     summary: Verify 2FA OTP for login
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tempToken
+ *               - otp
+ *             properties:
+ *               tempToken:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid OTP or temp token
+ */
+router.post('/verify-2fa-login', async (req, res) => {
+  try {
+    const { tempToken, otp } = req.body;
+    
+    if (!tempToken || !otp) {
+      return res.status(400).json({ message: 'Temporary token and OTP are required.' });
+    }
+
+    const { verifyTempLoginToken, verify2FAOTP, verifyBackupCode, clearTempLoginToken, clear2FAOTP } = require('../utils/twoFA');
+
+    // Find the user who has this temp token
+    const user = await User.findOne({ tempLoginToken: tempToken }).populate('subscriptionPlan');
+    
+    if (!user || !verifyTempLoginToken(user, tempToken)) {
+      return res.status(401).json({ message: 'Session expired or invalid token. Please log in again.' });
+    }
+
+    // Verify OTP or Backup Code
+    const isOtpValid = verify2FAOTP(user, otp);
+    const isBackupValid = !isOtpValid && verifyBackupCode(user, otp);
+
+    if (!isOtpValid && !isBackupValid) {
+      return res.status(401).json({ message: 'Invalid or expired verification code.' });
+    }
+
+    // Clear temp tokens
+    clearTempLoginToken(user);
+    clear2FAOTP(user);
+
+    // Increment login count
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    let trialExpired = false;
+    let subscriptionExpired = false;
+
+    const Settings = require('../models/Settings');
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
+    if (isCheckingEnabled && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
+      if (user.subscriptionStatus === 'trial' && user.trialEndDate && user.trialEndDate < Date.now()) {
+        trialExpired = true;
+      }
+      if (user.subscriptionStatus === 'active' && user.subscriptionEndDate && user.subscriptionEndDate < Date.now()) {
+        subscriptionExpired = true;
+      }
+    }
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        schoolId: user.schoolId,
+        tutorialId: user.tutorialId,
+        enrolledClasses: user.enrolledClasses,
+        subscriptionStatus: user.subscriptionStatus,
+        trialEndDate: user.trialEndDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        defaultPricingType: user.defaultPricingType,
+        profilePicture: user.profilePicture,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference,
+        subscriptionPlan: user.subscriptionPlan,
+        loginCount: user.loginCount,
+        twoFAEnabled: user.role === 'root_admin' ? true : user.twoFAEnabled
+      },
+      trialExpired,
+      subscriptionExpired,
+    });
+  } catch (error) {
+    console.error('2FA Verification error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get current user
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current logged in user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -519,7 +781,8 @@ router.get('/me', auth, async (req, res) => {
         profilePicture: user.profilePicture,
         bankDetails: user.bankDetails,
         payoutPreference: user.payoutPreference,
-        subscriptionPlan: user.subscriptionPlan
+        subscriptionPlan: user.subscriptionPlan,
+        twoFAEnabled: user.role === 'root_admin' ? true : user.twoFAEnabled
       },
       trialExpired,
       subscriptionExpired,
@@ -586,6 +849,27 @@ const generateAndSendPasswordResetOTP = async (user) => {
 };
 
 // Forgot Password - Request OTP
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset OTP sent (even if user doesn't exist)
+ */
 router.post('/forgot-password', async (req, res) => {
   try {
     let { email } = req.body;
@@ -619,6 +903,32 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Verify Password Reset OTP
+/**
+ * @swagger
+ * /api/auth/verify-reset-otp:
+ *   post:
+ *     summary: Verify password reset OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP verified
+ *       400:
+ *         description: Invalid or expired OTP
+ */
 router.post('/verify-reset-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
@@ -649,6 +959,27 @@ router.post('/verify-reset-otp', async (req, res) => {
 });
 
 // Resend Password Reset OTP
+/**
+ * @swagger
+ * /api/auth/resend-reset-otp:
+ *   post:
+ *     summary: Resend password reset OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset OTP sent
+ */
 router.post('/resend-reset-otp', async (req, res) => {
   try {
     let { email } = req.body;
@@ -673,6 +1004,35 @@ router.post('/resend-reset-otp', async (req, res) => {
 });
 
 // Reset Password
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Reset password with OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid OTP or password too short
+ */
 router.post('/reset-password', async (req, res) => {
   try {
     let { email, otp, newPassword } = req.body;
@@ -712,7 +1072,24 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// Test email configuration endpoint (for debugging) - Using Brevo
+/**
+ * @swagger
+ * /api/auth/test-email:
+ *   post:
+ *     summary: Test email configuration (admin/debug)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Test email sent
+ */
 router.post('/test-email', async (req, res) => {
   try {
     if (!isEmailConfigured()) {
@@ -812,6 +1189,32 @@ router.post('/test-email', async (req, res) => {
 // ==========================================================
 
 // Set password for invited users
+/**
+ * @swagger
+ * /api/auth/set-password:
+ *   post:
+ *     summary: Set password for invited users
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password set successful
+ *       400:
+ *         description: Invalid or expired token
+ */
 router.post('/set-password', async (req, res) => {
   try {
     const { token, password } = req.body;
@@ -863,6 +1266,24 @@ router.post('/set-password', async (req, res) => {
 });
 
 // Verify invite token (check if token is valid before showing set password form)
+/**
+ * @swagger
+ * /api/auth/verify-invite/{token}:
+ *   get:
+ *     summary: Verify invite token
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *       400:
+ *         description: Invalid or expired token
+ */
 router.get('/verify-invite/:token', async (req, res) => {
   try {
     const user = await User.findOne({
@@ -889,6 +1310,36 @@ router.get('/verify-invite/:token', async (req, res) => {
 });
 
 // Update profile settings
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update user profile settings
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               defaultPricingType:
+ *                 type: string
+ *               profilePicture:
+ *                 type: string
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *       401:
+ *         description: Unauthorized
+ */
 router.put('/profile', auth, async (req, res) => {
   try {
     const {
@@ -905,7 +1356,8 @@ router.put('/profile', auth, async (req, res) => {
       tutorialLogoUrl, // Expected if personal teacher wants to change logo
       currentPassword,
       newPassword,
-      confirmNewPassword
+      confirmNewPassword,
+      twoFAEnabled
     } = req.body;
 
     const user = await User.findById(req.user._id);
@@ -933,9 +1385,10 @@ router.put('/profile', auth, async (req, res) => {
     }
 
     // 2. Profile Updates
-    if (name) user.name = name;
-    if (defaultPricingType) user.defaultPricingType = defaultPricingType;
-    if (profilePicture) user.profilePicture = profilePicture;
+    if (name !== undefined) user.name = name;
+    if (defaultPricingType !== undefined) user.defaultPricingType = defaultPricingType;
+    if (profilePicture !== undefined) user.profilePicture = profilePicture;
+    if (twoFAEnabled !== undefined) user.twoFAEnabled = twoFAEnabled;
 
     // 3. Bank Details
     if (bankName || bankCode || accountNumber || accountName || paystackRecipientCode) {
