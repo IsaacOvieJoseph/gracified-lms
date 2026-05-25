@@ -879,4 +879,64 @@ ${schema}`;
     }
 });
 
+// ─── POST /api/ai/generate-marketing-campaign ──────────────────────────────────────────
+/**
+ * @swagger
+ * /api/ai/generate-marketing-campaign:
+ *   post:
+ *     summary: Generate a multi-step marketing campaign with templates
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *               numSteps:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Campaign generated
+ */
+router.post('/generate-marketing-campaign', auth, async (req, res) => {
+    try {
+        const { prompt, numSteps } = req.body;
+        if (!prompt) return res.status(400).json({ message: 'prompt is required' });
+
+        const stepsCount = numSteps ? parseInt(numSteps, 10) : 3;
+
+        const schema = `{
+  "campaignName": "Catchy and relevant internal campaign name",
+  "campaignDescription": "A short summary of what this drip campaign is about",
+  "emails": [
+    {
+      "name": "Template Name (e.g., Welcome Email, Follow-up 1)",
+      "subject": "Email subject line",
+      "html": "The HTML content of the email (well formatted with basic tags)",
+      "delayDays": 0
+    }
+  ]
+}
+IMPORTANT: Provide exactly ${stepsCount} email objects in the "emails" array. The first email should typically have delayDays=0. The subsequent ones should have delayDays>0 representing the wait time after the previous email.`;
+
+        const fullPrompt = `Generate a ${stepsCount}-step drip marketing campaign based on the following instruction:
+"${prompt}"
+
+Return ONLY this JSON structure:
+${schema}`;
+
+        const raw = await callAI(fullPrompt);
+        const result = parseJSON(raw);
+        res.json({ success: true, campaign: result });
+    } catch (err) {
+        console.error('AI generate-marketing-campaign error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;

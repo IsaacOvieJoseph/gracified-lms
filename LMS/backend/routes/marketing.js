@@ -726,9 +726,34 @@ router.post('/send', async (req, res) => {
 
         results.sent++;
         results.details.push({ email, status: 'sent' });
+
+        await MarketingSendLog.create({
+          type: 'manual',
+          templateId,
+          contactId: contact._id,
+          status: 'sent',
+          scheduledAt: new Date(),
+          processedAt: new Date()
+        });
       } catch (e) {
         results.failed++;
         results.details.push({ email, status: 'failed', error: e.message });
+
+        if (email) {
+          // Try to log the failure if we can find the contact
+          const c = await MarketingContact.findOne({ email });
+          if (c) {
+            await MarketingSendLog.create({
+              type: 'manual',
+              templateId,
+              contactId: c._id,
+              status: 'failed',
+              error: e.message,
+              scheduledAt: new Date(),
+              processedAt: new Date()
+            });
+          }
+        }
       }
     }
 

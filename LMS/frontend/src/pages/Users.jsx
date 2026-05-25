@@ -90,12 +90,19 @@ const Users = () => {
       // Teachers see only their enrolled students
       if (user?.role === 'teacher' || user?.role === 'personal_teacher') {
         const response = await api.get('/users/my-students');
-        setUsers(response.data.students);
-        setFilteredUsers(response.data.students);
+        console.log('Fetched my-students:', response.data);
+        const students = response.data.students || [];
+        setUsers(students);
+        setFilteredUsers(students);
       } else {
         // Root admin and school admin see users based on their permissions
         const response = await api.get('/users');
-        let filtered = response.data.users;
+        console.log('Fetched users:', response.data);
+        let filtered = response.data.users || [];
+        if (!Array.isArray(filtered)) {
+          console.error('Users data is not an array:', filtered);
+          filtered = [];
+        }
         if (user?.role === 'school_admin' && selectedSchools.length > 0) {
           filtered = filtered.filter(u => {
             if (Array.isArray(u.schoolId)) {
@@ -104,11 +111,13 @@ const Users = () => {
             return selectedSchools.includes(u.schoolId?._id || u.schoolId);
           });
         }
+        console.log('Setting users with count:', filtered.length);
         setUsers(filtered);
         setFilteredUsers(filtered);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }

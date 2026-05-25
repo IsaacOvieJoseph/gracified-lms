@@ -138,17 +138,32 @@ const Classrooms = () => {
     if (classrooms.length === 0) setLoading(true);
     try {
       const response = await api.get('/classrooms');
-      let filtered = response.data.classrooms;
-      if (user?.role === 'student' || user?.role === 'teacher') filtered = filtered.filter(c => c.published);
+      console.log('Fetched classrooms:', response.data);
+      let filtered = response.data.classrooms || [];
+      if (!Array.isArray(filtered)) {
+        console.error('Classrooms data is not an array:', filtered);
+        filtered = [];
+      }
+      if (user?.role === 'student' || user?.role === 'teacher') {
+        filtered = filtered.filter(c => c.published);
+        console.log('After published filter (student/teacher):', filtered.length);
+      }
       if (user?.role === 'school_admin' && selectedSchools.length > 0) {
         filtered = filtered.filter(c => {
           const cids = Array.isArray(c.schoolId) ? c.schoolId.map(sid => (sid?._id || sid).toString()) : [c.schoolId?._id?.toString() || c.schoolId?.toString()];
           return selectedSchools.some(sel => cids.includes((sel?._id || sel).toString()));
         });
+        console.log('After school filter:', filtered.length);
       }
+      console.log('Setting classrooms with count:', filtered.length);
       setClassrooms(filtered);
       setFilteredClassrooms(filtered);
-    } catch (error) { } finally { setLoading(false); }
+    } catch (error) {
+      console.error('Error fetching classrooms:', error);
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to load classrooms');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchTeachers = async () => {

@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import Select from 'react-select';
-import { Mail, Users, List as ListIcon, FileText, Calendar, Play, Pause, Upload, RefreshCw, Send, Filter, X, Sparkles } from 'lucide-react';
+import { Mail, Users, List as ListIcon, FileText, Calendar, Play, Pause, Upload, RefreshCw, Send, Filter, X, Sparkles, Plus, Edit2 } from 'lucide-react';
 
 const tabs = [
   { key: 'contacts', label: 'Contacts', icon: Users },
@@ -113,14 +113,23 @@ export default function Marketing() {
         api.get('/marketing/holidays', { skipLoader: true }),
         api.get('/marketing/logs', { skipLoader: true }),
       ]);
-      setContacts(c1.data.contacts || []);
-      setLists(c2.data.lists || []);
-      setTemplates(c3.data.templates || []);
-      setCampaigns(c4.data.campaigns || []);
-      setHolidays(c5.data.holidays || []);
-      setLogs(c6.data.logs || []);
+      console.log('Marketing API responses:', { c1: c1.data, c2: c2.data, c3: c3.data, c4: c4.data, c5: c5.data, c6: c6.data });
+      const contacts = c1.data?.contacts || [];
+      const lists = c2.data?.lists || [];
+      const templates = c3.data?.templates || [];
+      const campaigns = c4.data?.campaigns || [];
+      const holidays = c5.data?.holidays || [];
+      const logs = c6.data?.logs || [];
+      console.log('Marketing data counts:', { contacts: contacts.length, lists: lists.length, templates: templates.length, campaigns: campaigns.length, holidays: holidays.length, logs: logs.length });
+      setContacts(contacts);
+      setLists(lists);
+      setTemplates(templates);
+      setCampaigns(campaigns);
+      setHolidays(holidays);
+      setLogs(logs);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to load marketing data');
+      console.error('Error fetching marketing data:', e);
+      toast.error(e?.response?.data?.message || e?.message || 'Failed to load marketing data');
     } finally {
       setLoading(false);
     }
@@ -131,7 +140,7 @@ export default function Marketing() {
   }, []);
 
   // ----------------------
-  // Contacts form
+  // Contact form
   // ----------------------
   const [newContact, setNewContact] = useState({
     email: '',
@@ -144,19 +153,52 @@ export default function Marketing() {
     anniversaryDate: '',
   });
 
+  const [editingContactId, setEditingContactId] = useState(null);
+  const [isCreatingContact, setIsCreatingContact] = useState(false);
+
   const createContact = async () => {
     if (!newContact.email) return toast.error('Email is required');
     try {
-      await api.post('/marketing/contacts', {
-        ...newContact,
-        tags: newContact.tags ? newContact.tags.split(/[;,]/).map((t) => t.trim()).filter(Boolean) : [],
-      });
+      await api.post('/marketing/contacts', { ...newContact, tags: newContact.tags ? newContact.tags.split(',').map((t) => t.trim()) : [] });
       toast.success('Contact saved');
       setNewContact({ email: '', firstName: '', lastName: '', company: '', title: '', tags: '', birthDate: '', anniversaryDate: '' });
+      setIsCreatingContact(false);
       refreshAll();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to save contact');
     }
+  };
+
+  const updateContact = async () => {
+    if (!newContact.email) return toast.error('Email is required');
+    try {
+      await api.put(`/marketing/contacts/${editingContactId}`, { ...newContact, tags: newContact.tags ? newContact.tags.split(',').map((t) => t.trim()) : [] });
+      toast.success('Contact updated');
+      cancelContactEdit();
+      refreshAll();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to update contact');
+    }
+  };
+
+  const editContact = (c) => {
+    setEditingContactId(c._id);
+    setNewContact({
+      email: c.email,
+      firstName: c.firstName || '',
+      lastName: c.lastName || '',
+      company: c.company || '',
+      title: c.title || '',
+      tags: (c.tags || []).join(', '),
+      birthDate: c.birthDate ? new Date(c.birthDate).toISOString().split('T')[0] : '',
+      anniversaryDate: c.anniversaryDate ? new Date(c.anniversaryDate).toISOString().split('T')[0] : '',
+    });
+  };
+
+  const cancelContactEdit = () => {
+    setEditingContactId(null);
+    setIsCreatingContact(false);
+    setNewContact({ email: '', firstName: '', lastName: '', company: '', title: '', tags: '', birthDate: '', anniversaryDate: '' });
   };
 
   const importContactsCsv = async (file) => {
@@ -309,6 +351,8 @@ export default function Marketing() {
   // List form
   // ----------------------
   const [newList, setNewList] = useState({ name: '', description: '', contactIds: [] });
+  const [editingListId, setEditingListId] = useState(null);
+  const [isCreatingList, setIsCreatingList] = useState(false);
 
   const createList = async () => {
     if (!newList.name) return toast.error('List name is required');
@@ -320,16 +364,61 @@ export default function Marketing() {
       });
       toast.success('List created');
       setNewList({ name: '', description: '', contactIds: [] });
+      setIsCreatingList(false);
       refreshAll();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to create list');
     }
   };
 
+  const updateList = async () => {
+    if (!newList.name) return toast.error('List name is required');
+    try {
+      await api.put(`/marketing/lists/${editingListId}`, {
+        name: newList.name,
+        description: newList.description,
+        contactIds: (newList.contactIds || []).map((o) => o.value),
+      });
+      toast.success('List updated');
+      cancelListEdit();
+      refreshAll();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to update list');
+    }
+  };
+
+  const editList = (l) => {
+    setEditingListId(l._id);
+    const selectedContacts = (l.contactIds || []).map(cid => {
+      const contactObj = typeof cid === 'object' ? cid : contacts.find(c => c._id === cid);
+      if (contactObj) {
+        return {
+          value: contactObj._id,
+          label: `${contactObj.email}${contactObj.firstName || contactObj.lastName ? ` — ${[contactObj.firstName, contactObj.lastName].filter(Boolean).join(' ')}` : ''}${contactObj.user?.role ? ` (${contactObj.user.role})` : ''}`
+        };
+      }
+      return { value: cid, label: cid }; // Fallback
+    });
+
+    setNewList({
+      name: l.name,
+      description: l.description || '',
+      contactIds: selectedContacts,
+    });
+  };
+
+  const cancelListEdit = () => {
+    setEditingListId(null);
+    setIsCreatingList(false);
+    setNewList({ name: '', description: '', contactIds: [] });
+  };
+
   // ----------------------
   // Template form
   // ----------------------
   const [newTemplate, setNewTemplate] = useState({ name: '', kind: 'cold', subject: '', html: '' });
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [generatingAI, setGeneratingAI] = useState(false);
 
@@ -360,10 +449,39 @@ export default function Marketing() {
       toast.success('Template created');
       setNewTemplate({ name: '', kind: 'cold', subject: '', html: '' });
       setAiPrompt('');
+      setIsCreatingTemplate(false);
       refreshAll();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to create template');
     }
+  };
+
+  const updateTemplate = async () => {
+    if (!newTemplate.name || !newTemplate.subject || !newTemplate.html) return toast.error('Template name, subject and HTML are required');
+    try {
+      await api.put(`/marketing/templates/${editingTemplateId}`, newTemplate);
+      toast.success('Template updated');
+      cancelTemplateEdit();
+      refreshAll();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to update template');
+    }
+  };
+
+  const editTemplate = (t) => {
+    setEditingTemplateId(t._id);
+    setNewTemplate({
+      name: t.name,
+      kind: t.kind || 'cold',
+      subject: t.subject,
+      html: t.html,
+    });
+  };
+
+  const cancelTemplateEdit = () => {
+    setEditingTemplateId(null);
+    setIsCreatingTemplate(false);
+    setNewTemplate({ name: '', kind: 'cold', subject: '', html: '' });
   };
 
   // ----------------------
@@ -376,6 +494,57 @@ export default function Marketing() {
     steps: [{ templateId: null, delayDays: 0 }],
     startAt: '',
   });
+
+  const [editingCampaignId, setEditingCampaignId] = useState(null);
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+  const [aiCampaignPrompt, setAiCampaignPrompt] = useState('');
+  const [aiCampaignSteps, setAiCampaignSteps] = useState(3);
+  const [generatingCampaignAI, setGeneratingCampaignAI] = useState(false);
+
+  const generateCampaignAI = async () => {
+    if (!aiCampaignPrompt) return toast.error('Please enter a prompt to generate the campaign');
+    if (!newCampaign.listId) return toast.error('Please select a List for this campaign first');
+
+    setGeneratingCampaignAI(true);
+    try {
+      const res = await api.post('/ai/generate-marketing-campaign', { prompt: aiCampaignPrompt, numSteps: aiCampaignSteps }, { skipLoader: true });
+      if (res.data.success && res.data.campaign) {
+        const generated = res.data.campaign;
+        
+        // Save the templates to DB
+        const savedSteps = [];
+        for (const email of generated.emails) {
+          const tplRes = await api.post('/marketing/templates', {
+            name: email.name || 'AI Generated Template',
+            kind: 'followup',
+            subject: email.subject || 'No Subject',
+            html: email.html || '<p></p>'
+          });
+          
+          if (tplRes.data.template) {
+            savedSteps.push({
+              templateId: { value: tplRes.data.template._id, label: `${tplRes.data.template.name} (${tplRes.data.template.kind})` },
+              delayDays: email.delayDays || 0
+            });
+          }
+        }
+
+        setNewCampaign(prev => ({
+          ...prev,
+          name: generated.campaignName || prev.name,
+          description: generated.campaignDescription || prev.description,
+          steps: savedSteps.length > 0 ? savedSteps : prev.steps,
+        }));
+        
+        toast.success('Campaign and templates generated successfully!');
+        refreshAll(); // To show the new templates in the dropdowns/lists
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to generate campaign via AI');
+    } finally {
+      setGeneratingCampaignAI(false);
+    }
+  };
 
   const createCampaign = async () => {
     if (!newCampaign.name || !newCampaign.listId) return toast.error('Campaign name and list are required');
@@ -394,10 +563,67 @@ export default function Marketing() {
       });
       toast.success('Campaign created');
       setNewCampaign({ name: '', description: '', listId: null, steps: [{ templateId: null, delayDays: 0 }], startAt: '' });
+      setIsCreatingCampaign(false);
       refreshAll();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to create campaign');
     }
+  };
+
+  const updateCampaign = async () => {
+    if (!newCampaign.name || !newCampaign.listId) return toast.error('Campaign name and list are required');
+    const steps = (newCampaign.steps || [])
+      .filter((s) => s.templateId)
+      .map((s) => ({ templateId: s.templateId.value, delayDays: Number(s.delayDays || 0) }));
+    if (!steps.length) return toast.error('Add at least one step with a template');
+
+    try {
+      await api.put(`/marketing/campaigns/${editingCampaignId}`, {
+        name: newCampaign.name,
+        description: newCampaign.description,
+        listId: newCampaign.listId.value,
+        steps,
+        startAt: newCampaign.startAt || null,
+      });
+      toast.success('Campaign updated');
+      cancelCampaignEdit();
+      refreshAll();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to update campaign');
+    }
+  };
+
+  const editCampaign = (c) => {
+    setEditingCampaignId(c._id);
+    
+    let listOption = null;
+    if (c.listId) {
+      const listObj = typeof c.listId === 'object' ? c.listId : lists.find(l => l._id === c.listId);
+      if (listObj) listOption = { value: listObj._id, label: listObj.name };
+    }
+
+    const stepOptions = (c.steps || []).map(s => {
+      let tplOption = null;
+      if (s.templateId) {
+        const tplObj = typeof s.templateId === 'object' ? s.templateId : templates.find(t => t._id === s.templateId);
+        if (tplObj) tplOption = { value: tplObj._id, label: `${tplObj.name} (${tplObj.kind})` };
+      }
+      return { templateId: tplOption, delayDays: s.delayDays };
+    });
+
+    setNewCampaign({
+      name: c.name,
+      description: c.description || '',
+      listId: listOption,
+      steps: stepOptions.length > 0 ? stepOptions : [{ templateId: null, delayDays: 0 }],
+      startAt: c.startAt ? new Date(c.startAt).toISOString().slice(0, 16) : '',
+    });
+  };
+
+  const cancelCampaignEdit = () => {
+    setEditingCampaignId(null);
+    setIsCreatingCampaign(false);
+    setNewCampaign({ name: '', description: '', listId: null, steps: [{ templateId: null, delayDays: 0 }], startAt: '' });
   };
 
   const startCampaign = async (id) => {
@@ -424,6 +650,8 @@ export default function Marketing() {
   // Holiday form
   // ----------------------
   const [newHoliday, setNewHoliday] = useState({ name: '', month: 1, day: 1, templateId: null, enabled: true });
+  const [editingHolidayId, setEditingHolidayId] = useState(null);
+  const [isCreatingHoliday, setIsCreatingHoliday] = useState(false);
 
   const createHoliday = async () => {
     if (!newHoliday.name || !newHoliday.templateId) return toast.error('Holiday name and template are required');
@@ -437,10 +665,74 @@ export default function Marketing() {
       });
       toast.success('Festive day saved');
       setNewHoliday({ name: '', month: 1, day: 1, templateId: null, enabled: true });
+      setIsCreatingHoliday(false);
       refreshAll();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to save festive day');
     }
+  };
+
+  const updateHoliday = async () => {
+    if (!newHoliday.name || !newHoliday.templateId) return toast.error('Holiday name and template are required');
+    try {
+      await api.put(`/marketing/holidays/${editingHolidayId}`, {
+        name: newHoliday.name,
+        month: Number(newHoliday.month),
+        day: Number(newHoliday.day),
+        templateId: newHoliday.templateId.value,
+        enabled: newHoliday.enabled,
+      });
+      toast.success('Festive day updated');
+      cancelHolidayEdit();
+      refreshAll();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to update festive day');
+    }
+  };
+
+  const editHoliday = (h) => {
+    setEditingHolidayId(h._id);
+    let tplOption = null;
+    if (h.templateId) {
+      const tplObj = typeof h.templateId === 'object' ? h.templateId : templates.find(t => t._id === h.templateId);
+      if (tplObj) tplOption = { value: tplObj._id, label: `${tplObj.name} (${tplObj.kind})` };
+    }
+
+    setNewHoliday({
+      name: h.name,
+      month: h.month,
+      day: h.day,
+      templateId: tplOption,
+      enabled: h.enabled,
+    });
+  };
+
+  const cancelHolidayEdit = () => {
+    setEditingHolidayId(null);
+    setIsCreatingHoliday(false);
+    setNewHoliday({ name: '', month: 1, day: 1, templateId: null, enabled: true });
+  };
+
+  // ─── Generic Modal Wrapper ───────────────────────────────────────────────────
+  const Modal = ({ open, onClose, title, children }) => {
+    if (!open) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div
+          className="relative z-10 bg-card border border-border rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between rounded-t-3xl z-10">
+            <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">{title}</h3>
+            <button className="p-2 hover:bg-muted rounded-full transition" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-6 space-y-4">{children}</div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -474,392 +766,492 @@ export default function Marketing() {
         </div>
 
         {activeTab === 'contacts' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Add contact</h3>
-              <input className={inputClass} placeholder="Email *" value={newContact.email} onChange={(e) => setNewContact((s) => ({ ...s, email: e.target.value }))} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input className={inputClass} placeholder="First name" value={newContact.firstName} onChange={(e) => setNewContact((s) => ({ ...s, firstName: e.target.value }))} />
-                <input className={inputClass} placeholder="Last name" value={newContact.lastName} onChange={(e) => setNewContact((s) => ({ ...s, lastName: e.target.value }))} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input className={inputClass} placeholder="Company" value={newContact.company} onChange={(e) => setNewContact((s) => ({ ...s, company: e.target.value }))} />
-                <input className={inputClass} placeholder="Title" value={newContact.title} onChange={(e) => setNewContact((s) => ({ ...s, title: e.target.value }))} />
-              </div>
-              <input
-                className={inputClass}
-                placeholder="Tags (comma-separated)"
-                value={newContact.tags}
-                onChange={(e) => setNewContact((s) => ({ ...s, tags: e.target.value }))}
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input className={inputClass} type="date" value={newContact.birthDate} onChange={(e) => setNewContact((s) => ({ ...s, birthDate: e.target.value }))} />
-                <input className={inputClass} type="date" value={newContact.anniversaryDate} onChange={(e) => setNewContact((s) => ({ ...s, anniversaryDate: e.target.value }))} />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button className={primaryBtnClass} onClick={createContact}>
-                  Save
-                </button>
-                <label className={btnClass}>
-                  <Upload className="w-4 h-4" /> Import CSV
-                  <input
-                    type="file"
-                    accept=".csv,text/csv"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && importContactsCsv(e.target.files[0])}
-                  />
-                </label>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Template variables you can use: <span className="font-mono">{'{{firstName}} {{lastName}} {{email}} {{company}} {{title}}'}</span>
-              </p>
-            </div>
-
-            <div className="bg-card border border-border rounded-3xl p-6">
-              <div className="flex flex-col gap-3 mb-4">
-                <div className="flex items-center justify-between gap-3">
+          <div className="bg-card border border-border rounded-3xl p-6">
+            {/* Toolbar */}
+            <div className="flex flex-col gap-3 mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
                   <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Contacts</h3>
                   <span className="text-xs font-black text-muted-foreground">{filteredContacts.length}</span>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <div className="relative">
-                    <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-                    <input
-                      className={`${inputClass} pl-10`}
-                      placeholder="Search (email, name, school, role...)"
-                      value={contactSearch}
-                      onChange={(e) => setContactSearch(e.target.value)}
-                    />
-                  </div>
-                  <select className={inputClass} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-                    <option value="all">All roles</option>
-                    <option value="student">student</option>
-                    <option value="teacher">teacher</option>
-                    <option value="school_admin">school_admin</option>
-                    <option value="personal_teacher">personal_teacher</option>
-                    <option value="root_admin">root_admin</option>
-                  </select>
-                  <select className={inputClass} value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
-                    <option value="all">All sources</option>
-                    <option value="manual">manual</option>
-                    <option value="csv">csv</option>
-                    <option value="lms_user">lms_user</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground">
-                    <input type="checkbox" checked={showUnsubscribed} onChange={(e) => setShowUnsubscribed(e.target.checked)} />
-                    Show unsubscribed
+                <div className="flex items-center gap-2">
+                  <label className={btnClass}>
+                    <Upload className="w-4 h-4" /> Import CSV
+                    <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && importContactsCsv(e.target.files[0])} />
                   </label>
-
-                  <div className="flex items-center gap-2">
-                    {selectedCount > 0 && (
-                      <button className={btnClass} onClick={clearSelection}>
-                        <X className="w-4 h-4" /> Clear ({selectedCount})
-                      </button>
-                    )}
-                    <button className={primaryBtnClass} onClick={openAddToListModal} disabled={selectedCount === 0}>
-                      <ListIcon className="w-4 h-4" /> Add to list
-                    </button>
-                    <button className={primaryBtnClass} onClick={openSendBulk} disabled={selectedCount === 0}>
-                      <Send className="w-4 h-4" /> Send bulk
-                    </button>
-                  </div>
+                  <button className={primaryBtnClass} onClick={() => setIsCreatingContact(true)}>
+                    <Plus className="w-4 h-4" /> Add contact
+                  </button>
                 </div>
               </div>
-
-              <div className="overflow-x-auto border border-border rounded-2xl">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40">
-                    <tr className="text-left">
-                      <th className="p-3 w-10">
-                        <input
-                          type="checkbox"
-                          onChange={toggleAllVisible}
-                          checked={filteredContacts.length > 0 && filteredContacts.every((c) => selectedIds.has(c._id))}
-                        />
-                      </th>
-                      <th className="p-3">Email</th>
-                      <th className="p-3">Name</th>
-                      <th className="p-3">Role</th>
-                      <th className="p-3">School/Tutorial</th>
-                      <th className="p-3">Last active</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredContacts.map((c) => (
-                      <tr key={c._id} className="border-t border-border hover:bg-muted/20">
-                        <td className="p-3">
-                          <input type="checkbox" checked={selectedIds.has(c._id)} onChange={() => toggleRow(c._id)} />
-                        </td>
-                        <td className="p-3 font-bold">{c.email}</td>
-                        <td className="p-3">
-                          <div className="font-semibold">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.user?.name || '—'}</div>
-                          <div className="text-[11px] text-muted-foreground">{c.source || '—'}</div>
-                        </td>
-                        <td className="p-3">{c.user?.role || '—'}</td>
-                        <td className="p-3">{c.user?.school || c.user?.tutorial || c.company || '—'}</td>
-                        <td className="p-3">{c.user?.lastActiveAt ? new Date(c.user.lastActiveAt).toLocaleString() : '—'}</td>
-                        <td className="p-3">
-                          {c.unsubscribed ? (
-                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
-                              Unsubscribed
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                              Active
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3 text-right">
-                          <button className={primaryBtnClass} onClick={() => openSendSingle(c._id)} disabled={c.unsubscribed}>
-                            <Send className="w-4 h-4" /> Send
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredContacts.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="p-10 text-center text-muted-foreground">
-                          <Users className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                          <p className="font-bold">No contacts match your filters</p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="relative">
+                  <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                  <input className={`${inputClass} pl-10`} placeholder="Search contacts..." value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
+                </div>
+                <select className={inputClass} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                  <option value="all">All roles</option>
+                  <option value="student">student</option>
+                  <option value="teacher">teacher</option>
+                  <option value="school_admin">school_admin</option>
+                  <option value="personal_teacher">personal_teacher</option>
+                  <option value="root_admin">root_admin</option>
+                </select>
+                <select className={inputClass} value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+                  <option value="all">All sources</option>
+                  <option value="manual">manual</option>
+                  <option value="csv">csv</option>
+                  <option value="lms_user">lms_user</option>
+                </select>
               </div>
+              <div className="flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  <input type="checkbox" checked={showUnsubscribed} onChange={(e) => setShowUnsubscribed(e.target.checked)} />
+                  Show unsubscribed
+                </label>
+                <div className="flex items-center gap-2">
+                  {selectedCount > 0 && <button className={btnClass} onClick={clearSelection}><X className="w-4 h-4" /> Clear ({selectedCount})</button>}
+                  <button className={btnClass} onClick={openAddToListModal} disabled={selectedCount === 0}><ListIcon className="w-4 h-4" /> Add to list</button>
+                  <button className={primaryBtnClass} onClick={openSendBulk} disabled={selectedCount === 0}><Send className="w-4 h-4" /> Send bulk</button>
+                </div>
+              </div>
+            </div>
+            {/* Table */}
+            <div className="overflow-x-auto border border-border rounded-2xl">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr className="text-left">
+                    <th className="p-3 w-10"><input type="checkbox" onChange={toggleAllVisible} checked={filteredContacts.length > 0 && filteredContacts.every((c) => selectedIds.has(c._id))} /></th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Role</th>
+                    <th className="p-3">School/Tutorial</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredContacts.map((c) => (
+                    <tr key={c._id} className="border-t border-border hover:bg-muted/20">
+                      <td className="p-3"><input type="checkbox" checked={selectedIds.has(c._id)} onChange={() => toggleRow(c._id)} /></td>
+                      <td className="p-3 font-bold">{c.email}</td>
+                      <td className="p-3">
+                        <div className="font-semibold">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.user?.name || '—'}</div>
+                        <div className="text-[11px] text-muted-foreground">{c.source || '—'}</div>
+                      </td>
+                      <td className="p-3">{c.user?.role || '—'}</td>
+                      <td className="p-3">{c.user?.school || c.user?.tutorial || c.company || '—'}</td>
+                      <td className="p-3">
+                        {c.unsubscribed
+                          ? <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">Unsubscribed</span>
+                          : <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Active</span>}
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button className="p-2 hover:bg-muted rounded-xl transition" onClick={() => editContact(c)}><Edit2 className="w-4 h-4 text-muted-foreground" /></button>
+                          <button className={primaryBtnClass} onClick={() => openSendSingle(c._id)} disabled={c.unsubscribed}><Send className="w-4 h-4" /> Send</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredContacts.length === 0 && (
+                    <tr><td colSpan={7} className="p-10 text-center text-muted-foreground">
+                      <Users className="w-10 h-10 mx-auto opacity-20 mb-2" /><p className="font-bold">No contacts match your filters</p>
+                    </td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
         {activeTab === 'lists' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Create list</h3>
-              <input className={inputClass} placeholder="List name *" value={newList.name} onChange={(e) => setNewList((s) => ({ ...s, name: e.target.value }))} />
-              <input className={inputClass} placeholder="Description" value={newList.description} onChange={(e) => setNewList((s) => ({ ...s, description: e.target.value }))} />
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Contacts</p>
-                <Select
-                  isMulti
-                  value={newList.contactIds}
-                  onChange={(v) => setNewList((s) => ({ ...s, contactIds: v || [] }))}
-                  options={contactOptions}
-                  styles={selectStyles}
-                />
+          <div className="space-y-6">
+            {(isCreatingList || editingListId) ? (
+              <div className="bg-card border border-border rounded-3xl p-6 space-y-4 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+                    {editingListId ? 'Edit list' : 'Create list'}
+                  </h3>
+                  <button className="p-2 hover:bg-muted rounded-full" onClick={cancelListEdit}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <input className={inputClass} placeholder="List name *" value={newList.name} onChange={(e) => setNewList((s) => ({ ...s, name: e.target.value }))} />
+                <input className={inputClass} placeholder="Description" value={newList.description} onChange={(e) => setNewList((s) => ({ ...s, description: e.target.value }))} />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Contacts</p>
+                  <Select
+                    isMulti
+                    value={newList.contactIds}
+                    onChange={(v) => setNewList((s) => ({ ...s, contactIds: v || [] }))}
+                    options={contactOptions}
+                    styles={selectStyles}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {editingListId ? (
+                    <button className={primaryBtnClass} onClick={updateList}>
+                      Update list
+                    </button>
+                  ) : (
+                    <button className={primaryBtnClass} onClick={createList}>
+                      Save list
+                    </button>
+                  )}
+                </div>
               </div>
-              <button className={primaryBtnClass} onClick={createList}>
-                Save list
-              </button>
-            </div>
-
-            <div className="bg-card border border-border rounded-3xl p-6">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground mb-4">Lists</h3>
-              <div className="space-y-2 max-h-[520px] overflow-y-auto custom-scrollbar pr-2">
-                {lists.map((l) => (
-                  <div key={l._id} className="p-4 rounded-2xl border border-border bg-background/40">
-                    <p className="font-bold">{l.name}</p>
-                    <p className="text-xs text-muted-foreground">{l.description || '—'}</p>
-                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">
-                      {Array.isArray(l.contactIds) ? `${l.contactIds.length} contacts` : '—'}
-                    </p>
-                  </div>
-                ))}
-                {lists.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <ListIcon className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                    <p className="font-bold">No lists yet</p>
-                  </div>
-                )}
+            ) : (
+              <div className="bg-card border border-border rounded-3xl p-6">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Lists</h3>
+                  <button className={primaryBtnClass} onClick={() => setIsCreatingList(true)}>
+                    <Plus className="w-4 h-4" /> Create list
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto border border-border rounded-2xl">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40">
+                      <tr className="text-left">
+                        <th className="p-3">Name</th>
+                        <th className="p-3">Description</th>
+                        <th className="p-3">Contacts</th>
+                        <th className="p-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lists.map((l) => (
+                        <tr key={l._id} className="border-t border-border hover:bg-muted/20">
+                          <td className="p-3 font-bold">{l.name}</td>
+                          <td className="p-3 text-muted-foreground">{l.description || '—'}</td>
+                          <td className="p-3">
+                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                              {l.contactIds?.length || 0} contacts
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <button className="p-2 hover:bg-muted rounded-xl transition" onClick={() => editList(l)}>
+                              <Edit2 className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {lists.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="p-10 text-center text-muted-foreground">
+                            <ListIcon className="w-10 h-10 mx-auto opacity-20 mb-2" />
+                            <p className="font-bold">No lists yet</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {activeTab === 'templates' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Create template</h3>
-              
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-4 space-y-3">
-                <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
-                  <Sparkles className="w-4 h-4" /> AI Generator
+          <div className="space-y-6">
+            {(isCreatingTemplate || editingTemplateId) ? (
+              <div className="bg-card border border-border rounded-3xl p-6 space-y-4 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+                    {editingTemplateId ? 'Edit template' : 'Create template'}
+                  </h3>
+                  <button className="p-2 hover:bg-muted rounded-full" onClick={cancelTemplateEdit}>
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
+                
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-4 space-y-3">
+                  <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                    <Sparkles className="w-4 h-4" /> AI Generator
+                  </div>
+                  <textarea
+                    className={`${inputClass} min-h-[80px] text-xs border-primary/20`}
+                    placeholder="E.g. A festive greeting email for Christmas offering a 20% discount..."
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                  />
+                  <button 
+                    className={`${primaryBtnClass} w-full`} 
+                    onClick={generateTemplateAI}
+                    disabled={generatingAI}
+                  >
+                    <Sparkles className={`w-4 h-4 ${generatingAI ? 'animate-pulse' : ''}`} />
+                    {generatingAI ? 'Generating...' : 'Auto-Generate Subject & Content'}
+                  </button>
+                </div>
+                <input className={inputClass} placeholder="Template name *" value={newTemplate.name} onChange={(e) => setNewTemplate((s) => ({ ...s, name: e.target.value }))} />
+                <select className={inputClass} value={newTemplate.kind} onChange={(e) => setNewTemplate((s) => ({ ...s, kind: e.target.value }))}>
+                  {['cold', 'followup', 'birthday', 'anniversary', 'festive', 'general'].map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+                <input className={inputClass} placeholder="Subject *" value={newTemplate.subject} onChange={(e) => setNewTemplate((s) => ({ ...s, subject: e.target.value }))} />
                 <textarea
-                  className={`${inputClass} min-h-[80px] text-xs border-primary/20`}
-                  placeholder="E.g. A festive greeting email for Christmas offering a 20% discount..."
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
+                  className={`${inputClass} min-h-[220px] font-mono text-xs`}
+                  placeholder="HTML body *"
+                  value={newTemplate.html}
+                  onChange={(e) => setNewTemplate((s) => ({ ...s, html: e.target.value }))}
                 />
-                <button 
-                  className={`${primaryBtnClass} w-full`} 
-                  onClick={generateTemplateAI}
-                  disabled={generatingAI}
-                >
-                  <Sparkles className={`w-4 h-4 ${generatingAI ? 'animate-pulse' : ''}`} />
-                  {generatingAI ? 'Generating...' : 'Auto-Generate Subject & Content'}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  {editingTemplateId ? (
+                    <button className={primaryBtnClass} onClick={updateTemplate}>
+                      Update template
+                    </button>
+                  ) : (
+                    <button className={primaryBtnClass} onClick={createTemplate}>
+                      Save template
+                    </button>
+                  )}
+                </div>
               </div>
-              <input className={inputClass} placeholder="Template name *" value={newTemplate.name} onChange={(e) => setNewTemplate((s) => ({ ...s, name: e.target.value }))} />
-              <select className={inputClass} value={newTemplate.kind} onChange={(e) => setNewTemplate((s) => ({ ...s, kind: e.target.value }))}>
-                {['cold', 'followup', 'birthday', 'anniversary', 'festive', 'general'].map((k) => (
-                  <option key={k} value={k}>
-                    {k}
-                  </option>
-                ))}
-              </select>
-              <input className={inputClass} placeholder="Subject *" value={newTemplate.subject} onChange={(e) => setNewTemplate((s) => ({ ...s, subject: e.target.value }))} />
-              <textarea
-                className={`${inputClass} min-h-[220px] font-mono text-xs`}
-                placeholder="HTML body *"
-                value={newTemplate.html}
-                onChange={(e) => setNewTemplate((s) => ({ ...s, html: e.target.value }))}
-              />
-              <button className={primaryBtnClass} onClick={createTemplate}>
-                Save template
-              </button>
-            </div>
-
-            <div className="bg-card border border-border rounded-3xl p-6">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground mb-4">Templates</h3>
-              <div className="space-y-2 max-h-[520px] overflow-y-auto custom-scrollbar pr-2">
-                {templates.map((t) => (
-                  <div key={t._id} className="p-4 rounded-2xl border border-border bg-background/40">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-bold truncate">{t.name}</p>
-                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                        {t.kind}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate mt-1">{t.subject}</p>
-                  </div>
-                ))}
-                {templates.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <FileText className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                    <p className="font-bold">No templates yet</p>
-                  </div>
-                )}
+            ) : (
+              <div className="bg-card border border-border rounded-3xl p-6">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Templates</h3>
+                  <button className={primaryBtnClass} onClick={() => setIsCreatingTemplate(true)}>
+                    <Plus className="w-4 h-4" /> Create template
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto border border-border rounded-2xl">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40">
+                      <tr className="text-left">
+                        <th className="p-3">Name</th>
+                        <th className="p-3">Kind</th>
+                        <th className="p-3">Subject</th>
+                        <th className="p-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {templates.map((t) => (
+                        <tr key={t._id} className="border-t border-border hover:bg-muted/20">
+                          <td className="p-3 font-bold">{t.name}</td>
+                          <td className="p-3">
+                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                              {t.kind}
+                            </span>
+                          </td>
+                          <td className="p-3 text-muted-foreground truncate max-w-[300px]">{t.subject}</td>
+                          <td className="p-3 text-right">
+                            <button className="p-2 hover:bg-muted rounded-xl transition" onClick={() => editTemplate(t)}>
+                              <Edit2 className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {templates.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="p-10 text-center text-muted-foreground">
+                            <FileText className="w-10 h-10 mx-auto opacity-20 mb-2" />
+                            <p className="font-bold">No templates yet</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {activeTab === 'campaigns' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Create campaign</h3>
-              <input className={inputClass} placeholder="Campaign name *" value={newCampaign.name} onChange={(e) => setNewCampaign((s) => ({ ...s, name: e.target.value }))} />
-              <input className={inputClass} placeholder="Description" value={newCampaign.description} onChange={(e) => setNewCampaign((s) => ({ ...s, description: e.target.value }))} />
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">List *</p>
-                <Select value={newCampaign.listId} onChange={(v) => setNewCampaign((s) => ({ ...s, listId: v }))} options={listOptions} styles={selectStyles} />
-              </div>
-              <div className="space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Steps</p>
-                {newCampaign.steps.map((s, idx) => (
-                  <div key={idx} className="p-4 rounded-2xl border border-border bg-background/40 space-y-2">
-                    <Select
-                      value={s.templateId}
-                      onChange={(v) =>
-                        setNewCampaign((prev) => {
-                          const next = [...prev.steps];
-                          next[idx] = { ...next[idx], templateId: v };
-                          return { ...prev, steps: next };
-                        })
-                      }
-                      options={templateOptions}
-                      placeholder="Choose template"
-                      styles={selectStyles}
-                    />
-                    <input
-                      className={inputClass}
-                      type="number"
-                      min={0}
-                      placeholder="Delay days after previous step"
-                      value={s.delayDays}
-                      onChange={(e) =>
-                        setNewCampaign((prev) => {
-                          const next = [...prev.steps];
-                          next[idx] = { ...next[idx], delayDays: e.target.value };
-                          return { ...prev, steps: next };
-                        })
-                      }
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        className={btnClass}
-                        onClick={() =>
-                          setNewCampaign((prev) => ({ ...prev, steps: prev.steps.filter((_, i) => i !== idx) || [{ templateId: null, delayDays: 0 }] }))
+          <div className="space-y-6">
+            {(isCreatingCampaign || editingCampaignId) ? (
+              <div className="bg-card border border-border rounded-3xl p-6 space-y-4 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+                    {editingCampaignId ? 'Edit campaign' : 'Create campaign'}
+                  </h3>
+                  <button className="p-2 hover:bg-muted rounded-full" onClick={cancelCampaignEdit}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                      <Sparkles className="w-4 h-4" /> AI Campaign Generator
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase text-primary">Steps:</span>
+                      <input 
+                        type="number" 
+                        min={1} 
+                        max={10} 
+                        value={aiCampaignSteps} 
+                        onChange={(e) => setAiCampaignSteps(Number(e.target.value))}
+                        className="w-16 px-2 py-1 text-xs rounded border border-primary/30 bg-background text-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <textarea
+                    className={`${inputClass} min-h-[80px] text-xs border-primary/20`}
+                    placeholder="E.g. A 3-step drip campaign to welcome new students and upsell our math course..."
+                    value={aiCampaignPrompt}
+                    onChange={(e) => setAiCampaignPrompt(e.target.value)}
+                  />
+                  <button 
+                    className={`${primaryBtnClass} w-full`} 
+                    onClick={generateCampaignAI}
+                    disabled={generatingCampaignAI}
+                  >
+                    <Sparkles className={`w-4 h-4 ${generatingCampaignAI ? 'animate-pulse' : ''}`} />
+                    {generatingCampaignAI ? 'Generating Campaign & Templates...' : 'Auto-Generate Campaign'}
+                  </button>
+                </div>
+                <input className={inputClass} placeholder="Campaign name *" value={newCampaign.name} onChange={(e) => setNewCampaign((s) => ({ ...s, name: e.target.value }))} />
+                <input className={inputClass} placeholder="Description" value={newCampaign.description} onChange={(e) => setNewCampaign((s) => ({ ...s, description: e.target.value }))} />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">List *</p>
+                  <Select value={newCampaign.listId} onChange={(v) => setNewCampaign((s) => ({ ...s, listId: v }))} options={listOptions} styles={selectStyles} />
+                </div>
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Steps</p>
+                  {newCampaign.steps.map((s, idx) => (
+                    <div key={idx} className="p-4 rounded-2xl border border-border bg-background/40 space-y-2">
+                      <Select
+                        value={s.templateId}
+                        onChange={(v) =>
+                          setNewCampaign((prev) => {
+                            const next = [...prev.steps];
+                            next[idx] = { ...next[idx], templateId: v };
+                            return { ...prev, steps: next };
+                          })
                         }
-                        disabled={newCampaign.steps.length <= 1}
-                      >
-                        Remove step
-                      </button>
-                      {idx === newCampaign.steps.length - 1 && (
-                        <button className={btnClass} onClick={() => setNewCampaign((prev) => ({ ...prev, steps: [...prev.steps, { templateId: null, delayDays: 2 }] }))}>
-                          Add step
+                        options={templateOptions}
+                        placeholder="Choose template"
+                        styles={selectStyles}
+                      />
+                      <input
+                        className={inputClass}
+                        type="number"
+                        min={0}
+                        placeholder="Delay days after previous step"
+                        value={s.delayDays}
+                        onChange={(e) =>
+                          setNewCampaign((prev) => {
+                            const next = [...prev.steps];
+                            next[idx] = { ...next[idx], delayDays: e.target.value };
+                            return { ...prev, steps: next };
+                          })
+                        }
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          className={btnClass}
+                          onClick={() =>
+                            setNewCampaign((prev) => ({ ...prev, steps: prev.steps.filter((_, i) => i !== idx) || [{ templateId: null, delayDays: 0 }] }))
+                          }
+                          disabled={newCampaign.steps.length <= 1}
+                        >
+                          Remove step
                         </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <input
-                className={inputClass}
-                type="datetime-local"
-                value={newCampaign.startAt}
-                onChange={(e) => setNewCampaign((s) => ({ ...s, startAt: e.target.value }))}
-              />
-              <button className={primaryBtnClass} onClick={createCampaign}>
-                Save campaign
-              </button>
-            </div>
-
-            <div className="bg-card border border-border rounded-3xl p-6">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground mb-4">Campaigns</h3>
-              <div className="space-y-2 max-h-[520px] overflow-y-auto custom-scrollbar pr-2">
-                {campaigns.map((c) => (
-                  <div key={c._id} className="p-4 rounded-2xl border border-border bg-background/40">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-bold truncate">{c.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{c.listId?.name ? `List: ${c.listId.name}` : '—'}</p>
+                        {idx === newCampaign.steps.length - 1 && (
+                          <button className={btnClass} onClick={() => setNewCampaign((prev) => ({ ...prev, steps: [...prev.steps, { templateId: null, delayDays: 2 }] }))}>
+                            Add step
+                          </button>
+                        )}
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-muted text-muted-foreground border border-border">
-                        {c.status}
-                      </span>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button className={primaryBtnClass} onClick={() => startCampaign(c._id)} disabled={c.status === 'active'}>
-                        <Play className="w-4 h-4" /> Start
-                      </button>
-                      <button className={btnClass} onClick={() => pauseCampaign(c._id)} disabled={c.status !== 'active'}>
-                        <Pause className="w-4 h-4" /> Pause
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {campaigns.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <Mail className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                    <p className="font-bold">No campaigns yet</p>
-                  </div>
-                )}
+                  ))}
+                </div>
+                <input
+                  className={inputClass}
+                  type="datetime-local"
+                  value={newCampaign.startAt}
+                  onChange={(e) => setNewCampaign((s) => ({ ...s, startAt: e.target.value }))}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {editingCampaignId ? (
+                    <button className={primaryBtnClass} onClick={updateCampaign}>
+                      Update campaign
+                    </button>
+                  ) : (
+                    <button className={primaryBtnClass} onClick={createCampaign}>
+                      Save campaign
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-card border border-border rounded-3xl p-6">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Campaigns</h3>
+                  <button className={primaryBtnClass} onClick={() => setIsCreatingCampaign(true)}>
+                    <Plus className="w-4 h-4" /> Create campaign
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto border border-border rounded-2xl">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40">
+                      <tr className="text-left">
+                        <th className="p-3">Name</th>
+                        <th className="p-3">List</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Control</th>
+                        <th className="p-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campaigns.map((c) => (
+                        <tr key={c._id} className="border-t border-border hover:bg-muted/20">
+                          <td className="p-3 font-bold">{c.name}</td>
+                          <td className="p-3 text-muted-foreground">{c.listId?.name || '—'}</td>
+                          <td className="p-3">
+                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-muted text-muted-foreground border border-border">
+                              {c.status}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-wrap gap-2">
+                              <button className={primaryBtnClass} onClick={(e) => { e.stopPropagation(); startCampaign(c._id); }} disabled={c.status === 'active'}>
+                                <Play className="w-4 h-4" /> Start
+                              </button>
+                              <button className={btnClass} onClick={(e) => { e.stopPropagation(); pauseCampaign(c._id); }} disabled={c.status !== 'active'}>
+                                <Pause className="w-4 h-4" /> Pause
+                              </button>
+                            </div>
+                          </td>
+                          <td className="p-3 text-right">
+                            <button className="p-2 hover:bg-muted rounded-xl transition" onClick={() => editCampaign(c)}>
+                              <Edit2 className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {campaigns.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="p-10 text-center text-muted-foreground">
+                            <Mail className="w-10 h-10 mx-auto opacity-20 mb-2" />
+                            <p className="font-bold">No campaigns yet</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'holidays' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Add festive day</h3>
+              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+                {editingHolidayId ? 'Edit festive day' : 'Add festive day'}
+              </h3>
               <input className={inputClass} placeholder="Name * (e.g., Christmas)" value={newHoliday.name} onChange={(e) => setNewHoliday((s) => ({ ...s, name: e.target.value }))} />
               <div className="grid grid-cols-2 gap-3">
                 <input className={inputClass} type="number" min={1} max={12} value={newHoliday.month} onChange={(e) => setNewHoliday((s) => ({ ...s, month: e.target.value }))} />
@@ -873,16 +1265,29 @@ export default function Marketing() {
                 <input type="checkbox" checked={!!newHoliday.enabled} onChange={(e) => setNewHoliday((s) => ({ ...s, enabled: e.target.checked }))} />
                 Enabled
               </label>
-              <button className={primaryBtnClass} onClick={createHoliday}>
-                Save festive day
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {editingHolidayId ? (
+                  <>
+                    <button className={primaryBtnClass} onClick={updateHoliday}>
+                      Update festive day
+                    </button>
+                    <button className={btnClass} onClick={cancelHolidayEdit}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button className={primaryBtnClass} onClick={createHoliday}>
+                    Save festive day
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="bg-card border border-border rounded-3xl p-6">
               <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground mb-4">Festive days</h3>
               <div className="space-y-2 max-h-[520px] overflow-y-auto custom-scrollbar pr-2">
                 {holidays.map((h) => (
-                  <div key={h._id} className="p-4 rounded-2xl border border-border bg-background/40">
+                  <div key={h._id} className="p-4 rounded-2xl border border-border bg-background/40 cursor-pointer hover:border-primary/50 transition" onClick={() => editHoliday(h)}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-bold truncate">{h.name}</p>
                       <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
