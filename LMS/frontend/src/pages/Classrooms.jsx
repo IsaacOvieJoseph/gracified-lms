@@ -365,9 +365,11 @@ const Classrooms = () => {
                 menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
                 option: (base, state) => ({ 
                   ...base, 
-                  backgroundColor: state.isFocused ? 'var(--bg-muted)' : 'var(--bg-card)',
-                  color: 'var(--text-foreground)',
-                  fontWeight: '700'
+                  backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
+                  color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  ':active': { backgroundColor: 'hsl(var(--primary) / 0.2)' }
                 }),
                 singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
               }}
@@ -396,9 +398,10 @@ const Classrooms = () => {
                 menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
                 option: (base, state) => ({ 
                   ...base, 
-                  backgroundColor: state.isFocused ? 'var(--bg-muted)' : 'var(--bg-card)',
-                  color: 'var(--text-foreground)',
-                  fontWeight: '700'
+                  backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
+                  color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
+                  fontWeight: '700',
+                  cursor: 'pointer'
                 }),
                 singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
               }}
@@ -431,9 +434,10 @@ const Classrooms = () => {
                 menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
                 option: (base, state) => ({ 
                   ...base, 
-                  backgroundColor: state.isFocused ? 'var(--bg-muted)' : 'var(--bg-card)',
-                  color: 'var(--text-foreground)',
-                  fontWeight: '700'
+                  backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
+                  color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
+                  fontWeight: '700',
+                  cursor: 'pointer'
                 }),
                 singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
               }}
@@ -532,8 +536,15 @@ const Classrooms = () => {
                           borderWidth: '2px',
                           fontWeight: '700'
                         }),
+                        option: (base, state) => ({
+                          ...base,
+                          backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
+                          color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }),
                         singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                        menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                        menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
                       }}
                     />
                   </div>
@@ -559,8 +570,15 @@ const Classrooms = () => {
                           borderWidth: '2px',
                           fontWeight: '700'
                         }),
+                        option: (base, state) => ({
+                          ...base,
+                          backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
+                          color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }),
                         singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                         menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                         menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
                       }}
                     />
                   </div>
@@ -607,8 +625,15 @@ const Classrooms = () => {
                             borderWidth: '2px',
                             fontWeight: '700'
                           }),
+                          option: (base, state) => ({
+                            ...base,
+                            backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
+                            color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
+                            fontWeight: '700',
+                            cursor: 'pointer'
+                          }),
                           singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
                         }}
                       />
                     </div>
@@ -636,9 +661,16 @@ const Classrooms = () => {
                             borderWidth: '2px',
                             fontWeight: '700'
                           }),
+                          option: (base, state) => ({
+                            ...base,
+                            backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
+                            color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
+                            fontWeight: '700',
+                            cursor: 'pointer'
+                          }),
                           multiValue: (base) => ({ ...base, backgroundColor: 'var(--bg-muted)' }),
                           multiValueLabel: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999 })
+                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
                         }}
                       />
                     </div>
