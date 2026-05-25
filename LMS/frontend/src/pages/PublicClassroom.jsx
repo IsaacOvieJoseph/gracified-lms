@@ -170,7 +170,7 @@ const PublicClassroom = () => {
 
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
-              <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] animate-slide-up">
+              <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] animate-slide-up text-white">
                 {classroom.name}
               </h1>
               <p className="text-xl text-slate-400 font-medium leading-relaxed max-w-xl animate-slide-up animation-delay-100">

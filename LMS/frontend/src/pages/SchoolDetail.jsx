@@ -228,7 +228,10 @@ export default function SchoolDetails() {
                           <span className="text-slate-900 font-black text-sm">{new Date(school.subscriptionExpiry).toLocaleDateString()}</span>
                        </div>
                     )}
-                    <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
+                    <button 
+                      onClick={() => navigate('/subscription-management', { state: { schoolId: school._id, schoolName: school.name, email: school.adminEmail } })}
+                      className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                    >
                        Manage Subscription
                     </button>
                  </div>
