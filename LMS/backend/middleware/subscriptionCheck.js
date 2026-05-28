@@ -6,34 +6,77 @@ const subscriptionCheck = async (req, res, next) => {
   const user = req.user;
 
   try {
+    // Global toggle (Root Admin can disable subscription gating entirely)
+    const Settings = require('../models/Settings');
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+    if (!isCheckingEnabled) {
+      return next();
+    }
+
     // Root admin has full access
     if (user.role === 'root_admin') {
       return next();
     }
 
-    // For School Admin and Personal Teacher - check their own subscription
-    if (user.role === 'school_admin' || user.role === 'personal_teacher') {
+    const enforceUserSubscription = (subUser, { trialExpiredMessage, subscriptionExpiredMessage, subscriptionRequiredMessage }) => {
+      if (!subUser) {
+        return res.status(403).json({ message: subscriptionRequiredMessage, subscriptionRequired: true });
+      }
+
       // If on trial, check if trial period has expired
-      if (user.subscriptionStatus === 'trial') {
-        if (user.trialEndDate && user.trialEndDate < Date.now()) {
-          return res.status(403).json({ message: 'Your trial period has expired. Please choose a subscription plan to continue.', trialExpired: true });
+      if (subUser.subscriptionStatus === 'trial') {
+        if (subUser.trialEndDate && subUser.trialEndDate < Date.now()) {
+          return res.status(403).json({ message: trialExpiredMessage, trialExpired: true });
         }
       }
       // If on active plan, check if it has expired
-      else if (user.subscriptionStatus === 'active') {
-        if (user.subscriptionEndDate && new Date(user.subscriptionEndDate) < new Date()) {
-          return res.status(403).json({ message: 'Your subscription has expired. Please renew your plan to continue.', subscriptionExpired: true });
+      else if (subUser.subscriptionStatus === 'active') {
+        if (subUser.subscriptionEndDate && new Date(subUser.subscriptionEndDate) < new Date()) {
+          return res.status(403).json({ message: subscriptionExpiredMessage, subscriptionExpired: true });
         }
       }
       // If none of the above (none, canceled, expired), and NOT pay_as_you_go, deny access
-      else if (user.subscriptionStatus !== 'pay_as_you_go') {
-        return res.status(403).json({ message: 'You do not have an active subscription. Please choose a plan.', subscriptionRequired: true });
+      else if (subUser.subscriptionStatus !== 'pay_as_you_go') {
+        return res.status(403).json({ message: subscriptionRequiredMessage, subscriptionRequired: true });
       }
+
+      return null;
+    };
+
+    // For School Admin and Personal Teacher - check their own subscription
+    if (user.role === 'school_admin' || user.role === 'personal_teacher') {
+      const result = enforceUserSubscription(user, {
+        trialExpiredMessage: 'Your trial period has expired. Please choose a subscription plan to continue.',
+        subscriptionExpiredMessage: 'Your subscription has expired. Please renew your plan to continue.',
+        subscriptionRequiredMessage: 'You do not have an active subscription. Please choose a plan.',
+      });
+      if (result) return result;
       return next();
     }
 
-    // For Teachers - no subscription blocking (removed subscription checks)
+    // For Teachers - gate based on the school they belong to (school admin subscription)
     if (user.role === 'teacher') {
+      const schoolIds = Array.isArray(user.schoolId) ? user.schoolId : (user.schoolId ? [user.schoolId] : []);
+      const schoolId = schoolIds[0]?._id || schoolIds[0];
+
+      // If teacher is not attached to a school, do not gate them here.
+      // (Gating is school-dependent; personal teacher gating is handled above.)
+      if (schoolId) {
+        const school = await School.findById(schoolId).select('adminId');
+        const adminId = school?.adminId?._id || school?.adminId;
+        if (adminId) {
+          const schoolAdmin = await User.findById(adminId).select('subscriptionStatus trialEndDate subscriptionEndDate role');
+          const result = enforceUserSubscription(schoolAdmin, {
+            trialExpiredMessage: 'Your school trial period has expired. Please contact your school admin to choose a subscription plan.',
+            subscriptionExpiredMessage: 'Your school subscription has expired. Please contact your school admin to renew the plan.',
+            subscriptionRequiredMessage: 'Your school does not have an active subscription. Please contact your school admin.',
+          });
+          if (result) return result;
+        } else {
+          return res.status(403).json({ message: 'Your account is linked to a school without an active admin subscription. Please contact support.', subscriptionRequired: true });
+        }
+      }
       return next();
     }
 

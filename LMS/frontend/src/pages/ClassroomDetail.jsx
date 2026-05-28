@@ -1589,14 +1589,40 @@ const ClassroomDetail = () => {
                               ...base, 
                               minHeight: '60px', 
                               borderRadius: '1rem', 
-                              backgroundColor: 'var(--bg-muted)', 
-                              opacity: 0.5,
-                              borderColor: 'var(--border-border)', 
+                              backgroundColor: 'hsl(var(--muted))', 
+                              borderColor: 'hsl(var(--border))', 
                               borderWidth: '2px',
                               fontWeight: '700'
                             }),
-                            singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                            menuPortal: base => ({ ...base, zIndex: 9999, backgroundColor: 'var(--bg-card)' }) 
+                            placeholder: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
+                            input: (base) => ({ ...base, color: 'hsl(var(--foreground))' }),
+                            singleValue: (base) => ({ ...base, color: 'hsl(var(--foreground))' }),
+                            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                            menu: (base) => ({
+                              ...base,
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '1rem',
+                              overflow: 'hidden',
+                              boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+                            }),
+                            menuList: (base) => ({ ...base, backgroundColor: 'hsl(var(--card))', padding: 6 }),
+                            option: (base, state) => ({
+                              ...base,
+                              backgroundColor: state.isSelected
+                                ? 'hsl(var(--primary))'
+                                : state.isFocused
+                                  ? 'hsl(var(--primary) / 0.12)'
+                                  : 'transparent',
+                              color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.12em',
+                              fontSize: 10,
+                              padding: '10px 12px',
+                            }),
+                            indicatorSeparator: (base) => ({ ...base, backgroundColor: 'hsl(var(--border))' }),
+                            dropdownIndicator: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
                           }}
                         />
                       </div>
@@ -1617,14 +1643,40 @@ const ClassroomDetail = () => {
                               ...base, 
                               minHeight: '60px', 
                               borderRadius: '1rem', 
-                              backgroundColor: 'var(--bg-muted)', 
-                              opacity: 0.5,
-                              borderColor: 'var(--border-border)', 
+                              backgroundColor: 'hsl(var(--muted))', 
+                              borderColor: 'hsl(var(--border))', 
                               borderWidth: '2px',
                               fontWeight: '700'
                             }),
-                            singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                            menuPortal: base => ({ ...base, zIndex: 9999, backgroundColor: 'var(--bg-card)' }) 
+                            placeholder: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
+                            input: (base) => ({ ...base, color: 'hsl(var(--foreground))' }),
+                            singleValue: (base) => ({ ...base, color: 'hsl(var(--foreground))' }),
+                            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                            menu: (base) => ({
+                              ...base,
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '1rem',
+                              overflow: 'hidden',
+                              boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+                            }),
+                            menuList: (base) => ({ ...base, backgroundColor: 'hsl(var(--card))', padding: 6 }),
+                            option: (base, state) => ({
+                              ...base,
+                              backgroundColor: state.isSelected
+                                ? 'hsl(var(--primary))'
+                                : state.isFocused
+                                  ? 'hsl(var(--primary) / 0.12)'
+                                  : 'transparent',
+                              color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.12em',
+                              fontSize: 10,
+                              padding: '10px 12px',
+                            }),
+                            indicatorSeparator: (base) => ({ ...base, backgroundColor: 'hsl(var(--border))' }),
+                            dropdownIndicator: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' }),
                           }}
                         />
                       </div>

@@ -22,6 +22,26 @@ const hasSchoolAccess = (user, schoolId) => {
     return userSchoolIds.includes(schoolId.toString());
 };
 
+// Helper: exam access for teachers assigned to the class
+const canAccessExam = async (user, exam) => {
+    if (!user || !exam) return false;
+    if (user.role === 'root_admin') return true;
+
+    // Creator can always access
+    if (exam.creatorId && exam.creatorId.toString() === user._id.toString()) return true;
+
+    // School admins can access exams in their school
+    if (user.role === 'school_admin' && exam.schoolId && hasSchoolAccess(user, exam.schoolId)) return true;
+
+    // Teachers can access exams tagged to their assigned classes
+    if (user.role === 'teacher' && exam.classId) {
+        const classroom = await Classroom.findById(exam.classId).select('teacherId');
+        if (classroom?.teacherId && classroom.teacherId.toString() === user._id.toString()) return true;
+    }
+
+    return false;
+};
+
 // @route   POST /api/exams
 // @desc    Create an exam
 // @access  Teacher/Admin
@@ -168,6 +188,12 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'person
             if (req.user.role === 'school_admin') {
                 const userSchools = Array.isArray(req.user.schoolId) ? req.user.schoolId : [req.user.schoolId];
                 query = { $or: [{ creatorId: req.user._id }, { schoolId: { $in: userSchools } }] };
+            } else if (req.user.role === 'teacher') {
+                // Teachers should also see exams tagged to classes assigned to them,
+                // even if the exam was created by a school admin or someone else.
+                const classrooms = await Classroom.find({ teacherId: req.user._id }).select('_id');
+                const classroomIds = classrooms.map(c => c._id);
+                query = { $or: [{ creatorId: req.user._id }, { classId: { $in: classroomIds } }] };
             } else {
                 query = { creatorId: req.user._id };
             }
@@ -209,12 +235,9 @@ router.get('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
 
         if (!exam) return res.status(404).json({ message: 'Exam not found' });
 
-        // Auth check
-        const canAccess = req.user.role === 'root_admin' ||
-            exam.creatorId.toString() === req.user._id.toString() ||
-            (exam.schoolId && hasSchoolAccess(req.user, exam.schoolId));
-
-        if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+        // Auth check (includes assigned class teachers)
+        const allowed = await canAccessExam(req.user, exam);
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
 
         // Fetch additional branding if needed
         let logoUrl = exam.schoolId?.logoUrl || null;
@@ -264,9 +287,9 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
         const exam = await Exam.findById(req.params.id);
         if (!exam) return res.status(404).json({ message: 'Exam not found' });
 
-        if (exam.creatorId.toString() !== req.user._id.toString() && req.user.role !== 'root_admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
+        // Auth check (includes assigned class teachers)
+        const allowed = await canAccessExam(req.user, exam);
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
 
         Object.assign(exam, req.body);
         await exam.save();
@@ -782,12 +805,9 @@ router.get('/:id/submissions', auth, authorize('root_admin', 'school_admin', 'te
         const exam = await Exam.findById(req.params.id);
         if (!exam) return res.status(404).json({ message: 'Exam not found' });
 
-        // Auth check
-        const canAccess = req.user.role === 'root_admin' ||
-            exam.creatorId.toString() === req.user._id.toString() ||
-            (exam.schoolId && hasSchoolAccess(req.user, exam.schoolId));
-
-        if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+        // Auth check (includes assigned class teachers)
+        const allowed = await canAccessExam(req.user, exam);
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
 
         const submissions = await ExamSubmission.find({ examId: req.params.id }).populate('studentId', 'name email').sort({ submittedAt: -1 });
         res.json(submissions);
@@ -826,12 +846,9 @@ router.get('/submissions/detail/:id', auth, authorize('root_admin', 'school_admi
         if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
         const exam = submission.examId;
-        // Auth check
-        const canAccess = req.user.role === 'root_admin' ||
-            exam.creatorId.toString() === req.user._id.toString() ||
-            (exam.schoolId && hasSchoolAccess(req.user, exam.schoolId));
-
-        if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+        // Auth check (includes assigned class teachers)
+        const allowed = await canAccessExam(req.user, exam);
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
 
         res.json(submission);
     } catch (error) {
@@ -877,10 +894,9 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
         if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
         const exam = submission.examId;
-        // Auth check
-        if (exam.creatorId.toString() !== req.user._id.toString() && req.user.role !== 'root_admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
+        // Auth check (includes assigned class teachers)
+        const allowed = await canAccessExam(req.user, exam);
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
 
         const { questionGrades } = req.body; // Array of { index, score }
 
@@ -936,6 +952,29 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
         }
 
         res.json({ message: 'Grading updated and student notified', submission });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @route   DELETE /api/exams/submissions/:id
+// @desc    Delete an exam submission (Restricted)
+// @access  Root Admin / School Admin / Personal Teacher
+router.delete('/submissions/:id', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), async (req, res) => {
+    try {
+        const submission = await ExamSubmission.findById(req.params.id).populate('examId');
+        if (!submission) return res.status(404).json({ message: 'Submission not found' });
+
+        const exam = submission.examId;
+        // Root admins can always delete. School admins can delete within their school.
+        const allowed = req.user.role === 'root_admin' ||
+            (req.user.role === 'school_admin' && exam?.schoolId && hasSchoolAccess(req.user, exam.schoolId)) ||
+            (req.user.role === 'personal_teacher' && exam?.creatorId?.toString() === req.user._id.toString());
+
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
+
+        await submission.deleteOne();
+        res.json({ message: 'Submission deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

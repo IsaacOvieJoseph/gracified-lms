@@ -216,9 +216,11 @@ const Classrooms = () => {
         console.error('Classrooms data is not an array:', filtered);
         filtered = [];
       }
-      if (user?.role === 'student' || user?.role === 'teacher') {
+      // Students should only see published classrooms.
+      // Teachers should be able to see their own classrooms even if unpublished (so they can manage/publish them).
+      if (user?.role === 'student') {
         filtered = filtered.filter(c => c.published);
-        console.log('After published filter (student/teacher):', filtered.length);
+        console.log('After published filter (student):', filtered.length);
       }
       if (user?.role === 'school_admin' && selectedSchools.length > 0) {
         filtered = filtered.filter(c => {

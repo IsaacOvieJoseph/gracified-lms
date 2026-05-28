@@ -1,5 +1,6 @@
 const dotenv = require('dotenv');
 dotenv.config();
+const dns = require('dns');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -19,6 +20,15 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 
 const app = express();
+
+// Some Windows networks/security tools allow OS DNS resolution but block Node's DNS (c-ares),
+// which breaks MongoDB Atlas SRV lookups (mongodb+srv://). These defaults help avoid that.
+try {
+  dns.setDefaultResultOrder?.('ipv4first');
+  dns.setServers?.(['1.1.1.1', '8.8.8.8']);
+} catch (e) {
+  // best-effort only
+}
 
 // Trust proxy for rate limiting (needed on Render/cloud providers)
 app.set('trust proxy', 1);

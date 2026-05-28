@@ -4,6 +4,7 @@ const Classroom = require('../models/Classroom');
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
 const { isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
+const Settings = require('../models/Settings');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -143,8 +144,11 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
     // Check subscription only if user is not a teacher or student
-    if (req.user.role !== 'teacher' && req.user.role !== 'student') {
+    if (isCheckingEnabled && req.user.role !== 'teacher' && req.user.role !== 'student' && req.user.role !== 'root_admin') {
       const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
       if (!isOwnerSubscriptionValid) {
         return res.json({ topics: [] }); // Return empty array if subscription expired
@@ -156,9 +160,11 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       const teacherId = classroom.teacherId._id || classroom.teacherId;
       if (teacherId.toString() !== req.user._id.toString()) {
         // Teacher trying to access someone else's class - check subscription
-        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
-        if (!isOwnerSubscriptionValid) {
-          return res.json({ topics: [] });
+        if (isCheckingEnabled) {
+          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+          if (!isOwnerSubscriptionValid) {
+            return res.json({ topics: [] });
+          }
         }
       }
     }
@@ -240,6 +246,9 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(404).json({ message: 'Topic not found' });
     }
 
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
     // Check if classroom owner's subscription is valid (skip check for teachers and students)
     if (topic.classroomId) {
       // For teachers, allow access to their own class topics
@@ -249,9 +258,11 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
           // Teacher's own class - allow access
         } else if (req.user.role !== 'student') {
           // Teacher accessing someone else's class - check subscription
-          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
-          if (!isOwnerSubscriptionValid) {
-            return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+          if (isCheckingEnabled && req.user.role !== 'root_admin') {
+            const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
+            if (!isOwnerSubscriptionValid) {
+              return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+            }
           }
         }
       }
@@ -268,9 +279,11 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       }
       // For other users, check subscription
       else {
-        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
-        if (!isOwnerSubscriptionValid) {
-          return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+        if (isCheckingEnabled && req.user.role !== 'root_admin') {
+          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
+          if (!isOwnerSubscriptionValid) {
+            return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+          }
         }
       }
     }
