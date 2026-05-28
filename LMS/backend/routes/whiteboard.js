@@ -39,7 +39,22 @@ router.get('/:classroomId', auth, async (req, res) => {
 
     const isTeacher = classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString();
 
-    if (!isEnrolled && !isTeacher && req.user.role !== 'root_admin' && req.user.role !== 'school_admin') {
+    let hasSchoolAccess = false;
+    if (req.user.role === 'school_admin') {
+      const classroomSchools = Array.isArray(classroom.schoolId)
+        ? classroom.schoolId.map(id => (id._id || id).toString())
+        : (classroom.schoolId ? [(classroom.schoolId._id || classroom.schoolId).toString()] : []);
+
+      const adminSchools = Array.isArray(req.user.schoolId)
+        ? req.user.schoolId.map(id => (id._id || id).toString())
+        : (req.user.schoolId ? [(req.user.schoolId._id || req.user.schoolId).toString()] : []);
+
+      hasSchoolAccess = classroomSchools.some(sid => adminSchools.includes(sid));
+    }
+
+    const hasAccess = isEnrolled || isTeacher || req.user.role === 'root_admin' || hasSchoolAccess;
+
+    if (!hasAccess) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -91,9 +106,22 @@ router.post('/:classroomId/publish', auth, async (req, res) => {
     const classroom = await Classroom.findById(req.params.classroomId);
     if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
 
+    let hasSchoolAccess = false;
+    if (req.user.role === 'school_admin') {
+      const classroomSchools = Array.isArray(classroom.schoolId)
+        ? classroom.schoolId.map(id => (id._id || id).toString())
+        : (classroom.schoolId ? [(classroom.schoolId._id || classroom.schoolId).toString()] : []);
+
+      const adminSchools = Array.isArray(req.user.schoolId)
+        ? req.user.schoolId.map(id => (id._id || id).toString())
+        : (req.user.schoolId ? [(req.user.schoolId._id || req.user.schoolId).toString()] : []);
+
+      hasSchoolAccess = classroomSchools.some(sid => adminSchools.includes(sid));
+    }
+
     const canCreate =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
+      hasSchoolAccess ||
       (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString());
 
     if (!canCreate) return res.status(403).json({ message: 'Access denied' });

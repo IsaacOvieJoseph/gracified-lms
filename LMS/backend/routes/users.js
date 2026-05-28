@@ -484,16 +484,55 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, re
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Normalize schoolId in req.body if present
+    if (req.body.schoolId !== undefined) {
+      let finalSchoolId = req.body.schoolId;
+      if (typeof finalSchoolId === 'string' && finalSchoolId.startsWith('[')) {
+        try {
+          finalSchoolId = JSON.parse(finalSchoolId);
+        } catch (e) {
+          finalSchoolId = [finalSchoolId];
+        }
+      } else if (finalSchoolId && !Array.isArray(finalSchoolId)) {
+        finalSchoolId = [finalSchoolId];
+      }
+      req.body.schoolId = finalSchoolId;
+    }
+
     if (req.user.role === 'root_admin') {
       if (req.body.role === 'root_admin' && targetUser.role !== 'root_admin') {
         return res.status(403).json({ message: 'Cannot elevate a user to root_admin.' });
       }
     } else if (req.user.role === 'school_admin') {
-      if (targetUser.schoolId?.toString() !== req.user.schoolId?.toString()) {
+      const targetUserSchools = Array.isArray(targetUser.schoolId)
+        ? targetUser.schoolId.map(id => (id._id || id).toString())
+        : (targetUser.schoolId ? [(targetUser.schoolId._id || targetUser.schoolId).toString()] : []);
+
+      const adminSchools = Array.isArray(req.user.schoolId)
+        ? req.user.schoolId.map(id => (id._id || id).toString())
+        : (req.user.schoolId ? [(req.user.schoolId._id || req.user.schoolId).toString()] : []);
+
+      const hasSharedSchool = targetUserSchools.some(schoolId => adminSchools.includes(schoolId));
+      if (!hasSharedSchool) {
         return res.status(403).json({ message: 'Access denied' });
       }
       if (req.body.role && !['teacher', 'student'].includes(req.body.role)) {
         return res.status(403).json({ message: 'Cannot change to this role' });
+      }
+      if (req.body.schoolId !== undefined) {
+        if (req.body.schoolId && req.body.schoolId.length > 0) {
+          const School = require('../models/School');
+          const schools = await School.find({
+            _id: { $in: req.body.schoolId },
+            adminId: req.user._id
+          });
+
+          if (schools.length !== req.body.schoolId.length) {
+            return res.status(403).json({ message: 'You can only assign users to your assigned schools' });
+          }
+        } else {
+          return res.status(400).json({ message: 'School ID is required. Please select a school from the dropdown.' });
+        }
       }
     }
 

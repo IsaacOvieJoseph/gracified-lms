@@ -143,7 +143,7 @@ export default function SchoolDetails() {
                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl blur opacity-20 group-hover/link:opacity-40 transition-opacity"></div>
                        <div className="relative bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between gap-4">
                           <code className="text-slate-600 font-bold truncate text-sm">
-                             {window.location.origin}/s/{school.shortCode || school._id}
+                             {window.location.origin}/s/{school.slug || school.shortCode || school._id}
                           </code>
                           <div className="flex items-center gap-2 shrink-0">
                              <button 

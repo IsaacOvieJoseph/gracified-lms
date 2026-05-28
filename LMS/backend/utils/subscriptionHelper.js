@@ -28,20 +28,26 @@ const isSubscriptionValid = (user) => {
 const isClassroomOwnerSubscriptionValid = async (classroom) => {
   if (!classroom) return false;
 
-  // If classroom belongs to a school, check school admin's subscription
-  if (classroom.schoolId) {
-    let adminId;
+  const schoolIdField = classroom.schoolId;
+  const hasSchool = Array.isArray(schoolIdField) ? schoolIdField.length > 0 : !!schoolIdField;
 
-    // Handle both populated and non-populated schoolId
-    if (classroom.schoolId.adminId) {
-      // Already populated
-      adminId = classroom.schoolId.adminId._id || classroom.schoolId.adminId;
-    } else {
-      // Not populated, fetch school to get adminId
-      const School = require('../models/School');
-      const school = await School.findById(classroom.schoolId._id || classroom.schoolId);
-      if (school && school.adminId) {
-        adminId = school.adminId;
+  // If classroom belongs to a school, check school admin's subscription
+  if (hasSchool) {
+    let adminId;
+    const singleSchool = Array.isArray(schoolIdField) ? schoolIdField[0] : schoolIdField;
+
+    if (singleSchool) {
+      // Handle both populated and non-populated schoolId
+      if (singleSchool.adminId) {
+        // Already populated
+        adminId = singleSchool.adminId._id || singleSchool.adminId;
+      } else {
+        // Not populated, fetch school to get adminId
+        const School = require('../models/School');
+        const school = await School.findById(singleSchool._id || singleSchool);
+        if (school && school.adminId) {
+          adminId = school.adminId;
+        }
       }
     }
 

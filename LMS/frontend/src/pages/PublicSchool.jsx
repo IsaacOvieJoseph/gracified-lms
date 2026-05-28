@@ -220,7 +220,7 @@ const PublicSchool = () => {
                     <span className="text-sm font-black text-foreground uppercase tracking-tighter italic">{cls.teacherId?.name || "Expert Educator"}</span>
                   </div>
                   <Link 
-                    to={`/c/${cls.shortCode || cls._id}`}
+                    to={`/c/${cls.slug || cls.shortCode || cls._id}`}
                     className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center hover:bg-primary/90 transition-all transform group-hover:translate-x-2 shadow-lg shadow-primary/20"
                   >
                     <ArrowRight className="w-5 h-5" />

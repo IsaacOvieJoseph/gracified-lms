@@ -109,8 +109,16 @@ router.get('/public/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
     const mongoose = require('mongoose');
-    let school = await School.findOne({ shortCode: identifier });
+    
+    // Try to find by slug first (most user-friendly)
+    let school = await School.findOne({ slug: identifier.toLowerCase() });
+    
+    // Fall back to shortCode
+    if (!school) {
+      school = await School.findOne({ shortCode: identifier });
+    }
 
+    // Fall back to ID
     if (!school && mongoose.Types.ObjectId.isValid(identifier)) {
       school = await School.findById(identifier);
     }
@@ -124,7 +132,7 @@ router.get('/public/:identifier', async (req, res) => {
     const Classroom = require('../models/Classroom');
     const classrooms = await Classroom.find({ schoolId: school._id, published: true })
       .populate('teacherId', 'name')
-      .select('name description subject level shortCode pricing isPaid');
+      .select('name description subject level slug shortCode pricing isPaid');
 
     res.json({
       school: populatedSchool,
@@ -251,6 +259,52 @@ router.delete("/:id", auth, authorize('root_admin'), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error deleting school" });
+  }
+});
+
+// GET ALL TUTORIAL CENTERS (Root Admin only)
+/**
+ * @swagger
+ * /api/schools/tutorial-centers/all:
+ *   get:
+ *     summary: Get all tutorial centers owned by personal teachers
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of tutorial centers with teacher info
+ */
+router.get("/tutorial-centers/all", auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const Tutorial = require('../models/Tutorial');
+
+    // Get all personal teachers with their tutorial centers
+    const personalTeachers = await User.find({ role: 'personal_teacher' })
+      .populate('tutorialId', 'name classes logoUrl')
+      .select('_id name email tutorialId subscriptionStatus trialEndDate');
+
+    // Format response
+    const tutorialCenters = personalTeachers
+      .filter(teacher => teacher.tutorialId) // Only include teachers with tutorial centers
+      .map((teacher) => ({
+        _id: teacher.tutorialId._id,
+        name: teacher.tutorialId.name,
+        teacherId: teacher._id,
+        teacherName: teacher.name,
+        teacherEmail: teacher.email,
+        classCount: teacher.tutorialId.classes?.length || 0,
+        subscriptionStatus: teacher.subscriptionStatus,
+        trialEndDate: teacher.trialEndDate,
+        logoUrl: teacher.tutorialId.logoUrl,
+        type: 'tutorial_center'
+      }));
+
+    res.json({ tutorialCenters });
+  } catch (error) {
+    console.error("Error loading tutorial centers:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 });
 

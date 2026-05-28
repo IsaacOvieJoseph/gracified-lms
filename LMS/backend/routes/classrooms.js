@@ -36,9 +36,16 @@ const router = express.Router();
 router.get('/public/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
-    let classroom = await Classroom.findOne({ shortCode: identifier });
+    
+    // Try to find by slug first (most user-friendly)
+    let classroom = await Classroom.findOne({ slug: identifier.toLowerCase() });
+    
+    // Fall back to shortCode
+    if (!classroom) {
+      classroom = await Classroom.findOne({ shortCode: identifier });
+    }
 
-    // Fallback to searching by ID if not found by shortCode
+    // Fall back to ID
     if (!classroom && require('mongoose').Types.ObjectId.isValid(identifier)) {
       classroom = await Classroom.findById(identifier);
     }
@@ -686,7 +693,7 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
     } else if (req.user.role === 'root_admin' || req.user.role === 'school_admin') {
       // Root admin and school admin can assign teachers
       if (!teacherId) {
-        return res.status(400).json({ message: 'teacherId is required for admin users' });
+        return res.status(400).json({ message: 'Please assign a teacher to the classroom.' });
       }
       // Verify teacher exists and belongs to school (if school admin)
       const teacher = await User.findById(teacherId);
@@ -751,15 +758,13 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
     } else if (req.user.role === 'personal_teacher') {
       finalSchoolId = [];
     } else if (req.user.role === 'root_admin') {
-      if (teacherId) {
+      if (schoolId !== undefined) {
+        finalSchoolId = Array.isArray(schoolId) ? schoolId : (schoolId ? [schoolId] : []);
+      } else if (teacherId) {
         const assignedTeacher = await User.findById(teacherId);
         if (assignedTeacher && assignedTeacher.role === 'teacher') {
           finalSchoolId = Array.isArray(assignedTeacher.schoolId) ? assignedTeacher.schoolId : (assignedTeacher.schoolId ? [assignedTeacher.schoolId] : []);
-        } else if (schoolId) {
-          finalSchoolId = Array.isArray(schoolId) ? schoolId : [schoolId];
         }
-      } else if (schoolId) {
-        finalSchoolId = Array.isArray(schoolId) ? schoolId : [schoolId];
       }
     }
 
@@ -783,9 +788,10 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
     await classroom.populate('teacherId', 'name email');
 
     // Notify School Admin if a class is created in their school
-    if (classroom.schoolId) {
+    const firstSchoolId = Array.isArray(classroom.schoolId) ? classroom.schoolId[0] : classroom.schoolId;
+    if (firstSchoolId) {
       try {
-        const school = await School.findById(classroom.schoolId);
+        const school = await School.findById(firstSchoolId);
         if (school && school.adminId) {
           await Notification.create({
             userId: school.adminId,

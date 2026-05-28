@@ -36,10 +36,23 @@ router.post('/create-meeting/:classroomId', auth, async (req, res) => {
 
 // **** CHECK HERE FOR ZOOM CREATION PERMISSION ***
     // Check permissions
+    let hasSchoolAccess = false;
+    if (req.user.role === 'school_admin') {
+      const classroomSchools = Array.isArray(classroom.schoolId)
+        ? classroom.schoolId.map(id => (id._id || id).toString())
+        : (classroom.schoolId ? [(classroom.schoolId._id || classroom.schoolId).toString()] : []);
+
+      const adminSchools = Array.isArray(req.user.schoolId)
+        ? req.user.schoolId.map(id => (id._id || id).toString())
+        : (req.user.schoolId ? [(req.user.schoolId._id || req.user.schoolId).toString()] : []);
+
+      hasSchoolAccess = classroomSchools.some(sid => adminSchools.includes(sid));
+    }
+
     const canCreate = 
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId._id.toString() === req.user._id.toString();
+      hasSchoolAccess ||
+      (classroom.teacherId && (classroom.teacherId._id || classroom.teacherId).toString() === req.user._id.toString());
 
     if (!canCreate) {
       return res.status(403).json({ message: 'Access denied' });
@@ -121,12 +134,27 @@ router.get('/meeting/:classroomId', auth, async (req, res) => {
     }
 
     // Check if user is enrolled or is teacher/admin
-    const isEnrolled = classroom.students.some(
+    const isEnrolled = Array.isArray(classroom.students) && classroom.students.some(
       student => student.toString() === req.user._id.toString()
     );
-    const isTeacher = classroom.teacherId.toString() === req.user._id.toString();
+    const isTeacher = classroom.teacherId && (classroom.teacherId._id || classroom.teacherId).toString() === req.user._id.toString();
 
-    if (!isEnrolled && !isTeacher && req.user.role !== 'root_admin' && req.user.role !== 'school_admin') {
+    let hasSchoolAccess = false;
+    if (req.user.role === 'school_admin') {
+      const classroomSchools = Array.isArray(classroom.schoolId)
+        ? classroom.schoolId.map(id => (id._id || id).toString())
+        : (classroom.schoolId ? [(classroom.schoolId._id || classroom.schoolId).toString()] : []);
+
+      const adminSchools = Array.isArray(req.user.schoolId)
+        ? req.user.schoolId.map(id => (id._id || id).toString())
+        : (req.user.schoolId ? [(req.user.schoolId._id || req.user.schoolId).toString()] : []);
+
+      hasSchoolAccess = classroomSchools.some(sid => adminSchools.includes(sid));
+    }
+
+    const hasAccess = isEnrolled || isTeacher || req.user.role === 'root_admin' || hasSchoolAccess;
+
+    if (!hasAccess) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

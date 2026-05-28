@@ -31,6 +31,10 @@ const Users = () => {
       api.get('/schools?adminId=' + user._id)
         .then(res => setSchools(res.data.schools || []))
         .catch(() => setSchools([]));
+    } else if (user?.role === 'root_admin') {
+      api.get('/schools')
+        .then(res => setSchools(res.data.schools || []))
+        .catch(() => setSchools([]));
     }
   }, [user]);
   const [loading, setLoading] = useState(true);
@@ -138,8 +142,8 @@ const Users = () => {
 
     try {
       const submitData = { ...formData };
-      if (user?.role === 'school_admin') {
-        let schoolIdToSend = null;
+      if (['school_admin', 'root_admin'].includes(user?.role)) {
+        let schoolIdToSend = [];
 
         // If 'All' is selected, assign all school IDs
         if (submitData.schoolIds && submitData.schoolIds.length > 0) {
@@ -154,11 +158,12 @@ const Users = () => {
             // Send selected school IDs as array (backend handles arrays)
             schoolIdToSend = submitData.schoolIds.filter(id => id !== 'ALL');
           }
-        } else if (!submitData.schoolIds || submitData.schoolIds.length === 0) {
+        } else if (user?.role === 'school_admin') {
           // If no school selected in form, use the selected school from dropdown
           if (selectedSchools.length > 0) {
             schoolIdToSend = selectedSchools;
           } else {
+            setIsCreating(false);
             toast.error('Please select a school from the header dropdown first');
             return;
           }
@@ -166,7 +171,8 @@ const Users = () => {
 
         // Send as schoolId (singular) to match backend expectation
         submitData.schoolId = schoolIdToSend;
-        // Remove schoolIds from submitData to avoid confusion
+        delete submitData.schoolIds;
+      } else {
         delete submitData.schoolIds;
       }
       await api.post('/users', submitData, { skipLoader: true });
@@ -830,9 +836,11 @@ Bob Johnson,bob@example.com,student,`;
                       </select>
                     </div>
 
-                    {user?.role === 'school_admin' && (
+                    {['school_admin', 'root_admin'].includes(user?.role) && (
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-muted-foreground uppercase tracking-widest ml-1">Assign to Schools</label>
+                        <label className="text-xs font-black text-muted-foreground uppercase tracking-widest ml-1">
+                          Assign to Schools {user?.role === 'root_admin' && '(Optional - leave blank for none)'}
+                        </label>
                         <Select
                           isMulti
                           options={[
@@ -855,7 +863,7 @@ Bob Johnson,bob@example.com,student,`;
                           placeholder="Search schools..."
                         />
                         <p className="text-[10px] font-bold text-muted-foreground/30 ml-1">
-                          {selectedSchools.length > 0
+                          {user?.role === 'school_admin' && selectedSchools.length > 0
                             ? `Default: ${schools.find(s => s._id === selectedSchools[0])?.name || 'Current School'}.`
                             : 'Select one or more schools to grant access.'}
                         </p>

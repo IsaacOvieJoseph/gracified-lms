@@ -113,6 +113,13 @@ const classroomSchema = new mongoose.Schema({
     sparse: true, // Allow nulls for existing records until updated
     index: true
   },
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+    lowercase: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -123,8 +130,9 @@ const classroomSchema = new mongoose.Schema({
   }
 });
 
-// Generate unique shortCode before saving
+// Generate unique shortCode and slug before saving
 classroomSchema.pre('save', async function (next) {
+  // Generate shortCode
   if (!this.shortCode) {
     const crypto = require('crypto');
     const generateCode = () => crypto.randomBytes(4).toString('hex'); // 8 characters
@@ -138,6 +146,33 @@ classroomSchema.pre('save', async function (next) {
     }
     this.shortCode = code;
   }
+
+  // Generate slug from name
+  if (this.isModified('name') || !this.slug) {
+    const generateSlug = (name) => {
+      return name
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    };
+
+    let slug = generateSlug(this.name);
+    let baseSlug = slug;
+    let counter = 1;
+
+    // Ensure slug uniqueness
+    let exists = await this.constructor.findOne({ slug, _id: { $ne: this._id } });
+    while (exists) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+      exists = await this.constructor.findOne({ slug, _id: { $ne: this._id } });
+    }
+    this.slug = slug;
+  }
+
   next();
 });
 

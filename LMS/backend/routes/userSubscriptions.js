@@ -51,7 +51,8 @@ router.get('/', auth, authorize('root_admin', 'school_admin'), async (req, res) 
 
     // School admins can only see subscriptions for users within their school
     if (req.user.role === 'school_admin' && req.user.schoolId) {
-      const schoolUsers = await User.find({ schoolId: req.user.schoolId }).select('_id');
+      const adminSchoolIds = Array.isArray(req.user.schoolId) ? req.user.schoolId : [req.user.schoolId];
+      const schoolUsers = await User.find({ schoolId: { $in: adminSchoolIds } }).select('_id');
       const userIds = schoolUsers.map(user => user._id);
       query.userId = { $in: userIds };
     }

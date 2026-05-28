@@ -1382,7 +1382,7 @@ const ClassroomDetail = () => {
                         {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
                           <button
                             onClick={() => {
-                              const shareLink = `${window.location.origin}/c/${classroom.shortCode || classroom._id}`;
+                              const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
                               navigator.clipboard.writeText(shareLink);
                               toast.success('Link copied!');
                             }}
@@ -1464,7 +1464,7 @@ const ClassroomDetail = () => {
                   {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
                     <button
                       onClick={() => {
-                        const shareLink = `${window.location.origin}/c/${classroom.shortCode || classroom._id}`;
+                        const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
                         navigator.clipboard.writeText(shareLink);
                         toast.success('Link copied!');
                       }}

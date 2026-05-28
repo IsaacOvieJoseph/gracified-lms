@@ -77,6 +77,78 @@ const Classrooms = () => {
 
   const canCreate = ['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role);
 
+  const customSelectStyles = {
+    control: (base) => ({
+      ...base,
+      minHeight: '60px',
+      borderRadius: '1rem',
+      backgroundColor: 'hsl(var(--card))',
+      borderColor: 'hsl(var(--border))',
+      borderWidth: '2px',
+      fontWeight: '700',
+      boxShadow: 'none',
+      '&:hover': {
+        borderColor: 'hsl(var(--primary))'
+      }
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? 'hsl(var(--primary))'
+        : state.isFocused
+        ? 'hsl(var(--primary) / 0.15)'
+        : 'hsl(var(--card))',
+      color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+      fontWeight: '700',
+      cursor: 'pointer',
+      ':active': {
+        backgroundColor: 'hsl(var(--primary) / 0.2)'
+      }
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: 'hsl(var(--foreground))'
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: 'hsl(var(--card))',
+      border: '1px solid hsl(var(--border))',
+      borderRadius: '1rem',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      zIndex: 9999
+    }),
+    multiValue: (base) => ({
+      ...base,
+      backgroundColor: 'hsl(var(--muted))'
+    }),
+    multiValueLabel: (base) => ({
+      ...base,
+      color: 'hsl(var(--foreground))',
+      fontWeight: '600'
+    }),
+    multiValueRemove: (base) => ({
+      ...base,
+      color: 'hsl(var(--muted-foreground))',
+      ':hover': {
+        backgroundColor: 'hsl(var(--primary) / 0.15)',
+        color: 'hsl(var(--primary))'
+      }
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 99999
+    })
+  };
+
+  const filterSelectStyles = {
+    ...customSelectStyles,
+    control: (base) => ({
+      ...customSelectStyles.control(base),
+      minHeight: '48px',
+      height: '48px'
+    })
+  };
+
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
@@ -187,6 +259,8 @@ const Classrooms = () => {
   useEffect(() => {
     if (user?.role === 'school_admin') {
       api.get('/schools?adminId=' + user._id).then(res => setSchools(res.data.schools || []));
+    } else if (user?.role === 'root_admin') {
+      api.get('/schools').then(res => setSchools(res.data.schools || []));
     }
   }, [user]);
 
@@ -194,6 +268,11 @@ const Classrooms = () => {
     e.preventDefault();
     setIsCreating(true);
     try {
+      if (['root_admin', 'school_admin'].includes(user?.role) && !formData.teacherId) {
+        setIsCreating(false);
+        return toast.error('Please assign a teacher to the classroom.');
+      }
+
       const submitData = {
         ...formData,
         isPaid: formData.isPaid && formData.pricing?.amount > 0,
@@ -203,18 +282,27 @@ const Classrooms = () => {
           return { dayOfWeek: utc.dayOfWeek, startTime: utc.time, endTime: utcEnd.time };
         })
       };
-      if (user?.role === 'school_admin') {
+
+      if (['school_admin', 'root_admin'].includes(user?.role)) {
         const sel = formData.schoolIds?.includes('ALL') ? schools.map(s => s._id) : formData.schoolIds;
-        if (!sel || sel.length === 0) return toast.error('Select at least one school');
-        submitData.schoolId = sel;
+        if (user?.role === 'school_admin' && (!sel || sel.length === 0)) {
+          setIsCreating(false);
+          return toast.error('Select at least one school');
+        }
+        submitData.schoolId = sel || [];
+        delete submitData.schoolIds;
+      } else {
         delete submitData.schoolIds;
       }
+
       if (user?.role === 'teacher' || user?.role === 'personal_teacher') delete submitData.teacherId;
       await api.post('/classrooms', submitData);
       setShowCreateModal(false);
       fetchClassrooms();
       toast.success('Classroom created');
-    } catch (error) { toast.error('Error creating classroom'); }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error creating classroom');
+    }
     finally { setIsCreating(false); }
   };
 
@@ -351,28 +439,8 @@ const Classrooms = () => {
               onChange={(sel) => setSelectedSubject(sel?.value || 'All Subjects')}
               className="modern-select"
               classNamePrefix="react-select"
-              styles={{ 
-                control: (base) => ({ 
-                  ...base, 
-                  height: '48px', 
-                  borderRadius: '1rem', 
-                  backgroundColor: 'var(--bg-card)', 
-                  borderColor: 'var(--border-border)', 
-                  borderWidth: '2px',
-                  fontWeight: '700',
-                  '&:hover': { borderColor: 'var(--primary)' }
-                }),
-                menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
-                option: (base, state) => ({ 
-                  ...base, 
-                  backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
-                  color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  ':active': { backgroundColor: 'hsl(var(--primary) / 0.2)' }
-                }),
-                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
-              }}
+              menuPortalTarget={document.body}
+              styles={filterSelectStyles}
               components={{ DropdownIndicator: () => <Filter className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
             />
           </div>
@@ -384,27 +452,8 @@ const Classrooms = () => {
               onChange={(sel) => setSelectedLevel(sel?.value || 'All Levels')}
               className="modern-select"
               classNamePrefix="react-select"
-              styles={{ 
-                control: (base) => ({ 
-                  ...base, 
-                  height: '48px', 
-                  borderRadius: '1rem', 
-                  backgroundColor: 'var(--bg-card)', 
-                  borderColor: 'var(--border-border)', 
-                  borderWidth: '2px',
-                  fontWeight: '700',
-                  '&:hover': { borderColor: 'var(--primary)' }
-                }),
-                menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
-                option: (base, state) => ({ 
-                  ...base, 
-                  backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
-                  color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
-                  fontWeight: '700',
-                  cursor: 'pointer'
-                }),
-                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
-              }}
+              menuPortalTarget={document.body}
+              styles={filterSelectStyles}
               components={{ DropdownIndicator: () => <Layers className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
             />
           </div>
@@ -420,27 +469,8 @@ const Classrooms = () => {
               onChange={(sel) => setSelectedPrice(sel?.value || 'All Prices')}
               className="modern-select"
               classNamePrefix="react-select"
-              styles={{ 
-                control: (base) => ({ 
-                  ...base, 
-                  height: '48px', 
-                  borderRadius: '1rem', 
-                  backgroundColor: 'var(--bg-card)', 
-                  borderColor: 'var(--border-border)', 
-                  borderWidth: '2px',
-                  fontWeight: '700',
-                  '&:hover': { borderColor: 'var(--primary)' }
-                }),
-                menu: (base) => ({ ...base, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-border)' }),
-                option: (base, state) => ({ 
-                  ...base, 
-                  backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
-                  color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
-                  fontWeight: '700',
-                  cursor: 'pointer'
-                }),
-                singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' })
-              }}
+              menuPortalTarget={document.body}
+              styles={filterSelectStyles}
               components={{ DropdownIndicator: () => <DollarSign className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
             />
           </div>
@@ -524,28 +554,10 @@ const Classrooms = () => {
                       options={levelOptions}
                       value={levelOptions.find(opt => opt.value === formData.level)}
                       onChange={sel => setFormData({ ...formData, level: sel?.value })}
+                      className="modern-select"
                       classNamePrefix="react-select"
-                      styles={{ 
-                        control: (base) => ({ 
-                          ...base, 
-                          minHeight: '60px', 
-                          borderRadius: '1rem', 
-                          backgroundColor: 'var(--bg-muted)', 
-                          opacity: 0.5,
-                          borderColor: 'var(--border-border)', 
-                          borderWidth: '2px',
-                          fontWeight: '700'
-                        }),
-                        option: (base, state) => ({
-                          ...base,
-                          backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
-                          color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }),
-                        singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                        menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
-                      }}
+                      menuPortalTarget={document.body}
+                      styles={customSelectStyles}
                     />
                   </div>
 
@@ -558,28 +570,10 @@ const Classrooms = () => {
                       options={subjectOptions}
                       value={formData.subject ? { value: formData.subject, label: formData.subject } : null}
                       onChange={sel => setFormData({ ...formData, subject: sel?.value || '' })}
+                      className="modern-select"
                       classNamePrefix="react-select"
-                      styles={{ 
-                        control: (base) => ({ 
-                          ...base, 
-                          minHeight: '60px', 
-                          borderRadius: '1rem', 
-                          backgroundColor: 'var(--bg-muted)', 
-                          opacity: 0.5,
-                          borderColor: 'var(--border-border)', 
-                          borderWidth: '2px',
-                          fontWeight: '700'
-                        }),
-                        option: (base, state) => ({
-                          ...base,
-                          backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
-                          color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }),
-                        singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                         menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
-                      }}
+                      menuPortalTarget={document.body}
+                      styles={customSelectStyles}
                     />
                   </div>
 
@@ -614,34 +608,19 @@ const Classrooms = () => {
                         value={teachers.find(t => t._id === formData.teacherId) ? { value: formData.teacherId, label: teachers.find(t => t._id === formData.teacherId).name } : null}
                         onChange={sel => setFormData({ ...formData, teacherId: sel?.value })}
                         placeholder="Select a teacher..."
+                        className="modern-select"
                         classNamePrefix="react-select"
-                        styles={{ 
-                          control: (base) => ({ 
-                            ...base, 
-                            minHeight: '60px', 
-                            borderRadius: '1rem', 
-                            backgroundColor: 'var(--bg-card)', 
-                            borderColor: 'var(--border-border)', 
-                            borderWidth: '2px',
-                            fontWeight: '700'
-                          }),
-                          option: (base, state) => ({
-                            ...base,
-                            backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
-                            color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
-                            fontWeight: '700',
-                            cursor: 'pointer'
-                          }),
-                          singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
-                        }}
+                        menuPortalTarget={document.body}
+                        styles={customSelectStyles}
                       />
                     </div>
                   )}
 
-                  {user?.role === 'school_admin' && (
+                  {['school_admin', 'root_admin'].includes(user?.role) && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign to Schools</label>
+                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">
+                        Assign to Schools {user?.role === 'root_admin' && '(Optional - leave blank for none)'}
+                      </label>
                       <Select
                         isMulti
                         options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
@@ -650,28 +629,10 @@ const Classrooms = () => {
                           return { value: id, label: s?.name || id };
                         })}
                         onChange={sels => setFormData({ ...formData, schoolIds: sels ? sels.map(s => s.value) : [] })}
+                        className="modern-select"
                         classNamePrefix="react-select"
-                        styles={{ 
-                          control: (base) => ({ 
-                            ...base, 
-                            minHeight: '60px', 
-                            borderRadius: '1rem', 
-                            backgroundColor: 'var(--bg-card)', 
-                            borderColor: 'var(--border-border)', 
-                            borderWidth: '2px',
-                            fontWeight: '700'
-                          }),
-                          option: (base, state) => ({
-                            ...base,
-                            backgroundColor: state.isSelected ? 'hsl(var(--primary))' : state.isFocused ? 'hsl(var(--primary) / 0.15)' : 'var(--bg-card)',
-                            color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'var(--text-foreground)',
-                            fontWeight: '700',
-                            cursor: 'pointer'
-                          }),
-                          multiValue: (base) => ({ ...base, backgroundColor: 'var(--bg-muted)' }),
-                          multiValueLabel: (base) => ({ ...base, color: 'var(--text-foreground)' }),
-                          menu: base => ({ ...base, backgroundColor: 'var(--bg-card)', zIndex: 9999, border: '1px solid var(--border-border)' })
-                        }}
+                        menuPortalTarget={document.body}
+                        styles={customSelectStyles}
                       />
                     </div>
                   )}
