@@ -7,6 +7,8 @@ import {
     AlertTriangle, FileText, Send, Save, ArrowLeft, RefreshCw 
 } from 'lucide-react';
 import OTPInput from '../components/OTPInput';
+import ThemeToggle from '../components/ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 import { formatDisplayDate } from '../utils/timezone';
 
 // Use a clean axios instance to bypass default auth interceptors (which redirect on 401)
@@ -52,6 +54,20 @@ const ScriptSharePage = () => {
 
     // Timer refs
     const timerIntervalRef = useRef(null);
+
+    const { theme } = useTheme();
+
+    const rootColors = theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900';
+    const topBarBg = theme === 'dark' ? 'bg-slate-900/90' : 'bg-white/90';
+    const topBorder = theme === 'dark' ? 'border-slate-800' : 'border-slate-200';
+    const cardBg = theme === 'dark' ? 'bg-slate-900' : 'bg-white';
+    const border = theme === 'dark' ? 'border-slate-800' : 'border-slate-200';
+    const panelBg = theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50';
+    const panelBorder = theme === 'dark' ? 'border-slate-850' : 'border-slate-200';
+    const inputBg = theme === 'dark' ? 'bg-slate-950' : 'bg-white';
+    const inputText = theme === 'dark' ? 'text-slate-100' : 'text-slate-900';
+    const caret = theme === 'dark' ? 'caret-white' : 'caret-black';
+    const placeholder = theme === 'dark' ? 'placeholder:text-slate-500' : 'placeholder:text-slate-400';
 
     useEffect(() => {
         resolveShareToken();
@@ -550,15 +566,18 @@ const ScriptSharePage = () => {
     const candidateEmail = activeSubmission?.candidateEmail || script?.candidateEmail || '';
     const submittedAt = activeSubmission?.submittedAt || script?.submittedAt;
     const currentStatus = activeSubmission?.status || script?.status;
-    const currentScore = script?.type === 'exam'
-        ? activeSubmission?.totalScore ?? script?.totalScore
-        : activeSubmission?.score ?? script?.score;
+    const computedScore = questionGrades.reduce((sum, qg) => sum + Number(qg.score || 0), 0);
+    const currentScore = questionGrades.length > 0
+        ? computedScore
+        : script?.type === 'exam'
+            ? activeSubmission?.totalScore ?? script?.totalScore
+            : activeSubmission?.score ?? script?.score;
     
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-inter">
+        <div className={`min-h-screen ${rootColors} flex flex-col font-inter`}>
             {/* Top Bar Banner */}
-            <div className="sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-50">
-                <div className="flex items-center gap-4">
+                <div className={`sticky top-0 ${topBarBg} backdrop-blur-md border-b ${topBorder} px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-50`}>
+                    <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-primary/15 rounded-xl border border-primary/20 flex items-center justify-center text-primary font-black text-sm italic shadow-inner">
                         {candidateInitial}
                     </div>
@@ -582,7 +601,10 @@ const ScriptSharePage = () => {
                         <span className="font-mono text-sm font-black tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
                     </div>
 
-                    {isGrader && (
+                    <div className="flex items-center gap-2">
+                        <ThemeToggle />
+
+                        {isGrader && (
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleSaveDraft}
@@ -601,7 +623,8 @@ const ScriptSharePage = () => {
                                 <span>Finalize</span>
                             </button>
                         </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -610,7 +633,7 @@ const ScriptSharePage = () => {
                 <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
                     {script?.submissions?.length > 1 && (
                         <aside className="space-y-4">
-                            <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-5 shadow-xl sticky top-24 max-h-[calc(100vh-200px)] overflow-y-auto">
+                            <div className={`${cardBg} border ${border} rounded-[2rem] p-5 shadow-xl sticky top-24 max-h-[calc(100vh-200px)] overflow-y-auto`}>
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Shared Candidates</p>
@@ -660,7 +683,7 @@ const ScriptSharePage = () => {
                 )}
 
                 {/* Submissions Details Overview */}
-                <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-6 shadow-xl grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className={`${cardBg} border ${border} rounded-[2rem] p-6 shadow-xl grid grid-cols-2 sm:grid-cols-4 gap-4`}>
                     <div>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Submitted At</span>
                         <span className="font-bold text-xs text-slate-200 mt-1 block">{formatDisplayDate(submittedAt)}</span>
@@ -698,7 +721,7 @@ const ScriptSharePage = () => {
                         ) || { score: 0, feedback: '' };
 
                         return (
-                            <div key={index} className="bg-slate-900 border border-slate-800 rounded-[2rem] p-6 shadow-lg space-y-6">
+                            <div key={index} className={`${cardBg} border ${border} rounded-[2rem] p-6 shadow-lg space-y-6`}>
                                 {/* Question Title */}
                                 <div className="flex items-start gap-3">
                                     <span className="w-8 h-8 rounded-lg bg-primary/20 text-primary border border-primary/20 flex items-center justify-center font-black text-xs">
@@ -733,7 +756,7 @@ const ScriptSharePage = () => {
                                 )}
 
                                 {/* Student Answer Box */}
-                                <div className="bg-slate-950 border border-slate-850 rounded-2xl p-5 relative overflow-hidden pl-11">
+                                <div className={`${panelBg} border ${panelBorder} rounded-2xl p-5 relative overflow-hidden pl-11`}>
                                     <div className="absolute top-0 right-0 p-3 opacity-[0.02]">
                                         <FileText className="w-12 h-12 text-white" />
                                     </div>
@@ -753,7 +776,7 @@ const ScriptSharePage = () => {
                                                     type="number"
                                                     value={currentGradeItem.score}
                                                     onChange={(e) => handleGradeFieldChange(index, 'score', Math.min(question.maxScore || 10, Math.max(0, parseInt(e.target.value) || 0)))}
-                                                    className="w-full bg-slate-950 border-slate-850 focus:border-primary focus:ring-primary/20 text-white rounded-xl text-sm font-bold pr-12"
+                                                    className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-xl text-sm font-bold pr-12 ${placeholder}`}
                                                     min="0"
                                                     max={question.maxScore || 10}
                                                     required
@@ -769,7 +792,7 @@ const ScriptSharePage = () => {
                                                     placeholder="Feedback comments..."
                                                     value={currentGradeItem.feedback}
                                                     onChange={(e) => handleGradeFieldChange(index, 'feedback', e.target.value)}
-                                                    className="w-full bg-slate-950 border-slate-850 focus:border-primary focus:ring-primary/20 text-white rounded-xl text-xs font-medium"
+                                                    className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-xl text-xs font-medium ${placeholder}`}
                                                 />
                                             </div>
                                         )}
@@ -779,7 +802,7 @@ const ScriptSharePage = () => {
                                     (script.status === 'graded' || answerObj?.score !== undefined) && (
                                         <div className="flex items-center gap-3 pl-11 pt-2">
                                             <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
-                                                Score: {script.type === 'exam' ? answerObj?.score : currentGradeItem.score} / {question.maxScore || 10} pts
+                                                Score: {currentGradeItem.score} / {question.maxScore || 10} pts
                                             </span>
                                             {script.type === 'assignment' && currentGradeItem.feedback && (
                                                 <span className="text-xs text-slate-400 font-medium italic">Comment: {currentGradeItem.feedback}</span>
@@ -796,12 +819,12 @@ const ScriptSharePage = () => {
                         <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-6 shadow-lg space-y-4">
                             <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Overall Evaluator Summary</h3>
                             <textarea
-                                placeholder="Write overall grading summary and notes..."
-                                value={overallFeedback}
-                                onChange={(e) => setOverallFeedback(e.target.value)}
-                                className="w-full bg-slate-950 border-slate-850 focus:border-primary focus:ring-primary/20 text-white rounded-[1.5rem] p-4 text-xs font-semibold"
-                                rows="3"
-                            />
+                                    placeholder="Write overall grading summary and notes..."
+                                    value={overallFeedback}
+                                    onChange={(e) => setOverallFeedback(e.target.value)}
+                                    className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-[1.5rem] p-4 text-xs font-semibold ${placeholder}`}
+                                    rows="3"
+                                />
                         </div>
                     ) : (
                         overallFeedback && (
