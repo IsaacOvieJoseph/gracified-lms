@@ -48,6 +48,8 @@ require('./models/Exam');
 require('./models/ExamSubmission');
 require('./models/QnABoard');
 require('./models/QnAQuestion');
+require('./models/ScriptShareConfig');
+require('./models/ScriptAccessSession');
 
 // Security Middlewares
 app.use(helmet({
@@ -128,6 +130,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/exams', require('./routes/exams'));
 app.use('/api/qna', require('./routes/qna'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/scripts', require('./routes/scripts'));
 
 // Swagger Documentation
 const { swaggerUi, specs } = require('./config/swagger');

@@ -12,7 +12,8 @@ import {
     FileText,
     Download,
     UserCheck,
-    BarChart
+    BarChart,
+    Share2
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -20,6 +21,7 @@ import Layout from '../components/Layout';
 import api from '../utils/api';
 import { formatDisplayDate } from '../utils/timezone';
 import logo from '../assets/logo.jpg';
+import ShareScriptModal from '../components/ShareScriptModal';
 
 const ExamSubmissions = () => {
     const { id } = useParams();
@@ -29,6 +31,8 @@ const ExamSubmissions = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [selectedShareSubmission, setSelectedShareSubmission] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -417,13 +421,25 @@ const ExamSubmissions = () => {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                <button
-                                                    onClick={() => navigate(`/exams/submissions/detail/${s._id}`)}
-                                                    className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50 group/btn"
-                                                    title="Deep Analysis"
-                                                >
-                                                    <BarChart className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                                                </button>
+                                                <div className="flex justify-end items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedShareSubmission(s);
+                                                            setShowShareModal(true);
+                                                        }}
+                                                        className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50"
+                                                        title="Share submission"
+                                                    >
+                                                        <Share2 className="w-5 h-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => navigate(`/exams/submissions/detail/${s._id}`)}
+                                                        className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50 group/btn"
+                                                        title="Deep Analysis"
+                                                    >
+                                                        <BarChart className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -439,6 +455,18 @@ const ExamSubmissions = () => {
                     </div>
                 </div>
             </div>
+            {selectedShareSubmission && (
+                <ShareScriptModal
+                    show={showShareModal}
+                    onClose={() => {
+                        setShowShareModal(false);
+                        setSelectedShareSubmission(null);
+                    }}
+                    parentId={exam?._id}
+                    parentType="exam"
+                    submissionId={selectedShareSubmission._id}
+                />
+            )}
         </Layout>
     );
 };

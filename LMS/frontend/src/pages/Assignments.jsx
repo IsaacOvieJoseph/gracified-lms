@@ -9,8 +9,9 @@ import GradeAssignmentModal from '../components/GradeAssignmentModal'; // Import
 import SubmitAssignmentModal from '../components/SubmitAssignmentModal';
 import PaymentRequiredModal from '../components/PaymentRequiredModal';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { Edit, Trash2, X, Loader2 } from 'lucide-react';
+import { Edit, Trash2, X, Loader2, Share2 } from 'lucide-react';
 import { formatDisplayDate } from '../utils/timezone';
+import ShareScriptModal from '../components/ShareScriptModal';
 
 const Assignments = () => {
   const { user, loading: userLoading } = useAuth();
@@ -24,6 +25,9 @@ const Assignments = () => {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentToSubmit, setAssignmentToSubmit] = useState(null);
   const [submissionToGrade, setSubmissionToGrade] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedShareSubmission, setSelectedShareSubmission] = useState(null);
+  const [selectedShareAssignment, setSelectedShareAssignment] = useState(null);
   const [classrooms, setClassrooms] = useState([]); // To populate classroom dropdown for assignment creation
   const [topics, setTopics] = useState([]); // To populate topic dropdown for assignment creation
   const [expandedSubmissions, setExpandedSubmissions] = useState(new Set()); // Track which submissions are expanded
@@ -689,17 +693,31 @@ const Assignments = () => {
                                       </div>
                                     </div>
                                     {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? sub.studentId?._id === user?._id : true) && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedAssignment(assignment);
-                                          setSubmissionToGrade(sub);
-                                          setShowGradeModal(true);
-                                        }}
-                                        className="text-[10px] font-black text-primary uppercase tracking-widest hover:scale-105 active:scale-95 transition-all bg-card px-5 py-2 rounded-xl border border-border shadow-sm group-hover/sub:bg-primary group-hover/sub:text-white"
-                                      >
-                                        Evaluate
-                                      </button>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedShareAssignment(assignment);
+                                            setSelectedShareSubmission(sub);
+                                            setShowShareModal(true);
+                                          }}
+                                          className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50 bg-card"
+                                          title="Share Submission"
+                                        >
+                                          <Share2 className="w-4.5 h-4.5" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedAssignment(assignment);
+                                            setSubmissionToGrade(sub);
+                                            setShowGradeModal(true);
+                                          }}
+                                          className="text-[10px] font-black text-primary uppercase tracking-widest hover:scale-105 active:scale-95 transition-all bg-card px-5 py-2 rounded-xl border border-border shadow-sm group-hover/sub:bg-primary group-hover/sub:text-white"
+                                        >
+                                          Evaluate
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                   {isExpanded && (
@@ -819,6 +837,21 @@ const Assignments = () => {
           onSuccess={() => {
             fetchAssignments(); // Refresh both assignments and topic statuses
           }}
+        />
+      )}
+      {/* Share Script Modal */}
+      {showShareModal && selectedShareSubmission && selectedShareAssignment && (
+        <ShareScriptModal
+          show={showShareModal}
+          onClose={() => {
+            setShowShareModal(false);
+            setSelectedShareSubmission(null);
+            setSelectedShareAssignment(null);
+          }}
+          parentId={selectedShareAssignment._id}
+          parentType="assignment"
+          submissionId={selectedShareSubmission._id}
+          studentId={selectedShareSubmission.studentId?._id || selectedShareSubmission.studentId}
         />
       )}
     </Layout>
