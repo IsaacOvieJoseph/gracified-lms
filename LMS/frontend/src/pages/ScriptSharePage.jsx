@@ -207,6 +207,13 @@ const ScriptSharePage = () => {
         }
     };
 
+    const formatAnswerDisplay = (answerObj) => {
+        if (answerObj === undefined || answerObj === null) return null;
+        if (typeof answerObj === 'string' || typeof answerObj === 'number' || typeof answerObj === 'boolean') return String(answerObj);
+        if (Array.isArray(answerObj)) return answerObj.join(', ');
+        return answerObj.answer || answerObj.theoryAnswer || answerObj.selectedOption || JSON.stringify(answerObj, null, 2);
+    };
+
     // Update grade score or feedback in state
     const handleGradeFieldChange = (index, field, value) => {
         setQuestionGrades(prev => prev.map((item, i) => {
@@ -351,7 +358,7 @@ const ScriptSharePage = () => {
                                 placeholder="e.g. John Doe"
                                 value={requesterName}
                                 onChange={(e) => setRequesterName(e.target.value)}
-                                className="w-full bg-slate-900 border-slate-800 focus:border-primary focus:ring-primary/20 text-white rounded-xl placeholder:text-slate-600"
+                                className="w-full bg-slate-950 border border-slate-700 focus:border-primary focus:ring-primary/20 text-white rounded-xl placeholder:text-slate-500 px-4 py-3"
                                 required
                             />
                         </div>
@@ -362,7 +369,7 @@ const ScriptSharePage = () => {
                                 placeholder="e.g. john@school.com"
                                 value={requesterEmail}
                                 onChange={(e) => setRequesterEmail(e.target.value)}
-                                className="w-full bg-slate-900 border-slate-800 focus:border-primary focus:ring-primary/20 text-white rounded-xl placeholder:text-slate-600"
+                                className="w-full bg-slate-950 border border-slate-700 focus:border-primary focus:ring-primary/20 text-white rounded-xl placeholder:text-slate-500 px-4 py-3"
                                 required
                             />
                         </div>
@@ -563,7 +570,7 @@ const ScriptSharePage = () => {
                             ? script.answers?.find(a => a.questionIndex === index)
                             : null;
                         const studentAnswer = script.type === 'exam'
-                            ? (answerObj?.theoryAnswer || answerObj?.selectedOption || 'No response')
+                            ? formatAnswerDisplay(answerObj)
                             : (Array.isArray(script.answers) ? script.answers[index] : script.answers);
 
                         const currentGradeItem = questionGrades.find(qg => 
@@ -588,7 +595,7 @@ const ScriptSharePage = () => {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-11">
                                         {question.options.map((opt, oIdx) => {
                                             const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
-                                            const isSelected = answerObj?.selectedOption === opt;
+                                            const isSelected = answerObj?.answer === opt;
                                             const isCorrect = question.correctOption === opt;
                                             return (
                                                 <div 
