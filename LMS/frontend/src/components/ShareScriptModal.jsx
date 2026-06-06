@@ -3,7 +3,7 @@ import api from '../utils/api';
 import { X, Copy, Check, Save, Settings, Clock, Shield, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, studentId }) => {
+const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, studentId, selectedSubmissionIds = [] }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -20,12 +20,13 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
     // Share link state
     const [shareUrl, setShareUrl] = useState('');
     const [shareToken, setShareToken] = useState('');
+    const isGroupShare = Array.isArray(selectedSubmissionIds) && selectedSubmissionIds.length > 1;
 
     useEffect(() => {
         if (show && parentId) {
             fetchShareConfigAndLink();
         }
-    }, [show, parentId, submissionId, studentId]);
+    }, [show, parentId, submissionId, studentId, selectedSubmissionIds]);
 
     const fetchShareConfigAndLink = async () => {
         setLoading(true);
@@ -52,11 +53,25 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
     const generateShareLink = async (isShareableActive) => {
         if (!isShareableActive) return;
         try {
+            const inferredStudentId = (!studentId && parentType === 'assignment' && selectedSubmissionIds.length === 1)
+                ? selectedSubmissionIds[0].split(':')[1]
+                : studentId;
+
             let res;
-            if (parentType === 'exam') {
+            if (parentType === 'exam' && selectedSubmissionIds.length > 1) {
+                res = await api.post('/scripts/exam-submission/group-generate-link', {
+                    examId: parentId,
+                    submissionIds: selectedSubmissionIds
+                });
+            } else if (parentType === 'assignment' && selectedSubmissionIds.length > 1) {
+                res = await api.post('/scripts/assignment-submission/group-generate-link', {
+                    assignmentId: parentId,
+                    submissionIds: selectedSubmissionIds
+                });
+            } else if (parentType === 'exam') {
                 res = await api.post(`/scripts/exam-submission/${submissionId}/generate-link`);
             } else {
-                res = await api.post(`/scripts/assignment-submission/${parentId}/${studentId}/generate-link`);
+                res = await api.post(`/scripts/assignment-submission/${parentId}/${inferredStudentId}/generate-link`);
             }
             setShareUrl(res.data.shareUrl);
             setShareToken(res.data.shareToken);
@@ -127,10 +142,15 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary/0 via-primary to-primary/0 opacity-20" />
                 
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
-                        <Settings className="w-5 h-5 text-primary" />
-                        <span>Script Sharing</span>
-                    </h3>
+                    <div>
+                        <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
+                            <Settings className="w-5 h-5 text-primary" />
+                            <span>Script Sharing</span>
+                        </h3>
+                        {isGroupShare && (
+                            <p className="text-xs text-slate-500 mt-1">Group share for {selectedSubmissionIds.length} submissions</p>
+                        )}
+                    </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition text-slate-400">
                         <X className="w-5 h-5" />
                     </button>

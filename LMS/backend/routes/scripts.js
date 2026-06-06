@@ -87,6 +87,20 @@ function canManageShare(user, parentDoc) {
     return false;
 }
 
+/**
+ * Create a readable group slug using candidate names or assignment context.
+ */
+function createShareSlug(baseText) {
+    const safe = String(baseText || 'shared-scripts')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 40);
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    return `${safe}-${suffix}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARE CONFIG — EXAM
 // ─────────────────────────────────────────────────────────────────────────────
@@ -255,9 +269,12 @@ router.post('/exam-submission/:submissionId/generate-link', auth, authorize('roo
 
         // Find existing pending/active session for this submission, or create new
         let session = await ScriptAccessSession.findOne({
-            submissionRef: submission._id.toString(),
             submissionType: 'exam',
-            status: { $in: ['pending_otp'] }
+            status: { $in: ['pending_otp'] },
+            $or: [
+                { submissionRef: submission._id.toString() },
+                { submissionRefs: submission._id.toString() }
+            ]
         });
 
         if (!session) {
@@ -265,6 +282,7 @@ router.post('/exam-submission/:submissionId/generate-link', auth, authorize('roo
                 shareToken: randomUUID().replace(/-/g, ''),
                 submissionType: 'exam',
                 submissionRef: submission._id.toString(),
+                submissionRefs: [submission._id.toString()],
                 parentId: exam._id,
                 studentId: submission.studentId || null,
                 accessType: config.defaultAccessType,
@@ -274,6 +292,73 @@ router.post('/exam-submission/:submissionId/generate-link', auth, authorize('roo
 
         const shareUrl = `${process.env.FRONTEND_URL}/shared-script/${session.shareToken}`;
         res.json({ shareToken: session.shareToken, shareUrl, accessType: config.defaultAccessType });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+/**
+ * @route  POST /api/scripts/exam-submission/group-generate-link
+ * @desc   Generate a share link for a group of exam submissions
+ * @access Owner / Admin
+ */
+router.post('/exam-submission/group-generate-link', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
+    try {
+        const { examId, submissionIds } = req.body;
+        if (!examId || !Array.isArray(submissionIds) || submissionIds.length < 2) {
+            return res.status(400).json({ message: 'examId and at least two submissionIds are required' });
+        }
+
+        const exam = await Exam.findById(examId);
+        if (!exam) return res.status(404).json({ message: 'Exam not found' });
+        if (!canManageShare(req.user, exam)) return res.status(403).json({ message: 'Access denied' });
+
+        const config = await ScriptShareConfig.findOne({ parentId: exam._id, parentType: 'exam' });
+        if (!config || !config.isShareable) {
+            return res.status(400).json({ message: 'Sharing is not enabled for this exam. Enable it in share settings first.' });
+        }
+
+        const submissions = await ExamSubmission.find({
+            _id: { $in: submissionIds },
+            examId: exam._id
+        });
+
+        if (submissions.length !== submissionIds.length) {
+            return res.status(404).json({ message: 'One or more submissions were not found for this exam' });
+        }
+
+        const candidateNames = submissions.map(s => s.candidateName || s.candidateEmail || s.studentId?.toString() || 'candidate');
+        const baseSlug = candidateNames.length === 2
+            ? `${candidateNames[0]}-and-${candidateNames[1]}`
+            : `${candidateNames[0]}-and-${candidateNames.length - 1}-others`;
+        const groupName = `group-${candidateNames.length}-${candidateNames[0]}`;
+
+        let shareToken = createShareSlug(baseSlug);
+        while (await ScriptAccessSession.findOne({ shareToken })) {
+            shareToken = createShareSlug(baseSlug);
+        }
+
+        let session = await ScriptAccessSession.findOne({
+            submissionType: 'exam',
+            submissionRefs: { $all: submissionIds, $size: submissionIds.length },
+            status: { $in: ['pending_otp'] }
+        });
+
+        if (!session) {
+            session = await ScriptAccessSession.create({
+                shareToken,
+                submissionType: 'exam',
+                submissionRef: submissionIds[0].toString(),
+                submissionRefs: submissionIds.map(id => id.toString()),
+                groupName,
+                parentId: exam._id,
+                accessType: config.defaultAccessType,
+                status: 'pending_otp'
+            });
+        }
+
+        const shareUrl = `${process.env.FRONTEND_URL}/shared-script/${session.shareToken}`;
+        res.json({ shareToken: session.shareToken, shareUrl, accessType: config.defaultAccessType, groupName: session.groupName });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -307,9 +392,12 @@ router.post('/assignment-submission/:assignmentId/:studentId/generate-link', aut
         const submissionRef = `${assignmentId}:${studentId}`;
 
         let session = await ScriptAccessSession.findOne({
-            submissionRef,
             submissionType: 'assignment',
-            status: 'pending_otp'
+            status: 'pending_otp',
+            $or: [
+                { submissionRef },
+                { submissionRefs: submissionRef }
+            ]
         });
 
         if (!session) {
@@ -317,6 +405,7 @@ router.post('/assignment-submission/:assignmentId/:studentId/generate-link', aut
                 shareToken: randomUUID().replace(/-/g, ''),
                 submissionType: 'assignment',
                 submissionRef,
+                submissionRefs: [submissionRef],
                 parentId: assignment._id,
                 studentId: studentId || null,
                 accessType: config.defaultAccessType,
@@ -326,6 +415,82 @@ router.post('/assignment-submission/:assignmentId/:studentId/generate-link', aut
 
         const shareUrl = `${process.env.FRONTEND_URL}/shared-script/${session.shareToken}`;
         res.json({ shareToken: session.shareToken, shareUrl, accessType: config.defaultAccessType });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+/**
+ * @route  POST /api/scripts/assignment-submission/group-generate-link
+ * @desc   Generate a share link for a group of assignment submissions
+ * @access Owner / Admin
+ */
+router.post('/assignment-submission/group-generate-link', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
+    try {
+        const { assignmentId, submissionIds } = req.body;
+        if (!assignmentId || !Array.isArray(submissionIds) || submissionIds.length < 2) {
+            return res.status(400).json({ message: 'assignmentId and at least two submissionIds are required' });
+        }
+
+        const assignment = await Assignment.findById(assignmentId).populate('classroomId', 'teacherId schoolId').select('title submissions');
+        if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+        const fakeParentDoc = {
+            creatorId: assignment.classroomId?.teacherId,
+            schoolId: assignment.classroomId?.schoolId?.[0] || null
+        };
+        if (!canManageShare(req.user, fakeParentDoc)) return res.status(403).json({ message: 'Access denied' });
+
+        const config = await ScriptShareConfig.findOne({ parentId: assignment._id, parentType: 'assignment' });
+        if (!config || !config.isShareable) {
+            return res.status(400).json({ message: 'Sharing is not enabled for this assignment. Enable it in share settings first.' });
+        }
+
+        const submissionMap = assignment.submissions.reduce((map, s) => {
+            const studentId = s.studentId?.toString() || s.studentId;
+            map[`${assignment._id}:${studentId}`] = s;
+            return map;
+        }, {});
+
+        const missingIds = submissionIds.filter(ref => !submissionMap[ref]);
+        if (missingIds.length > 0) {
+            return res.status(404).json({ message: 'One or more submissions were not found for this assignment' });
+        }
+
+        const submissions = submissionIds.map(ref => submissionMap[ref]);
+        const candidateNames = submissions.map(s => s.candidateName || s.studentId?.toString() || 'candidate');
+        const baseSlug = candidateNames.length === 2
+            ? `${candidateNames[0]}-and-${candidateNames[1]}`
+            : `${candidateNames[0]}-and-${candidateNames.length - 1}-others`;
+        const groupName = `group-${candidateNames.length}-${candidateNames[0]}`;
+
+        let shareToken = createShareSlug(baseSlug);
+        while (await ScriptAccessSession.findOne({ shareToken })) {
+            shareToken = createShareSlug(baseSlug);
+        }
+
+        let session = await ScriptAccessSession.findOne({
+            submissionType: 'assignment',
+            submissionRefs: { $all: submissionIds, $size: submissionIds.length },
+            status: { $in: ['pending_otp'] }
+        });
+
+        if (!session) {
+            session = await ScriptAccessSession.create({
+                shareToken,
+                submissionType: 'assignment',
+                submissionRef: submissionIds[0],
+                submissionRefs: submissionIds,
+                groupName,
+                parentId: assignment._id,
+                studentId: null,
+                accessType: config.defaultAccessType,
+                status: 'pending_otp'
+            });
+        }
+
+        const shareUrl = `${process.env.FRONTEND_URL}/shared-script/${session.shareToken}`;
+        res.json({ shareToken: session.shareToken, shareUrl, accessType: config.defaultAccessType, groupName: session.groupName });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -349,28 +514,77 @@ router.get('/share/:shareToken', async (req, res) => {
         let candidateName = '';
         let submittedAt = null;
         let accessType = session.accessType;
+        let groupName = session.groupName || null;
+        let candidates = [];
 
         if (session.submissionType === 'exam') {
-            const submission = await ExamSubmission.findById(session.submissionRef).populate('examId', 'title');
-            if (!submission) return res.status(404).json({ message: 'Submission not found' });
-            title = submission.examId?.title || 'Exam';
-            candidateName = submission.candidateName || '';
-            submittedAt = submission.submittedAt;
-            if (submission.studentId) {
-                const student = await User.findById(submission.studentId).select('name');
-                if (student) candidateName = student.name;
+            if (session.submissionRefs && session.submissionRefs.length > 1) {
+                const submissions = await ExamSubmission.find({ _id: { $in: session.submissionRefs } }).populate('examId', 'title');
+                if (!submissions || submissions.length === 0) return res.status(404).json({ message: 'Submissions not found' });
+                title = submissions[0].examId?.title || 'Exam';
+                submittedAt = submissions[0].submittedAt;
+                candidates = submissions.map(sub => ({
+                    submissionRef: sub._id.toString(),
+                    candidateName: sub.candidateName || (sub.studentId ? sub.studentId.toString() : 'Anonymous'),
+                    studentId: sub.studentId,
+                    submittedAt: sub.submittedAt
+                }));
+                candidateName = `${submissions.length} candidates`;
+            } else {
+                const submission = await ExamSubmission.findById(session.submissionRef).populate('examId', 'title');
+                if (!submission) return res.status(404).json({ message: 'Submission not found' });
+                title = submission.examId?.title || 'Exam';
+                candidateName = submission.candidateName || '';
+                submittedAt = submission.submittedAt;
+                if (submission.studentId) {
+                    const student = await User.findById(submission.studentId).select('name');
+                    if (student) candidateName = student.name;
+                }
+                candidates = [{
+                    submissionRef: submission._id.toString(),
+                    candidateName,
+                    studentId: submission.studentId,
+                    submittedAt: submission.submittedAt
+                }];
             }
         } else {
-            const [assignmentId, studentId] = session.submissionRef.split(':');
-            const assignment = await Assignment.findById(assignmentId).select('title submissions');
-            if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
-            title = assignment.title;
-            const sub = assignment.submissions.find(s => s.studentId.toString() === studentId);
-            if (!sub) return res.status(404).json({ message: 'Submission not found' });
-            submittedAt = sub.submittedAt;
-            if (studentId) {
-                const student = await User.findById(studentId).select('name');
-                if (student) candidateName = student.name;
+            if (session.submissionRefs && session.submissionRefs.length > 1) {
+                const assignmentIds = [...new Set(session.submissionRefs.map(ref => ref.split(':')[0]))];
+                const assignments = await Assignment.find({ _id: { $in: assignmentIds } }).select('title submissions');
+                title = assignments[0]?.title || 'Assignment';
+                candidates = session.submissionRefs.map(ref => {
+                    const [assignmentId, studentId] = ref.split(':');
+                    const assignment = assignments.find(a => a._id.toString() === assignmentId);
+                    const sub = assignment?.submissions.find(s => s.studentId.toString() === studentId);
+                    return {
+                        submissionRef: ref,
+                        candidateName: sub?.candidateName || studentId,
+                        studentId,
+                        submittedAt: sub?.submittedAt
+                    };
+                });
+                if (candidates.length > 0) {
+                    candidateName = `${candidates.length} candidates`;
+                    submittedAt = candidates[0].submittedAt;
+                }
+            } else {
+                const [assignmentId, studentId] = session.submissionRef.split(':');
+                const assignment = await Assignment.findById(assignmentId).select('title submissions');
+                if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+                title = assignment.title;
+                const sub = assignment.submissions.find(s => s.studentId.toString() === studentId);
+                if (!sub) return res.status(404).json({ message: 'Submission not found' });
+                submittedAt = sub.submittedAt;
+                if (studentId) {
+                    const student = await User.findById(studentId).select('name');
+                    if (student) candidateName = student.name;
+                }
+                candidates = [{
+                    submissionRef: session.submissionRef,
+                    candidateName,
+                    studentId,
+                    submittedAt: sub.submittedAt
+                }];
             }
         }
 
@@ -382,7 +596,8 @@ router.get('/share/:shareToken', async (req, res) => {
             submittedAt,
             accessType,
             status: session.status,
-            // Show the active session's token if already verified (idempotent)
+            groupName,
+            candidates,
             accessToken: session.status === 'active' ? session.accessToken : null,
             accessTokenExpiresAt: session.status === 'active' ? session.accessTokenExpiresAt : null
         });
@@ -602,54 +817,114 @@ router.get('/session/:accessToken', async (req, res) => {
         let scriptData = {};
 
         if (session.submissionType === 'exam') {
-            const submission = await ExamSubmission.findById(session.submissionRef)
-                .populate('examId')
-                .populate('studentId', 'name email');
+            const exam = await Exam.findById(session.parentId);
+            if (!exam) return res.status(404).json({ message: 'Exam not found' });
 
-            if (!submission) return res.status(404).json({ message: 'Submission not found' });
+            if (session.submissionRefs && session.submissionRefs.length > 1) {
+                const submissions = await ExamSubmission.find({ _id: { $in: session.submissionRefs } })
+                    .populate('studentId', 'name email');
 
-            const exam = submission.examId;
-            scriptData = {
-                type: 'exam',
-                examTitle: exam.title,
-                examDescription: exam.description,
-                candidateName: submission.candidateName || submission.studentId?.name || 'Unknown',
-                candidateEmail: submission.candidateEmail || submission.studentId?.email || '',
-                submittedAt: submission.submittedAt,
-                status: submission.status,
-                totalScore: submission.totalScore,
-                questions: exam.questions,
-                answers: submission.answers,
-                // Include saved grading snapshot if it exists
-                gradingSnapshot: session.gradingSnapshot
-            };
+                scriptData = {
+                    type: 'exam',
+                    examTitle: exam.title,
+                    examDescription: exam.description,
+                    questions: exam.questions,
+                    submissions: submissions.map(sub => ({
+                        submissionRef: sub._id.toString(),
+                        candidateName: sub.candidateName || sub.studentId?.name || 'Unknown',
+                        candidateEmail: sub.candidateEmail || sub.studentId?.email || '',
+                        submittedAt: sub.submittedAt,
+                        status: sub.status,
+                        totalScore: sub.totalScore,
+                        answers: sub.answers,
+                        gradingSnapshot: session.gradingSnapshot?.[sub._id.toString()] || null
+                    })),
+                    groupName: session.groupName,
+                    gradingSnapshot: session.gradingSnapshot
+                };
+            } else {
+                const submission = await ExamSubmission.findById(session.submissionRef)
+                    .populate('examId')
+                    .populate('studentId', 'name email');
+
+                if (!submission) return res.status(404).json({ message: 'Submission not found' });
+
+                const examDetail = submission.examId;
+                scriptData = {
+                    type: 'exam',
+                    examTitle: examDetail.title,
+                    examDescription: examDetail.description,
+                    candidateName: submission.candidateName || submission.studentId?.name || 'Unknown',
+                    candidateEmail: submission.candidateEmail || submission.studentId?.email || '',
+                    submittedAt: submission.submittedAt,
+                    status: submission.status,
+                    totalScore: submission.totalScore,
+                    questions: examDetail.questions,
+                    answers: submission.answers,
+                    submissionRef: submission._id.toString(),
+                    gradingSnapshot: session.gradingSnapshot
+                };
+            }
         } else {
-            const [assignmentId, studentId] = session.submissionRef.split(':');
-            const assignment = await Assignment.findById(assignmentId);
+            const assignment = await Assignment.findById(session.parentId);
             if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
 
-            const submission = assignment.submissions.find(s => s.studentId.toString() === studentId);
-            if (!submission) return res.status(404).json({ message: 'Submission not found' });
+            if (session.submissionRefs && session.submissionRefs.length > 1) {
+                const submissions = session.submissionRefs.map(ref => {
+                    const [assignmentId, studentId] = ref.split(':');
+                    const submission = assignment.submissions.find(s => s.studentId.toString() === studentId);
+                    const student = submission ? submission.studentId : null;
+                    return {
+                        submissionRef: ref,
+                        candidateName: student?.name || 'Unknown',
+                        candidateEmail: student?.email || '',
+                        submittedAt: submission?.submittedAt,
+                        status: submission?.status,
+                        score: submission?.score,
+                        feedback: submission?.feedback,
+                        answers: submission?.answers,
+                        questionScores: submission?.questionScores,
+                        gradingSnapshot: session.gradingSnapshot?.[ref] || null
+                    };
+                });
 
-            const student = await User.findById(studentId).select('name email');
+                scriptData = {
+                    type: 'assignment',
+                    assignmentTitle: assignment.title,
+                    assignmentDescription: assignment.description,
+                    assignmentType: assignment.assignmentType,
+                    maxScore: assignment.maxScore,
+                    questions: assignment.questions,
+                    submissions,
+                    groupName: session.groupName,
+                    gradingSnapshot: session.gradingSnapshot
+                };
+            } else {
+                const [assignmentId, studentId] = session.submissionRef.split(':');
+                const submission = assignment.submissions.find(s => s.studentId.toString() === studentId);
+                if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
-            scriptData = {
-                type: 'assignment',
-                assignmentTitle: assignment.title,
-                assignmentDescription: assignment.description,
-                assignmentType: assignment.assignmentType,
-                maxScore: assignment.maxScore,
-                candidateName: student?.name || 'Unknown',
-                candidateEmail: student?.email || '',
-                submittedAt: submission.submittedAt,
-                status: submission.status,
-                score: submission.score,
-                feedback: submission.feedback,
-                questions: assignment.questions,
-                answers: submission.answers,
-                questionScores: submission.questionScores,
-                gradingSnapshot: session.gradingSnapshot
-            };
+                const student = await User.findById(studentId).select('name email');
+
+                scriptData = {
+                    type: 'assignment',
+                    assignmentTitle: assignment.title,
+                    assignmentDescription: assignment.description,
+                    assignmentType: assignment.assignmentType,
+                    maxScore: assignment.maxScore,
+                    candidateName: student?.name || 'Unknown',
+                    candidateEmail: student?.email || '',
+                    submittedAt: submission.submittedAt,
+                    status: submission.status,
+                    score: submission.score,
+                    feedback: submission.feedback,
+                    questions: assignment.questions,
+                    answers: submission.answers,
+                    questionScores: submission.questionScores,
+                    submissionRef: session.submissionRef,
+                    gradingSnapshot: session.gradingSnapshot
+                };
+            }
         }
 
         res.json({
@@ -696,8 +971,17 @@ router.patch('/session/:accessToken/grade', async (req, res) => {
         const { gradingData } = req.body;
         if (!gradingData) return res.status(400).json({ message: 'gradingData is required' });
 
-        // Save snapshot — does NOT apply to the actual submission yet
-        session.gradingSnapshot = gradingData;
+        // Determine which submission this grading snapshot belongs to
+        const targetRef = gradingData.submissionRef || session.submissionRef || (session.submissionRefs?.[0] || null);
+        if (!targetRef) return res.status(400).json({ message: 'submissionRef is required for grade snapshots' });
+
+        if (session.submissionRefs && session.submissionRefs.length > 1) {
+            session.gradingSnapshot = session.gradingSnapshot || {};
+            session.gradingSnapshot[targetRef] = gradingData;
+        } else {
+            session.gradingSnapshot = gradingData;
+        }
+
         await session.save();
 
         res.json({ message: 'Grading progress saved', savedAt: new Date() });
@@ -734,12 +1018,14 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
         const dataToApply = gradingData || session.gradingSnapshot;
         if (!dataToApply) return res.status(400).json({ message: 'No grading data to finalize' });
 
+        const targetRef = gradingData?.submissionRef || session.submissionRef || (session.submissionRefs?.[0] || null);
+        if (!targetRef) return res.status(400).json({ message: 'submissionRef is required to finalize grading' });
+
         // Apply to real submission
         if (session.submissionType === 'exam') {
-            const submission = await ExamSubmission.findById(session.submissionRef).populate('examId');
+            const submission = await ExamSubmission.findById(targetRef).populate('examId');
             if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
-            // dataToApply: { questionGrades: [{ index, score }] }
             const { questionGrades, feedback } = dataToApply;
             if (Array.isArray(questionGrades)) {
                 questionGrades.forEach(grade => {
@@ -751,7 +1037,7 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
                 await submission.save();
             }
         } else {
-            const [assignmentId, studentId] = session.submissionRef.split(':');
+            const [assignmentId, studentId] = targetRef.split(':');
             const assignment = await Assignment.findById(assignmentId);
             if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
 
@@ -764,6 +1050,16 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
             if (Array.isArray(questionScores)) submission.questionScores = questionScores;
             submission.status = 'graded';
             await assignment.save();
+        }
+
+        if (session.submissionRefs && session.submissionRefs.length > 1) {
+            session.gradingSnapshot = session.gradingSnapshot || {};
+            session.gradingSnapshot[targetRef] = dataToApply;
+            session.savedSubmissions = session.savedSubmissions || [];
+            session.savedSubmissions.push({ submissionRef: targetRef, savedAt: new Date() });
+            session.savedAt = new Date();
+            await session.save();
+            return res.json({ message: 'Candidate grading finalized. You may continue grading other scripts.', savedAt: session.savedAt, submissionRef: targetRef });
         }
 
         session.gradingSnapshot = dataToApply;

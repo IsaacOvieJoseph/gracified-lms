@@ -33,6 +33,7 @@ const ExamSubmissions = () => {
     const [statusFilter, setStatusFilter] = useState('all');
     const [showShareModal, setShowShareModal] = useState(false);
     const [selectedShareSubmission, setSelectedShareSubmission] = useState(null);
+    const [selectedShareSubmissionIds, setSelectedShareSubmissionIds] = useState([]);
 
     useEffect(() => {
         fetchData();
@@ -92,6 +93,21 @@ const ExamSubmissions = () => {
         const mins = Math.floor(ms / 60000);
         const secs = Math.floor((ms % 60000) / 1000);
         return `${mins}m ${secs}s`;
+    };
+
+    const toggleSubmissionSelection = (submissionId) => {
+        setSelectedShareSubmissionIds(prev =>
+            prev.includes(submissionId)
+                ? prev.filter(id => id !== submissionId)
+                : [...prev, submissionId]
+        );
+    };
+
+    const selectAllVisibleSubmissions = () => {
+        const visibleIds = filteredSubmissions.map(s => s._id);
+        setSelectedShareSubmissionIds(prev =>
+            prev.length === visibleIds.length ? [] : visibleIds
+        );
     };
 
     const exportToCSV = () => {
@@ -338,11 +354,44 @@ const ExamSubmissions = () => {
                             </select>
                         </div>
                     </div>
+                    {selectedShareSubmissionIds.length > 0 && (
+                        <div className="p-6 border-b border-border bg-slate-950/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <p className="text-sm font-black text-slate-200">{selectedShareSubmissionIds.length} submissions selected</p>
+                                <p className="text-xs text-slate-400 mt-1">Use the share button to create a multi-submission group share link.</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => {
+                                        setSelectedShareSubmission(null);
+                                        setShowShareModal(true);
+                                    }}
+                                    className="px-5 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-primary/90 transition"
+                                >
+                                    Share selected submissions
+                                </button>
+                                <button
+                                    onClick={() => setSelectedShareSubmissionIds([])}
+                                    className="px-5 py-3 text-slate-200 border border-slate-700 rounded-2xl text-xs uppercase tracking-[0.2em] hover:bg-slate-900 transition"
+                                >
+                                    Clear selection
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="overflow-x-auto font-inter">
                         <table className="w-full text-left">
                             <thead className="bg-muted/50 border-b border-border">
                                 <tr>
+                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedShareSubmissionIds.length === filteredSubmissions.length && filteredSubmissions.length > 0}
+                                            onChange={selectAllVisibleSubmissions}
+                                            className="w-4 h-4 rounded border border-slate-600 text-primary focus:ring-primary"
+                                        />
+                                    </th>
                                     <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Student Name</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Student Type</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Submitted At</th>
@@ -362,6 +411,14 @@ const ExamSubmissions = () => {
                                 ) : filteredSubmissions.length > 0 ? (
                                     filteredSubmissions.map((s) => (
                                         <tr key={s._id} className="hover:bg-muted/30 transition-all group">
+                                            <td className="px-8 py-6">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedShareSubmissionIds.includes(s._id)}
+                                                    onChange={() => toggleSubmissionSelection(s._id)}
+                                                    className="w-4 h-4 rounded border border-slate-600 text-primary focus:ring-primary"
+                                                />
+                                            </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center space-x-5">
                                                     <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-lg italic shadow-inner">
@@ -445,7 +502,7 @@ const ExamSubmissions = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="6" className="px-8 py-20 text-center text-gray-400 font-medium">
+                                        <td colSpan="7" className="px-8 py-20 text-center text-gray-400 font-medium">
                                             No submissions found for this exam.
                                         </td>
                                     </tr>
@@ -455,16 +512,18 @@ const ExamSubmissions = () => {
                     </div>
                 </div>
             </div>
-            {selectedShareSubmission && (
+            {(selectedShareSubmission || selectedShareSubmissionIds.length > 0) && (
                 <ShareScriptModal
                     show={showShareModal}
                     onClose={() => {
                         setShowShareModal(false);
                         setSelectedShareSubmission(null);
+                        setSelectedShareSubmissionIds([]);
                     }}
                     parentId={exam?._id}
                     parentType="exam"
-                    submissionId={selectedShareSubmission._id}
+                    submissionId={selectedShareSubmission?._id || selectedShareSubmissionIds[0]}
+                    selectedSubmissionIds={selectedShareSubmissionIds}
                 />
             )}
         </Layout>

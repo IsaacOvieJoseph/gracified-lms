@@ -28,6 +28,7 @@ const Assignments = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedShareSubmission, setSelectedShareSubmission] = useState(null);
   const [selectedShareAssignment, setSelectedShareAssignment] = useState(null);
+  const [selectedShareSubmissionIds, setSelectedShareSubmissionIds] = useState([]);
   const [classrooms, setClassrooms] = useState([]); // To populate classroom dropdown for assignment creation
   const [topics, setTopics] = useState([]); // To populate topic dropdown for assignment creation
   const [expandedSubmissions, setExpandedSubmissions] = useState(new Set()); // Track which submissions are expanded
@@ -155,6 +156,25 @@ const Assignments = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleSubmissionSelection = (assignment, submissionId) => {
+    if (!selectedShareAssignment || selectedShareAssignment._id !== assignment._id) {
+      setSelectedShareAssignment(assignment);
+      setSelectedShareSubmissionIds([submissionId]);
+      return;
+    }
+
+    setSelectedShareSubmissionIds(prev =>
+      prev.includes(submissionId)
+        ? prev.filter(id => id !== submissionId)
+        : [...prev, submissionId]
+    );
+  };
+
+  const clearSubmissionSelection = () => {
+    setSelectedShareSubmissionIds([]);
+    setSelectedShareAssignment(null);
   };
 
   const fetchClassroomsForCreation = async () => {
@@ -656,106 +676,147 @@ const Assignments = () => {
                         <div className="mt-8 border-t border-border pt-6">
                           <h4 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-4 opacity-40">Deployed Submissions ({assignment.submissions?.length || 0})</h4>
                           {assignment.submissions && assignment.submissions.length > 0 ? (
-                            assignment.submissions.map(sub => {
-                              const isExpanded = expandedSubmissions.has(sub._id);
-                              const toggleExpanded = () => {
-                                setExpandedSubmissions(prev => {
-                                  const newSet = new Set(prev);
-                                  if (newSet.has(sub._id)) {
-                                    newSet.delete(sub._id);
-                                  } else {
-                                    newSet.add(sub._id);
-                                  }
-                                  return newSet;
-                                });
-                              };
+                            <> 
+                              {selectedShareAssignment?._id === assignment._id && selectedShareSubmissionIds.length > 0 && (
+                                <div className="mb-4 p-4 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-black text-slate-200">{selectedShareSubmissionIds.length} submissions selected</p>
+                                    <p className="text-xs text-slate-400 mt-1">Create a group share link for this assignment.</p>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedShareSubmission(null);
+                                        setShowShareModal(true);
+                                      }}
+                                      className="px-4 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-primary/90 transition"
+                                    >
+                                      Share selected submissions
+                                    </button>
+                                    <button
+                                      onClick={clearSubmissionSelection}
+                                      className="px-4 py-3 text-slate-200 border border-slate-700 rounded-2xl text-xs uppercase tracking-[0.2em] hover:bg-slate-900 transition"
+                                    >
+                                      Clear selection
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                              {assignment.submissions.map(sub => {
+                                const isExpanded = expandedSubmissions.has(sub._id);
+                                const toggleExpanded = () => {
+                                  setExpandedSubmissions(prev => {
+                                    const newSet = new Set(prev);
+                                    if (newSet.has(sub._id)) {
+                                      newSet.delete(sub._id);
+                                    } else {
+                                      newSet.add(sub._id);
+                                    }
+                                    return newSet;
+                                  });
+                                };
 
-                              return (
-                                <div key={sub._id} className="border border-border/10 rounded-2xl mb-3 bg-muted/40 overflow-hidden shadow-sm group/sub hover:border-primary/20 transition-all">
-                                  <div
-                                    className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/60 transition"
-                                    onClick={toggleExpanded}
-                                  >
-                                    <div className="flex items-center space-x-3 flex-1">
-                                      {isExpanded ? (
-                                        <ChevronUp className="w-4 h-4 text-muted-foreground/30" />
-                                      ) : (
-                                        <ChevronDown className="w-4 h-4 text-muted-foreground/30" />
-                                      )}
-                                      <div className="flex-1">
-                                        <p className="font-bold text-foreground">{sub.studentId?.name || 'Unknown Intel'}</p>
-                                        <div className="flex items-center gap-3 mt-1">
-                                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Status: {sub.status}</span>
-                                          {sub.status === 'graded' && (
-                                            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">Score: {sub.score}/{assignment.maxScore}</span>
-                                          )}
+                                return (
+                                  <div key={sub._id} className="border border-border/10 rounded-2xl mb-3 bg-muted/40 overflow-hidden shadow-sm group/sub hover:border-primary/20 transition-all">
+                                    <div
+                                      className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/60 transition"
+                                      onClick={toggleExpanded}
+                                    >
+                                      <div className="flex items-center space-x-3 flex-1">
+                                        {(() => {
+                                          const submissionRef = `${assignment._id}:${sub.studentId?._id || sub.studentId}`;
+                                          return (
+                                            <input
+                                              type="checkbox"
+                                              checked={selectedShareSubmissionIds.includes(submissionRef)}
+                                              onChange={(e) => {
+                                                e.stopPropagation();
+                                                toggleSubmissionSelection(assignment, submissionRef);
+                                              }}
+                                              className="w-4 h-4 rounded border border-slate-600 text-primary focus:ring-primary"
+                                            />
+                                          );
+                                        })()}
+                                        {isExpanded ? (
+                                          <ChevronUp className="w-4 h-4 text-muted-foreground/30" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 text-muted-foreground/30" />
+                                        )}
+                                        <div className="flex-1">
+                                          <p className="font-bold text-foreground">{sub.studentId?.name || 'Unknown Intel'}</p>
+                                          <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Status: {sub.status}</span>
+                                            {sub.status === 'graded' && (
+                                              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">Score: {sub.score}/{assignment.maxScore}</span>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
+                                      {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? sub.studentId?._id === user?._id : true) && (
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedShareAssignment(assignment);
+                                              setSelectedShareSubmission(sub);
+                                              setShowShareModal(true);
+                                            }}
+                                            className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50 bg-card"
+                                            title="Share Submission"
+                                          >
+                                            <Share2 className="w-4.5 h-4.5" />
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedAssignment(assignment);
+                                              setSubmissionToGrade(sub);
+                                              setShowGradeModal(true);
+                                            }}
+                                            className="text-[10px] font-black text-primary uppercase tracking-widest hover:scale-105 active:scale-95 transition-all bg-card px-5 py-2 rounded-xl border border-border shadow-sm group-hover/sub:bg-primary group-hover/sub:text-white"
+                                          >
+                                            Evaluate
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
-                                    {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? sub.studentId?._id === user?._id : true) && (
-                                      <div className="flex items-center gap-2">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedShareAssignment(assignment);
-                                            setSelectedShareSubmission(sub);
-                                            setShowShareModal(true);
-                                          }}
-                                          className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50 bg-card"
-                                          title="Share Submission"
-                                        >
-                                          <Share2 className="w-4.5 h-4.5" />
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedAssignment(assignment);
-                                            setSubmissionToGrade(sub);
-                                            setShowGradeModal(true);
-                                          }}
-                                          className="text-[10px] font-black text-primary uppercase tracking-widest hover:scale-105 active:scale-95 transition-all bg-card px-5 py-2 rounded-xl border border-border shadow-sm group-hover/sub:bg-primary group-hover/sub:text-white"
-                                        >
-                                          Evaluate
-                                        </button>
+                                    {isExpanded && (
+                                      <div className="px-6 pb-6 pt-2 border-t border-border/10 bg-muted/20">
+                                        {/* Display answers based on type */}
+                                        {assignment.assignmentType === 'theory' && sub.answers && (
+                                          <div className="mt-4">
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 opacity-40">Intel Payload:</p>
+                                            <div className="p-4 bg-card rounded-xl border border-border shadow-inner">
+                                              <p className="text-sm text-foreground/70 italic whitespace-pre-wrap leading-relaxed">{Array.isArray(sub.answers) ? sub.answers.join('\n\n') : sub.answers}</p>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {assignment.assignmentType === 'mcq' && sub.answers && Array.isArray(sub.answers) && (
+                                          <div className="mt-4">
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Student Answers:</p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                              {sub.answers.map((ans, ansIdx) => (
+                                                <div key={ansIdx} className="p-3 bg-card rounded-xl border border-border flex items-center justify-between">
+                                                  <span className="text-xs font-bold text-foreground">Objective {ansIdx + 1}</span>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">{ans}</span>
+                                                    {assignment.questions[ansIdx]?.correctOption && (
+                                                      <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${ans === assignment.questions[ansIdx].correctOption ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
+                                                        {ans === assignment.questions[ansIdx].correctOption ? 'Valid' : 'Invalid'}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
-                                  {isExpanded && (
-                                    <div className="px-6 pb-6 pt-2 border-t border-border/10 bg-muted/20">
-                                      {/* Display answers based on type */}
-                                      {assignment.assignmentType === 'theory' && sub.answers && (
-                                        <div className="mt-4">
-                                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 opacity-40">Intel Payload:</p>
-                                          <div className="p-4 bg-card rounded-xl border border-border shadow-inner">
-                                            <p className="text-sm text-foreground/70 italic whitespace-pre-wrap leading-relaxed">{Array.isArray(sub.answers) ? sub.answers.join('\n\n') : sub.answers}</p>
-                                          </div>
-                                        </div>
-                                      )}
-                                      {assignment.assignmentType === 'mcq' && sub.answers && Array.isArray(sub.answers) && (
-                                        <div className="mt-4">
-                                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Student Answers:</p>
-                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {sub.answers.map((ans, ansIdx) => (
-                                              <div key={ansIdx} className="p-3 bg-card rounded-xl border border-border flex items-center justify-between">
-                                                <span className="text-xs font-bold text-foreground">Objective {ansIdx + 1}</span>
-                                                <div className="flex items-center gap-2">
-                                                  <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">{ans}</span>
-                                                  {assignment.questions[ansIdx]?.correctOption && (
-                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${ans === assignment.questions[ansIdx].correctOption ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
-                                                      {ans === assignment.questions[ansIdx].correctOption ? 'Valid' : 'Invalid'}
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })
+                                );
+                              })}
+                            </>
                           ) : (
                             <p className="text-gray-500 text-center py-2">No submissions yet.</p>
                           )}
@@ -840,18 +901,20 @@ const Assignments = () => {
         />
       )}
       {/* Share Script Modal */}
-      {showShareModal && selectedShareSubmission && selectedShareAssignment && (
+      {showShareModal && selectedShareAssignment && (selectedShareSubmission || selectedShareSubmissionIds.length > 0) && (
         <ShareScriptModal
           show={showShareModal}
           onClose={() => {
             setShowShareModal(false);
             setSelectedShareSubmission(null);
             setSelectedShareAssignment(null);
+            setSelectedShareSubmissionIds([]);
           }}
           parentId={selectedShareAssignment._id}
           parentType="assignment"
-          submissionId={selectedShareSubmission._id}
-          studentId={selectedShareSubmission.studentId?._id || selectedShareSubmission.studentId}
+          submissionId={selectedShareSubmission?._id || selectedShareSubmissionIds[0]}
+          studentId={selectedShareSubmission?.studentId?._id || selectedShareSubmission?.studentId}
+          selectedSubmissionIds={selectedShareSubmissionIds}
         />
       )}
     </Layout>

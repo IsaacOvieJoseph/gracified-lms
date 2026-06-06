@@ -17,8 +17,16 @@ const scriptAccessSessionSchema = new mongoose.Schema({
     },
     // For exam: ExamSubmission._id. For assignment: stored as string "{assignmentId}:{studentId}"
     submissionRef: {
+        type: String
+    },
+    submissionRefs: {
+        type: [String],
+        default: []
+    },
+    // A human-readable group name for shared links when sharing multiple scripts
+    groupName: {
         type: String,
-        required: true
+        default: null
     },
     // Parent exam or assignment ID (for quick lookups and authority resolution)
     parentId: {
@@ -86,6 +94,10 @@ const scriptAccessSessionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         default: null
     },
+    savedSubmissions: [{
+        submissionRef: String,
+        savedAt: Date
+    }],
     savedAt: {
         type: Date,
         default: null

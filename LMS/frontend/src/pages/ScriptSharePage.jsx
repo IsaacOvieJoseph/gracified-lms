@@ -47,6 +47,9 @@ const ScriptSharePage = () => {
     const [savingDraft, setSavingDraft] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
 
+    const [selectedSubmissionRef, setSelectedSubmissionRef] = useState('');
+    const [candidateGradeDrafts, setCandidateGradeDrafts] = useState({});
+
     // Timer refs
     const timerIntervalRef = useRef(null);
 
@@ -99,39 +102,12 @@ const ScriptSharePage = () => {
             setSessionStatus(session.status);
             setScript(scriptData);
             setTimeRemainingMs(session.timeRemainingMs);
+            // Preserve current selection if possible, otherwise default to first submission
+            setSelectedSubmissionRef(prev => prev || scriptData.submissions?.[0]?.submissionRef || '');
 
             if (session.status === 'saved') {
                 setPageState('SAVED');
                 return;
-            }
-
-            // Initialize grading state
-            if (scriptData.type === 'exam') {
-                const initialGrades = scriptData.questions.map((q, qIndex) => {
-                    // Match with answers and see if score exists, or fallback to snapshot
-                    const submittedAns = scriptData.answers?.find(a => a.questionIndex === qIndex);
-                    const snapshotAns = session.gradingSnapshot?.questionGrades?.find(g => g.index === qIndex);
-                    return {
-                        index: qIndex,
-                        score: snapshotAns !== undefined ? snapshotAns.score : (submittedAns?.score || 0),
-                        feedback: '' // Exam doesn't support per-question feedback out of box, but we can capture it
-                    };
-                });
-                setQuestionGrades(initialGrades);
-                setOverallFeedback(session.gradingSnapshot?.feedback || '');
-            } else {
-                // Assignment
-                const initialGrades = scriptData.questions.map((q, qIndex) => {
-                    const existingScore = scriptData.questionScores?.find(s => s.questionIndex === qIndex);
-                    const snapshotScore = session.gradingSnapshot?.questionScores?.find(s => s.questionIndex === qIndex);
-                    return {
-                        questionIndex: qIndex,
-                        score: snapshotScore !== undefined ? snapshotScore.score : (existingScore?.score || 0),
-                        feedback: snapshotScore !== undefined ? snapshotScore.feedback : (existingScore?.feedback || '')
-                    };
-                });
-                setQuestionGrades(initialGrades);
-                setOverallFeedback(session.gradingSnapshot?.feedback || scriptData.feedback || '');
             }
 
             setPageState('ACTIVE');
@@ -211,7 +187,89 @@ const ScriptSharePage = () => {
         if (answerObj === undefined || answerObj === null) return null;
         if (typeof answerObj === 'string' || typeof answerObj === 'number' || typeof answerObj === 'boolean') return String(answerObj);
         if (Array.isArray(answerObj)) return answerObj.join(', ');
+        // If object has no meaningful answer fields, treat as no answer
+        const meaningfulKeys = ['answer', 'theoryAnswer', 'selectedOption', 'text', 'file', 'attachments', 'response'];
+        const hasMeaningful = meaningfulKeys.some(k => answerObj[k] !== undefined && answerObj[k] !== null && answerObj[k] !== '');
+        if (!hasMeaningful) return null;
         return answerObj.answer || answerObj.theoryAnswer || answerObj.selectedOption || JSON.stringify(answerObj, null, 2);
+    };
+
+    const buildInitialGradingState = (scriptData, activeSubmission) => {
+        if (scriptData.type === 'exam') {
+            const answersSource = activeSubmission?.answers ?? scriptData.answers;
+            const snapshot = activeSubmission?.gradingSnapshot ?? scriptData.gradingSnapshot;
+            const questionGrades = scriptData.questions.map((q, qIndex) => {
+                const submittedAns = answersSource?.find(a => a.questionIndex === qIndex);
+                const snapshotAns = snapshot?.questionGrades?.find(g => g.index === qIndex);
+                return {
+                    index: qIndex,
+                    score: snapshotAns?.score ?? (submittedAns?.score || 0),
+                    feedback: ''
+                };
+            });
+            return {
+                questionGrades,
+                overallFeedback: snapshot?.feedback || ''
+            };
+        }
+
+        const questionScoresSource = activeSubmission?.questionScores ?? scriptData.questionScores;
+        const snapshot = activeSubmission?.gradingSnapshot ?? scriptData.gradingSnapshot;
+        const questionGrades = scriptData.questions.map((q, qIndex) => {
+            const existingScore = questionScoresSource?.find(s => s.questionIndex === qIndex);
+            const snapshotScore = snapshot?.questionScores?.find(s => s.questionIndex === qIndex);
+            return {
+                questionIndex: qIndex,
+                score: snapshotScore?.score ?? (existingScore?.score || 0),
+                feedback: snapshotScore?.feedback ?? (existingScore?.feedback || '')
+            };
+        });
+        return {
+            questionGrades,
+            overallFeedback: snapshot?.feedback || scriptData.feedback || ''
+        };
+    };
+
+    const getActiveSubmission = () => {
+        if (!script?.submissions?.length) return null;
+        return script.submissions.find(sub => sub.submissionRef === selectedSubmissionRef) || script.submissions[0];
+    };
+
+    useEffect(() => {
+        if (!script) return;
+
+        if (script.submissions?.length > 0 && !selectedSubmissionRef) {
+            setSelectedSubmissionRef(script.submissions[0].submissionRef);
+            return;
+        }
+
+        const activeSubmission = getActiveSubmission();
+        const draftKey = activeSubmission?.submissionRef || 'single';
+        const savedDraft = candidateGradeDrafts[draftKey];
+
+        if (savedDraft) {
+            setQuestionGrades(savedDraft.questionGrades);
+            setOverallFeedback(savedDraft.overallFeedback);
+            return;
+        }
+
+        const initialState = buildInitialGradingState(script, activeSubmission);
+        setQuestionGrades(initialState.questionGrades);
+        setOverallFeedback(initialState.overallFeedback);
+        setCandidateGradeDrafts(prev => ({ ...prev, [draftKey]: initialState }));
+    }, [script, selectedSubmissionRef, candidateGradeDrafts]);
+
+    const handleCandidateSwitch = (newRef) => {
+        if (selectedSubmissionRef) {
+            setCandidateGradeDrafts(prev => ({
+                ...prev,
+                [selectedSubmissionRef]: {
+                    questionGrades,
+                    overallFeedback
+                }
+            }));
+        }
+        setSelectedSubmissionRef(newRef);
     };
 
     // Update grade score or feedback in state
@@ -248,6 +306,8 @@ const ScriptSharePage = () => {
                         score: Number(qg.score)
                     })),
                     feedback: overallFeedback
+                    ,
+                    submissionRef: selectedSubmissionRef || script?.submissionRef
                 }
             };
         } else {
@@ -262,6 +322,8 @@ const ScriptSharePage = () => {
                         score: Number(qg.score),
                         feedback: qg.feedback
                     }))
+                    ,
+                    submissionRef: selectedSubmissionRef || script?.submissionRef
                 }
             };
         }
@@ -275,6 +337,8 @@ const ScriptSharePage = () => {
             const payload = buildGradingPayload();
             await publicApi.patch(`/scripts/session/${accessToken}/grade`, payload);
             toast.success('Grading draft saved successfully!');
+            // Refresh session data to reflect saved snapshot and updated scores for this candidate
+            if (accessToken) await fetchScriptSession(accessToken);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to save draft. Session may have expired.');
             if (error.response?.status === 410) setPageState('EXPIRED');
@@ -291,11 +355,19 @@ const ScriptSharePage = () => {
         setFinalizing(true);
         try {
             const payload = buildGradingPayload();
-            await publicApi.post(`/scripts/session/${accessToken}/finalize`, payload);
-            sessionStorage.removeItem(`script_access_${shareToken}`);
-            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-            setPageState('SAVED');
-            toast.success('Grading finalized and applied to student records!');
+            const res = await publicApi.post(`/scripts/session/${accessToken}/finalize`, payload);
+            // If group session, backend returns submissionRef and keeps session active
+            if (res.data && res.data.submissionRef && script?.submissions?.length > 1) {
+                toast.success('Candidate grading finalized. You may continue grading other scripts.');
+                // Refresh session so UI shows updated scores
+                if (accessToken) await fetchScriptSession(accessToken);
+            } else {
+                // Single submission finalize ends the session
+                sessionStorage.removeItem(`script_access_${shareToken}`);
+                if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+                setPageState('SAVED');
+                toast.success('Grading finalized and applied to student records!');
+            }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to finalize grading. Session may have expired.');
             if (error.response?.status === 410) setPageState('EXPIRED');
@@ -470,8 +542,17 @@ const ScriptSharePage = () => {
     }
 
     // Render Active Script viewing / grading view
+    const activeSubmission = getActiveSubmission();
     const isGrader = meta?.accessType === 'grade';
     const isTheory = script?.type === 'assignment' ? script.assignmentType === 'theory' : true; // Exams are graded per question
+    const candidateDisplayName = activeSubmission?.candidateName || script?.candidateName || script?.candidateEmail || 'Anonymous';
+    const candidateInitial = candidateDisplayName?.charAt(0)?.toUpperCase() || 'A';
+    const candidateEmail = activeSubmission?.candidateEmail || script?.candidateEmail || '';
+    const submittedAt = activeSubmission?.submittedAt || script?.submittedAt;
+    const currentStatus = activeSubmission?.status || script?.status;
+    const currentScore = script?.type === 'exam'
+        ? activeSubmission?.totalScore ?? script?.totalScore
+        : activeSubmission?.score ?? script?.score;
     
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-inter">
@@ -479,11 +560,11 @@ const ScriptSharePage = () => {
             <div className="sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-50">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-primary/15 rounded-xl border border-primary/20 flex items-center justify-center text-primary font-black text-sm italic shadow-inner">
-                        {script?.candidateName.charAt(0).toUpperCase()}
+                        {candidateInitial}
                     </div>
                     <div>
                         <h1 className="text-lg font-black tracking-tight flex items-center gap-2 uppercase italic">
-                            <span>{script?.candidateName}</span>
+                            <span>{candidateDisplayName}</span>
                             <span className={`text-[9px] font-black not-italic px-2 py-0.5 rounded border ${isGrader ? 'bg-primary/20 text-primary border-primary/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                                 {isGrader ? 'EVALUATOR' : 'VIEWER'}
                             </span>
@@ -526,6 +607,45 @@ const ScriptSharePage = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 max-w-4xl w-full mx-auto p-6 space-y-6">
+                <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+                    {script?.submissions?.length > 1 && (
+                        <aside className="space-y-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-5 shadow-xl sticky top-24 max-h-[calc(100vh-200px)] overflow-y-auto">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Shared Candidates</p>
+                                        <h2 className="text-sm font-black text-slate-200 mt-2">{script.submissions.length} candidates</h2>
+                                    </div>
+                                    <span className="text-[10px] uppercase tracking-widest text-slate-500">Group</span>
+                                </div>
+                                <div className="space-y-3">
+                                    {script.submissions.map((submission) => {
+                                        const isActive = submission.submissionRef === selectedSubmissionRef;
+                                        const displayName = submission.candidateName || submission.candidateEmail || 'Anonymous';
+                                        const initial = displayName?.charAt(0)?.toUpperCase() || 'A';
+
+                                        return (
+                                            <button
+                                                key={submission.submissionRef}
+                                                type="button"
+                                                onClick={() => handleCandidateSwitch(submission.submissionRef)}
+                                                className={`w-full rounded-3xl border px-4 py-4 text-left transition-all ${isActive ? 'border-primary bg-primary/10 shadow-inner' : 'border-slate-800 bg-slate-950/70 hover:bg-slate-900'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-11 h-11 rounded-2xl bg-slate-800 flex items-center justify-center text-sm font-black text-slate-200">{initial}</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-slate-200 truncate">{displayName}</p>
+                                                        <p className="text-[10px] text-slate-500 truncate">{formatDisplayDate(submission.submittedAt)}</p>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </aside>
+                    )}
+                    <div className="space-y-6">
                 {/* Warning header when session is ending */}
                 {timeRemainingMs < 300000 && isGrader && (
                     <div className="bg-rose-500/15 border-2 border-rose-500/30 rounded-2xl p-4 flex gap-3 text-rose-400 items-start">
@@ -543,35 +663,35 @@ const ScriptSharePage = () => {
                 <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-6 shadow-xl grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Submitted At</span>
-                        <span className="font-bold text-xs text-slate-200 mt-1 block">{formatDisplayDate(script?.submittedAt)}</span>
+                        <span className="font-bold text-xs text-slate-200 mt-1 block">{formatDisplayDate(submittedAt)}</span>
                     </div>
                     <div>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Original Score</span>
                         <span className="font-bold text-xs text-slate-200 mt-1 block">
-                            {script?.type === 'exam' ? `${script.totalScore || 0} pts` : `${script.score || 0}/${script.maxScore} pts`}
+                            {script?.type === 'exam' ? `${currentScore || 0} pts` : `${currentScore || 0}/${script.maxScore} pts`}
                         </span>
                     </div>
                     <div>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Status</span>
-                        <span className={`inline-block text-[9px] font-black uppercase tracking-wider border rounded px-2.5 py-0.5 mt-1.5 ${script?.status === 'graded' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}>
-                            {script?.status}
+                        <span className={`inline-block text-[9px] font-black uppercase tracking-wider border rounded px-2.5 py-0.5 mt-1.5 ${currentStatus === 'graded' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}>
+                            {currentStatus}
                         </span>
                     </div>
                     <div>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Candidate Email</span>
-                        <span className="font-bold text-xs text-slate-200 mt-1 block truncate" title={script?.candidateEmail}>{script?.candidateEmail || 'N/A'}</span>
+                        <span className="font-bold text-xs text-slate-200 mt-1 block truncate" title={candidateEmail}>{candidateEmail || 'N/A'}</span>
                     </div>
                 </div>
 
                 {/* Questions Listing */}
                 <div className="space-y-6 pb-24">
                     {script?.questions.map((question, index) => {
-                        const answerObj = script.type === 'exam' 
-                            ? script.answers?.find(a => a.questionIndex === index)
+                        const answerObj = script.type === 'exam'
+                            ? activeSubmission?.answers?.find(a => a.questionIndex === index) ?? script.answers?.find(a => a.questionIndex === index)
                             : null;
                         const studentAnswer = script.type === 'exam'
                             ? formatAnswerDisplay(answerObj)
-                            : (Array.isArray(script.answers) ? script.answers[index] : script.answers);
+                            : formatAnswerDisplay(activeSubmission?.answers?.[index] ?? (Array.isArray(script.answers) ? script.answers[index] : script.answers));
 
                         const currentGradeItem = questionGrades.find(qg => 
                             script.type === 'exam' ? qg.index === index : qg.questionIndex === index
@@ -694,6 +814,8 @@ const ScriptSharePage = () => {
                 </div>
             </div>
         </div>
+    </div>
+    </div>
     );
 };
 
