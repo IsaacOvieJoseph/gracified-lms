@@ -619,68 +619,74 @@ const ScriptSharePage = () => {
     return (
         <div className={`min-h-screen ${rootColors} flex flex-col font-inter`}>
             {/* Top Bar Banner */}
-                <div className={`sticky top-0 ${topBarBg} backdrop-blur-md border-b ${topBorder} px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-50`}>
-                    <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-primary/15 rounded-xl border border-primary/20 flex items-center justify-center text-primary font-black text-sm italic shadow-inner">
-                        {candidateInitial}
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-black tracking-tight flex items-center gap-2 uppercase italic">
-                            <span>{candidateDisplayName}</span>
-                            <span className={`text-[9px] font-black not-italic px-2 py-0.5 rounded border ${isGrader ? 'bg-primary/20 text-primary border-primary/30' : `${theme === 'dark' ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-200 text-slate-700 border-slate-300'}`}`}>
-                                {isGrader ? 'EVALUATOR' : 'VIEWER'}
-                            </span>
-                        </h1>
-                        <p className={`text-[9px] font-black ${textSecondary} uppercase tracking-widest mt-0.5`}>
-                            Target: {script?.examTitle || script?.assignmentTitle} ({script?.type})
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <div className={`hidden sm:flex items-center gap-2.5 px-4 py-2 rounded-xl border ${timeRemainingMs < 300000 ? 'bg-rose-500/10 border-rose-500/30 text-rose-500 animate-pulse' : theme === 'dark' ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
-                        <Clock className="w-4 h-4" />
-                        <span className="font-mono text-sm font-black tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        {script?.submissions?.length > 1 && (
+                <div className={`sticky top-0 ${topBarBg} backdrop-blur-md border-b ${topBorder} px-6 py-4 z-50`}> 
+                    <div className="flex items-center justify-between sm:hidden">
+                        <div className={`text-sm font-black uppercase tracking-tight ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {script?.examTitle || script?.assignmentTitle || 'Shared Script'}
+                        </div>
+                        {(script?.submissions?.length > 1 || isGrader) && (
                             <button
                                 type="button"
                                 onClick={() => setIsCandidatePanelOpen(prev => !prev)}
-                                className={`inline-flex sm:hidden items-center justify-center rounded-xl border px-3 py-2 text-sm font-black uppercase tracking-widest transition ${theme === 'dark' ? 'border-slate-700 text-slate-200 bg-slate-900/80 hover:bg-slate-800' : 'border-slate-200 text-slate-700 bg-white/90 hover:bg-slate-100'}`}>
+                                className={`inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-black uppercase tracking-widest transition ${theme === 'dark' ? 'border-slate-700 text-slate-200 bg-slate-900/80 hover:bg-slate-800' : 'border-slate-200 text-slate-700 bg-white/90 hover:bg-slate-100'}`}>
                                 {isCandidatePanelOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                             </button>
                         )}
-                        <ThemeToggle className="hidden sm:inline-flex" />
+                    </div>
 
-                        {isGrader && (
-                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                            <button
-                                onClick={handleSaveDraft}
-                                disabled={savingDraft || finalizing}
-                                className="hidden sm:inline-flex px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all disabled:opacity-50 items-center justify-center gap-2"
-                            >
-                                <Save className="w-4 h-4" />
-                                <span>Save Draft</span>
-                            </button>
-                            <button
-                                onClick={handleFinalizeGrading}
-                                disabled={savingDraft || finalizing}
-                                className="w-full sm:w-auto btn-premium px-3 py-2 text-[11px] uppercase tracking-wider font-black flex items-center justify-center gap-2"
-                            >
-                                <Send className="w-4 h-4" />
-                                <span>Finalize</span>
-                            </button>
+                    <div className="hidden sm:flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-primary/15 rounded-xl border border-primary/20 flex items-center justify-center text-primary font-black text-sm italic shadow-inner">
+                                {candidateInitial}
+                            </div>
+                            <div>
+                                <h1 className="text-lg font-black tracking-tight flex items-center gap-2 uppercase italic">
+                                    <span>{candidateDisplayName}</span>
+                                    <span className={`text-[9px] font-black not-italic px-2 py-0.5 rounded border ${isGrader ? 'bg-primary/20 text-primary border-primary/30' : `${theme === 'dark' ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-200 text-slate-700 border-slate-300'}`}`}>
+                                        {isGrader ? 'EVALUATOR' : 'VIEWER'}
+                                    </span>
+                                </h1>
+                                <p className={`text-[9px] font-black ${textSecondary} uppercase tracking-widest mt-0.5`}>
+                                    Target: {script?.examTitle || script?.assignmentTitle} ({script?.type})
+                                </p>
+                            </div>
                         </div>
-                        )}
+
+                        <div className="flex items-center gap-4">
+                            <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border ${timeRemainingMs < 300000 ? 'bg-rose-500/10 border-rose-500/30 text-rose-500 animate-pulse' : theme === 'dark' ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+                                <Clock className="w-4 h-4" />
+                                <span className="font-mono text-sm font-black tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
+                            </div>
+
+                            <ThemeToggle />
+
+                            {isGrader && (
+                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                <button
+                                    onClick={handleSaveDraft}
+                                    disabled={savingDraft || finalizing}
+                                    className="hidden sm:inline-flex px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all disabled:opacity-50 items-center justify-center gap-2"
+                                >
+                                    <Save className="w-4 h-4" />
+                                    <span>Save Draft</span>
+                                </button>
+                                <button
+                                    onClick={handleFinalizeGrading}
+                                    disabled={savingDraft || finalizing}
+                                    className="w-full sm:w-auto btn-premium px-3 py-2 text-[11px] uppercase tracking-wider font-black flex items-center justify-center gap-2"
+                                >
+                                    <Send className="w-4 h-4" />
+                                    <span>Finalize</span>
+                                </button>
+                            </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
 
             {isCandidatePanelOpen && script?.submissions?.length > 1 && (
-                <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/90 sm:hidden">
-                    <div className={`${cardBg} border ${border} rounded-l-[2rem] w-full max-w-xs h-full p-4 overflow-y-auto shadow-2xl`}> 
+                <div className="fixed inset-0 z-50 flex justify-start bg-slate-950/90 sm:hidden">
+                    <div className={`${cardBg} border ${border} rounded-r-[2rem] w-full max-w-xs h-full p-4 overflow-y-auto shadow-2xl`}> 
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <p className={`text-[10px] font-black uppercase tracking-widest ${cardSubText}`}>Shared Candidates</p>
