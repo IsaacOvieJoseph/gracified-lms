@@ -110,22 +110,50 @@ const ExamSubmissions = () => {
         );
     };
 
+    const getOBJAndTheoryScores = (submission) => {
+        let objScore = 0;
+        let theoryScore = 0;
+        if (exam && exam.questions && submission.answers) {
+            submission.answers.forEach(ans => {
+                const q = exam.questions[ans.questionIndex];
+                if (q) {
+                    if (q.questionType === 'mcq') {
+                        objScore += ans.score || 0;
+                    } else if (q.questionType === 'theory') {
+                        theoryScore += ans.score || 0;
+                    }
+                }
+            });
+        }
+        return { objScore, theoryScore };
+    };
+
     const exportToCSV = () => {
         if (submissions.length === 0) return toast.error('No submissions to export');
 
-        const headers = ['Candidate Name', 'Email', 'Mode', 'Submitted At', 'Time Spent', 'Score', 'Total Points', 'Percentage'];
-        const csvData = filteredSubmissions.map(s => [
-            s.studentId?.name || s.candidateName,
-            s.studentId?.email || s.candidateEmail || 'N/A',
-            s.studentId ? 'Registered' : 'Guest',
-            new Date(s.submittedAt).toLocaleString(),
-            formatDuration(s.startedAt, s.submittedAt),
-            s.totalScore,
-            totalMaxScore,
-            Math.round((s.totalScore / totalMaxScore) * 100) + '%'
-        ]);
+        const headers = ['Candidate Name', 'Email', 'Mode', 'Submitted At', 'Time Spent', 'OBJ Score', 'Theory Score', 'Score', 'Total Points', 'Percentage'];
+        const csvData = filteredSubmissions.map(s => {
+            const { objScore, theoryScore } = getOBJAndTheoryScores(s);
+            return [
+                s.studentId?.name || s.candidateName,
+                s.studentId?.email || s.candidateEmail || 'N/A',
+                s.studentId ? 'Registered' : 'Guest',
+                new Date(s.submittedAt).toLocaleString(),
+                formatDuration(s.startedAt, s.submittedAt),
+                objScore,
+                theoryScore,
+                s.totalScore,
+                totalMaxScore,
+                Math.round((s.totalScore / totalMaxScore) * 100) + '%'
+            ];
+        });
 
-        const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+        const csvContent = [headers, ...csvData]
+            .map(e => e.map(val => {
+                const str = String(val);
+                return str.includes(',') ? `"${str.replace(/"/g, '""')}"` : str;
+            }).join(","))
+            .join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -159,17 +187,22 @@ const ExamSubmissions = () => {
             }
         };
 
-        const tableColumn = ['Candidate Name', 'Email', 'Mode', 'Submitted At', 'Time Spent', 'Score', 'Total Points', 'Percentage'];
-        const tableRows = filteredSubmissions.map(s => [
-            s.studentId?.name || s.candidateName,
-            s.studentId?.email || s.candidateEmail || 'N/A',
-            s.studentId ? 'Registered' : 'Guest',
-            new Date(s.submittedAt).toLocaleString(),
-            formatDuration(s.startedAt, s.submittedAt),
-            s.totalScore,
-            totalMaxScore,
-            Math.round((s.totalScore / totalMaxScore) * 100) + '%'
-        ]);
+        const tableColumn = ['Candidate Name', 'Email', 'Mode', 'Submitted At', 'Time Spent', 'OBJ Score', 'Theory Score', 'Score', 'Total Points', 'Percentage'];
+        const tableRows = filteredSubmissions.map(s => {
+            const { objScore, theoryScore } = getOBJAndTheoryScores(s);
+            return [
+                s.studentId?.name || s.candidateName,
+                s.studentId?.email || s.candidateEmail || 'N/A',
+                s.studentId ? 'Registered' : 'Guest',
+                new Date(s.submittedAt).toLocaleString(),
+                formatDuration(s.startedAt, s.submittedAt),
+                objScore,
+                theoryScore,
+                s.totalScore,
+                totalMaxScore,
+                Math.round((s.totalScore / totalMaxScore) * 100) + '%'
+            ];
+        });
 
         const generatePDF = (schoolLogoData = null, gracifiedLogoData = null) => {
             let startY = 45;
@@ -231,8 +264,8 @@ const ExamSubmissions = () => {
                 head: [tableColumn],
                 body: tableRows,
                 theme: 'grid',
-                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
-                bodyStyles: { fontSize: 9 },
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+                bodyStyles: { fontSize: 7 },
                 alternateRowStyles: { fillColor: [249, 250, 251] },
                 didDrawPage: (data) => addHeaderAndFooter(data, gracifiedLogoData)
             });
@@ -466,6 +499,15 @@ const ExamSubmissions = () => {
                                                     <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">
                                                         {s.totalScore} / {totalMaxScore} Intel
                                                     </div>
+                                                    {hasTheory && (() => {
+                                                        const { objScore, theoryScore } = getOBJAndTheoryScores(s);
+                                                        return (
+                                                            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-wider opacity-60 flex flex-col items-center gap-0.5 mt-1">
+                                                                <span>OBJ: {objScore} pts</span>
+                                                                <span>Theory: {theoryScore} pts</span>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                     {s.status === 'graded' ? (
                                                         <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 mt-1">Resolved</span>
                                                     ) : hasTheory && s.status === 'submitted' ? (
