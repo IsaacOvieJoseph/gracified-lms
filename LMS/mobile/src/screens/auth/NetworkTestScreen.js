@@ -8,16 +8,30 @@ export default function NetworkTestScreen({ navigation }) {
   const [details, setDetails] = useState('Tap below to test the backend connection from your phone.');
 
   const runTest = async () => {
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/api$/i, '');
     setStatus('Testing...');
     setDetails(`Trying ${baseUrl}`);
 
     try {
       const response = await axios.get(`${baseUrl}/auth/me`, {
         timeout: 10000,
+        validateStatus: (status) => status < 500,
       });
-      setStatus('Success');
-      setDetails(`Connected. Server responded with status ${response.status}.`);
+
+      if (response.status === 200) {
+        setStatus('Success');
+        setDetails(`Connected. Server responded with status ${response.status}.`);
+        return;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        setStatus('Reachable');
+        setDetails(`The backend is reachable, but it rejected the request because authentication is required (status ${response.status}).`);
+        return;
+      }
+
+      setStatus('Unexpected response');
+      setDetails(`Received status ${response.status} from the backend.`);
     } catch (error) {
       const message = error?.message || 'Unknown error';
       setStatus('Failed');
