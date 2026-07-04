@@ -6,6 +6,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import ClassroomsScreen from '../screens/classrooms/ClassroomsScreen';
+import ClassroomDetailScreen from '../screens/classrooms/ClassroomDetailScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,7 +59,10 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
-        <Stack.Screen name="MainTabs" component={MainTabs} />
+        <>
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="ClassroomDetail" component={ClassroomDetailScreen} />
+        </>
       ) : (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
