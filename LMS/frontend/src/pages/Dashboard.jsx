@@ -215,7 +215,7 @@ const Dashboard = () => {
              </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-black text-foreground italic uppercase tracking-tighter">My <span className="text-primary not-italic">Dashboard</span></h1>
-                <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] mt-1 opacity-40">System Operational Intelligence</p>
+                <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] mt-1 opacity-40">Your overview</p>
               </div>
         </div>
 
@@ -345,7 +345,7 @@ const Dashboard = () => {
                     <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mb-2">
                        <Clock className="w-5 h-5 text-muted-foreground/30" />
                     </div>
-                    <p className="text-muted-foreground font-bold text-xs italic">Operational Quiet</p>
+                    <p className="text-muted-foreground font-bold text-xs italic">Cheers, A Quiet Moment</p>
                   </div>
                 )}
               </div>
@@ -386,7 +386,7 @@ const Dashboard = () => {
             onClick={() => setIsRecentExpanded(!isRecentExpanded)}
             className="w-full flex items-center justify-between p-6 hover:bg-muted transition border-b border-border"
           >
-            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Operational Pulse</h3>
+            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Recent Activities</h3>
             {isRecentExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground/30" /> : <ChevronDown className="w-5 h-5 text-muted-foreground/30" />}
           </button>
 
@@ -475,7 +475,7 @@ const Dashboard = () => {
                 ))
               ) : (
                 <div className="text-center py-12">
-                   <p className="text-muted-foreground/30 font-black text-xs uppercase tracking-widest italic">No operational logs found</p>
+                   <p className="text-muted-foreground/30 font-black text-xs uppercase tracking-widest italic">No Recent Activiy</p>
                 </div>
               )}
             </div>

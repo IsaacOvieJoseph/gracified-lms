@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable, Alert, RefreshControl, Linking } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable, Alert, RefreshControl, Linking, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
+import { canManageClassroom, canViewClassroomContent } from '../../utils/roles';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -28,23 +29,35 @@ export default function ClassroomDetailScreen({ route, navigation }) {
   const [topics, setTopics] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [exams, setExams] = useState([]);
+  const [activeCall, setActiveCall] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('syllabus'); // 'syllabus', 'assignments', 'exams'
   const [actionLoading, setActionLoading] = useState(false);
+  const [lectureLoading, setLectureLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    subject: '',
+    level: 'Other',
+    pricing: { amount: 0, type: 'one_time' },
+    isPaid: false,
+    isPrivate: false,
+    published: true,
+    capacity: 30,
+  });
 
-  const isTeacher = user?.role === 'teacher' || user?.role === 'personal_teacher' || user?.role === 'school_admin' || user?.role === 'root_admin';
-  const canManageClassroom = () => {
-    if (['root_admin', 'school_admin'].includes(user?.role)) return true;
-    const teacherId = classroom?.teacherId?._id || classroom?.teacherId;
-    return teacherId?.toString() === user?._id?.toString();
-  };
+  const canManage = canManageClassroom(user, classroom);
+  const canViewStaffContent = canViewClassroomContent(user, classroom);
 
   // Check enrollment
-  const isEnrolled = isTeacher || classroom?.students?.some(
+  const isEnrolled = canViewStaffContent || classroom?.students?.some(
     studentId => (studentId?._id || studentId) === user?._id
   );
 
@@ -66,6 +79,13 @@ export default function ClassroomDetailScreen({ route, navigation }) {
         setTopics(normalizeListResponse(topicsRes.data));
         setAssignments(normalizeListResponse(assignmentsRes.data));
         setExams(normalizeListResponse(examsRes.data));
+
+        try {
+          const callRes = await api.get(`/classrooms/${classroomId}/call`);
+          setActiveCall(callRes.data || null);
+        } catch (callErr) {
+          setActiveCall(null);
+        }
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'Unable to load classroom details.');
@@ -149,7 +169,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     api.get(`/qna/classroom/${classroomId}`).then(res => {
       const qnaToken = res.data?.token || res.data?.[0]?.token || res.data?.board?.shareableLink;
       if (qnaToken) {
-        navigation.navigate('QnACenter', { token: qnaToken, isPresenter: isTeacher });
+        navigation.navigate('QnACenter', { token: qnaToken, isPresenter: canManage });
       } else {
         Alert.alert('Q&A Board Unavailable', 'The Q&A Board has not been initialized for this classroom.');
       }
@@ -158,8 +178,121 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     });
   };
 
+  const openLectureLink = async (link) => {
+    if (!link) {
+      Alert.alert('Lecture unavailable', 'No lecture link is available yet.');
+      return;
+    }
+    try {
+      const supported = await Linking.canOpenURL(link);
+      if (supported) {
+        await Linking.openURL(link);
+      } else {
+        Alert.alert('Cannot open lecture', 'The lecture link is invalid.');
+      }
+    } catch (err) {
+      Alert.alert('Cannot open lecture', 'Unable to open the lecture link.');
+    }
+  };
+
+  const startLecture = async (isPaid = false, amount = 0) => {
+    setLectureLoading(true);
+    try {
+      const response = await api.post(`/classrooms/${classroomId}/call/start`, { isPaid, amount });
+      const callData = response.data || {};
+      setActiveCall(callData);
+      await openLectureLink(callData.link);
+    } catch (err) {
+      if (err?.response?.data?.googleAuthRequired) {
+        Alert.alert('Google authorization required', 'Please authorize Google Meet from the web dashboard before starting a lecture.');
+      } else {
+        Alert.alert('Lecture Error', err?.response?.data?.message || 'Unable to start lecture.');
+      }
+    } finally {
+      setLectureLoading(false);
+    }
+  };
+
+  const handleStartLecture = () => {
+    const defaultAmount = Number(classroom?.pricing?.amount || 0);
+    if (classroom?.pricing?.type === 'per_lecture' && defaultAmount > 0) {
+      Alert.alert(
+        'Start lecture',
+        `Start this lecture as paid access for NGN ${defaultAmount.toLocaleString()} or free access?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Free', onPress: () => startLecture(false, 0) },
+          { text: 'Paid', onPress: () => startLecture(true, defaultAmount) },
+        ]
+      );
+      return;
+    }
+    startLecture(false, 0);
+  };
+
+  const handleAttendLecture = async () => {
+    setLectureLoading(true);
+    try {
+      const response = await api.get(`/classrooms/${classroomId}/call`);
+      const callData = response.data || {};
+      setActiveCall(callData);
+
+      if (callData.isPaid && !callData.hasPaid && user?.role === 'student') {
+        Alert.alert(
+          'Paid lecture',
+          `This lecture costs NGN ${Number(callData.amount || 0).toLocaleString()}.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Pay',
+              onPress: async () => {
+                try {
+                  const payRes = await api.post('/payments/paystack/initiate', {
+                    amount: callData.amount || 0,
+                    classroomId,
+                    callSessionId: callData.callId,
+                    type: 'lecture_access',
+                  });
+                  const { authorization_url, reference } = payRes.data || {};
+                  if (authorization_url) {
+                    navigation.navigate('PaystackWebView', {
+                      authorizationUrl: authorization_url,
+                      reference,
+                      classroomId,
+                      callSessionId: callData.callId,
+                      type: 'lecture_access',
+                    });
+                  } else {
+                    Alert.alert('Checkout Error', 'Payment initiation failed: authorization URL missing.');
+                  }
+                } catch (payErr) {
+                  Alert.alert('Checkout Error', payErr?.response?.data?.message || 'Unable to start lecture payment.');
+                }
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      if (user?.role === 'student') {
+        try {
+          await api.post(`/classrooms/${classroomId}/call/attend`);
+        } catch (attendErr) {
+          console.log('Failed to mark attendance:', attendErr?.message || attendErr);
+        }
+      }
+      await openLectureLink(callData.link);
+    } catch (err) {
+      Alert.alert('Lecture unavailable', err?.response?.data?.message || 'No active lecture found.');
+    } finally {
+      setLectureLoading(false);
+    }
+  };
+
   const handlePublishToggle = async () => {
     if (!classroom?._id) return;
+    setShowActions(false);
     setPublishing(true);
     try {
       await api.put(`/classrooms/${classroom._id}/publish`, { published: !classroom.published });
@@ -174,6 +307,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
 
   const handleDeleteClassroom = () => {
     if (!classroom?._id) return;
+    setShowActions(false);
     Alert.alert(
       'Delete classroom',
       'Are you sure you want to delete this classroom? This cannot be undone.',
@@ -197,6 +331,59 @@ export default function ClassroomDetailScreen({ route, navigation }) {
         }
       ]
     );
+  };
+
+  const openEditClassroom = () => {
+    if (!classroom) return;
+    setShowActions(false);
+    setEditFormData({
+      name: classroom.name || '',
+      description: classroom.description || '',
+      subject: classroom.subject || '',
+      level: classroom.level || 'Other',
+      pricing: {
+        amount: Number(classroom.pricing?.amount || 0),
+        type: classroom.pricing?.type || 'one_time',
+      },
+      isPaid: !!classroom.isPaid,
+      isPrivate: !!classroom.isPrivate,
+      published: classroom.published !== false,
+      capacity: Number(classroom.capacity || 30),
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateClassroom = async () => {
+    if (!classroom?._id) return;
+    if (!editFormData.name.trim()) {
+      Alert.alert('Missing title', 'Please provide a classroom name.');
+      return;
+    }
+
+    setEditLoading(true);
+    try {
+      const payload = {
+        name: editFormData.name,
+        description: editFormData.description,
+        subject: editFormData.subject,
+        level: editFormData.level,
+        isPaid: editFormData.isPaid && editFormData.pricing.amount > 0,
+        pricing: { ...editFormData.pricing },
+        isPrivate: editFormData.isPrivate,
+        published: editFormData.published,
+        capacity: editFormData.capacity,
+      };
+
+      const response = await api.put(`/classrooms/${classroom._id}`, payload);
+      const updatedClassroom = response.data?.classroom || response.data;
+      setClassroom((current) => ({ ...current, ...updatedClassroom }));
+      setShowEditModal(false);
+      Alert.alert('Updated', 'Classroom details saved.');
+    } catch (err) {
+      Alert.alert('Update failed', err?.response?.data?.message || 'Unable to update classroom.');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   if (loading) {
@@ -226,8 +413,31 @@ export default function ClassroomDetailScreen({ route, navigation }) {
           <Ionicons name="arrow-back-outline" size={24} color={theme.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>{classroom?.name}</Text>
-        <View style={{ width: 24 }} />
+        {canManage ? (
+          <Pressable onPress={() => setShowActions((current) => !current)} style={styles.iconButton}>
+            <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
+          </Pressable>
+        ) : (
+          <View style={{ width: 24 }} />
+        )}
       </View>
+
+      {canManage && showActions && (
+        <View style={[styles.actionMenu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Pressable style={styles.actionMenuItem} onPress={openEditClassroom}>
+            <Ionicons name="create-outline" size={18} color={theme.text} />
+            <Text style={[styles.actionMenuText, { color: theme.text }]}>Edit</Text>
+          </Pressable>
+          <Pressable style={styles.actionMenuItem} onPress={handlePublishToggle} disabled={publishing}>
+            <Ionicons name={classroom?.published ? 'eye-off-outline' : 'eye-outline'} size={18} color={theme.text} />
+            <Text style={[styles.actionMenuText, { color: theme.text }]}>{publishing ? 'Updating...' : classroom?.published ? 'Unpublish' : 'Publish'}</Text>
+          </Pressable>
+          <Pressable style={styles.actionMenuItem} onPress={handleDeleteClassroom} disabled={deleting}>
+            <Ionicons name="trash-outline" size={18} color={theme.danger} />
+            <Text style={[styles.actionMenuText, { color: theme.danger }]}>{deleting ? 'Deleting...' : 'Delete'}</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -292,7 +502,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
             )}
           </View>
 
-          {canManageClassroom() && (
+          {false && canManage && (
             <View style={styles.managementRow}>
               <Pressable
                 style={[styles.manageBtn, { backgroundColor: theme.primary }]}
@@ -342,6 +552,41 @@ export default function ClassroomDetailScreen({ route, navigation }) {
         ) : (
           // Enrolled features
           <View style={{ marginTop: 8 }}>
+            <View style={[styles.lectureCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={styles.lectureHeader}>
+                <View style={[styles.lectureIcon, { backgroundColor: `${theme.info}1A` }]}>
+                  <Ionicons name="videocam-outline" size={22} color={theme.info} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.lectureTitle, { color: theme.text }]}>{activeCall?.link ? 'Lecture is live' : 'Live lecture'}</Text>
+                  <Text style={[styles.lectureSub, { color: theme.muted }]}>
+                    {activeCall?.startedAt
+                      ? `Started ${new Date(activeCall.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                      : canManage
+                        ? 'Start a Google Meet lecture for this class.'
+                        : 'Join once your instructor starts the lecture.'}
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                style={[styles.lectureBtn, { backgroundColor: theme.primary }, lectureLoading && { opacity: 0.7 }]}
+                onPress={canManage ? handleStartLecture : handleAttendLecture}
+                disabled={lectureLoading}
+              >
+                {lectureLoading ? (
+                  <ActivityIndicator color={theme.onPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name={canManage ? 'radio-outline' : 'enter-outline'} size={18} color={theme.onPrimary} />
+                    <Text style={[styles.lectureBtnText, { color: theme.onPrimary }]}>
+                      {canManage ? (activeCall?.link ? 'Open / Restart Lecture' : 'Start Lecture') : 'Attend Lecture'}
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+
             {/* Live Session Links */}
             <View style={styles.liveLinksRow}>
               <Pressable style={[styles.liveBtn, { backgroundColor: theme.primary }]} onPress={handleJoinWhiteboard}>
@@ -486,6 +731,96 @@ export default function ClassroomDetailScreen({ route, navigation }) {
           </View>
         )}
       </ScrollView>
+
+      {showEditModal && (
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Classroom</Text>
+                <Pressable onPress={() => setShowEditModal(false)} style={styles.modalCloseButton}>
+                  <Ionicons name="close" size={24} color={theme.muted} />
+                </Pressable>
+              </View>
+
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Classroom title"
+                placeholderTextColor={theme.muted}
+                value={editFormData.name}
+                onChangeText={(text) => setEditFormData({ ...editFormData, name: text })}
+              />
+              <TextInput
+                style={[styles.input, styles.textArea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Short description"
+                placeholderTextColor={theme.muted}
+                value={editFormData.description}
+                onChangeText={(text) => setEditFormData({ ...editFormData, description: text })}
+                multiline
+              />
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Subject"
+                placeholderTextColor={theme.muted}
+                value={editFormData.subject}
+                onChangeText={(text) => setEditFormData({ ...editFormData, subject: text })}
+              />
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Level"
+                placeholderTextColor={theme.muted}
+                value={editFormData.level}
+                onChangeText={(text) => setEditFormData({ ...editFormData, level: text })}
+              />
+
+              <View style={styles.inlineRow}>
+                <Pressable
+                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.isPaid && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                  onPress={() => setEditFormData({ ...editFormData, isPaid: !editFormData.isPaid })}
+                >
+                  <Text style={[styles.chipText, { color: theme.muted }, editFormData.isPaid && { color: theme.onPrimary }]}>{editFormData.isPaid ? 'Paid classroom' : 'Free classroom'}</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.isPrivate && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                  onPress={() => setEditFormData({ ...editFormData, isPrivate: !editFormData.isPrivate })}
+                >
+                  <Text style={[styles.chipText, { color: theme.muted }, editFormData.isPrivate && { color: theme.onPrimary }]}>{editFormData.isPrivate ? 'Private' : 'Public'}</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.published && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                  onPress={() => setEditFormData({ ...editFormData, published: !editFormData.published })}
+                >
+                  <Text style={[styles.chipText, { color: theme.muted }, editFormData.published && { color: theme.onPrimary }]}>{editFormData.published ? 'Published' : 'Draft'}</Text>
+                </Pressable>
+              </View>
+
+              {editFormData.isPaid && (
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                  placeholder="Price amount"
+                  placeholderTextColor={theme.muted}
+                  keyboardType="numeric"
+                  value={String(editFormData.pricing.amount)}
+                  onChangeText={(value) => setEditFormData({ ...editFormData, pricing: { ...editFormData.pricing, amount: Number(value) || 0 } })}
+                />
+              )}
+
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Capacity"
+                placeholderTextColor={theme.muted}
+                keyboardType="numeric"
+                value={String(editFormData.capacity)}
+                onChangeText={(value) => setEditFormData({ ...editFormData, capacity: Number(value) || 30 })}
+              />
+
+              <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, editLoading && { opacity: 0.7 }]} onPress={handleUpdateClassroom} disabled={editLoading}>
+                <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{editLoading ? 'Saving...' : 'Save Changes'}</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -514,6 +849,9 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   metaBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
   metaBadgeText: { fontSize: 12, fontWeight: '700' },
+  actionMenu: { marginHorizontal: 16, marginTop: 8, borderWidth: 1, borderRadius: 16, paddingVertical: 6 },
+  actionMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  actionMenuText: { fontSize: 13, fontWeight: '800' },
   managementRow: { flexDirection: 'row', gap: 12, marginTop: 16, flexWrap: 'wrap' },
   manageBtn: { flex: 1, minWidth: 120, paddingVertical: 12, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   manageBtnText: { fontSize: 13, fontWeight: '800' },
@@ -525,6 +863,13 @@ const styles = StyleSheet.create({
   gateSub: { fontSize: 13, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
   enrollBtn: { borderRadius: 16, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   enrollBtnText: { fontWeight: '800', fontSize: 14 },
+  lectureCard: { borderRadius: 20, padding: 16, borderWidth: 1, marginTop: 8, marginBottom: 10 },
+  lectureHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  lectureIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  lectureTitle: { fontSize: 15, fontWeight: '800' },
+  lectureSub: { fontSize: 12, marginTop: 3, lineHeight: 17 },
+  lectureBtn: { minHeight: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  lectureBtnText: { fontSize: 13, fontWeight: '800' },
   liveLinksRow: { flexDirection: 'row', gap: 10, marginVertical: 8 },
   liveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 16 },
   liveBtnText: { fontWeight: '700', fontSize: 13 },
@@ -545,4 +890,17 @@ const styles = StyleSheet.create({
   assignmentRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 18, marginBottom: 10, borderWidth: 1 },
   assignIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 14, fontStyle: 'italic', paddingLeft: 4 },
+  modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1 },
+  modalContent: { padding: 20, gap: 14 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  modalTitle: { fontSize: 20, fontWeight: '800' },
+  modalCloseButton: { padding: 6 },
+  input: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, marginBottom: 12 },
+  textArea: { minHeight: 100, textAlignVertical: 'top' },
+  inlineRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
+  chip: { paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderRadius: 16 },
+  chipText: { fontSize: 13, fontWeight: '700' },
+  submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  submitBtnText: { fontWeight: '800', fontSize: 14 },
 });

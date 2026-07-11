@@ -5,6 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
+import {
+  canCreateClassroom,
+  canManageClassroom,
+  getClassroomSchoolIds,
+  getEntityId,
+  getUserSchoolIds,
+  isStudent,
+} from '../../utils/roles';
 
 const normalizeClassroomsResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -44,21 +52,7 @@ export default function ClassroomsScreen({ navigation }) {
     schoolIds: user?.schoolId ? (Array.isArray(user.schoolId) ? user.schoolId : [user.schoolId]) : [],
   });
 
-  const canCreate = ['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role);
-
-  const isClassOwner = (classroom) => {
-    const teacherId = classroom.teacherId?._id || classroom.teacherId;
-    return ['root_admin', 'school_admin'].includes(user?.role) || teacherId?.toString() === user?._id?.toString();
-  };
-
-  const canManageClassroom = (classroom) => {
-    if (['root_admin', 'school_admin'].includes(user?.role)) return true;
-    if (user?.role === 'teacher' || user?.role === 'personal_teacher') {
-      const teacherId = classroom.teacherId?._id || classroom.teacherId;
-      return teacherId?.toString() === user?._id?.toString();
-    }
-    return false;
-  };
+  const canCreate = canCreateClassroom(user);
 
   const fetchTeachers = async () => {
     if (!['root_admin', 'school_admin'].includes(user?.role)) return;
@@ -91,19 +85,18 @@ export default function ClassroomsScreen({ navigation }) {
       const visibleClassrooms = allClassrooms.filter((item) => {
         if (!item) return false;
 
-        if (user?.role === 'student') {
+        if (isStudent(user)) {
           return item.published !== false;
         }
 
         if (user?.role === 'teacher' || user?.role === 'personal_teacher') {
-          const teacherId = item.teacherId?._id || item.teacherId;
-          return teacherId?.toString() === user?._id?.toString();
+          return getEntityId(item.teacherId) === getEntityId(user);
         }
 
         if (user?.role === 'school_admin') {
-          const schoolIds = (Array.isArray(user?.schoolId) ? user.schoolId : [user?.schoolId]).filter(Boolean);
-          const classroomSchoolIds = (Array.isArray(item.schoolId) ? item.schoolId : [item.schoolId]).filter(Boolean);
-          return schoolIds.some((sid) => classroomSchoolIds.some((cid) => (cid?._id || cid)?.toString() === sid?.toString()));
+          const schoolIds = getUserSchoolIds(user);
+          const classroomSchoolIds = getClassroomSchoolIds(item);
+          return schoolIds.some((schoolId) => classroomSchoolIds.includes(schoolId));
         }
 
         return true;
@@ -291,7 +284,7 @@ export default function ClassroomsScreen({ navigation }) {
 
   const renderItem = ({ item }) => {
     const enrolled = isStudentEnrolled(item);
-    const canManage = canManageClassroom(item);
+    const canManage = canManageClassroom(user, item);
 
     return (
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -301,8 +294,10 @@ export default function ClassroomsScreen({ navigation }) {
               <Text style={[styles.cardTitle, { color: theme.text }]}>{item.name || 'Untitled classroom'}</Text>
               <Text style={[styles.cardTeacher, { color: theme.muted }]}>{item.teacherId?.name || 'Instructor TBD'}</Text>
             </View>
-            <View style={[styles.priceBadge, item.isPaid ? { backgroundColor: `${theme.warning}29` } : { backgroundColor: `${theme.success}29` }]}>
-              <Text style={[styles.priceBadgeText, { color: theme.text }]}>{item.isPaid ? `NGN ${item.pricing?.amount || 0}` : 'Free'}</Text>
+            <View style={styles.cardHeaderActions}>
+              <View style={[styles.priceBadge, item.isPaid ? { backgroundColor: `${theme.warning}29` } : { backgroundColor: `${theme.success}29` }]}>
+                <Text style={[styles.priceBadgeText, { color: theme.text }]}>{item.isPaid ? `NGN ${item.pricing?.amount || 0}` : 'Free'}</Text>
+              </View>
             </View>
           </View>
 
@@ -319,18 +314,26 @@ export default function ClassroomsScreen({ navigation }) {
 
         {canManage && (
           <View style={styles.adminActionsRow}>
-            <Pressable style={[styles.smallActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }, item.published && { backgroundColor: theme.surfaceElevated }]} onPress={() => handlePublishToggle(item)}>
-              <Ionicons name={item.published ? 'eye-outline' : 'eye-off-outline'} size={18} color={item.published ? theme.success : theme.muted} />
-              <Text style={[styles.smallActionText, item.published ? { color: theme.success } : { color: theme.muted }]}>{item.published ? 'Published' : 'Unpublished'}</Text>
+            <Pressable
+              style={[styles.smallActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }, item.published && { backgroundColor: theme.surfaceElevated }]}
+              onPress={() => handlePublishToggle(item)}
+            >
+              <Ionicons name={item.published ? 'eye-off-outline' : 'eye-outline'} size={18} color={item.published ? theme.muted : theme.success} />
+              <Text style={[styles.smallActionText, { color: item.published ? theme.muted : theme.success }]}>
+                {item.published ? 'Unpublish' : 'Publish'}
+              </Text>
             </Pressable>
-            <Pressable style={[styles.smallActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => handleDelete(item)}>
+            <Pressable
+              style={[styles.smallActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={() => handleDelete(item)}
+            >
               <Ionicons name="trash-outline" size={18} color={theme.danger} />
               <Text style={[styles.smallActionText, { color: theme.muted }]}>Delete</Text>
             </Pressable>
           </View>
         )}
 
-        {user?.role === 'student' && (
+        {isStudent(user) && (
           <Pressable style={[styles.actionBtn, { backgroundColor: enrolled ? theme.success : theme.primary }, enrolled && { backgroundColor: theme.success }]} onPress={() => enrolled ? navigation.navigate('ClassroomDetail', { classroomId: item._id }) : handleEnroll(item)}>
             <Text style={[styles.actionBtnText, { color: theme.onPrimary }]}>{enrolled ? 'Open' : item.isPaid ? 'Pay & Enroll' : 'Enroll'}</Text>
           </Pressable>
@@ -343,7 +346,7 @@ export default function ClassroomsScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }] }>
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Text style={[styles.title, { color: theme.text }]}>{user?.role === 'student' ? 'Explore Classes' : 'Learning Spaces'}</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{isStudent(user) ? 'Explore Classes' : 'Learning Spaces'}</Text>
           {canCreate && (
             <Pressable style={[styles.createBtn, { backgroundColor: theme.primary }]} onPress={() => setShowCreateModal(true)}>
               <Ionicons name="add-circle-outline" size={20} color={theme.onPrimary} />
@@ -352,7 +355,7 @@ export default function ClassroomsScreen({ navigation }) {
           )}
         </View>
         <Text style={[styles.subtitle, { color: theme.muted }] }>
-          {user?.role === 'student'
+          {isStudent(user)
             ? 'Search classrooms and enroll from the same experience as the web app.'
             : 'Your assigned and managed classrooms are shown here.'}
         </Text>
@@ -404,16 +407,16 @@ export default function ClassroomsScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={user?.role === 'student' ? [...enrolledClassrooms, ...exploreClassrooms] : filteredClassrooms}
+          data={isStudent(user) ? [...enrolledClassrooms, ...exploreClassrooms] : filteredClassrooms}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
-          ListHeaderComponent={user?.role === 'student' && enrolledClassrooms.length > 0 ? (
+          ListHeaderComponent={isStudent(user) && enrolledClassrooms.length > 0 ? (
             <View style={styles.sectionBlock}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>Your classes</Text>
             </View>
           ) : null}
-          ListFooterComponent={user?.role === 'student' && exploreClassrooms.length > 0 ? (
+          ListFooterComponent={isStudent(user) && exploreClassrooms.length > 0 ? (
             <View style={styles.sectionBlock}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>Explore more</Text>
             </View>
@@ -559,6 +562,7 @@ export default function ClassroomsScreen({ navigation }) {
           </View>
         </View>
       )}
+
     </SafeAreaView>
   );
 }
@@ -579,6 +583,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
   card: { borderRadius: 20, padding: 18, marginBottom: 14, borderWidth: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  cardHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8 },
   cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   cardTeacher: { fontSize: 12, fontWeight: '700' },
   cardText: { fontSize: 13, lineHeight: 18 },

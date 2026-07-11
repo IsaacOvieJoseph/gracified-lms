@@ -7,7 +7,7 @@ import api from '../../api/api';
 
 export default function PaystackWebViewScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { authorizationUrl, reference, classroomId } = route.params || {};
+  const { authorizationUrl, reference, classroomId, type } = route.params || {};
   const [loading, setLoading] = useState(true);
   const verifyingRef = useRef(false);
 
@@ -41,9 +41,9 @@ export default function PaystackWebViewScreen({ route, navigation }) {
       });
 
       if (response.status === 200) {
-        Alert.alert('Payment Successful', 'You have been enrolled in this classroom!');
+        Alert.alert('Payment Successful', type === 'lecture_access' ? 'Lecture access confirmed. You can now join the lecture.' : 'You have been enrolled in this classroom!');
 
-        if (classroomId) {
+        if (classroomId && type !== 'lecture_access') {
           try {
             await api.post(`/classrooms/${classroomId}/enroll`);
           } catch (enrollErr) {

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
+import { isStudent } from '../../utils/roles';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -16,6 +18,7 @@ const normalizeListResponse = (payload) => {
 };
 
 export default function ExamsScreen({ navigation }) {
+  const { user } = useAuth();
   const { theme } = useTheme();
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +65,7 @@ export default function ExamsScreen({ navigation }) {
             {item.classroomId?.name || 'Classroom Exam'}
           </Text>
           <View style={[styles.badge, item.isPublished ? { backgroundColor: theme.success } : { backgroundColor: theme.neutral }]}>
-            <Text style={[styles.badgeText, { color: theme.onPrimary }]}>{item.isPublished ? 'PUBLISHED' : 'DRAFT'}</Text>
+            <Text style={[styles.badgeText, { color: theme.onPrimary }]}>{item.isPublished ? (isStudent(user) ? 'TAKE EXAM' : 'PUBLISHED') : 'DRAFT'}</Text>
           </View>
         </View>
 

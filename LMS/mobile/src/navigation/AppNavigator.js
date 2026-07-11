@@ -31,6 +31,7 @@ import PaystackWebViewScreen from '../screens/payments/PaystackWebViewScreen';
 import QnACenterScreen from '../screens/qna/QnACenterScreen';
 import WhiteboardScreen from '../screens/whiteboard/WhiteboardScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import { canUseAssignmentsPortal, canUsePayments } from '../utils/roles';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -38,6 +39,7 @@ const Tab = createBottomTabNavigator();
 function MainTabs() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
   return (
     <Tab.Navigator
@@ -57,6 +59,8 @@ function MainTabs() {
           const icons = {
             Dashboard: 'home-outline',
             Classes: 'school-outline',
+            Assignments: 'clipboard-outline',
+            Payments: 'receipt-outline',
             Profile: 'person-outline',
           };
           return <Ionicons name={icons[route.name] || 'ellipse-outline'} size={size} color={color} />;
@@ -65,6 +69,8 @@ function MainTabs() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Classes" component={ClassroomsScreen} options={{ tabBarLabel: 'Class' }} />
+      {canUsePayments(user) && <Tab.Screen name="Payments" component={PaymentsScreen} />}
+      {canUseAssignmentsPortal(user) && <Tab.Screen name="Assignments" component={AssignmentsScreen} />}
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -97,11 +103,9 @@ export default function AppNavigator() {
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="ClassroomDetail" component={ClassroomDetailScreen} />
             <Stack.Screen name="TopicDetail" component={TopicDetailScreen} />
-            <Stack.Screen name="Assignments" component={AssignmentsScreen} />
             <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
             <Stack.Screen name="Exams" component={ExamsScreen} />
             <Stack.Screen name="ExamCenter" component={ExamCenterScreen} />
-            <Stack.Screen name="Payments" component={PaymentsScreen} />
             <Stack.Screen name="PaystackWebView" component={PaystackWebViewScreen} />
             <Stack.Screen name="QnACenter" component={QnACenterScreen} />
             <Stack.Screen name="Whiteboard" component={WhiteboardScreen} />
@@ -113,6 +117,7 @@ export default function AppNavigator() {
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="NetworkTest" component={NetworkTestScreen} />
         </>

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
+import { canManageAssignments } from '../../utils/roles';
 
 export default function TopicDetailScreen({ route, navigation }) {
   const { topicId } = route.params || {};
@@ -14,7 +15,7 @@ export default function TopicDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const isTeacher = user?.role === 'teacher' || user?.role === 'personal_teacher' || user?.role === 'school_admin' || user?.role === 'root_admin';
+  const isTeacher = canManageAssignments(user);
 
   const loadTopic = async () => {
     setLoading(true);

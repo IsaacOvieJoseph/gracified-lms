@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import { canManageAssignments } from '../../utils/roles';
 
 export default function AssignmentDetailScreen({ route, navigation }) {
   const { assignmentId } = route.params || {};
@@ -26,7 +27,7 @@ export default function AssignmentDetailScreen({ route, navigation }) {
   const [gradeFeedback, setGradeFeedback] = useState('');
   const [gradeLoading, setGradeLoading] = useState(false);
 
-  const isTeacher = user?.role === 'teacher' || user?.role === 'personal_teacher' || user?.role === 'school_admin' || user?.role === 'root_admin';
+  const isTeacher = canManageAssignments(user);
 
   const loadAssignment = async () => {
     setLoading(true);

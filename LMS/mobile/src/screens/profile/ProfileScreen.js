@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import { canEditPayoutProfile } from '../../utils/roles';
 
 export default function ProfileScreen({ navigation }) {
   const { user, setUser, logout } = useAuth();
@@ -15,7 +16,7 @@ export default function ProfileScreen({ navigation }) {
   const [accountName, setAccountName] = useState(user?.bankDetails?.accountName || '');
   const [updating, setUpdating] = useState(false);
 
-  const isTeacherOrAdmin = user?.role === 'teacher' || user?.role === 'personal_teacher' || user?.role === 'school_admin' || user?.role === 'root_admin';
+  const canEditBankDetails = canEditPayoutProfile(user);
   const { theme, toggleTheme } = useTheme();
 
   const handleUpdateBank = async () => {
@@ -90,7 +91,7 @@ export default function ProfileScreen({ navigation }) {
           </Pressable>
         </View>
 
-        {isTeacherOrAdmin && (
+        {canEditBankDetails && (
           <View style={{ marginTop: 24 }}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Bank Payout Details</Text>
             <View style={[styles.bankCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>

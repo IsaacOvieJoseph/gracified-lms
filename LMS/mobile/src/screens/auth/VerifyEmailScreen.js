@@ -8,8 +8,9 @@ import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 
-export default function VerifyEmailScreen() {
+export default function VerifyEmailScreen({ route, navigation }) {
   const { user, setUser, setToken, logout } = useAuth();
+  const email = user?.email || route?.params?.email;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -24,7 +25,7 @@ export default function VerifyEmailScreen() {
     setLoading(true);
     try {
       const response = await api.post('/auth/verify-otp', {
-        email: user?.email,
+        email,
         otp: otp.trim()
       });
 
@@ -44,6 +45,9 @@ export default function VerifyEmailScreen() {
       }
       
       Alert.alert('Success', 'Email verified successfully!');
+      if (!nextToken && navigation?.replace) {
+        navigation.replace('Login');
+      }
     } catch (error) {
       Alert.alert('Verification failed', error?.response?.data?.message || 'OTP verification failed. Please check the code and try again.');
     } finally {
@@ -54,7 +58,7 @@ export default function VerifyEmailScreen() {
   const handleResend = async () => {
     setResending(true);
     try {
-      const response = await api.post('/auth/resend-otp', { email: user?.email });
+      const response = await api.post('/auth/resend-otp', { email });
       Alert.alert('Success', response.data.message || 'Verification code resent successfully.');
     } catch (error) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to resend verification code.');
@@ -69,7 +73,7 @@ export default function VerifyEmailScreen() {
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>Verify your email</Text>
           <Text style={[styles.subtitle, { color: theme.muted }] }>
-            A 6-digit verification code was sent to <Text style={[styles.emailHighlight, { color: theme.info }]}>{user?.email}</Text>.
+            A 6-digit verification code was sent to <Text style={[styles.emailHighlight, { color: theme.info }]}>{email}</Text>.
           </Text>
         </View>
 
@@ -98,8 +102,8 @@ export default function VerifyEmailScreen() {
           )}
 
           <Button
-            title="Sign out"
-            onPress={logout}
+            title={user ? 'Sign out' : 'Back to login'}
+            onPress={user ? logout : () => navigation?.replace('Login')}
             variant="secondary"
           />
         </View>

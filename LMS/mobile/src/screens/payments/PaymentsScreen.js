@@ -5,6 +5,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 
+const normalizePaymentsResponse = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') {
+    if (Array.isArray(payload.payments)) return payload.payments;
+    if (Array.isArray(payload.data)) return payload.data;
+    if (Array.isArray(payload.items)) return payload.items;
+  }
+  return [];
+};
+
 export default function PaymentsScreen({ navigation }) {
   const { theme } = useTheme();
   const [history, setHistory] = useState([]);
@@ -17,7 +27,7 @@ export default function PaymentsScreen({ navigation }) {
     setError(null);
     try {
       const response = await api.get('/payments/history');
-      setHistory(response.data || []);
+      setHistory(normalizePaymentsResponse(response.data));
     } catch (err) {
       setError(err?.response?.data?.message || 'Unable to load payment history.');
     } finally {
