@@ -52,4 +52,34 @@ const notificationSchema = new mongoose.Schema({
   },
 });
 
+const { sendPushNotification, sendPushNotifications } = require('../utils/pushNotifications');
+
+notificationSchema.post('save', async function (doc) {
+  try {
+    sendPushNotification(doc.userId, 'Gracified LMS', doc.message, {
+      type: doc.type,
+      entityId: doc.entityId,
+    });
+  } catch (err) {
+    console.error('Error triggering post-save push notification:', err.message);
+  }
+});
+
+notificationSchema.post('insertMany', async function (docs) {
+  try {
+    const pushPayloads = docs.map(doc => ({
+      userId: doc.userId,
+      title: 'Gracified LMS',
+      body: doc.message,
+      data: {
+        type: doc.type,
+        entityId: doc.entityId,
+      }
+    }));
+    sendPushNotifications(pushPayloads);
+  } catch (err) {
+    console.error('Error triggering post-insertMany push notification:', err.message);
+  }
+});
+
 module.exports = mongoose.model('Notification', notificationSchema);

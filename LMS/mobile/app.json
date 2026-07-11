@@ -14,6 +14,12 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0F172A"
+      },
+      "package": "com.isaac_joseph.gracifiedlmsmobile"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0023c05d-2ea5-4700-9fc2-1907c85914b9"
       }
     }
   }

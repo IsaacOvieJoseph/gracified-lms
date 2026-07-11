@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../context/ThemeContext';
 import axios from 'axios';
 
 export default function NetworkTestScreen({ navigation }) {
+  const { theme } = useTheme();
   const [status, setStatus] = useState('Not tested');
   const [details, setDetails] = useState('Tap below to test the backend connection from your phone.');
 
@@ -41,23 +43,23 @@ export default function NetworkTestScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Network test</Text>
-        <Text style={styles.subtitle}>Verify your Expo Go device can reach the LMS backend.</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }] }>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }] }>
+        <Text style={[styles.title, { color: theme.text }]}>Network test</Text>
+        <Text style={[styles.subtitle, { color: theme.muted }]}>Verify your Expo Go device can reach the LMS backend.</Text>
 
-        <View style={styles.statusBox}>
-          <Text style={styles.statusLabel}>Status</Text>
-          <Text style={styles.statusValue}>{status}</Text>
-          <Text style={styles.details}>{details}</Text>
+        <View style={[styles.statusBox, { backgroundColor: theme.surfaceElevated }]}>
+          <Text style={[styles.statusLabel, { color: theme.text }]}>Status</Text>
+          <Text style={[styles.statusValue, { color: theme.text }]}>{status}</Text>
+          <Text style={[styles.details, { color: theme.muted }]}>{details}</Text>
         </View>
 
-        <Pressable style={styles.button} onPress={runTest}>
-          <Text style={styles.buttonText}>Test backend connection</Text>
+        <Pressable style={[styles.button, { backgroundColor: theme.primary }]} onPress={runTest}>
+          <Text style={[styles.buttonText, { color: theme.onPrimary }]}>Test backend connection</Text>
         </Pressable>
 
         <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.secondaryButtonText}>Back</Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.info }]}>Back</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -65,16 +67,16 @@ export default function NetworkTestScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020617', padding: 20 },
-  card: { backgroundColor: '#111827', borderRadius: 24, padding: 20, marginTop: 24 },
-  title: { fontSize: 24, fontWeight: '800', color: '#F8FAFC' },
-  subtitle: { color: '#94A3B8', marginTop: 8, marginBottom: 18 },
-  statusBox: { backgroundColor: '#0F172A', borderRadius: 16, padding: 16, marginBottom: 16 },
-  statusLabel: { color: '#8B5CF6', fontWeight: '700', marginBottom: 4 },
-  statusValue: { color: '#F8FAFC', fontSize: 18, fontWeight: '700' },
-  details: { color: '#CBD5E1', marginTop: 8 },
-  button: { backgroundColor: '#4F46E5', borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
-  buttonText: { color: '#FFFFFF', fontWeight: '700' },
+  container: { flex: 1, padding: 20 },
+  card: { borderRadius: 24, padding: 20, marginTop: 24 },
+  title: { fontSize: 24, fontWeight: '800' },
+  subtitle: { marginTop: 8, marginBottom: 18 },
+  statusBox: { borderRadius: 16, padding: 16, marginBottom: 16 },
+  statusLabel: { fontWeight: '700', marginBottom: 4 },
+  statusValue: { fontSize: 18, fontWeight: '700' },
+  details: { marginTop: 8 },
+  button: { borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
+  buttonText: { fontWeight: '700' },
   secondaryButton: { marginTop: 10, alignItems: 'center', paddingVertical: 10 },
-  secondaryButtonText: { color: '#93C5FD', fontWeight: '600' },
+  secondaryButtonText: { fontWeight: '600' },
 });

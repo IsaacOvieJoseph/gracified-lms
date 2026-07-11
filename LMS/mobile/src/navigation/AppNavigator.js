@@ -1,34 +1,58 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+
+// Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import NetworkTestScreen from '../screens/auth/NetworkTestScreen';
+import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+
+// Core Screens
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import ClassroomsScreen from '../screens/classrooms/ClassroomsScreen';
-import ClassroomDetailScreen from '../screens/classrooms/ClassroomDetailScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+
+// Feature Detail Screens
+import ClassroomDetailScreen from '../screens/classrooms/ClassroomDetailScreen';
+import TopicDetailScreen from '../screens/classrooms/TopicDetailScreen';
+import AssignmentsScreen from '../screens/assignments/AssignmentsScreen';
+import AssignmentDetailScreen from '../screens/assignments/AssignmentDetailScreen';
+import ExamsScreen from '../screens/exams/ExamsScreen';
+import ExamCenterScreen from '../screens/exams/ExamCenterScreen';
+import PaymentsScreen from '../screens/payments/PaymentsScreen';
+import PaystackWebViewScreen from '../screens/payments/PaystackWebViewScreen';
+import QnACenterScreen from '../screens/qna/QnACenterScreen';
+import WhiteboardScreen from '../screens/whiteboard/WhiteboardScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#4F46E5',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: theme.text,
+        tabBarInactiveTintColor: theme.muted,
         tabBarStyle: {
-          backgroundColor: '#0F172A',
-          borderTopColor: 'transparent',
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8,
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
+          height: 82 + insets.bottom,
+          paddingBottom: 20 + insets.bottom,
+          paddingTop: 12,
         },
+        tabBarSafeAreaInsets: { bottom: insets.bottom },
         tabBarIcon: ({ color, size }) => {
           const icons = {
             Dashboard: 'home-outline',
@@ -40,7 +64,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Classes" component={ClassroomsScreen} />
+      <Tab.Screen name="Classes" component={ClassroomsScreen} options={{ tabBarLabel: 'Class' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -49,25 +73,47 @@ function MainTabs() {
 export default function AppNavigator() {
   const { user, loading } = useAuth();
 
+  const { theme } = useTheme();
+
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#020617' }}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
+  const needsVerification = user && !user.isVerified && user.role !== 'root_admin';
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
-        <>
-          <Stack.Screen name="MainTabs" component={MainTabs} />
-          <Stack.Screen name="ClassroomDetail" component={ClassroomDetailScreen} />
-        </>
+        needsVerification ? (
+          // Unverified Users locked to verification screen
+          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+        ) : (
+          // Verified Main App Stack
+          <>
+            <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen name="ClassroomDetail" component={ClassroomDetailScreen} />
+            <Stack.Screen name="TopicDetail" component={TopicDetailScreen} />
+            <Stack.Screen name="Assignments" component={AssignmentsScreen} />
+            <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
+            <Stack.Screen name="Exams" component={ExamsScreen} />
+            <Stack.Screen name="ExamCenter" component={ExamCenterScreen} />
+            <Stack.Screen name="Payments" component={PaymentsScreen} />
+            <Stack.Screen name="PaystackWebView" component={PaystackWebViewScreen} />
+            <Stack.Screen name="QnACenter" component={QnACenterScreen} />
+            <Stack.Screen name="Whiteboard" component={WhiteboardScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          </>
+        )
       ) : (
+        // Non-Authenticated Stack
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="NetworkTest" component={NetworkTestScreen} />
         </>
       )}

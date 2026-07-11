@@ -9,6 +9,27 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const router = express.Router();
 
+router.post('/expo-token', auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.expoPushToken = token;
+    await user.save();
+
+    res.json({ message: 'Expo push token updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Configure multer for CSV upload
 const upload = multer({
   dest: 'uploads/',

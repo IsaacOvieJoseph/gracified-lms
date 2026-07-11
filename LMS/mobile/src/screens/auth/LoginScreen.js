@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
+  const { theme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,15 +29,15 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }] }>
       <View style={styles.hero}>
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoText}>GL</Text>
+        <View style={[styles.logoBadge, { backgroundColor: theme.text }] }>
+          <Text style={[styles.logoText, { color: theme.background }]}>GL</Text>
         </View>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Sign in to continue your learning journey.</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Welcome back</Text>
+        <Text style={[styles.subtitle, { color: theme.muted }]}>Sign in to continue your learning journey.</Text>
       </View>
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }] }>
         <Input placeholder="Email address" value={email} onChangeText={setEmail} />
         <Input placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
         <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} />
@@ -47,19 +49,18 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020617', paddingHorizontal: 24 },
+  container: { flex: 1, paddingHorizontal: 24 },
   hero: { marginTop: 28, marginBottom: 18 },
   logoBadge: {
     width: 72,
     height: 72,
     borderRadius: 18,
     marginBottom: 16,
-    backgroundColor: '#4F46E5',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoText: { color: '#fff', fontSize: 24, fontWeight: '800' },
-  title: { fontSize: 28, fontWeight: '800', color: '#F8FAFC' },
-  subtitle: { marginTop: 8, fontSize: 15, color: '#94A3B8' },
-  card: { backgroundColor: '#111827', borderRadius: 24, padding: 18 },
+  logoText: { fontSize: 24, fontWeight: '800' },
+  title: { fontSize: 28, fontWeight: '800' },
+  subtitle: { marginTop: 8, fontSize: 15 },
+  card: { borderRadius: 24, padding: 18 },
 });

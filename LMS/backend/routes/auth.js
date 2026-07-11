@@ -1449,5 +1449,24 @@ router.put('/profile', auth, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+// Update user's Expo push token
+router.post('/expo-push-token', auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    user.expoPushToken = token;
+    await user.save();
+    res.json({ message: 'Expo push token updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
 

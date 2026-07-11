@@ -43,7 +43,7 @@ router.get('/', auth, async (req, res) => {
     if (req.user.role === 'student') {
       const classrooms = await Classroom.find({ students: req.user._id }).select('_id');
       const classroomIds = classrooms.map(c => c._id);
-      query = { classroomId: { $in: classroomIds } };
+      query = { classroomId: { $in: classroomIds }, published: { $ne: false } };
     } else if (req.user.role === 'teacher' || req.user.role === 'personal_teacher') {
       const classrooms = await Classroom.find({ teacherId: req.user._id }).select('_id');
       const classroomIds = classrooms.map(c => c._id);
@@ -225,6 +225,10 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       .populate('submissions.studentId', 'name email');
 
     if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    if (req.user.role === 'student' && assignment.published === false) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 

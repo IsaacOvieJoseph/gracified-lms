@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Full-stack Learning Management System",
   "scripts": {
-    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install && cd ../mobile && npm install ",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:mobile": "cd mobile && npx expo start --clear",
