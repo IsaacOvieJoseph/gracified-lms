@@ -7,6 +7,9 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import { canManageAssignments } from '../../utils/roles';
 
+const unwrapTopicResponse = (payload) => payload?.topic || payload?.data?.topic || payload?.data || payload || null;
+const asList = (value) => Array.isArray(value) ? value : [];
+
 export default function TopicDetailScreen({ route, navigation }) {
   const { topicId } = route.params || {};
   const { user } = useAuth();
@@ -19,9 +22,10 @@ export default function TopicDetailScreen({ route, navigation }) {
 
   const loadTopic = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get(`/topics/${topicId}`);
-      setTopic(response.data);
+      setTopic(unwrapTopicResponse(response.data));
     } catch (err) {
       setError(err?.response?.data?.message || 'Unable to load topic details.');
     } finally {
@@ -68,6 +72,10 @@ export default function TopicDetailScreen({ route, navigation }) {
       Alert.alert('Error', 'Unable to open link');
     }
   };
+
+  const materials = asList(topic?.materials);
+  const recordedVideos = asList(topic?.recordedVideos);
+  const outline = topic?.lessonsOutline || topic?.lessonOutline || topic?.outline;
 
   if (loading) {
     return (
@@ -120,11 +128,11 @@ export default function TopicDetailScreen({ route, navigation }) {
         <Text style={[styles.title, { color: theme.text }]}>{topic?.name}</Text>
         <Text style={[styles.description, { color: theme.muted }]}>{topic?.description || 'No description provided.'}</Text>
 
-        {topic?.lessonsOutline ? (
+        {outline ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Lesson outline</Text>
             <View style={[styles.outlineCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.outlineText, { color: theme.neutral }]}>{topic?.lessonsOutline}</Text>
+              <Text style={[styles.outlineText, { color: theme.neutral }]}>{outline}</Text>
             </View>
           </View>
         ) : null}
@@ -156,8 +164,8 @@ export default function TopicDetailScreen({ route, navigation }) {
         {/* Materials */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Topic materials</Text>
-          {topic?.materials && topic.materials.length > 0 ? (
-            topic.materials.map((material, idx) => (
+          {materials.length > 0 ? (
+            materials.map((material, idx) => (
               <Pressable
                 key={material._id || idx}
                 style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -196,8 +204,8 @@ export default function TopicDetailScreen({ route, navigation }) {
         {/* Recorded Videos */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Recorded lectures</Text>
-          {topic?.recordedVideos && topic.recordedVideos.length > 0 ? (
-            topic.recordedVideos.map((video, idx) => (
+          {recordedVideos.length > 0 ? (
+            recordedVideos.map((video, idx) => (
               <Pressable
                 key={video._id || idx}
                 style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}

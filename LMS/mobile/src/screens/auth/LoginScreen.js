@@ -41,7 +41,7 @@ export default function LoginScreen({ navigation }) {
         <Input placeholder="Email address" value={email} onChangeText={setEmail} />
         <Input placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
         <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} />
-        <Button title="Test network" onPress={() => navigation.navigate('NetworkTest')} variant="secondary" />
+        {/* <Button title="Test network" onPress={() => navigation.navigate('NetworkTest')} variant="secondary" /> */}
         <Button title="Create account" onPress={() => navigation.navigate('Register')} variant="secondary" />
       </View>
     </SafeAreaView>
