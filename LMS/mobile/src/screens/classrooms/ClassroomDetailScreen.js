@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable, Alert, RefreshControl, Linking, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable, Alert, RefreshControl, Linking, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -52,6 +52,25 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     published: true,
     capacity: 30,
   });
+
+  // ── Topic creation ──────────────────────────────────────────
+  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [topicForm, setTopicForm] = useState({ name: '', description: '' });
+  const [topicLoading, setTopicLoading] = useState(false);
+
+  // ── Assignment creation ──────────────────────────────────────
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [assignForm, setAssignForm] = useState({
+    title: '', description: '', assignmentType: 'mcq', dueDate: '',
+    maxScore: '100', questions: [{ questionText: '', options: ['', '', '', ''], correctOption: '', maxScore: '1' }]
+  });
+  const [assignLoading, setAssignLoading] = useState(false);
+
+  // ── Exam creation ─────────────────────────────────────────────
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [examForm, setExamForm] = useState({ title: '', description: '', duration: '60', accessMode: 'registered' });
+  const [examQuestions, setExamQuestions] = useState([{ questionText: '', questionType: 'mcq', options: ['', '', '', ''], correctOption: '', maxScore: '1' }]);
+  const [examLoading, setExamLoading] = useState(false);
 
   const canManage = canManageClassroom(user, classroom);
   const canViewStaffContent = canViewClassroomContent(user, classroom);
@@ -184,11 +203,16 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       return;
     }
     try {
-      const supported = await Linking.canOpenURL(link);
-      if (supported) {
+      // Direct opening for web/http links is safer on Android 11+ and iOS 9+
+      if (link.startsWith('http://') || link.startsWith('https://')) {
         await Linking.openURL(link);
       } else {
-        Alert.alert('Cannot open lecture', 'The lecture link is invalid.');
+        const supported = await Linking.canOpenURL(link);
+        if (supported) {
+          await Linking.openURL(link);
+        } else {
+          Alert.alert('Cannot open lecture', 'The lecture link is invalid.');
+        }
       }
     } catch (err) {
       Alert.alert('Cannot open lecture', 'Unable to open the lecture link.');
@@ -386,6 +410,133 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     }
   };
 
+  // ── Create Topic ─────────────────────────────────────────────
+  const handleCreateTopic = async () => {
+    if (!topicForm.name.trim()) {
+      Alert.alert('Missing name', 'Please enter a topic name.');
+      return;
+    }
+    setTopicLoading(true);
+    try {
+      const res = await api.post('/topics', { name: topicForm.name, description: topicForm.description, classroomId });
+      setTopics(prev => [...prev, res.data?.topic || res.data]);
+      setShowTopicModal(false);
+      setTopicForm({ name: '', description: '' });
+      Alert.alert('Created!', 'Topic added to curriculum.');
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to create topic.');
+    } finally {
+      setTopicLoading(false);
+    }
+  };
+
+  // ── Create Assignment helpers ────────────────────────────────
+  const updateAssignQuestion = (idx, field, value) => {
+    setAssignForm(prev => ({ ...prev, questions: prev.questions.map((q, i) => i === idx ? { ...q, [field]: value } : q) }));
+  };
+  const updateAssignOption = (qIdx, oIdx, value) => {
+    setAssignForm(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => {
+        if (i !== qIdx) return q;
+        const opts = [...q.options]; opts[oIdx] = value; return { ...q, options: opts };
+      })
+    }));
+  };
+  const addAssignQuestion = () => setAssignForm(prev => ({ ...prev, questions: [...prev.questions, { questionText: '', options: ['', '', '', ''], correctOption: '', maxScore: '1' }] }));
+  const removeAssignQuestion = (idx) => setAssignForm(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== idx) }));
+
+  const handleCreateAssignment = async () => {
+    if (!assignForm.title.trim()) { Alert.alert('Missing title', 'Please enter assignment title.'); return; }
+    if (assignForm.questions.length === 0) { Alert.alert('No Questions', 'Add at least one question.'); return; }
+    for (let i = 0; i < assignForm.questions.length; i++) {
+      const q = assignForm.questions[i];
+      if (!q.questionText.trim()) { Alert.alert('Error', `Question ${i + 1} has no text.`); return; }
+      if (assignForm.assignmentType === 'mcq') {
+        const opts = q.options.filter(o => o.trim());
+        if (opts.length < 2) { Alert.alert('Error', `Question ${i + 1} needs at least 2 options.`); return; }
+        if (!opts.includes(q.correctOption)) { Alert.alert('Error', `Question ${i + 1} correct option must match one of the options.`); return; }
+      }
+    }
+    setAssignLoading(true);
+    try {
+      const payload = {
+        title: assignForm.title,
+        description: assignForm.description,
+        assignmentType: assignForm.assignmentType,
+        classroomId,
+        maxScore: Number(assignForm.maxScore) || 100,
+        dueDate: assignForm.dueDate || undefined,
+        questions: assignForm.questions.map(q => ({
+          questionText: q.questionText,
+          options: assignForm.assignmentType === 'mcq' ? q.options.filter(o => o.trim()) : [],
+          correctOption: assignForm.assignmentType === 'mcq' ? q.correctOption : undefined,
+          maxScore: Number(q.maxScore) || 1,
+        }))
+      };
+      const res = await api.post('/assignments', payload);
+      setAssignments(prev => [...prev, res.data?.assignment || res.data]);
+      setShowAssignmentModal(false);
+      setAssignForm({ title: '', description: '', assignmentType: 'mcq', dueDate: '', maxScore: '100', questions: [{ questionText: '', options: ['', '', '', ''], correctOption: '', maxScore: '1' }] });
+      Alert.alert('Created!', 'Assignment posted to classroom.');
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to create assignment.');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  // ── Create Exam helpers ──────────────────────────────────────
+  const updateExamQuestion = (idx, field, value) => setExamQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: value } : q));
+  const updateExamOption = (qIdx, oIdx, value) => setExamQuestions(prev => prev.map((q, i) => {
+    if (i !== qIdx) return q;
+    const opts = [...q.options]; opts[oIdx] = value; return { ...q, options: opts };
+  }));
+  const addExamQuestion = () => setExamQuestions(prev => [...prev, { questionText: '', questionType: 'mcq', options: ['', '', '', ''], correctOption: '', maxScore: '1' }]);
+  const removeExamQuestion = (idx) => setExamQuestions(prev => prev.filter((_, i) => i !== idx));
+
+  const handleCreateExam = async () => {
+    if (!examForm.title.trim()) { Alert.alert('Missing title', 'Enter exam title.'); return; }
+    if (!examForm.duration || isNaN(Number(examForm.duration))) { Alert.alert('Invalid duration', 'Enter a valid duration.'); return; }
+    if (examQuestions.length === 0) { Alert.alert('No Questions', 'Add at least one question.'); return; }
+    for (let i = 0; i < examQuestions.length; i++) {
+      const q = examQuestions[i];
+      if (!q.questionText.trim()) { Alert.alert('Error', `Question ${i + 1} has no text.`); return; }
+      if (q.questionType === 'mcq') {
+        const opts = q.options.filter(o => o.trim());
+        if (opts.length < 2) { Alert.alert('Error', `Q${i + 1} needs ≥2 options.`); return; }
+        if (!opts.includes(q.correctOption)) { Alert.alert('Error', `Q${i + 1} correct option must match one of the options.`); return; }
+      }
+    }
+    setExamLoading(true);
+    try {
+      const payload = {
+        title: examForm.title,
+        description: examForm.description,
+        duration: Number(examForm.duration),
+        accessMode: examForm.accessMode,
+        classId: classroomId,
+        questions: examQuestions.map(q => ({
+          questionText: q.questionText,
+          questionType: q.questionType,
+          options: q.questionType === 'mcq' ? q.options.filter(o => o.trim()) : [],
+          correctOption: q.questionType === 'mcq' ? q.correctOption : undefined,
+          maxScore: Number(q.maxScore) || 1,
+        }))
+      };
+      const res = await api.post('/exams', payload);
+      setExams(prev => [...prev, res.data?.exam || res.data]);
+      setShowExamModal(false);
+      setExamForm({ title: '', description: '', duration: '60', accessMode: 'registered' });
+      setExamQuestions([{ questionText: '', questionType: 'mcq', options: ['', '', '', ''], correctOption: '', maxScore: '1' }]);
+      Alert.alert('Created!', 'Exam scheduled for this classroom.');
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to create exam.');
+    } finally {
+      setExamLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
@@ -451,17 +602,11 @@ export default function ClassroomDetailScreen({ route, navigation }) {
           {classroom?.introVideo ? (
             <Pressable
               style={[styles.videoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-              onPress={async () => {
-                try {
-                  const supported = await Linking.canOpenURL(classroom.introVideo);
-                  if (supported) {
-                    await Linking.openURL(classroom.introVideo);
-                  } else {
-                    Alert.alert('Cannot open video', 'This introductory video URL is invalid.');
-                  }
-                } catch (err) {
-                  Alert.alert('Error', 'Unable to open the introductory video.');
-                }
+              onPress={() => {
+                navigation.navigate('VideoPlayer', {
+                  videoUrl: classroom.introVideo,
+                  title: (classroom.name || 'Classroom') + ' - Intro Video'
+                });
               }}
             >
               <View style={[styles.videoIconBox, { backgroundColor: theme.surfaceElevated }]}>
@@ -633,7 +778,15 @@ export default function ClassroomDetailScreen({ route, navigation }) {
             {/* TAB CONTENTS */}
             {activeTab === 'syllabus' && (
               <View style={styles.tabContent}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Curriculum timeline</Text>
+                <View style={styles.tabSectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Curriculum timeline</Text>
+                  {canManage && (
+                    <Pressable style={[styles.tabAddBtn, { backgroundColor: `${theme.primary}20` }]} onPress={() => setShowTopicModal(true)}>
+                      <Ionicons name="add-outline" size={16} color={theme.primary} />
+                      <Text style={[styles.tabAddBtnText, { color: theme.primary }]}>Add Topic</Text>
+                    </Pressable>
+                  )}
+                </View>
                 {topics.length === 0 ? (
                   <Text style={[styles.emptyText, { color: theme.muted }]}>No curriculum topics added yet.</Text>
                 ) : (
@@ -669,7 +822,15 @@ export default function ClassroomDetailScreen({ route, navigation }) {
 
             {activeTab === 'assignments' && (
               <View style={styles.tabContent}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Class assignments</Text>
+                <View style={styles.tabSectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Class assignments</Text>
+                  {canManage && (
+                    <Pressable style={[styles.tabAddBtn, { backgroundColor: `${theme.primary}20` }]} onPress={() => setShowAssignmentModal(true)}>
+                      <Ionicons name="add-outline" size={16} color={theme.primary} />
+                      <Text style={[styles.tabAddBtnText, { color: theme.primary }]}>Add Assignment</Text>
+                    </Pressable>
+                  )}
+                </View>
                 {assignments.length === 0 ? (
                   <Text style={[styles.emptyText, { color: theme.muted }]}>No assignments posted for this classroom.</Text>
                 ) : (
@@ -697,7 +858,15 @@ export default function ClassroomDetailScreen({ route, navigation }) {
 
             {activeTab === 'exams' && (
               <View style={styles.tabContent}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Scheduled exams</Text>
+                <View style={styles.tabSectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Scheduled exams</Text>
+                  {canManage && (
+                    <Pressable style={[styles.tabAddBtn, { backgroundColor: `${theme.primary}20` }]} onPress={() => setShowExamModal(true)}>
+                      <Ionicons name="add-outline" size={16} color={theme.primary} />
+                      <Text style={[styles.tabAddBtnText, { color: theme.primary }]}>Add Exam</Text>
+                    </Pressable>
+                  )}
+                </View>
                 {exams.length === 0 ? (
                   <Text style={[styles.emptyText, { color: theme.muted }]}>No exams scheduled for this classroom.</Text>
                 ) : (
@@ -706,7 +875,9 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                       key={e._id || idx}
                       style={[styles.assignmentRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
                       onPress={() => {
-                        if (e.linkToken) {
+                        if (canManage) {
+                          navigation.navigate('ExamDetail', { examId: e._id });
+                        } else if (e.linkToken) {
                           navigation.navigate('ExamCenter', { token: e.linkToken });
                         } else {
                           Alert.alert('Draft Exam', 'This exam is not active yet.');
@@ -719,10 +890,19 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                       <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={[styles.topicName, { color: theme.text }]}>{e.title}</Text>
                         <Text style={[styles.topicStatus, { color: theme.muted }]}>
-                          Duration: {e.duration || 60} mins • {e.accessMode?.toUpperCase()}
+                          Duration: {e.duration || 60} mins · {e.accessMode?.toUpperCase()}
                         </Text>
                       </View>
-                      <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
+                      <View style={styles.examRowRight}>
+                        {canManage && (
+                          <View style={[styles.miniStatusBadge, { backgroundColor: e.isPublished ? `${theme.success}20` : `${theme.warning}20` }]}>
+                            <Text style={[styles.miniStatusText, { color: e.isPublished ? theme.success : theme.warning }]}>
+                              {e.isPublished ? 'Live' : 'Draft'}
+                            </Text>
+                          </View>
+                        )}
+                        <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
+                      </View>
                     </Pressable>
                   ))
                 )}
@@ -731,6 +911,274 @@ export default function ClassroomDetailScreen({ route, navigation }) {
           </View>
         )}
       </ScrollView>
+
+      {/* ── Create Topic Modal ── */}
+      <Modal visible={showTopicModal} animationType="slide" transparent onRequestClose={() => setShowTopicModal(false)}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Add Topic</Text>
+                <Pressable onPress={() => setShowTopicModal(false)} style={styles.modalCloseButton}>
+                  <Ionicons name="close" size={24} color={theme.muted} />
+                </Pressable>
+              </View>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Topic name *"
+                placeholderTextColor={theme.muted}
+                value={topicForm.name}
+                onChangeText={t => setTopicForm({ ...topicForm, name: t })}
+              />
+              <TextInput
+                style={[styles.input, styles.textArea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Description (optional)"
+                placeholderTextColor={theme.muted}
+                value={topicForm.description}
+                onChangeText={t => setTopicForm({ ...topicForm, description: t })}
+                multiline
+              />
+              <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, topicLoading && { opacity: 0.7 }]} onPress={handleCreateTopic} disabled={topicLoading}>
+                <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{topicLoading ? 'Creating...' : 'Add Topic'}</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Create Assignment Modal ── */}
+      <Modal visible={showAssignmentModal} animationType="slide" transparent onRequestClose={() => setShowAssignmentModal(false)}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>New Assignment</Text>
+                <Pressable onPress={() => setShowAssignmentModal(false)} style={styles.modalCloseButton}>
+                  <Ionicons name="close" size={24} color={theme.muted} />
+                </Pressable>
+              </View>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Title *"
+                placeholderTextColor={theme.muted}
+                value={assignForm.title}
+                onChangeText={t => setAssignForm({ ...assignForm, title: t })}
+              />
+              <TextInput
+                style={[styles.input, styles.textArea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Description (optional)"
+                placeholderTextColor={theme.muted}
+                value={assignForm.description}
+                onChangeText={t => setAssignForm({ ...assignForm, description: t })}
+                multiline
+              />
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Max Score (default 100)"
+                placeholderTextColor={theme.muted}
+                keyboardType="numeric"
+                value={assignForm.maxScore}
+                onChangeText={t => setAssignForm({ ...assignForm, maxScore: t })}
+              />
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Due Date (YYYY-MM-DD, optional)"
+                placeholderTextColor={theme.muted}
+                value={assignForm.dueDate}
+                onChangeText={t => setAssignForm({ ...assignForm, dueDate: t })}
+              />
+              <View style={styles.inlineRow}>
+                {['mcq', 'theory'].map(type => (
+                  <Pressable
+                    key={type}
+                    style={[styles.chip, { borderColor: theme.border }, assignForm.assignmentType === type && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                    onPress={() => setAssignForm({ ...assignForm, assignmentType: type })}
+                  >
+                    <Text style={[styles.chipText, { color: theme.muted }, assignForm.assignmentType === type && { color: theme.onPrimary }]}>{type.toUpperCase()}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.questionSectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Questions</Text>
+                <Pressable style={[styles.addQBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addAssignQuestion}>
+                  <Ionicons name="add-outline" size={16} color={theme.primary} />
+                  <Text style={[styles.addQBtnText, { color: theme.primary }]}>Add</Text>
+                </Pressable>
+              </View>
+              {assignForm.questions.map((q, qIdx) => (
+                <View key={qIdx} style={[styles.questionBlock, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <View style={styles.questionBlockHeader}>
+                    <Text style={[styles.questionBlockNum, { color: theme.text }]}>Q{qIdx + 1}</Text>
+                    <Pressable onPress={() => removeAssignQuestion(qIdx)} disabled={assignForm.questions.length === 1}>
+                      <Ionicons name="trash-outline" size={16} color={assignForm.questions.length === 1 ? theme.border : theme.danger} />
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    style={[styles.input, styles.textArea, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text, minHeight: 70 }]}
+                    placeholder="Question text *"
+                    placeholderTextColor={theme.muted}
+                    value={q.questionText}
+                    onChangeText={v => updateAssignQuestion(qIdx, 'questionText', v)}
+                    multiline
+                  />
+                  {assignForm.assignmentType === 'mcq' && (
+                    <>
+                      {q.options.map((opt, oIdx) => (
+                        <TextInput
+                          key={oIdx}
+                          style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text, marginBottom: 8 }]}
+                          placeholder={`Option ${oIdx + 1}`}
+                          placeholderTextColor={theme.muted}
+                          value={opt}
+                          onChangeText={v => updateAssignOption(qIdx, oIdx, v)}
+                        />
+                      ))}
+                      <TextInput
+                        style={[styles.input, { backgroundColor: theme.background, borderColor: `${theme.success}60`, color: theme.text }]}
+                        placeholder="Correct option (exact match)"
+                        placeholderTextColor={theme.muted}
+                        value={q.correctOption}
+                        onChangeText={v => updateAssignQuestion(qIdx, 'correctOption', v)}
+                      />
+                    </>
+                  )}
+                  <View style={styles.scoreRow}>
+                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>Max Score:</Text>
+                    <TextInput
+                      style={[styles.scoreInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+                      keyboardType="numeric"
+                      value={q.maxScore}
+                      onChangeText={v => updateAssignQuestion(qIdx, 'maxScore', v)}
+                    />
+                  </View>
+                </View>
+              ))}
+              <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, assignLoading && { opacity: 0.7 }]} onPress={handleCreateAssignment} disabled={assignLoading}>
+                <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{assignLoading ? 'Posting...' : 'Post Assignment'}</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Create Exam Modal ── */}
+      <Modal visible={showExamModal} animationType="slide" transparent onRequestClose={() => setShowExamModal(false)}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Schedule Exam</Text>
+                <Pressable onPress={() => setShowExamModal(false)} style={styles.modalCloseButton}>
+                  <Ionicons name="close" size={24} color={theme.muted} />
+                </Pressable>
+              </View>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Exam title *"
+                placeholderTextColor={theme.muted}
+                value={examForm.title}
+                onChangeText={t => setExamForm({ ...examForm, title: t })}
+              />
+              <TextInput
+                style={[styles.input, styles.textArea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Description (optional)"
+                placeholderTextColor={theme.muted}
+                value={examForm.description}
+                onChangeText={t => setExamForm({ ...examForm, description: t })}
+                multiline
+              />
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                placeholder="Duration (minutes) *"
+                placeholderTextColor={theme.muted}
+                keyboardType="numeric"
+                value={examForm.duration}
+                onChangeText={t => setExamForm({ ...examForm, duration: t })}
+              />
+              <View style={styles.inlineRow}>
+                {['registered', 'open'].map(mode => (
+                  <Pressable
+                    key={mode}
+                    style={[styles.chip, { borderColor: theme.border }, examForm.accessMode === mode && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                    onPress={() => setExamForm({ ...examForm, accessMode: mode })}
+                  >
+                    <Text style={[styles.chipText, { color: theme.muted }, examForm.accessMode === mode && { color: theme.onPrimary }]}>{mode.toUpperCase()}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.questionSectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Questions</Text>
+                <Pressable style={[styles.addQBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addExamQuestion}>
+                  <Ionicons name="add-outline" size={16} color={theme.primary} />
+                  <Text style={[styles.addQBtnText, { color: theme.primary }]}>Add</Text>
+                </Pressable>
+              </View>
+              {examQuestions.map((q, qIdx) => (
+                <View key={qIdx} style={[styles.questionBlock, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <View style={styles.questionBlockHeader}>
+                    <Text style={[styles.questionBlockNum, { color: theme.text }]}>Q{qIdx + 1}</Text>
+                    <Pressable onPress={() => removeExamQuestion(qIdx)} disabled={examQuestions.length === 1}>
+                      <Ionicons name="trash-outline" size={16} color={examQuestions.length === 1 ? theme.border : theme.danger} />
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    style={[styles.input, styles.textArea, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text, minHeight: 70 }]}
+                    placeholder="Question text *"
+                    placeholderTextColor={theme.muted}
+                    value={q.questionText}
+                    onChangeText={v => updateExamQuestion(qIdx, 'questionText', v)}
+                    multiline
+                  />
+                  <View style={styles.inlineRow}>
+                    {['mcq', 'theory'].map(type => (
+                      <Pressable
+                        key={type}
+                        style={[styles.chip, { borderColor: theme.border }, q.questionType === type && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                        onPress={() => updateExamQuestion(qIdx, 'questionType', type)}
+                      >
+                        <Text style={[styles.chipText, { color: theme.muted }, q.questionType === type && { color: theme.onPrimary }]}>{type.toUpperCase()}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {q.questionType === 'mcq' && (
+                    <>
+                      {q.options.map((opt, oIdx) => (
+                        <TextInput
+                          key={oIdx}
+                          style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text, marginBottom: 8 }]}
+                          placeholder={`Option ${oIdx + 1}`}
+                          placeholderTextColor={theme.muted}
+                          value={opt}
+                          onChangeText={v => updateExamOption(qIdx, oIdx, v)}
+                        />
+                      ))}
+                      <TextInput
+                        style={[styles.input, { backgroundColor: theme.background, borderColor: `${theme.success}60`, color: theme.text }]}
+                        placeholder="Correct option (exact match)"
+                        placeholderTextColor={theme.muted}
+                        value={q.correctOption}
+                        onChangeText={v => updateExamQuestion(qIdx, 'correctOption', v)}
+                      />
+                    </>
+                  )}
+                  <View style={styles.scoreRow}>
+                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>Max Score:</Text>
+                    <TextInput
+                      style={[styles.scoreInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+                      keyboardType="numeric"
+                      value={q.maxScore}
+                      onChangeText={v => updateExamQuestion(qIdx, 'maxScore', v)}
+                    />
+                  </View>
+                </View>
+              ))}
+              <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, examLoading && { opacity: 0.7 }]} onPress={handleCreateExam} disabled={examLoading}>
+                <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{examLoading ? 'Scheduling...' : 'Schedule Exam'}</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {showEditModal && (
         <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
@@ -903,4 +1351,20 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '700' },
   submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   submitBtnText: { fontWeight: '800', fontSize: 14 },
+  tabSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  tabAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
+  tabAddBtnText: { fontSize: 12, fontWeight: '700' },
+  textArea: { minHeight: 80, textAlignVertical: 'top' },
+  questionSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  addQBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
+  addQBtnText: { fontSize: 12, fontWeight: '700' },
+  questionBlock: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 16 },
+  questionBlockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  questionBlockNum: { fontSize: 14, fontWeight: '800' },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  scoreInput: { borderWidth: 1, borderRadius: 10, width: 60, paddingVertical: 6, paddingHorizontal: 10, textAlign: 'center', fontSize: 14, fontWeight: '700' },
+  fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  examRowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  miniStatusBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8 },
+  miniStatusText: { fontSize: 10, fontWeight: '800' },
 });

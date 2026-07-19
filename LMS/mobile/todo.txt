@@ -1,2 +1,6 @@
-1. Video rendering in-ap
-2. Meeting link is returning invalid link
+[x] 1. Video rendering in-app
+[x] 2. Meeting link is returning invalid link
+3. class and exam management
+4. eye icon in  password
+5. AI interfacing for mobile 
+6. 

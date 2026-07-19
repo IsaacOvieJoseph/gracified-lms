@@ -22,10 +22,12 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 // Feature Detail Screens
 import ClassroomDetailScreen from '../screens/classrooms/ClassroomDetailScreen';
 import TopicDetailScreen from '../screens/classrooms/TopicDetailScreen';
+import VideoPlayerScreen from '../screens/classrooms/VideoPlayerScreen';
 import AssignmentsScreen from '../screens/assignments/AssignmentsScreen';
 import AssignmentDetailScreen from '../screens/assignments/AssignmentDetailScreen';
 import ExamsScreen from '../screens/exams/ExamsScreen';
 import ExamCenterScreen from '../screens/exams/ExamCenterScreen';
+import ExamDetailScreen from '../screens/exams/ExamDetailScreen';
 import PaymentsScreen from '../screens/payments/PaymentsScreen';
 import PaystackWebViewScreen from '../screens/payments/PaystackWebViewScreen';
 import QnACenterScreen from '../screens/qna/QnACenterScreen';
@@ -103,9 +105,11 @@ export default function AppNavigator() {
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="ClassroomDetail" component={ClassroomDetailScreen} />
             <Stack.Screen name="TopicDetail" component={TopicDetailScreen} />
+            <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
             <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
             <Stack.Screen name="Exams" component={ExamsScreen} />
             <Stack.Screen name="ExamCenter" component={ExamCenterScreen} />
+            <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
             <Stack.Screen name="PaystackWebView" component={PaystackWebViewScreen} />
             <Stack.Screen name="QnACenter" component={QnACenterScreen} />
             <Stack.Screen name="Whiteboard" component={WhiteboardScreen} />

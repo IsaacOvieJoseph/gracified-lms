@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import { canManageAssignments } from '../../utils/roles';
+import { getVideoEmbedInfo } from '../../utils/video';
 
 const unwrapTopicResponse = (payload) => payload?.topic || payload?.data?.topic || payload?.data || payload || null;
 const asList = (value) => Array.isArray(value) ? value : [];
@@ -62,11 +63,16 @@ export default function TopicDetailScreen({ route, navigation }) {
   const openLink = async (url) => {
     if (!url) return;
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
+      // Direct opening for web/http links is safer on Android 11+ and iOS 9+
+      if (url.startsWith('http://') || url.startsWith('https://')) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Invalid Link', `Cannot open this URL: ${url}`);
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert('Invalid Link', `Cannot open this URL: ${url}`);
+        }
       }
     } catch (error) {
       Alert.alert('Error', 'Unable to open link');
@@ -169,7 +175,18 @@ export default function TopicDetailScreen({ route, navigation }) {
               <Pressable
                 key={material._id || idx}
                 style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                onPress={() => material.url && openLink(material.url)}
+                onPress={() => {
+                  if (!material.url) return;
+                  const embedInfo = getVideoEmbedInfo(material.url);
+                  if (material.type === 'video' || embedInfo) {
+                    navigation.navigate('VideoPlayer', {
+                      videoUrl: material.url,
+                      title: material.title || 'Topic Material'
+                    });
+                  } else {
+                    openLink(material.url);
+                  }
+                }}
               >
                 <View style={[styles.itemIconContainer, { backgroundColor: theme.surfaceElevated }]}>
                   <Ionicons
@@ -209,7 +226,14 @@ export default function TopicDetailScreen({ route, navigation }) {
               <Pressable
                 key={video._id || idx}
                 style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                onPress={() => openLink(video.url)}
+                onPress={() => {
+                  if (video.url) {
+                    navigation.navigate('VideoPlayer', {
+                      videoUrl: video.url,
+                      title: video.label || 'Recorded Lecture'
+                    });
+                  }
+                }}
               >
                 <View style={[styles.itemIconContainer, { backgroundColor: `${theme.danger}1A` }]}>
                   <Ionicons name="play-circle-outline" size={24} color={theme.danger} />
