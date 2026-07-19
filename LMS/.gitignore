@@ -37,3 +37,5 @@ coverage/
 # Back-end uploads
 backend/uploads/
 
+# Mobile
+.expo/
