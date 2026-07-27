@@ -217,8 +217,9 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                 <input
                                     type="datetime-local"
                                     value={formData.dueDate}
+                                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all text-foreground font-bold outline-none"
+                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all text-foreground font-bold outline-none cursor-pointer"
                                 />
                             </div>
 

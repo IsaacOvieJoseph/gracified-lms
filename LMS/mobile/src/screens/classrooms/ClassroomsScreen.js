@@ -13,6 +13,7 @@ import {
   getUserSchoolIds,
   isStudent,
 } from '../../utils/roles';
+import DateTimePicker from '../../components/ui/DateTimePicker';
 
 const normalizeClassroomsResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -50,7 +51,29 @@ export default function ClassroomsScreen({ navigation }) {
     capacity: 30,
     teacherId: user?.role === 'teacher' || user?.role === 'personal_teacher' ? user._id : '',
     schoolIds: user?.schoolId ? (Array.isArray(user.schoolId) ? user.schoolId : [user.schoolId]) : [],
+    schedule: [],
   });
+
+  const addScheduleSlot = () => {
+    setFormData(prev => ({
+      ...prev,
+      schedule: [...prev.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }]
+    }));
+  };
+
+  const removeScheduleSlot = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      schedule: prev.schedule.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateScheduleSlot = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      schedule: prev.schedule.map((slot, i) => i === index ? { ...slot, [field]: value } : slot)
+    }));
+  };
 
   const canCreate = canCreateClassroom(user);
 
@@ -240,7 +263,7 @@ export default function ClassroomsScreen({ navigation }) {
         isPrivate: formData.isPrivate,
         published: formData.published,
         capacity: formData.capacity,
-        schedule: [],
+        schedule: formData.schedule || [],
       };
 
       if (['teacher', 'personal_teacher'].includes(user.role)) {
@@ -273,6 +296,7 @@ export default function ClassroomsScreen({ navigation }) {
         capacity: 30,
         teacherId: user?.role === 'teacher' || user?.role === 'personal_teacher' ? user._id : '',
         schoolIds: user?.schoolId ? (Array.isArray(user.schoolId) ? user.schoolId : [user.schoolId]) : [],
+        schedule: [],
       });
       Alert.alert('Created', 'Classroom successfully created.');
     } catch (err) {
@@ -437,7 +461,7 @@ export default function ClassroomsScreen({ navigation }) {
 
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Classroom title"
+                placeholder="Classroom title *"
                 placeholderTextColor={theme.muted}
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
@@ -452,38 +476,44 @@ export default function ClassroomsScreen({ navigation }) {
               />
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Subject"
+                placeholder="Subject (e.g. Mathematics)"
                 placeholderTextColor={theme.muted}
                 value={formData.subject}
                 onChangeText={(text) => setFormData({ ...formData, subject: text })}
               />
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Level (e.g. High School)"
-                placeholderTextColor={theme.muted}
-                value={formData.level}
-                onChangeText={(text) => setFormData({ ...formData, level: text })}
-              />
+
+              <Text style={[styles.sectionLabel, { color: theme.muted, marginTop: 4, marginBottom: 6 }]}>Grade / Academic Level</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+                {classroomLevels.map(lvl => (
+                  <Pressable
+                    key={lvl}
+                    style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.level === lvl && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                    onPress={() => setFormData({ ...formData, level: lvl })}
+                  >
+                    <Text style={[styles.chipText, { color: formData.level === lvl ? theme.onPrimary : theme.muted }]}>{lvl}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
 
               <View style={styles.inlineRow}>
                 <Pressable
                   style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.isPaid && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                   onPress={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
                 >
-                  <Text style={[styles.chipText, { color: theme.muted }, formData.isPaid && { color: theme.onPrimary }]}>{formData.isPaid ? 'Paid classroom' : 'Free classroom'}</Text>
+                  <Text style={[styles.chipText, { color: formData.isPaid ? theme.onPrimary : theme.muted }]}>{formData.isPaid ? 'Paid classroom' : 'Free classroom'}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.isPrivate && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                   onPress={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
                 >
-                  <Text style={[styles.chipText, { color: theme.muted }, formData.isPrivate && { color: theme.onPrimary }]}>{formData.isPrivate ? 'Private' : 'Public'}</Text>
+                  <Text style={[styles.chipText, { color: formData.isPrivate ? theme.onPrimary : theme.muted }]}>{formData.isPrivate ? 'Private' : 'Public'}</Text>
                 </Pressable>
               </View>
 
               {formData.isPaid && (
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Price amount"
+                  placeholder="Price amount (NGN)"
                   placeholderTextColor={theme.muted}
                   keyboardType="numeric"
                   value={String(formData.pricing.amount)}
@@ -493,12 +523,79 @@ export default function ClassroomsScreen({ navigation }) {
 
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Capacity"
+                placeholder="Student Capacity"
                 placeholderTextColor={theme.muted}
                 keyboardType="numeric"
                 value={String(formData.capacity)}
                 onChangeText={(value) => setFormData({ ...formData, capacity: Number(value) || 30 })}
               />
+
+              {/* Weekly Schedule Builder */}
+              <View style={[styles.scheduleBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={styles.scheduleHeader}>
+                  <Text style={[styles.sectionLabel, { color: theme.text, marginBottom: 0 }]}>Weekly Schedule</Text>
+                  <Pressable style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addScheduleSlot}>
+                    <Ionicons name="add-outline" size={16} color={theme.primary} />
+                    <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Add Slot</Text>
+                  </Pressable>
+                </View>
+
+                {formData.schedule.length === 0 ? (
+                  <Text style={[styles.helperText, { color: theme.muted, fontStyle: 'italic', marginTop: 6 }]}>No weekly schedule slots configured yet.</Text>
+                ) : (
+                  formData.schedule.map((slot, index) => (
+                    <View key={index} style={[styles.slotRow, { borderColor: theme.border }]}>
+                      <View style={styles.slotHeader}>
+                        <Text style={[styles.slotTitle, { color: theme.text }]}>Slot {index + 1}</Text>
+                        <Pressable onPress={() => removeScheduleSlot(index)}>
+                          <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                        </Pressable>
+                      </View>
+
+                      {/* Day of week picker */}
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginVertical: 8 }}>
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
+                          <Pressable
+                            key={d}
+                            style={[
+                              styles.miniChip,
+                              { backgroundColor: theme.background, borderColor: theme.border },
+                              slot.dayOfWeek === d && { backgroundColor: theme.primary, borderColor: theme.primary }
+                            ]}
+                            onPress={() => updateScheduleSlot(index, 'dayOfWeek', d)}
+                          >
+                            <Text style={[styles.miniChipText, { color: slot.dayOfWeek === d ? theme.onPrimary : theme.muted }]}>
+                              {d.slice(0, 3)}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+
+                      {/* Time pickers */}
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={{ flex: 1 }}>
+                          <DateTimePicker
+                            label="Start Time"
+                            value={slot.startTime}
+                            onChange={(val) => updateScheduleSlot(index, 'startTime', val)}
+                            mode="time"
+                            placeholder="09:00"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <DateTimePicker
+                            label="End Time"
+                            value={slot.endTime}
+                            onChange={(val) => updateScheduleSlot(index, 'endTime', val)}
+                            mode="time"
+                            placeholder="10:00"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
 
               {['root_admin', 'school_admin'].includes(user?.role) && (
                 <View style={styles.cardsWrapper}>
@@ -512,7 +609,7 @@ export default function ClassroomsScreen({ navigation }) {
                         style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.teacherId === teacher._id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                         onPress={() => setFormData({ ...formData, teacherId: teacher._id })}
                       >
-                        <Text style={[styles.chipText, { color: theme.muted }, formData.teacherId === teacher._id && { color: theme.onPrimary }]}>{teacher.name}</Text>
+                        <Text style={[styles.chipText, { color: formData.teacherId === teacher._id ? theme.onPrimary : theme.muted }]}>{teacher.name}</Text>
                       </Pressable>
                     ))}
                   </View>
@@ -539,7 +636,7 @@ export default function ClassroomsScreen({ navigation }) {
                           });
                         }}
                       >
-                        <Text style={[styles.chipText, { color: theme.muted }, formData.schoolIds.includes(school._id) && { color: theme.onPrimary }]}>{school.name}</Text>
+                        <Text style={[styles.chipText, { color: formData.schoolIds.includes(school._id) ? theme.onPrimary : theme.muted }]}>{school.name}</Text>
                       </Pressable>
                     ))}
                   </View>
@@ -551,7 +648,7 @@ export default function ClassroomsScreen({ navigation }) {
                   style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.published && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                   onPress={() => setFormData({ ...formData, published: !formData.published })}
                 >
-                  <Text style={[styles.chipText, { color: theme.muted }, formData.published && { color: theme.onPrimary }]}>{formData.published ? 'Published' : 'Draft'}</Text>
+                  <Text style={[styles.chipText, { color: formData.published ? theme.onPrimary : theme.muted }]}>{formData.published ? 'Published' : 'Draft'}</Text>
                 </Pressable>
               </View>
 
@@ -618,4 +715,13 @@ const styles = StyleSheet.create({
   helperText: { fontSize: 12 },
   submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   submitBtnText: { fontWeight: '800', fontSize: 14 },
+  scheduleBox: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12 },
+  scheduleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  addSlotBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
+  addSlotBtnText: { fontSize: 12, fontWeight: '700' },
+  slotRow: { borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 8 },
+  slotHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  slotTitle: { fontSize: 12, fontWeight: '800' },
+  miniChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  miniChipText: { fontSize: 11, fontWeight: '700' },
 });

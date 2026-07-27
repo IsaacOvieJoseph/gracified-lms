@@ -522,8 +522,9 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                 <input
                   type="date"
                   value={createForm.dueDate}
+                  onClick={(e) => e.target.showPicker && e.target.showPicker()}
                   onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
-                  className="w-full"
+                  className="w-full cursor-pointer"
                 />
               </div>
               {createForm.assignmentType === 'mcq' && (
@@ -536,8 +537,9 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                     <input
                       type="datetime-local"
                       value={createForm.publishResultsAt}
+                      onClick={(e) => e.target.showPicker && e.target.showPicker()}
                       onChange={(e) => setCreateForm({ ...createForm, publishResultsAt: e.target.value })}
-                      className="w-full"
+                      className="w-full cursor-pointer"
                     />
                   </div>
                   <div>

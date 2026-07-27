@@ -782,23 +782,25 @@ const Classrooms = () => {
                         <input
                           type="time"
                           value={s.startTime}
+                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
                           onChange={e => {
                             const newSched = [...formData.schedule];
                             newSched[idx].startTime = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0"
+                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0 cursor-pointer"
                         />
                         <span className="text-muted-foreground">to</span>
                         <input
                           type="time"
                           value={s.endTime}
+                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
                           onChange={e => {
                             const newSched = [...formData.schedule];
                             newSched[idx].endTime = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0"
+                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0 cursor-pointer"
                         />
                         <button
                           type="button"

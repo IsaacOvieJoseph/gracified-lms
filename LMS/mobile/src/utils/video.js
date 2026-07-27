@@ -12,7 +12,15 @@ export const getVideoEmbedInfo = (url) => {
   const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const ytMatch = url.match(ytRegExp);
   if (ytMatch && ytMatch[2].length === 11) {
-    return { type: 'youtube', id: ytMatch[2], embedUrl: `https://www.youtube.com/embed/${ytMatch[2]}` };
+    const ytId = ytMatch[2];
+    const ytParams = [
+      'playsinline=1',
+      'enablejsapi=1',
+      'rel=0',
+      'modestbranding=1',
+      'origin=https://www.youtube.com',
+    ].join('&');
+    return { type: 'youtube', id: ytId, embedUrl: `https://www.youtube.com/embed/${ytId}?${ytParams}` };
   }
 
   // 3. Vimeo

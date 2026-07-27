@@ -109,9 +109,16 @@ export default function VideoPlayerScreen({ route, navigation }) {
           style={styles.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          // Fix YouTube Error 153: use a real browser user-agent so YouTube
+          // doesn't block embedded playback inside a WebView shell.
+          userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
           // Fixes for background audio and scaling
           originWhitelist={['*']}
           mixedContentMode="always"
+          // Better mobile video experience
+          scalesPageToFit={true}
+          bounces={false}
+          allowsProtectedMedia={true}
         />
         
         {loading && (

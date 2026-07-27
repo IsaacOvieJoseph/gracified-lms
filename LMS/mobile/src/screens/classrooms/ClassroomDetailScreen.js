@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import { canManageClassroom, canViewClassroomContent } from '../../utils/roles';
+import DateTimePicker from '../../components/ui/DateTimePicker';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -51,6 +52,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     isPrivate: false,
     published: true,
     capacity: 30,
+    schedule: [],
   });
 
   // ── Topic creation ──────────────────────────────────────────
@@ -373,8 +375,30 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       isPrivate: !!classroom.isPrivate,
       published: classroom.published !== false,
       capacity: Number(classroom.capacity || 30),
+      schedule: Array.isArray(classroom.schedule) ? classroom.schedule : [],
     });
     setShowEditModal(true);
+  };
+
+  const addEditScheduleSlot = () => {
+    setEditFormData((prev) => ({
+      ...prev,
+      schedule: [...(prev.schedule || []), { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }],
+    }));
+  };
+
+  const removeEditScheduleSlot = (index) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      schedule: (prev.schedule || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateEditScheduleSlot = (index, field, value) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      schedule: (prev.schedule || []).map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)),
+    }));
   };
 
   const handleUpdateClassroom = async () => {
@@ -396,6 +420,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
         isPrivate: editFormData.isPrivate,
         published: editFormData.published,
         capacity: editFormData.capacity,
+        schedule: editFormData.schedule || [],
       };
 
       const response = await api.put(`/classrooms/${classroom._id}`, payload);
@@ -980,12 +1005,12 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 value={assignForm.maxScore}
                 onChangeText={t => setAssignForm({ ...assignForm, maxScore: t })}
               />
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Due Date (YYYY-MM-DD, optional)"
-                placeholderTextColor={theme.muted}
+              <DateTimePicker
+                label="Due Date"
                 value={assignForm.dueDate}
-                onChangeText={t => setAssignForm({ ...assignForm, dueDate: t })}
+                onChange={t => setAssignForm({ ...assignForm, dueDate: t })}
+                mode="date"
+                placeholder="Select due date (optional)"
               />
               <View style={styles.inlineRow}>
                 {['mcq', 'theory'].map(type => (
@@ -1213,13 +1238,18 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 value={editFormData.subject}
                 onChangeText={(text) => setEditFormData({ ...editFormData, subject: text })}
               />
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Level"
-                placeholderTextColor={theme.muted}
-                value={editFormData.level}
-                onChangeText={(text) => setEditFormData({ ...editFormData, level: text })}
-              />
+              <Text style={[styles.fieldLabel, { color: theme.muted, marginTop: 4, marginBottom: 6 }]}>Grade / Academic Level</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
+                {['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other'].map(lvl => (
+                  <Pressable
+                    key={lvl}
+                    style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.level === lvl && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                    onPress={() => setEditFormData({ ...editFormData, level: lvl })}
+                  >
+                    <Text style={[styles.chipText, { color: editFormData.level === lvl ? theme.onPrimary : theme.muted }]}>{lvl}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
 
               <View style={styles.inlineRow}>
                 <Pressable
@@ -1261,6 +1291,70 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 value={String(editFormData.capacity)}
                 onChangeText={(value) => setEditFormData({ ...editFormData, capacity: Number(value) || 30 })}
               />
+
+              <View style={[styles.scheduleBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={styles.scheduleHeader}>
+                  <Text style={[styles.fieldLabel, { color: theme.text, marginBottom: 0 }]}>Weekly Schedule</Text>
+                  <Pressable style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addEditScheduleSlot}>
+                    <Ionicons name="add-outline" size={16} color={theme.primary} />
+                    <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Add Slot</Text>
+                  </Pressable>
+                </View>
+
+                {(editFormData.schedule || []).length === 0 ? (
+                  <Text style={[styles.helperText, { color: theme.muted, fontStyle: 'italic', marginTop: 6 }]}>No weekly schedule slots configured yet.</Text>
+                ) : (
+                  (editFormData.schedule || []).map((slot, index) => (
+                    <View key={index} style={[styles.slotRow, { borderColor: theme.border }]}>
+                      <View style={styles.slotHeader}>
+                        <Text style={[styles.slotTitle, { color: theme.text }]}>Slot {index + 1}</Text>
+                        <Pressable onPress={() => removeEditScheduleSlot(index)}>
+                          <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                        </Pressable>
+                      </View>
+
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginVertical: 8 }}>
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                          <Pressable
+                            key={day}
+                            style={[
+                              styles.miniChip,
+                              { backgroundColor: theme.background, borderColor: theme.border },
+                              slot.dayOfWeek === day && { backgroundColor: theme.primary, borderColor: theme.primary },
+                            ]}
+                            onPress={() => updateEditScheduleSlot(index, 'dayOfWeek', day)}
+                          >
+                            <Text style={[styles.miniChipText, { color: slot.dayOfWeek === day ? theme.onPrimary : theme.muted }]}>
+                              {day.slice(0, 3)}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={{ flex: 1 }}>
+                          <DateTimePicker
+                            label="Start Time"
+                            value={slot.startTime}
+                            onChange={(value) => updateEditScheduleSlot(index, 'startTime', value)}
+                            mode="time"
+                            placeholder="09:00"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <DateTimePicker
+                            label="End Time"
+                            value={slot.endTime}
+                            onChange={(value) => updateEditScheduleSlot(index, 'endTime', value)}
+                            mode="time"
+                            placeholder="10:00"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
 
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, editLoading && { opacity: 0.7 }]} onPress={handleUpdateClassroom} disabled={editLoading}>
                 <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{editLoading ? 'Saving...' : 'Save Changes'}</Text>
@@ -1351,6 +1445,16 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '700' },
   submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   submitBtnText: { fontWeight: '800', fontSize: 14 },
+  scheduleBox: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12 },
+  scheduleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  addSlotBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
+  addSlotBtnText: { fontSize: 12, fontWeight: '700' },
+  slotRow: { borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 8 },
+  slotHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  slotTitle: { fontSize: 12, fontWeight: '800' },
+  miniChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  miniChipText: { fontSize: 11, fontWeight: '700' },
+  helperText: { fontSize: 12 },
   tabSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   tabAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
   tabAddBtnText: { fontSize: 12, fontWeight: '700' },

@@ -319,8 +319,9 @@ const ExamCreator = () => {
                                     <input
                                         type="datetime-local"
                                         value={formData.dueDate ? new Date(formData.dueDate).toISOString().slice(0, 16) : ''}
+                                        onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                         onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                                        className="w-full px-5 py-4 bg-muted border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-foreground font-bold"
+                                        className="w-full px-5 py-4 bg-muted border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-foreground font-bold cursor-pointer"
                                     />
                                     <p className="text-[10px] text-muted-foreground/40 font-medium">Leave empty for no deadline.</p>
                                 </div>
@@ -372,8 +373,9 @@ const ExamCreator = () => {
                                     <input
                                         type="datetime-local"
                                         value={formData.resultPublishTime ? new Date(formData.resultPublishTime).toISOString().slice(0, 16) : ''}
+                                        onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                         onChange={(e) => setFormData({ ...formData, resultPublishTime: e.target.value })}
-                                        className="w-full px-5 py-4 bg-muted border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-foreground font-bold"
+                                        className="w-full px-5 py-4 bg-muted border-none rounded-2xl focus:ring-2 focus:ring-primary transition-all text-foreground font-bold cursor-pointer"
                                     />
                                     <p className="text-[10px] text-muted-foreground/40 font-medium">Leave empty to show results immediately.</p>
                                 </div>

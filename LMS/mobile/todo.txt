@@ -1,6 +1,14 @@
 [x] 1. Video rendering in-app
 [x] 2. Meeting link is returning invalid link
 3. class and exam management
-4. eye icon in  password
+[x] 4. eye icon in  password
 5. AI interfacing for mobile 
-6. 
+6. class in bottom nav truncates when in student profile
+7. Student sees list of enrolled students in class detail page - that should be visible only to authorized roles
+8. School admin can not initiate QnA - Authorized roles should be able to initiate  QnA
+9. Both wrong and correct answer in student's script are green - missed OBJ should be red 
+10. In viewing script list of an exam, percentage should be on each student instead of pts
+11. In dark mode, assignment/topic/Exam tab selector and tab label color blends
+12. Graded assignments do not need the x/y - the z% is okay
+13. Student can not filter class by level/subject
+14. Enrolled class count in student's dashboard assumes all published classes
