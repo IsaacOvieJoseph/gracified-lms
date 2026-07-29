@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Button from '../../components/ui/Button';
+import { shareExamLink } from '../../utils/links';
 
 export default function ExamDetailScreen({ route, navigation }) {
   const { examId } = route.params || {};
@@ -129,7 +130,13 @@ export default function ExamDetailScreen({ route, navigation }) {
         <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
           {selectedSubmission ? 'Grading Exam' : exam?.title}
         </Text>
-        <View style={{ width: 24 }} />
+        {!selectedSubmission && exam ? (
+          <Pressable onPress={() => shareExamLink(exam)} style={styles.iconButton}>
+            <Ionicons name="share-outline" size={22} color={theme.primary} />
+          </Pressable>
+        ) : (
+          <View style={{ width: 24 }} />
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>

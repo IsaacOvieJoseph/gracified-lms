@@ -200,7 +200,13 @@ router.get('/active-meetings', auth, async (req, res) => {
   try {
     let classroomQuery = {};
     if (req.user.role === 'student') {
-      classroomQuery = { students: req.user._id, published: true };
+      classroomQuery = {
+        published: true,
+        $or: [
+          { students: req.user._id },
+          { _id: { $in: req.user.enrolledClasses || [] } }
+        ]
+      };
     } else if (req.user.role === 'teacher' || req.user.role === 'personal_teacher') {
       classroomQuery = { teacherId: req.user._id };
     }
@@ -216,7 +222,10 @@ router.get('/active-meetings', auth, async (req, res) => {
     const activeSessions = await CallSession.find({
       classroomId: { $in: classroomIds },
       startedAt: { $gt: fortyFiveMinAgo }
-    }).sort({ startedAt: -1 });
+    })
+      .populate('classroomId', 'name subject')
+      .populate('startedBy', 'name')
+      .sort({ startedAt: -1 });
 
     res.json({ activeSessions });
   } catch (error) {

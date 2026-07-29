@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import { isStudent, canManageClassroom } from '../../utils/roles';
+import { shareExamLink } from '../../utils/links';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -232,6 +233,13 @@ export default function ExamsScreen({ navigation }) {
         {/* Admin/Teacher management actions */}
         {isTeacherOrAdmin(user) && (
           <View style={styles.cardActions}>
+            <Pressable
+              style={[styles.actionBtn, { backgroundColor: `${theme.primary}20` }]}
+              onPress={() => shareExamLink(item)}
+            >
+              <Ionicons name="share-outline" size={14} color={theme.primary} />
+              <Text style={[styles.actionBtnText, { color: theme.primary }]}>Share</Text>
+            </Pressable>
             <Pressable
               style={[styles.actionBtn, { backgroundColor: item.isPublished ? `${theme.warning}20` : `${theme.success}20` }]}
               onPress={() => handleTogglePublish(item)}

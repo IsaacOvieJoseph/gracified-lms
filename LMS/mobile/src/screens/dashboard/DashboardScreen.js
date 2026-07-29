@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
-import { canUseAssignmentsPortal, getRoleDisplayName, isStudent } from '../../utils/roles';
+import { canUseAssignmentsPortal, getEntityId, getRoleDisplayName, isStudent } from '../../utils/roles';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -13,6 +13,7 @@ const normalizeListResponse = (payload) => {
     if (Array.isArray(payload.classrooms)) return payload.classrooms;
     if (Array.isArray(payload.assignments)) return payload.assignments;
     if (Array.isArray(payload.notifications)) return payload.notifications;
+    if (Array.isArray(payload.activeSessions)) return payload.activeSessions;
     if (Array.isArray(payload.data)) return payload.data;
     if (Array.isArray(payload.items)) return payload.items;
   }
@@ -25,10 +26,27 @@ export default function DashboardScreen({ navigation }) {
   const [classroomsCount, setClassroomsCount] = useState(0);
   const [assignmentsCount, setAssignmentsCount] = useState(0);
   const [meetingsCount, setMeetingsCount] = useState(0);
+  const [activeMeetings, setActiveMeetings] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  const isStudentEnrolled = (classroom) => {
+    const studentId = getEntityId(user);
+    if (!studentId) return false;
+
+    const hasDirectMatch = (user?.enrolledClasses || []).some((id) => getEntityId(id) === getEntityId(classroom));
+    const hasClassroomMatch = (classroom?.students || []).some((student) => getEntityId(student) === studentId);
+    return hasDirectMatch || hasClassroomMatch;
+  };
+
+  const getClassroomIdFromSession = (session) => getEntityId(session?.classroomId) || getEntityId(session?.classId);
+
+  const formatStartedTime = (startedAt) => {
+    if (!startedAt) return 'Live now';
+    return `Started ${new Date(startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
 
   const loadDashboardData = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -43,8 +61,13 @@ export default function DashboardScreen({ navigation }) {
 
       const [classroomsRes, assignmentsRes, meetingsRes, notificationsRes] = results;
 
+      let classroomList = [];
+      let visibleClassrooms = [];
+
       if (classroomsRes.status === 'fulfilled') {
-        setClassroomsCount(normalizeListResponse(classroomsRes.value.data).length);
+        classroomList = normalizeListResponse(classroomsRes.value.data);
+        visibleClassrooms = isStudent(user) ? classroomList.filter(isStudentEnrolled) : classroomList;
+        setClassroomsCount(visibleClassrooms.length);
       } else {
         console.log('Dashboard classrooms load failed:', classroomsRes.reason);
       }
@@ -56,9 +79,17 @@ export default function DashboardScreen({ navigation }) {
       }
 
       if (meetingsRes.status === 'fulfilled') {
-        setMeetingsCount(normalizeListResponse(meetingsRes.value.data).length);
+        const meetingList = normalizeListResponse(meetingsRes.value.data);
+        const visibleClassroomIds = new Set(visibleClassrooms.map(getEntityId).filter(Boolean));
+        const visibleMeetings = isStudent(user) && visibleClassroomIds.size > 0
+          ? meetingList.filter((session) => visibleClassroomIds.has(getClassroomIdFromSession(session)))
+          : meetingList;
+        setActiveMeetings(visibleMeetings);
+        setMeetingsCount(visibleMeetings.length);
       } else {
         console.log('Dashboard meetings load failed:', meetingsRes.reason);
+        setActiveMeetings([]);
+        setMeetingsCount(0);
       }
 
       if (notificationsRes.status === 'fulfilled') {
@@ -164,9 +195,45 @@ export default function DashboardScreen({ navigation }) {
               <Text style={[styles.meetingsTitle, { color: theme.danger }]}>Live Sessions</Text>
             </View>
             <Text style={[styles.meetingsValue, { color: theme.text }]}>
-              {meetingsCount === 0 ? 'No live classes right now.' : `${meetingsCount} session active`}
+              {meetingsCount === 0 ? 'No live classes right now.' : `${meetingsCount} live ${meetingsCount === 1 ? 'lecture' : 'lectures'}`}
             </Text>
-            <Text style={[styles.meetingsSub, { color: theme.muted }]}>Open a class details page to join its interactive whiteboard.</Text>
+            <Text style={[styles.meetingsSub, { color: theme.muted }]}>
+              {meetingsCount === 0 ? 'You will see a join button here when your instructor starts a lecture.' : 'Tap Join Lecture to enter through the class page.'}
+            </Text>
+            {activeMeetings.length > 0 && (
+              <View style={styles.liveList}>
+                {activeMeetings.slice(0, 3).map((session) => {
+                  const sessionClassroomId = getClassroomIdFromSession(session);
+                  const classroomName = session?.classroomId?.name || 'Live classroom';
+                  const subject = session?.classroomId?.subject;
+                  return (
+                    <Pressable
+                      key={session._id || `${sessionClassroomId}-${session.startedAt}`}
+                      style={[styles.liveItem, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+                      onPress={() => navigation.navigate('ClassroomDetail', { classroomId: sessionClassroomId })}
+                      disabled={!sessionClassroomId}
+                    >
+                      <View style={styles.liveInfo}>
+                        <View style={styles.liveTitleRow}>
+                          <View style={[styles.livePulse, { backgroundColor: theme.danger }]} />
+                          <Text style={[styles.liveTitle, { color: theme.text }]} numberOfLines={1}>{classroomName}</Text>
+                        </View>
+                        <Text style={[styles.liveMeta, { color: theme.muted }]} numberOfLines={1}>
+                          {[subject, formatStartedTime(session.startedAt)].filter(Boolean).join(' • ')}
+                        </Text>
+                      </View>
+                      <View style={[styles.joinBtn, { backgroundColor: theme.danger }]}>
+                        <Text style={[styles.joinBtnText, { color: theme.onPrimary }]}>Join Lecture</Text>
+                        <Ionicons name="enter-outline" size={14} color={theme.onPrimary} />
+                      </View>
+                    </Pressable>
+                  );
+                })}
+                {activeMeetings.length > 3 && (
+                  <Text style={[styles.meetingsSub, { color: theme.muted }]}>+ {activeMeetings.length - 3} more live lectures</Text>
+                )}
+              </View>
+            )}
           </View>
 
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Portals</Text>
@@ -258,6 +325,15 @@ const styles = StyleSheet.create({
   meetingsTitle: { fontWeight: '700', fontSize: 13 },
   meetingsValue: { fontSize: 18, fontWeight: '800' },
   meetingsSub: { fontSize: 12, marginTop: 6, lineHeight: 18 },
+  liveList: { marginTop: 14, gap: 10 },
+  liveItem: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 16, padding: 12 },
+  liveInfo: { flex: 1, minWidth: 0, marginRight: 10 },
+  liveTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  livePulse: { width: 8, height: 8, borderRadius: 4 },
+  liveTitle: { flex: 1, fontSize: 14, fontWeight: '800' },
+  liveMeta: { fontSize: 11, fontWeight: '600', marginTop: 3 },
+  joinBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 },
+  joinBtnText: { fontSize: 11, fontWeight: '800' },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, marginTop: 4 },
   portalsList: { gap: 10 },
   portalItem: {

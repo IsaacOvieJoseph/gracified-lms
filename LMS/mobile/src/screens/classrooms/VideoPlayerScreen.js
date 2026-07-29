@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ export default function VideoPlayerScreen({ route, navigation }) {
   const { theme } = useTheme();
   const { videoUrl, title } = route.params || {};
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   if (!videoUrl) {
     return (
@@ -34,45 +35,68 @@ export default function VideoPlayerScreen({ route, navigation }) {
 
   const embedInfo = getVideoEmbedInfo(videoUrl);
 
+  const escapeHtml = (value) => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  const openExternally = async () => {
+    try {
+      await Linking.openURL(videoUrl);
+    } catch (err) {
+      setLoadError(true);
+    }
+  };
+
+  const buildDirectVideoHtml = (src) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+      </style>
+    </head>
+    <body>
+      <video src="${escapeHtml(src)}" controls autoplay playsinline webkit-playsinline></video>
+    </body>
+    </html>
+  `;
+
+  const buildIframeHtml = (src) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <meta name="referrer" content="origin-when-cross-origin">
+      <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+        iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+      </style>
+    </head>
+    <body>
+      <iframe
+        src="${escapeHtml(src)}"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+        allowfullscreen
+        webkitallowfullscreen
+        mozallowfullscreen>
+      </iframe>
+    </body>
+    </html>
+  `;
+
   // Source configuration
   let webViewSource = {};
   if (embedInfo) {
     if (embedInfo.isDirect) {
       // Use HTML5 video wrapper for direct stream links (e.g. .mp4, dropbox raw streams)
-      webViewSource = {
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <style>
-              body, html {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                background-color: #000;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                overflow: hidden;
-              }
-              video {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-              }
-            </style>
-          </head>
-          <body>
-            <video src="${embedInfo.embedUrl}" controls autoplay playsinline></video>
-          </body>
-          </html>
-        `
-      };
+      webViewSource = { html: buildDirectVideoHtml(embedInfo.embedUrl), baseUrl: embedInfo.baseUrl || videoUrl };
     } else {
-      // Use direct embed URL (e.g. YouTube, Vimeo)
-      webViewSource = { uri: embedInfo.embedUrl };
+      // Use an iframe wrapper so providers receive a stable document context inside WebView.
+      webViewSource = { html: buildIframeHtml(embedInfo.embedUrl), baseUrl: embedInfo.baseUrl || embedInfo.embedUrl };
     }
   } else {
     // Unrecognized URL - fall back to loading the raw URL directly
@@ -106,6 +130,14 @@ export default function VideoPlayerScreen({ route, navigation }) {
           mediaPlaybackRequiresUserAction={false}
           onLoadStart={() => setLoading(true)}
           onLoadEnd={() => setLoading(false)}
+          onError={() => {
+            setLoading(false);
+            setLoadError(true);
+          }}
+          onHttpError={() => {
+            setLoading(false);
+            setLoadError(true);
+          }}
           style={styles.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -115,6 +147,9 @@ export default function VideoPlayerScreen({ route, navigation }) {
           // Fixes for background audio and scaling
           originWhitelist={['*']}
           mixedContentMode="always"
+          thirdPartyCookiesEnabled={true}
+          sharedCookiesEnabled={true}
+          setSupportMultipleWindows={false}
           // Better mobile video experience
           scalesPageToFit={true}
           bounces={false}
@@ -125,6 +160,16 @@ export default function VideoPlayerScreen({ route, navigation }) {
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={theme.primary} />
             <Text style={styles.loadingText}>Preparing Cinema Mode...</Text>
+          </View>
+        )}
+
+        {loadError && (
+          <View style={styles.errorOverlay}>
+            <Ionicons name="alert-circle-outline" size={48} color={theme.warning} />
+            <Text style={styles.errorText}>This video could not play in-app.</Text>
+            <Pressable style={[styles.backBtn, { backgroundColor: theme.primary }]} onPress={openExternally}>
+              <Text style={styles.backBtnText}>Open Video</Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -194,6 +239,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 11,
+    padding: 24,
   },
   errorContainer: {
     flex: 1,

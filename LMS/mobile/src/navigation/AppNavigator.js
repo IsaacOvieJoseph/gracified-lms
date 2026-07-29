@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,6 +56,20 @@ function MainTabs() {
           paddingBottom: 20 + insets.bottom,
           paddingTop: 12,
         },
+        tabBarItemStyle: {
+          paddingHorizontal: 0,
+        },
+        tabBarLabel: ({ color, children }) => (
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            style={{ color, fontSize: 11, fontWeight: '700', lineHeight: 13, textAlign: 'center' }}
+          >
+            {children}
+          </Text>
+        ),
         tabBarSafeAreaInsets: { bottom: insets.bottom },
         tabBarIcon: ({ color, size }) => {
           const icons = {

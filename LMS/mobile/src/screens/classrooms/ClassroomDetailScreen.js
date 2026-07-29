@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import { canManageClassroom, canViewClassroomContent } from '../../utils/roles';
+import { shareClassroomLink, shareExamLink } from '../../utils/links';
 import DateTimePicker from '../../components/ui/DateTimePicker';
 
 const normalizeListResponse = (payload) => {
@@ -600,6 +601,16 @@ export default function ClassroomDetailScreen({ route, navigation }) {
 
       {canManage && showActions && (
         <View style={[styles.actionMenu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Pressable
+            style={styles.actionMenuItem}
+            onPress={() => {
+              setShowActions(false);
+              shareClassroomLink(classroom);
+            }}
+          >
+            <Ionicons name="share-outline" size={18} color={theme.text} />
+            <Text style={[styles.actionMenuText, { color: theme.text }]}>Share Class Link</Text>
+          </Pressable>
           <Pressable style={styles.actionMenuItem} onPress={openEditClassroom}>
             <Ionicons name="create-outline" size={18} color={theme.text} />
             <Text style={[styles.actionMenuText, { color: theme.text }]}>Edit</Text>
@@ -770,7 +781,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
               </Pressable>
             </View>
 
-            {classroom?.students?.length > 0 && (
+            {canManage && classroom?.students?.length > 0 && (
               <View style={[styles.enrolledSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>Enrolled students</Text>
                 <View style={styles.studentList}>
@@ -920,11 +931,22 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                       </View>
                       <View style={styles.examRowRight}>
                         {canManage && (
-                          <View style={[styles.miniStatusBadge, { backgroundColor: e.isPublished ? `${theme.success}20` : `${theme.warning}20` }]}>
-                            <Text style={[styles.miniStatusText, { color: e.isPublished ? theme.success : theme.warning }]}>
-                              {e.isPublished ? 'Live' : 'Draft'}
-                            </Text>
-                          </View>
+                          <>
+                            <Pressable
+                              style={styles.examShareBtn}
+                              onPress={(event) => {
+                                event.stopPropagation?.();
+                                shareExamLink(e);
+                              }}
+                            >
+                              <Ionicons name="share-outline" size={16} color={theme.primary} />
+                            </Pressable>
+                            <View style={[styles.miniStatusBadge, { backgroundColor: e.isPublished ? `${theme.success}20` : `${theme.warning}20` }]}>
+                              <Text style={[styles.miniStatusText, { color: e.isPublished ? theme.success : theme.warning }]}>
+                                {e.isPublished ? 'Live' : 'Draft'}
+                              </Text>
+                            </View>
+                          </>
                         )}
                         <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
                       </View>
@@ -1469,6 +1491,7 @@ const styles = StyleSheet.create({
   scoreInput: { borderWidth: 1, borderRadius: 10, width: 60, paddingVertical: 6, paddingHorizontal: 10, textAlign: 'center', fontSize: 14, fontWeight: '700' },
   fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
   examRowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  examShareBtn: { padding: 4 },
   miniStatusBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8 },
   miniStatusText: { fontSize: 10, fontWeight: '800' },
 });

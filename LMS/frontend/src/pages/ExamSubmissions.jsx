@@ -56,6 +56,7 @@ const ExamSubmissions = () => {
     };
 
     const totalMaxScore = exam?.questions?.reduce((acc, q) => acc + (q.maxScore || 1), 0) || 1;
+    const scorePercent = (score, maxScore = totalMaxScore) => Math.round(((score || 0) / (maxScore || 1)) * 100);
 
     const hasTheory = exam?.questions?.some(q => q.questionType === 'theory');
 
@@ -113,6 +114,15 @@ const ExamSubmissions = () => {
     const getOBJAndTheoryScores = (submission) => {
         let objScore = 0;
         let theoryScore = 0;
+        let objMaxScore = 0;
+        let theoryMaxScore = 0;
+        exam?.questions?.forEach(q => {
+            if (q.questionType === 'mcq') {
+                objMaxScore += q.maxScore || 1;
+            } else if (q.questionType === 'theory') {
+                theoryMaxScore += q.maxScore || 1;
+            }
+        });
         if (exam && exam.questions && submission.answers) {
             submission.answers.forEach(ans => {
                 const q = exam.questions[ans.questionIndex];
@@ -125,7 +135,7 @@ const ExamSubmissions = () => {
                 }
             });
         }
-        return { objScore, theoryScore };
+        return { objScore, theoryScore, objMaxScore, theoryMaxScore };
     };
 
     const exportToCSV = () => {
@@ -492,19 +502,19 @@ const ExamSubmissions = () => {
                                                 <div className="inline-flex flex-col space-y-1.5 items-center">
                                                     <div className="flex items-center space-x-2">
                                                         <div className="text-2xl font-black text-primary tracking-tighter italic">
-                                                            {Math.round((s.totalScore / totalMaxScore) * 100)}%
+                                                            {scorePercent(s.totalScore)}%
                                                         </div>
                                                         <Award className="w-4 h-4 text-amber-500" />
                                                     </div>
                                                     <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">
-                                                        {s.totalScore} / {totalMaxScore} Intel
+                                                        Overall Percentage
                                                     </div>
                                                     {hasTheory && (() => {
-                                                        const { objScore, theoryScore } = getOBJAndTheoryScores(s);
+                                                        const { objScore, theoryScore, objMaxScore, theoryMaxScore } = getOBJAndTheoryScores(s);
                                                         return (
                                                             <div className="text-[9px] font-black text-muted-foreground uppercase tracking-wider opacity-60 flex flex-col items-center gap-0.5 mt-1">
-                                                                <span>OBJ: {objScore} pts</span>
-                                                                <span>Theory: {theoryScore} pts</span>
+                                                                <span>OBJ: {scorePercent(objScore, objMaxScore)}%</span>
+                                                                <span>Theory: {scorePercent(theoryScore, theoryMaxScore)}%</span>
                                                             </div>
                                                         );
                                                     })()}

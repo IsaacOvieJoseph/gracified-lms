@@ -554,7 +554,7 @@ const Assignments = () => {
                           <div className="flex items-center space-x-3 mb-4">
                             <CheckCircle className="w-5 h-5 text-emerald-500" />
                             <span className="text-sm font-black text-foreground uppercase tracking-widest italic">
-                              Resolved Intel: {submission.score}/{assignment.maxScore}
+                              Resolved Intel: {Math.round(((submission.score || 0) / (assignment.maxScore || 100)) * 100)}%
                             </span>
                           </div>
                           {submission.feedback && (
@@ -747,7 +747,7 @@ const Assignments = () => {
                                           <div className="flex items-center gap-3 mt-1">
                                             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Status: {sub.status}</span>
                                             {sub.status === 'graded' && (
-                                              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">Score: {sub.score}/{assignment.maxScore}</span>
+                                              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">Score: {Math.round(((sub.score || 0) / (assignment.maxScore || 100)) * 100)}%</span>
                                             )}
                                           </div>
                                         </div>

@@ -882,6 +882,12 @@ const ScriptSharePage = () => {
                         const studentAnswer = script.type === 'exam'
                             ? formatAnswerDisplay(answerObj)
                             : formatAnswerDisplay(activeSubmission?.answers?.[index] ?? (Array.isArray(script.answers) ? script.answers[index] : script.answers));
+                        const isMCQ = questionType(question) === 'mcq';
+                        const selectedAnswerText = studentAnswer ? String(studentAnswer).trim() : '';
+                        const correctAnswerText = question.correctOption ? String(question.correctOption).trim() : '';
+                        const hasStudentAnswer = selectedAnswerText.length > 0;
+                        const isObjCorrect = isMCQ && hasStudentAnswer && selectedAnswerText === correctAnswerText;
+                        const isObjWrongOrMissed = isMCQ && (!hasStudentAnswer || !isObjCorrect);
 
                         const currentGradeItem = questionGrades.find(qg => 
                             script.type === 'exam' ? qg.index === index : qg.questionIndex === index
@@ -901,18 +907,33 @@ const ScriptSharePage = () => {
                                 </div>
 
                                 {/* MCQ Options if MCQ */}
-                                {questionType(question) === 'mcq' && (
+                                {isMCQ && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-11">
                                         {question.options.map((opt, oIdx) => {
                                             const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
-                                            const isSelected = answerObj?.answer === opt;
-                                            const isCorrect = question.correctOption === opt;
+                                            const optionText = String(opt).trim();
+                                            const isSelected = hasStudentAnswer && selectedAnswerText === optionText;
+                                            const isCorrect = correctAnswerText === optionText;
+                                            const optionStateClass = isSelected && isCorrect
+                                                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-500'
+                                                : isSelected
+                                                    ? 'border-rose-500/50 bg-rose-500/10 text-rose-500'
+                                                    : isCorrect && hasStudentAnswer
+                                                        ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-400'
+                                                        : theme === 'dark'
+                                                            ? 'border-slate-800/80 bg-slate-950/40 text-slate-400'
+                                                            : 'border-slate-200/80 bg-slate-100 text-slate-700';
+                                            const labelStateClass = isSelected && isCorrect
+                                                ? 'bg-emerald-500 text-white'
+                                                : isSelected
+                                                    ? 'bg-rose-500 text-white'
+                                                    : 'bg-slate-850 text-slate-500';
                                             return (
                                                 <div 
                                                     key={oIdx} 
-                                                    className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold ${isSelected ? 'border-primary bg-primary/5 text-slate-200' : theme === 'dark' ? 'border-slate-800/80 bg-slate-950/40 text-slate-400' : 'border-slate-200/80 bg-slate-100 text-slate-700'} ${isCorrect && script.type === 'exam' ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-400' : ''}`}
+                                                    className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold ${optionStateClass}`}
                                                 >
-                                                    <span className={`w-6 h-6 rounded flex items-center justify-center font-black text-[10px] ${isSelected ? 'bg-primary text-white' : 'bg-slate-850 text-slate-500'}`}>
+                                                    <span className={`w-6 h-6 rounded flex items-center justify-center font-black text-[10px] ${labelStateClass}`}>
                                                         {labels[oIdx]}
                                                     </span>
                                                     <span>{opt}</span>
@@ -923,12 +944,12 @@ const ScriptSharePage = () => {
                                 )}
 
                                 {/* Student Answer Box */}
-                                <div className={`${panelBg} border ${panelBorder} rounded-2xl p-5 relative overflow-hidden pl-11`}>
+                                <div className={`${isObjCorrect ? 'bg-emerald-500/5 border-emerald-500/30' : isObjWrongOrMissed ? 'bg-rose-500/5 border-rose-500/30' : `${panelBg} ${panelBorder}`} border rounded-2xl p-5 relative overflow-hidden pl-11`}>
                                     <div className="absolute top-0 right-0 p-3 opacity-[0.02]">
                                         <FileText className="w-12 h-12 text-white" />
                                     </div>
                                     <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block mb-2`}>Student Response</span>
-                                    <p className={`${cardText} text-xs font-medium whitespace-pre-wrap leading-relaxed`}>
+                                    <p className={`${isObjCorrect ? 'text-emerald-500' : isObjWrongOrMissed ? 'text-rose-500' : cardText} text-xs font-medium whitespace-pre-wrap leading-relaxed`}>
                                         {studentAnswer || 'No answer submitted.'}
                                     </p>
                                 </div>

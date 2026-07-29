@@ -481,18 +481,18 @@ const Classrooms = () => {
         <div className="space-y-10">
           {user?.role === 'student' && user?.schoolId?.length > 0 ? (
             <>
-              <SectionHeader title="Your Facilities" count={classrooms.filter(isMySchoolClass).length} icon={School} />
+              <SectionHeader title="Your Facilities" count={filteredClassrooms.filter(isMySchoolClass).length} icon={School} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
-                {classrooms.filter(isMySchoolClass).map(renderClassroomCard)}
+                {filteredClassrooms.filter(isMySchoolClass).map(renderClassroomCard)}
               </div>
 
-              {classrooms.filter(c => !isMySchoolClass(c)).length > 0 && (
+              {filteredClassrooms.filter(c => !isMySchoolClass(c)).length > 0 && (
                 <>
                   <div className="pt-12 mb-8 border-t border-border/10">
-                    <SectionHeader title="Global Classrooms" count={classrooms.filter(c => !isMySchoolClass(c)).length} icon={Sparkles} />
+                    <SectionHeader title="Global Classrooms" count={filteredClassrooms.filter(c => !isMySchoolClass(c)).length} icon={Sparkles} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
-                    {classrooms.filter(c => !isMySchoolClass(c)).map(renderClassroomCard)}
+                    {filteredClassrooms.filter(c => !isMySchoolClass(c)).map(renderClassroomCard)}
                   </div>
                 </>
               )}

@@ -197,7 +197,7 @@ export default function AssignmentDetailScreen({ route, navigation }) {
                     </Text>
                     {studentSubmission.status === 'graded' && (
                       <Text style={[styles.scoreText, { color: theme.text }]}>
-                        Score: {formatScore(studentSubmission.score)}/{formatScore(assignment?.maxScore || 100)} • {formatPercentage(studentSubmission.score, assignment?.maxScore || 100)}
+                        Score: {formatPercentage(studentSubmission.score, assignment?.maxScore || 100)}
                       </Text>
                     )}
                   </View>
@@ -370,7 +370,7 @@ export default function AssignmentDetailScreen({ route, navigation }) {
                         <Text style={[styles.rowStudentEmail, { color: theme.muted }]}>{sub.studentId?.email || 'N/A'}</Text>
                         <Text style={[styles.rowStatus, { color: theme.muted }]}>
                           Status: <Text style={{ color: sub.status === 'graded' ? theme.success : theme.info, fontWeight: '700' }}>{sub.status?.toUpperCase()}</Text>
-                          {sub.status === 'graded' ? ` • Score: ${formatScore(sub.score)}/${formatScore(assignment.maxScore)} (${formatPercentage(sub.score, assignment.maxScore)})` : ''}
+                          {sub.status === 'graded' ? ` • Score: ${formatPercentage(sub.score, assignment.maxScore)}` : ''}
                         </Text>
                       </View>
                       <Pressable style={[styles.gradeBtn, { backgroundColor: theme.primary }]} onPress={() => selectSubmissionForGrading(sub)}>

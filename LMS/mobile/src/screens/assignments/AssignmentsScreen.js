@@ -94,7 +94,7 @@ export default function AssignmentsScreen({ navigation }) {
       return (
         <View style={[styles.badge, { backgroundColor: theme.success }]}>
           <Text style={[styles.badgeText, { color: theme.onPrimary }]}>
-            GRADED • {formatScore(submission.score)}/{formatScore(item.totalPoints || 100)} • {formatPercentage(submission.score, item.totalPoints || 100)}
+            GRADED • {formatPercentage(submission.score, item.totalPoints || 100)}
           </Text>
         </View>
       );

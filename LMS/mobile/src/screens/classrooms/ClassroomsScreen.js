@@ -13,6 +13,7 @@ import {
   getUserSchoolIds,
   isStudent,
 } from '../../utils/roles';
+import { shareClassroomLink, shareSchoolLink } from '../../utils/links';
 import DateTimePicker from '../../components/ui/DateTimePicker';
 
 const normalizeClassroomsResponse = (payload) => {
@@ -35,6 +36,8 @@ export default function ClassroomsScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [levelFilter, setLevelFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [teachers, setTeachers] = useState([]);
@@ -158,15 +161,31 @@ export default function ClassroomsScreen({ navigation }) {
     return hasDirectMatch || hasStudentMatch;
   };
 
+  const subjectOptions = Array.from(new Set(classrooms
+    .map((item) => item?.subject?.name || item?.subject)
+    .filter(Boolean)
+    .map((subject) => String(subject).trim())
+    .filter(Boolean))).sort();
+
+  const levelOptions = Array.from(new Set(classrooms
+    .map((item) => item?.level)
+    .filter(Boolean)
+    .map((level) => String(level).trim())
+    .filter(Boolean))).sort();
+
   const filteredClassrooms = classrooms.filter((item) => {
     const query = searchQuery.trim().toLowerCase();
-    const matchesSearch = !query || [item.name, item.description, item.subject, item.teacherId?.name]
+    const subject = item.subject?.name || item.subject || '';
+    const level = item.level || '';
+    const matchesSearch = !query || [item.name, item.description, subject, item.teacherId?.name]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(query));
 
     const matchesPrice = priceFilter === 'all' || (priceFilter === 'free' && !item.isPaid) || (priceFilter === 'paid' && item.isPaid);
+    const matchesSubject = subjectFilter === 'all' || String(subject) === subjectFilter;
+    const matchesLevel = levelFilter === 'all' || String(level) === levelFilter;
 
-    return matchesSearch && matchesPrice;
+    return matchesSearch && matchesPrice && matchesSubject && matchesLevel;
   });
 
   const enrolledClassrooms = filteredClassrooms.filter(isStudentEnrolled);
@@ -339,6 +358,13 @@ export default function ClassroomsScreen({ navigation }) {
         {canManage && (
           <View style={styles.adminActionsRow}>
             <Pressable
+              style={[styles.smallActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={() => shareClassroomLink(item)}
+            >
+              <Ionicons name="share-outline" size={18} color={theme.primary} />
+              <Text style={[styles.smallActionText, { color: theme.primary }]}>Share</Text>
+            </Pressable>
+            <Pressable
               style={[styles.smallActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }, item.published && { backgroundColor: theme.surfaceElevated }]}
               onPress={() => handlePublishToggle(item)}
             >
@@ -385,6 +411,30 @@ export default function ClassroomsScreen({ navigation }) {
         </Text>
       </View>
 
+      {['root_admin', 'school_admin'].includes(user?.role) && schools.length > 0 && (
+        <View style={[styles.schoolSharePanel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.schoolShareHeader}>
+            <Ionicons name="business-outline" size={18} color={theme.primary} />
+            <Text style={[styles.schoolShareTitle, { color: theme.text }]}>School Portal Links</Text>
+          </View>
+          {schools.map((school) => (
+            <Pressable
+              key={school._id}
+              style={[styles.schoolShareRow, { borderColor: theme.border }]}
+              onPress={() => shareSchoolLink(school)}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.schoolShareName, { color: theme.text }]}>{school.name}</Text>
+                <Text style={[styles.schoolShareHint, { color: theme.muted }]} numberOfLines={1}>
+                  Tap to share the public school portal link
+                </Text>
+              </View>
+              <Ionicons name="share-outline" size={20} color={theme.primary} />
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       <View style={styles.searchPanel}>
         <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Ionicons name="search-outline" size={18} color={theme.muted} />
@@ -418,6 +468,56 @@ export default function ClassroomsScreen({ navigation }) {
             </Pressable>
           ))}
         </View>
+
+        <View style={styles.filterGroup}>
+          <Text style={[styles.filterLabel, { color: theme.muted }]}>Subject</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {['all', ...subjectOptions].map((subject) => (
+              <Pressable
+                key={subject}
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  subjectFilter === subject && { backgroundColor: theme.primary, borderColor: theme.primary },
+                ]}
+                onPress={() => setSubjectFilter(subject)}
+              >
+                <Text style={[
+                  styles.filterChipText,
+                  { color: theme.muted },
+                  subjectFilter === subject && { color: theme.onPrimary },
+                ]}>
+                  {subject === 'all' ? 'All Subjects' : subject}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.filterGroup}>
+          <Text style={[styles.filterLabel, { color: theme.muted }]}>Level</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {['all', ...levelOptions].map((level) => (
+              <Pressable
+                key={level}
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  levelFilter === level && { backgroundColor: theme.primary, borderColor: theme.primary },
+                ]}
+                onPress={() => setLevelFilter(level)}
+              >
+                <Text style={[
+                  styles.filterChipText,
+                  { color: theme.muted },
+                  levelFilter === level && { color: theme.onPrimary },
+                ]}>
+                  {level === 'all' ? 'All Levels' : level}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
       {loading ? (
@@ -427,7 +527,7 @@ export default function ClassroomsScreen({ navigation }) {
       ) : filteredClassrooms.length === 0 ? (
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>No classes match your search</Text>
-          <Text style={[styles.cardText, { color: theme.muted }]}>Try another keyword or change the price filter.</Text>
+          <Text style={[styles.cardText, { color: theme.muted }]}>Try another keyword or adjust your filters.</Text>
         </View>
       ) : (
         <FlatList
@@ -673,6 +773,9 @@ const styles = StyleSheet.create({
   searchBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
   filterRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  filterGroup: { marginTop: 12 },
+  filterLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 7 },
+  filterScroll: { gap: 8, paddingRight: 20 },
   filterChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
   filterChipText: { fontWeight: '700', fontSize: 12 },
   list: { padding: 20, paddingBottom: 40 },
