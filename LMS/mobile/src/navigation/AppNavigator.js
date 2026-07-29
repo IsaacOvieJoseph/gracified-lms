@@ -33,6 +33,7 @@ import PaystackWebViewScreen from '../screens/payments/PaystackWebViewScreen';
 import QnACenterScreen from '../screens/qna/QnACenterScreen';
 import WhiteboardScreen from '../screens/whiteboard/WhiteboardScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import SharedResourceScreen from '../screens/shared/SharedResourceScreen';
 import { canUseAssignmentsPortal, canUsePayments } from '../utils/roles';
 
 const Stack = createStackNavigator();
@@ -117,6 +118,7 @@ export default function AppNavigator() {
           // Verified Main App Stack
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen name="SharedResource" component={SharedResourceScreen} />
             <Stack.Screen name="ClassroomDetail" component={ClassroomDetailScreen} />
             <Stack.Screen name="TopicDetail" component={TopicDetailScreen} />
             <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />

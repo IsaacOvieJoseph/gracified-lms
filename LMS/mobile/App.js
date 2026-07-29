@@ -45,12 +45,33 @@ import { StatusBar } from 'expo-status-bar';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import api from './src/api/api';
 import AppNavigator from './src/navigation/AppNavigator';
+
+export const navigationRef = createNavigationContainerRef();
+
+const linking = {
+  prefixes: [
+    'gracifiedlms://',
+    'https://gracified-lms.vercel.app',
+    'https://www.gracified-lms.vercel.app',
+  ],
+  getInitialURL: async () => Linking.getInitialURL(),
+  subscribe: (listener) => {
+    const subscription = Linking.addEventListener('url', ({ url }) => listener(url));
+    return () => subscription.remove();
+  },
+  config: {
+    screens: {
+      SharedResource: ':resourceType/:identifier',
+    },
+  },
+};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -109,7 +130,7 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <SafeAreaProvider>
-          <NavigationContainer>
+          <NavigationContainer ref={navigationRef} linking={linking}>
             <AppContent />
           </NavigationContainer>
         </SafeAreaProvider>

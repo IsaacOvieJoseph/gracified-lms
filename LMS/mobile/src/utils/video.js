@@ -30,13 +30,22 @@ export const getVideoEmbedInfo = (url) => {
   const ytId = getYouTubeId(trimmedUrl);
   if (ytId && ytId.length === 11) {
     const ytParams = [
+      'autoplay=0',
+      'controls=1',
       'playsinline=1',
       'enablejsapi=1',
       'rel=0',
       'modestbranding=1',
-      'origin=https://www.youtube.com',
+      'showinfo=0',
+      'fs=1',
     ].join('&');
-    return { type: 'youtube', id: ytId, embedUrl: `https://www.youtube.com/embed/${ytId}?${ytParams}`, baseUrl: 'https://www.youtube.com' };
+    return {
+      type: 'youtube',
+      id: ytId,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${ytId}?${ytParams}`,
+      watchUrl: `https://www.youtube.com/watch?v=${ytId}`,
+      baseUrl: 'https://www.youtube-nocookie.com',
+    };
   }
 
   // 3. Vimeo

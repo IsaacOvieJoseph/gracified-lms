@@ -43,7 +43,10 @@ export default function VideoPlayerScreen({ route, navigation }) {
 
   const openExternally = async () => {
     try {
-      await Linking.openURL(videoUrl);
+      const fallbackUrl = embedInfo?.type === 'youtube' && embedInfo.watchUrl
+        ? embedInfo.watchUrl
+        : videoUrl;
+      await Linking.openURL(fallbackUrl);
     } catch (err) {
       setLoadError(true);
     }
@@ -82,7 +85,8 @@ export default function VideoPlayerScreen({ route, navigation }) {
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         allowfullscreen
         webkitallowfullscreen
-        mozallowfullscreen>
+        mozallowfullscreen
+        referrerpolicy="strict-origin-when-cross-origin">
       </iframe>
     </body>
     </html>
@@ -141,8 +145,7 @@ export default function VideoPlayerScreen({ route, navigation }) {
           style={styles.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          // Fix YouTube Error 153: use a real browser user-agent so YouTube
-          // doesn't block embedded playback inside a WebView shell.
+          // Use a mobile browser UA and a no-cookie embed host to reduce YouTube playback restrictions in WebView.
           userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
           // Fixes for background audio and scaling
           originWhitelist={['*']}

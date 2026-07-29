@@ -13,4 +13,7 @@
 [x] 13. Student can not filter class by level/subject
 [x] 14. Enrolled class count in student's dashboard assumes all published classes
 [x] 15. Live class indicator on student dashboard
-16. Sharable links are not available on mobile - class | School | Exam links
+[x] 16. Sharable links are not available on mobile - class | School | Exam links
+17. All the filter section of explore classes screen should be collapsible 
+[x] 18. Attempt to play youtube video lecture fails - error code: 152 - 4
+ 
