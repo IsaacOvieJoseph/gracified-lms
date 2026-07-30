@@ -14,8 +14,9 @@ const defaultDark = {
   onPrimary: '#0F172A',
   success: '#34D399',
   // Rose instead of neon red — readable with white/onPrimary text
-  danger: '#E11D48',
-  info: '#38BDF8',
+  // Muted semantic accents keep dark-mode buttons calm instead of saturated.
+  danger: '#A45A6E',
+  info: '#5D7894',
   warning: '#FBBF24',
   neutral: '#94A3B8',
   overlay: 'rgba(2, 6, 23, 0.8)',
