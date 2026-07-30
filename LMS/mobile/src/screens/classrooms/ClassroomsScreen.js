@@ -301,7 +301,7 @@ export default function ClassroomsScreen({ navigation, route }) {
         pricing: { ...formData.pricing },
         isPrivate: formData.isPrivate,
         published: formData.published,
-        capacity: formData.capacity,
+        capacity: Number(formData.capacity) || 30,
         schedule: formData.schedule || [],
       };
 
@@ -695,7 +695,7 @@ export default function ClassroomsScreen({ navigation, route }) {
                 placeholderTextColor={theme.muted}
                 keyboardType="numeric"
                 value={String(formData.capacity)}
-                onChangeText={(value) => setFormData({ ...formData, capacity: Number(value) || 30 })}
+                onChangeText={(value) => setFormData({ ...formData, capacity: value === '' ? '' : Number(value) })}
               />
 
               {/* Weekly Schedule Builder */}
@@ -919,7 +919,7 @@ const styles = StyleSheet.create({
   smallActionText: { fontSize: 11, fontWeight: '700' },
   modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1 },
-  modalContent: { padding: 20, gap: 14 },
+  modalContent: { padding: 20, gap: 8 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
   modalSubtitle: { fontSize: 12, lineHeight: 17, marginTop: 4 },
@@ -930,7 +930,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderRadius: 16 },
   chipText: { fontSize: 13, fontWeight: '700' },
   cardsWrapper: { marginBottom: 14 },
-  sectionLabel: { fontSize: 12, fontWeight: '800', marginBottom: 8 },
+  sectionLabel: { fontSize: 12, fontWeight: '800', marginBottom: 3 },
   optionalLabel: { fontSize: 11, fontWeight: '500' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   helperText: { fontSize: 12 },
