@@ -111,6 +111,40 @@ router.get('/join/:identifier', async (req, res) => {
     }
 });
 
+// Presentation mode is a staff-only classroom action. The public join route
+// intentionally remains open for the question board, so presentation access
+// must be checked separately with the authenticated user and classroom.
+router.get('/board/:identifier/presentation-access', auth, async (req, res) => {
+    try {
+        const { identifier } = req.params;
+        let board = await QnABoard.findOne({ shareableLink: identifier });
+        if (!board && require('mongoose').Types.ObjectId.isValid(identifier)) {
+            board = await QnABoard.findById(identifier);
+        }
+        if (!board) return res.status(404).json({ message: 'Board not found' });
+
+        const classroom = await Classroom.findById(board.classroomId).select('teacherId schoolId');
+        if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+
+        const userId = req.user._id.toString();
+        const teacherId = classroom.teacherId?.toString();
+        const classroomSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+            .filter(Boolean).map((id) => id.toString());
+        const userSchoolIds = (Array.isArray(req.user.schoolId) ? req.user.schoolId : [req.user.schoolId])
+            .filter(Boolean).map((id) => id.toString());
+
+        const allowed = req.user.role === 'root_admin'
+            || (['teacher', 'personal_teacher'].includes(req.user.role) && teacherId === userId)
+            || (req.user.role === 'school_admin' && userSchoolIds.some((id) => classroomSchoolIds.includes(id)));
+
+        if (!allowed) return res.status(403).json({ message: 'Only classroom teachers and administrators can use presentation mode.' });
+        return res.json({ allowed: true });
+    } catch (error) {
+        console.error('QnA presentation access error:', error);
+        return res.status(500).json({ message: 'Unable to verify presentation access' });
+    }
+});
+
 // Get board details directly by id
 router.get('/board/:id', auth, async (req, res) => {
     try {

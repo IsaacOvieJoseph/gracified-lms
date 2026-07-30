@@ -59,6 +59,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
   // ── Topic creation ──────────────────────────────────────────
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [topicForm, setTopicForm] = useState({ name: '', description: '' });
+  const [pendingTopicBatch, setPendingTopicBatch] = useState(null);
   const [topicLoading, setTopicLoading] = useState(false);
 
   // ── Assignment creation ──────────────────────────────────────
@@ -132,6 +133,61 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     return unsubscribe;
   }, [navigation, classroomId]);
 
+  // AI results can be routed directly into the matching classroom action,
+  // mirroring the web assistant's "Apply to form" behavior.
+  useEffect(() => {
+    const aiResult = route?.params?.aiResult;
+    const aiAction = route?.params?.aiAction;
+    if (!aiResult || !aiAction || !classroom) return;
+
+    if (aiAction === 'topic') {
+      setTopicForm({
+        name: aiResult.name || '',
+        description: aiResult.description || '',
+      });
+      setShowTopicModal(true);
+    } else if (aiAction === 'assignment') {
+      setAssignForm((prev) => ({
+        ...prev,
+        title: aiResult.title || prev.title,
+        description: aiResult.description || prev.description,
+        maxScore: String(aiResult.maxScore || prev.maxScore),
+        assignmentType: aiResult.questions?.[0]?.options?.length ? 'mcq' : 'theory',
+        questions: aiResult.questions?.length ? aiResult.questions.map((question) => ({
+          questionText: question.questionText || '',
+          options: question.options || ['', '', '', ''],
+          correctOption: question.correctOption || (typeof question.correctOptionIndex === 'number' ? question.options?.[question.correctOptionIndex] || '' : ''),
+          maxScore: String(question.maxScore || '1'),
+        })) : prev.questions,
+      }));
+      setShowAssignmentModal(true);
+    } else if (aiAction === 'exam') {
+      setExamForm((prev) => ({
+        ...prev,
+        title: aiResult.title || prev.title,
+        description: aiResult.description || prev.description,
+        duration: String(aiResult.duration || prev.duration),
+      }));
+      setExamQuestions((prev) => aiResult.questions?.length ? aiResult.questions.map((question) => ({
+        questionText: question.questionText || '',
+        questionType: question.questionType || (question.options?.length ? 'mcq' : 'theory'),
+        options: question.options || ['', '', '', ''],
+        correctOption: question.correctOption || (typeof question.correctOptionIndex === 'number' ? question.options?.[question.correctOptionIndex] || '' : ''),
+        maxScore: String(question.maxScore || '1'),
+      })) : prev);
+      setShowExamModal(true);
+    } else if (aiAction === 'syllabus') {
+      const topicsToCreate = (aiResult.topics || []).filter((topic) => topic?.name);
+      const firstTopic = topicsToCreate[0];
+      if (firstTopic) {
+        setPendingTopicBatch(topicsToCreate);
+        setTopicForm({ name: firstTopic.name || '', description: firstTopic.description || '' });
+        setShowTopicModal(true);
+      }
+    }
+    navigation.setParams({ aiAction: undefined, aiResult: undefined });
+  }, [classroom, navigation, route?.params?.aiAction, route?.params?.aiResult]);
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData(false);
@@ -192,7 +248,9 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       Alert.alert('Q&A Board Unavailable', 'Could not open the Q&A board.');
       return;
     }
-    navigation.navigate('QnACenter', { token, isPresenter: canManage });
+    // Everyone enters the question board. Authorized staff can switch to
+    // presentation mode from the board's role-gated web control.
+    navigation.navigate('QnACenter', { token });
   };
 
   const createQnABoard = async () => {
@@ -512,11 +570,15 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     }
     setTopicLoading(true);
     try {
-      const res = await api.post('/topics', { name: topicForm.name, description: topicForm.description, classroomId });
-      setTopics(prev => [...prev, res.data?.topic || res.data]);
+      const batch = pendingTopicBatch?.length
+        ? [{ name: topicForm.name, description: topicForm.description }, ...pendingTopicBatch.slice(1)]
+        : [{ name: topicForm.name, description: topicForm.description }];
+      const created = await Promise.all(batch.map((topic) => api.post('/topics', { name: topic.name, description: topic.description || '', classroomId })));
+      setTopics(prev => [...prev, ...created.map((res) => res.data?.topic || res.data)]);
       setShowTopicModal(false);
       setTopicForm({ name: '', description: '' });
-      Alert.alert('Created!', 'Topic added to curriculum.');
+      setPendingTopicBatch(null);
+      Alert.alert('Created!', `${created.length} topic${created.length === 1 ? '' : 's'} added to curriculum.`);
     } catch (err) {
       Alert.alert('Error', err?.response?.data?.message || 'Failed to create topic.');
     } finally {
@@ -894,7 +956,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 <View style={styles.tabSectionHeader}>
                   <Text style={[styles.sectionTitle, { color: theme.text }]}>Curriculum timeline</Text>
                   {canManage && (
-                    <Pressable style={[styles.tabAddBtn, { backgroundColor: `${theme.primary}20` }]} onPress={() => setShowTopicModal(true)}>
+                    <Pressable style={[styles.tabAddBtn, { backgroundColor: `${theme.primary}20` }]} onPress={() => { setPendingTopicBatch(null); setShowTopicModal(true); }}>
                       <Ionicons name="add-outline" size={16} color={theme.primary} />
                       <Text style={[styles.tabAddBtnText, { color: theme.primary }]}>Add Topic</Text>
                     </Pressable>
@@ -1046,13 +1108,13 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* ── Create Topic Modal ── */}
-      <Modal visible={showTopicModal} animationType="slide" transparent onRequestClose={() => setShowTopicModal(false)}>
+      <Modal visible={showTopicModal} animationType="slide" transparent onRequestClose={() => { setShowTopicModal(false); setPendingTopicBatch(null); }}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
             <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: theme.text }]}>Add Topic</Text>
-                <Pressable onPress={() => setShowTopicModal(false)} style={styles.modalCloseButton}>
+                <Pressable onPress={() => { setShowTopicModal(false); setPendingTopicBatch(null); }} style={styles.modalCloseButton}>
                   <Ionicons name="close" size={24} color={theme.muted} />
                 </Pressable>
               </View>

@@ -28,7 +28,7 @@ const normalizeClassroomsResponse = (payload) => {
 
 const classroomLevels = ['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other'];
 
-export default function ClassroomsScreen({ navigation }) {
+export default function ClassroomsScreen({ navigation, route }) {
   const { user, setUser } = useAuth();
   const { theme } = useTheme();
   const [classrooms, setClassrooms] = useState([]);
@@ -146,6 +146,22 @@ export default function ClassroomsScreen({ navigation }) {
       setLoading(false);
     }
   }, [user]);
+
+  // Accept AI-generated classroom content from the assistant and open the form
+  // with the result already mapped to the fields users need to review.
+  useEffect(() => {
+    const aiResult = route?.params?.aiResult;
+    if (!aiResult || route?.params?.aiAction !== 'classroom') return;
+    setFormData((prev) => ({
+      ...prev,
+      name: aiResult.name || prev.name,
+      description: aiResult.description || prev.description,
+      subject: aiResult.subject || prev.subject,
+      level: aiResult.level || prev.level,
+    }));
+    setShowCreateModal(true);
+    navigation.setParams({ aiAction: undefined, aiResult: undefined });
+  }, [route?.params?.aiAction, route?.params?.aiResult, navigation]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -418,23 +434,32 @@ export default function ClassroomsScreen({ navigation }) {
       {['root_admin', 'school_admin'].includes(user?.role) && schools.length > 0 && (
         <View style={[styles.schoolSharePanel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.schoolShareHeader}>
-            <Ionicons name="business-outline" size={18} color={theme.primary} />
-            <Text style={[styles.schoolShareTitle, { color: theme.text }]}>School Portal Links</Text>
+            <View style={[styles.schoolShareIcon, { backgroundColor: `${theme.primary}18` }]}>
+              <Ionicons name="business-outline" size={18} color={theme.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.schoolShareTitle, { color: theme.text }]}>School portal links</Text>
+              <Text style={[styles.schoolShareDescription, { color: theme.muted }]}>
+                Share a public link for any of your {schools.length} {schools.length === 1 ? 'school' : 'schools'}.
+              </Text>
+            </View>
           </View>
           {schools.map((school) => (
-            <Pressable
-              key={school._id}
-              style={[styles.schoolShareRow, { borderColor: theme.border }]}
-              onPress={() => shareSchoolLink(school)}
-            >
-              <View style={{ flex: 1 }}>
+            <View key={school._id} style={[styles.schoolShareRow, { backgroundColor: theme.background, borderColor: theme.border }]}>
+              <View style={styles.schoolShareInfo}>
                 <Text style={[styles.schoolShareName, { color: theme.text }]}>{school.name}</Text>
-                <Text style={[styles.schoolShareHint, { color: theme.muted }]} numberOfLines={1}>
-                  Tap to share the public school portal link
-                </Text>
+                <Text style={[styles.schoolShareHint, { color: theme.muted }]}>Public school portal</Text>
               </View>
-              <Ionicons name="share-outline" size={20} color={theme.primary} />
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Share ${school.name} school portal`}
+                style={[styles.schoolShareButton, { backgroundColor: theme.primary }]}
+                onPress={() => shareSchoolLink(school)}
+              >
+                <Ionicons name="share-social-outline" size={16} color={theme.onPrimary} />
+                <Text style={[styles.schoolShareButtonText, { color: theme.onPrimary }]}>Share</Text>
+              </Pressable>
+            </View>
           ))}
         </View>
       )}
@@ -877,6 +902,17 @@ const styles = StyleSheet.create({
   headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   createBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16 },
   createBtnText: { fontWeight: '800' },
+  schoolSharePanel: { marginHorizontal: 20, marginBottom: 8, padding: 14, borderRadius: 18, borderWidth: 1 },
+  schoolShareHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  schoolShareIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  schoolShareTitle: { fontSize: 14, fontWeight: '800' },
+  schoolShareDescription: { fontSize: 11, lineHeight: 16, marginTop: 2 },
+  schoolShareRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, borderWidth: 1, marginTop: 8 },
+  schoolShareInfo: { flex: 1, minWidth: 0 },
+  schoolShareName: { fontSize: 13, fontWeight: '800' },
+  schoolShareHint: { fontSize: 11, marginTop: 3 },
+  schoolShareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9 },
+  schoolShareButtonText: { fontSize: 11, fontWeight: '800' },
   cardContent: { paddingBottom: 12 },
   adminActionsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   smallActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, minWidth: 88 },

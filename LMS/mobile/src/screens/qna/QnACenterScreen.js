@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Pressable, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { BackHandler, View, StyleSheet, ActivityIndicator, Pressable, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,14 @@ export default function QnACenterScreen({ route, navigation }) {
   const { token: authToken, user } = useAuth();
   const { token, isPresenter } = route.params || {};
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.goBack();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [navigation]);
 
   // Prefer dedicated frontend URL; fall back to API host with Vite port.
   const webBaseUrl = (process.env.EXPO_PUBLIC_FRONTEND_URL || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api')
@@ -39,7 +47,9 @@ export default function QnACenterScreen({ route, navigation }) {
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           {isPresenter ? 'Q&A Presenter' : 'Q&A Board'}
         </Text>
-        <View style={{ width: 24 }} />
+        <Pressable onPress={() => navigation.goBack()} style={styles.doneButton} accessibilityRole="button" accessibilityLabel="Return to classroom">
+          <Text style={[styles.doneText, { color: theme.primary }]}>Done</Text>
+        </Pressable>
       </View>
 
       <WebView
@@ -53,6 +63,16 @@ export default function QnACenterScreen({ route, navigation }) {
         javaScriptEnabled
         domStorageEnabled
         allowFileAccess
+        onShouldStartLoadWithRequest={(request) => {
+          // Presenter mode's web Exit button navigates from /present back to
+          // the board route. In mobile, both should return to the native UI.
+          const boardRoute = `/qna/${token}`;
+          if (isPresenter && request.url.includes(boardRoute) && !request.url.includes(`${boardRoute}/present`)) {
+            navigation.goBack();
+            return false;
+          }
+          return true;
+        }}
       />
 
       {loading && (
@@ -76,6 +96,8 @@ const styles = StyleSheet.create({
   },
   iconButton: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '800', flex: 1, textAlign: 'center' },
+  doneButton: { paddingHorizontal: 4, paddingVertical: 6 },
+  doneText: { fontSize: 13, fontWeight: '800' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

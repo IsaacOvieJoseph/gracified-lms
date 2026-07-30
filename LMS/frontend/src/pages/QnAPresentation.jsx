@@ -16,11 +16,13 @@ const QnAPresentation = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showSidebar, setShowSidebar] = useState(true);
     const [theme, setTheme] = useState('dark');
+    const [accessDenied, setAccessDenied] = useState(false);
 
     const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
     const fetchBoardAndQuestions = async (isInitial = false) => {
         try {
+            await api.get(`/qna/board/${token}/presentation-access`);
             const boardRes = await api.get(`/qna/join/${token}`);
             const boardData = boardRes.data;
             setBoard(boardData);
@@ -28,9 +30,14 @@ const QnAPresentation = () => {
             const qRes = await api.get(`/qna/board/${boardData._id}/questions`);
             setQuestions(qRes.data);
         } catch (err) {
+            if (err?.response?.status === 401 || err?.response?.status === 403) {
+                setAccessDenied(true);
+                setLoading(false);
+                return;
+            }
             if (isInitial) {
                 toast.error('Failed to load presentation');
-                navigate('/');
+                navigate(`/qna/${token}`);
             } else {
                 console.error('Failed to refresh presentation data, check network:', err);
             }
@@ -67,6 +74,15 @@ const QnAPresentation = () => {
     };
 
     if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div></div>;
+    if (accessDenied) return (
+        <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+            <div className="max-w-md text-center">
+                <h1 className="text-xl font-bold mb-2">Presentation access required</h1>
+                <p className="text-slate-400 mb-6">Only the classroom teacher and authorized administrators can use presentation mode.</p>
+                <button onClick={() => navigate(`/qna/${token}`)} className="px-5 py-3 rounded-lg bg-indigo-600 font-semibold hover:bg-indigo-500">Return to Q&A board</button>
+            </div>
+        </div>
+    );
     if (!board) return null;
 
     const sortedQuestions = [...questions].sort((a, b) => {

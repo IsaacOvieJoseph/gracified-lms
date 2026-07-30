@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Pressable, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { BackHandler, View, StyleSheet, ActivityIndicator, Pressable, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,14 @@ export default function WhiteboardScreen({ route, navigation }) {
   const { token, user } = useAuth();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.goBack();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [navigation]);
 
   const webBaseUrl = (process.env.EXPO_PUBLIC_FRONTEND_URL || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api')
     .replace(/\/api$/i, '')
@@ -25,7 +33,9 @@ export default function WhiteboardScreen({ route, navigation }) {
           <Ionicons name="arrow-back-outline" size={24} color={theme.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Live Whiteboard</Text>
-        <View style={{ width: 24 }} />
+        <Pressable onPress={() => navigation.goBack()} style={styles.doneButton} accessibilityRole="button" accessibilityLabel="Return to classroom">
+          <Text style={[styles.doneText, { color: theme.primary }]}>Done</Text>
+        </Pressable>
       </View>
 
       <WebView
@@ -48,6 +58,16 @@ export default function WhiteboardScreen({ route, navigation }) {
         javaScriptEnabled={true}
         domStorageEnabled={true}
         allowFileAccess={true}
+        onShouldStartLoadWithRequest={(request) => {
+          // The web whiteboard exits to the web classroom route. In the native
+          // shell that route must close this screen and reveal the mobile UI.
+          const classroomRoute = `/classrooms/${classroomId}`;
+          if (request.url.includes(classroomRoute) && !request.url.includes(`${classroomRoute}/whiteboard`)) {
+            navigation.goBack();
+            return false;
+          }
+          return true;
+        }}
       />
 
       {loading && (
@@ -71,6 +91,8 @@ const styles = StyleSheet.create({
   },
   iconButton: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '800', flex: 1, textAlign: 'center' },
+  doneButton: { paddingHorizontal: 4, paddingVertical: 6 },
+  doneText: { fontSize: 13, fontWeight: '800' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
