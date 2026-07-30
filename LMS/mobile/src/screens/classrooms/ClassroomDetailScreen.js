@@ -1316,37 +1316,48 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       {showEditModal && (
         <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <ScrollView contentContainerStyle={styles.modalContent}>
+            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Classroom</Text>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Edit classroom</Text>
+                  <Text style={[styles.modalSubtitle, { color: theme.muted }]}>Update the class details, access settings, or schedule.</Text>
+                </View>
                 <Pressable onPress={() => setShowEditModal(false)} style={styles.modalCloseButton}>
                   <Ionicons name="close" size={24} color={theme.muted} />
                 </Pressable>
               </View>
 
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>Classroom name <Text style={{ color: theme.danger }}>*</Text></Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Classroom title"
+                placeholder="e.g. SS2 Mathematics"
                 placeholderTextColor={theme.muted}
                 value={editFormData.name}
                 onChangeText={(text) => setEditFormData({ ...editFormData, name: text })}
+                autoCapitalize="words"
+                returnKeyType="next"
               />
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>Description <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
               <TextInput
                 style={[styles.input, styles.textArea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Short description"
+                placeholder="What will students learn in this class?"
                 placeholderTextColor={theme.muted}
                 value={editFormData.description}
                 onChangeText={(text) => setEditFormData({ ...editFormData, description: text })}
                 multiline
+                textAlignVertical="top"
               />
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>Subject <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Subject"
+                placeholder="e.g. Mathematics, Biology"
                 placeholderTextColor={theme.muted}
                 value={editFormData.subject}
                 onChangeText={(text) => setEditFormData({ ...editFormData, subject: text })}
+                autoCapitalize="words"
               />
-              <Text style={[styles.fieldLabel, { color: theme.muted, marginTop: 4, marginBottom: 6 }]}>Grade / Academic Level</Text>
+              <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 2 }]}>Grade / academic level</Text>
+              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Choose the level that best matches your learners.</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
                 {['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other'].map(lvl => (
                   <Pressable
@@ -1359,6 +1370,8 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 ))}
               </ScrollView>
 
+              <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 2 }]}>Access and payment</Text>
+              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 8 }]}>Tap an option to change it.</Text>
               <View style={styles.inlineRow}>
                 <Pressable
                   style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.isPaid && { backgroundColor: theme.primary, borderColor: theme.primary }]}
@@ -1383,7 +1396,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
               {editFormData.isPaid && (
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Price amount"
+                  placeholder="Price amount in NGN"
                   placeholderTextColor={theme.muted}
                   keyboardType="numeric"
                   value={String(editFormData.pricing.amount)}
@@ -1391,9 +1404,11 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 />
               )}
 
+              <Text style={[styles.fieldLabel, { color: theme.text }]}>Student capacity</Text>
+              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Maximum number of students. Default: 30.</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Capacity"
+                placeholder="e.g. 30"
                 placeholderTextColor={theme.muted}
                 keyboardType="numeric"
                 value={String(editFormData.capacity)}
@@ -1402,7 +1417,10 @@ export default function ClassroomDetailScreen({ route, navigation }) {
 
               <View style={[styles.scheduleBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={styles.scheduleHeader}>
-                  <Text style={[styles.fieldLabel, { color: theme.text, marginBottom: 0 }]}>Weekly Schedule</Text>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={[styles.fieldLabel, { color: theme.text, marginBottom: 2 }]}>Weekly schedule <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
+                    <Text style={[styles.helperText, { color: theme.muted }]}>Add recurring class times.</Text>
+                  </View>
                   <Pressable style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addEditScheduleSlot}>
                     <Ionicons name="add-outline" size={16} color={theme.primary} />
                     <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Add Slot</Text>
@@ -1545,6 +1563,7 @@ const styles = StyleSheet.create({
   modalContent: { padding: 20, gap: 14 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
+  modalSubtitle: { fontSize: 12, lineHeight: 17, marginTop: 4 },
   modalCloseButton: { padding: 6 },
   input: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, marginBottom: 12 },
   textArea: { minHeight: 100, textAlignVertical: 'top' },
@@ -1576,6 +1595,7 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   scoreInput: { borderWidth: 1, borderRadius: 10, width: 60, paddingVertical: 6, paddingHorizontal: 10, textAlign: 'center', fontSize: 14, fontWeight: '700' },
   fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  optionalLabel: { fontSize: 11, fontWeight: '500' },
   examRowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   examShareBtn: { padding: 4 },
   miniStatusBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8 },

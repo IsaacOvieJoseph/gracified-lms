@@ -579,38 +579,49 @@ export default function ClassroomsScreen({ navigation }) {
       {showCreateModal && (
         <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <ScrollView contentContainerStyle={styles.modalContent}>
+            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>New Classroom</Text>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Create a classroom</Text>
+                  <Text style={[styles.modalSubtitle, { color: theme.muted }]}>Add the basics first. You can update these details later.</Text>
+                </View>
                 <Pressable onPress={() => setShowCreateModal(false)} style={styles.modalCloseButton}>
                   <Ionicons name="close" size={24} color={theme.muted} />
                 </Pressable>
               </View>
 
+              <Text style={[styles.sectionLabel, { color: theme.text }]}>Classroom name <Text style={{ color: theme.danger }}>*</Text></Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Classroom title *"
+                placeholder="e.g. SS2 Mathematics"
                 placeholderTextColor={theme.muted}
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
+                autoCapitalize="words"
+                returnKeyType="next"
               />
+              <Text style={[styles.sectionLabel, { color: theme.text }]}>Description <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
               <TextInput
                 style={[styles.input, styles.textArea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Short description"
+                placeholder="What will students learn in this class?"
                 placeholderTextColor={theme.muted}
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 multiline
+                textAlignVertical="top"
               />
+              <Text style={[styles.sectionLabel, { color: theme.text }]}>Subject <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Subject (e.g. Mathematics)"
+                placeholder="e.g. Mathematics, Biology"
                 placeholderTextColor={theme.muted}
                 value={formData.subject}
                 onChangeText={(text) => setFormData({ ...formData, subject: text })}
+                autoCapitalize="words"
               />
 
-              <Text style={[styles.sectionLabel, { color: theme.muted, marginTop: 4, marginBottom: 6 }]}>Grade / Academic Level</Text>
+              <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 2 }]}>Grade / academic level</Text>
+              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Choose the level that best matches your learners.</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
                 {classroomLevels.map(lvl => (
                   <Pressable
@@ -623,6 +634,8 @@ export default function ClassroomsScreen({ navigation }) {
                 ))}
               </ScrollView>
 
+              <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 2 }]}>Access and payment</Text>
+              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 8 }]}>Tap an option to change it.</Text>
               <View style={styles.inlineRow}>
                 <Pressable
                   style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.isPaid && { backgroundColor: theme.primary, borderColor: theme.primary }]}
@@ -641,7 +654,7 @@ export default function ClassroomsScreen({ navigation }) {
               {formData.isPaid && (
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Price amount (NGN)"
+                  placeholder="Price amount in NGN"
                   placeholderTextColor={theme.muted}
                   keyboardType="numeric"
                   value={String(formData.pricing.amount)}
@@ -649,9 +662,11 @@ export default function ClassroomsScreen({ navigation }) {
                 />
               )}
 
+              <Text style={[styles.sectionLabel, { color: theme.text }]}>Student capacity</Text>
+              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Maximum number of students. Default: 30.</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="Student Capacity"
+                placeholder="e.g. 30"
                 placeholderTextColor={theme.muted}
                 keyboardType="numeric"
                 value={String(formData.capacity)}
@@ -661,7 +676,10 @@ export default function ClassroomsScreen({ navigation }) {
               {/* Weekly Schedule Builder */}
               <View style={[styles.scheduleBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={styles.scheduleHeader}>
-                  <Text style={[styles.sectionLabel, { color: theme.text, marginBottom: 0 }]}>Weekly Schedule</Text>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={[styles.sectionLabel, { color: theme.text, marginBottom: 2 }]}>Weekly schedule <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
+                    <Text style={[styles.helperText, { color: theme.muted }]}>Add recurring class times.</Text>
+                  </View>
                   <Pressable style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addScheduleSlot}>
                     <Ionicons name="add-outline" size={16} color={theme.primary} />
                     <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Add Slot</Text>
@@ -868,6 +886,7 @@ const styles = StyleSheet.create({
   modalContent: { padding: 20, gap: 14 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
+  modalSubtitle: { fontSize: 12, lineHeight: 17, marginTop: 4 },
   modalCloseButton: { padding: 6 },
   input: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, marginBottom: 12 },
   textArea: { minHeight: 100, textAlignVertical: 'top' },
@@ -876,6 +895,7 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '700' },
   cardsWrapper: { marginBottom: 14 },
   sectionLabel: { fontSize: 12, fontWeight: '800', marginBottom: 8 },
+  optionalLabel: { fontSize: 11, fontWeight: '500' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   helperText: { fontSize: 12 },
   submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
