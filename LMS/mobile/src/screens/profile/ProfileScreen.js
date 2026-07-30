@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
@@ -16,6 +17,7 @@ export default function ProfileScreen({ navigation }) {
   const [accountNumber, setAccountNumber] = useState(user?.bankDetails?.accountNumber || '');
   const [accountName, setAccountName] = useState(user?.bankDetails?.accountName || '');
   const [updating, setUpdating] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [schools, setSchools] = useState([]);
 
   const canEditBankDetails = canEditPayoutProfile(user);
@@ -58,6 +60,51 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const handlePickProfileImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission required', 'Allow photo library access to choose a profile image or logo.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    const asset = result.assets[0];
+    const formData = new FormData();
+    formData.append('logo', {
+      uri: asset.uri,
+      name: asset.fileName || `profile-${Date.now()}.jpg`,
+      type: asset.mimeType || 'image/jpeg',
+    });
+
+    setUploadingImage(true);
+    try {
+      const uploadResponse = await api.post('/auth/upload-logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const imageUrl = uploadResponse.data?.imageUrl;
+      if (!imageUrl) throw new Error('The uploaded image URL was not returned.');
+
+      const profilePayload = { profilePicture: imageUrl };
+      if (user?.role === 'school_admin') profilePayload.schoolLogoUrl = imageUrl;
+      if (user?.role === 'personal_teacher') profilePayload.tutorialLogoUrl = imageUrl;
+
+      const profileResponse = await api.put('/auth/profile', profilePayload);
+      setUser(profileResponse.data.user);
+      Alert.alert('Updated', user?.role === 'school_admin' || user?.role === 'personal_teacher' ? 'Your image and logo have been updated.' : 'Your profile image has been updated.');
+    } catch (error) {
+      Alert.alert('Upload failed', error?.response?.data?.message || error?.message || 'Unable to upload this image.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'root_admin': return theme.danger;
@@ -72,9 +119,15 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.userCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={[styles.avatar, { backgroundColor: theme.border }]}>
-            <Ionicons name="person" size={32} color={theme.text} />
-          </View>
+          <Pressable onPress={handlePickProfileImage} disabled={uploadingImage} style={[styles.avatar, { backgroundColor: theme.border }]} accessibilityRole="button" accessibilityLabel="Change profile image or logo">
+            {user?.profilePicture ? <Image source={{ uri: user.profilePicture }} style={styles.avatarImage} /> : <Ionicons name="person" size={32} color={theme.text} />}
+            <View style={[styles.avatarEdit, { backgroundColor: theme.primary, borderColor: theme.surface }]}>
+              {uploadingImage ? <ActivityIndicator size="small" color={theme.onPrimary} /> : <Ionicons name="camera-outline" size={13} color={theme.onPrimary} />}
+            </View>
+          </Pressable>
+          <Pressable onPress={handlePickProfileImage} disabled={uploadingImage} style={styles.changeImageButton}>
+            <Text style={[styles.changeImageText, { color: theme.primary }]}>{uploadingImage ? 'Uploading image…' : user?.profilePicture ? 'Change image / logo' : 'Add image / logo'}</Text>
+          </Pressable>
           <Text style={[styles.name, { color: theme.text }]}>{user?.name || 'LMS User'}</Text>
           <Text style={[styles.email, { color: theme.muted }]}>{user?.email || 'user@example.com'}</Text>
 
@@ -193,6 +246,10 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   userCard: { borderRadius: 24, padding: 24, alignItems: 'center', borderWidth: 1, marginBottom: 24 },
   avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 32 },
+  avatarEdit: { position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  changeImageButton: { marginTop: -4, marginBottom: 12, paddingHorizontal: 8, paddingVertical: 5 },
+  changeImageText: { fontSize: 12, fontWeight: '800' },
   name: { fontSize: 20, fontWeight: '800' },
   email: { fontSize: 14, marginTop: 4, marginBottom: 12 },
   roleBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
