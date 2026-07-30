@@ -19,6 +19,8 @@ const initialForm = { subject: '', topicName: '', className: '', level: '', teac
 
 export default function AIAssistantScreen({ navigation }) {
   const { theme } = useTheme();
+  const generateButtonBackground = theme.mode === 'light' ? '#1E293B' : theme.primary;
+  const generateButtonText = '#FFFFFF';
   const [mode, setMode] = useState('topic');
   const [form, setForm] = useState(initialForm);
   const [result, setResult] = useState(null);
@@ -66,7 +68,7 @@ export default function AIAssistantScreen({ navigation }) {
       <Text style={[styles.subtitle, { color: theme.muted }]}>Create lessons, assessments, slides, and get academic help.</Text>
       {provider && <Text style={[styles.provider, { color: theme.primary }]}>Powered by {provider === 'gemini' ? 'Google Gemini' : 'Groq'}</Text>}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modeList}>{MODES.map(([key, label, icon]) => <Pressable key={key} onPress={() => { setMode(key); setResult(null); setError(''); }} style={[styles.mode, { borderColor: mode === key ? theme.primary : theme.border, backgroundColor: mode === key ? theme.surfaceElevated : theme.surface }]}><Ionicons name={icon} size={18} color={mode === key ? theme.primary : theme.muted} /><Text style={[styles.modeText, { color: mode === key ? theme.text : theme.muted }]}>{label}</Text></Pressable>)}</ScrollView>
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>{renderFields()}<Pressable onPress={generate} disabled={loading} style={[styles.generate, { backgroundColor: theme.primary }]}>{loading ? <ActivityIndicator color={theme.onPrimary} /> : <><Ionicons name="sparkles-outline" size={19} color={theme.onPrimary} /><Text style={[styles.generateText, { color: theme.onPrimary }]}>Generate with AI</Text></>}</Pressable>{error ? <Text style={[styles.error, { color: theme.danger }]}>{error}</Text> : null}</View>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>{renderFields()}<Pressable onPress={generate} disabled={loading} style={[styles.generate, { backgroundColor: generateButtonBackground }]}>{loading ? <ActivityIndicator color={generateButtonText} /> : <><Ionicons name="sparkles-outline" size={19} color={generateButtonText} /><Text allowFontScaling={false} numberOfLines={1} style={[styles.generateText, { color: generateButtonText }]}>Generate with AI</Text></>}</Pressable>{error ? <Text style={[styles.error, { color: theme.danger }]}>{error}</Text> : null}</View>
       {result && <Result result={result} mode={mode} theme={theme} classrooms={destinationClassrooms} onUseResult={(action, classroom) => {
         if (action === 'classroom') navigation.navigate('Classes', { aiAction: 'classroom', aiResult: result });
         else if (classroom?._id) navigation.navigate('ClassroomDetail', { classroomId: classroom._id, aiAction: action, aiResult: result });

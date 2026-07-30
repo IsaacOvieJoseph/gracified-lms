@@ -9,9 +9,10 @@ const defaultDark = {
   border: '#334155',
   muted: '#94A3B8',
   text: '#F8FAFC',
-  // Invert light-mode slate primary so buttons stay on-brand without neon blue
-  primary: '#E2E8F0',
-  onPrimary: '#0F172A',
+  // Dark slate controls keep buttons/selectors integrated with dark surfaces.
+  // Avoid using near-white fills for primary actions in dark mode.
+  primary: '#475569',
+  onPrimary: '#F8FAFC',
   success: '#34D399',
   // Rose instead of neon red — readable with white/onPrimary text
   // Muted semantic accents keep dark-mode buttons calm instead of saturated.
