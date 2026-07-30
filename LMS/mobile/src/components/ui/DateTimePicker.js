@@ -12,6 +12,7 @@ export default function DateTimePicker({
   onChange,
   mode = 'date', // 'date' | 'datetime' | 'time'
   placeholder = 'Select date & time',
+  compact = false,
 }) {
   const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
@@ -121,7 +122,7 @@ export default function DateTimePicker({
       {label ? <Text style={[styles.label, { color: theme.muted }]}>{label}</Text> : null}
 
       <Pressable
-        style={[styles.pickerButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        style={[styles.pickerButton, compact && styles.compactPickerButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
         onPress={handleOpen}
       >
         <Ionicons
@@ -129,7 +130,7 @@ export default function DateTimePicker({
           size={18}
           color={theme.primary}
         />
-        <Text style={[styles.pickerText, { color: value ? theme.text : theme.muted }]}>
+        <Text style={[styles.pickerText, compact && styles.compactPickerText, { color: value ? theme.text : theme.muted }]}>
           {formatDisplayValue()}
         </Text>
         <Ionicons name="chevron-down-outline" size={16} color={theme.muted} />
@@ -331,6 +332,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  compactPickerButton: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 4,
+    borderRadius: 12,
+  },
+  compactPickerText: { fontSize: 12 },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',

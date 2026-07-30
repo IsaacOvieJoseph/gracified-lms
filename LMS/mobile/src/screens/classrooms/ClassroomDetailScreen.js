@@ -1527,6 +1527,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                             onChange={(value) => updateEditScheduleSlot(index, 'startTime', value)}
                             mode="time"
                             placeholder="09:00"
+                            compact
                           />
                         </View>
                         <View style={{ flex: 1 }}>
@@ -1536,6 +1537,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                             onChange={(value) => updateEditScheduleSlot(index, 'endTime', value)}
                             mode="time"
                             placeholder="10:00"
+                            compact
                           />
                         </View>
                       </View>

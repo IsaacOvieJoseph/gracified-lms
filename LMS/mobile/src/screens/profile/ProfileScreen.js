@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { canEditPayoutProfile, canCreateTeachers } from '../../utils/roles';
+import { shareSchoolLink } from '../../utils/links';
 
 export default function ProfileScreen({ navigation }) {
   const { user, setUser, logout } = useAuth();
@@ -15,10 +16,26 @@ export default function ProfileScreen({ navigation }) {
   const [accountNumber, setAccountNumber] = useState(user?.bankDetails?.accountNumber || '');
   const [accountName, setAccountName] = useState(user?.bankDetails?.accountName || '');
   const [updating, setUpdating] = useState(false);
+  const [schools, setSchools] = useState([]);
 
   const canEditBankDetails = canEditPayoutProfile(user);
   const canManageTeachers = canCreateTeachers(user);
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (!['root_admin', 'school_admin'].includes(user?.role)) return;
+    const loadSchools = async () => {
+      try {
+        const url = user.role === 'school_admin' ? `/schools?adminId=${user._id}` : '/schools';
+        const response = await api.get(url);
+        const schoolList = Array.isArray(response.data?.schools) ? response.data.schools : response.data;
+        setSchools(schoolList || []);
+      } catch (error) {
+        console.log('Could not load schools for profile sharing', error?.message || error);
+      }
+    };
+    loadSchools();
+  }, [user]);
 
   const handleUpdateBank = async () => {
     if (!bankName || !accountNumber || !accountName) {
@@ -65,6 +82,32 @@ export default function ProfileScreen({ navigation }) {
             <Text style={[styles.roleBadgeText, { color: theme.onPrimary }]}>{user?.role?.toUpperCase() || 'STUDENT'}</Text>
           </View>
         </View>
+
+        {['root_admin', 'school_admin'].includes(user?.role) && schools.length > 0 && (
+          <View style={[styles.schoolSharePanel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.schoolShareHeader}>
+              <View style={[styles.schoolShareIcon, { backgroundColor: `${theme.primary}18` }]}>
+                <Ionicons name="business-outline" size={18} color={theme.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.schoolShareTitle, { color: theme.text }]}>School portal links</Text>
+                <Text style={[styles.schoolShareDescription, { color: theme.muted }]}>Share a public link for any of your {schools.length} {schools.length === 1 ? 'school' : 'schools'}.</Text>
+              </View>
+            </View>
+            {schools.map((school) => (
+              <View key={school._id} style={[styles.schoolShareRow, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <View style={styles.schoolShareInfo}>
+                  <Text style={[styles.schoolShareName, { color: theme.text }]}>{school.name}</Text>
+                  <Text style={[styles.schoolShareHint, { color: theme.muted }]}>Public school portal</Text>
+                </View>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Share ${school.name} school portal`} style={[styles.schoolShareButton, { backgroundColor: theme.primary }]} onPress={() => shareSchoolLink(school)}>
+                  <Ionicons name="share-social-outline" size={16} color={theme.onPrimary} />
+                  <Text style={[styles.schoolShareButtonText, { color: theme.onPrimary }]}>Share</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>General</Text>
         <View style={[styles.cardGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -154,6 +197,17 @@ const styles = StyleSheet.create({
   email: { fontSize: 14, marginTop: 4, marginBottom: 12 },
   roleBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   roleBadgeText: { fontSize: 10, fontWeight: '800' },
+  schoolSharePanel: { borderRadius: 20, padding: 14, borderWidth: 1, marginBottom: 24 },
+  schoolShareHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  schoolShareIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  schoolShareTitle: { fontSize: 14, fontWeight: '800' },
+  schoolShareDescription: { fontSize: 11, lineHeight: 16, marginTop: 2 },
+  schoolShareRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, borderWidth: 1, marginTop: 8 },
+  schoolShareInfo: { flex: 1, minWidth: 0 },
+  schoolShareName: { fontSize: 13, fontWeight: '800' },
+  schoolShareHint: { fontSize: 11, marginTop: 3 },
+  schoolShareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9 },
+  schoolShareButtonText: { fontSize: 11, fontWeight: '800' },
   sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 10, paddingLeft: 4 },
   cardGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: 1 },
   actionRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1 },
