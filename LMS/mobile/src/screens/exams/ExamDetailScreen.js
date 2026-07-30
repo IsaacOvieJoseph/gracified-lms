@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Button from '../../components/ui/Button';
+import McqReviewOptions, { normalizeMcqText } from '../../components/McqReviewOptions';
 import { shareExamLink } from '../../utils/links';
 
 export default function ExamDetailScreen({ route, navigation }) {
@@ -180,8 +181,11 @@ export default function ExamDetailScreen({ route, navigation }) {
 
             {/* Questions list for grading */}
             {exam?.questions?.map((q, idx) => {
-              const ansObj = selectedSubmission.answers?.find(a => a.questionIndex === idx);
-              const answerVal = ansObj ? ansObj.answer : null;
+              const ansObj = selectedSubmission.answers?.find((a) => a.questionIndex === idx)
+                || selectedSubmission.answers?.[idx];
+              const answerVal = ansObj && typeof ansObj === 'object' && 'answer' in ansObj
+                ? ansObj.answer
+                : ansObj;
               
               return (
                 <View key={idx} style={[styles.questionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -195,37 +199,26 @@ export default function ExamDetailScreen({ route, navigation }) {
                   <Text style={[styles.questionText, { color: theme.text }]}>{q.questionText}</Text>
                   
                   {q.questionType === 'mcq' && q.options && (
-                    <View style={styles.optionsList}>
-                      {q.options.map((opt, oIdx) => {
-                        const isCorrect = opt === q.correctOption;
-                        const isChosen = opt === answerVal;
-                        return (
-                          <View 
-                            key={oIdx} 
-                            style={[
-                              styles.optionRow, 
-                              isCorrect && { borderColor: theme.success, borderWidth: 1, backgroundColor: `${theme.success}10` },
-                              isChosen && !isCorrect && { borderColor: theme.danger, borderWidth: 1, backgroundColor: `${theme.danger}10` }
-                            ]}
-                          >
-                            <Ionicons 
-                              name={isCorrect ? 'checkmark-circle-outline' : isChosen ? 'close-circle-outline' : 'ellipse-outline'} 
-                              size={18} 
-                              color={isCorrect ? theme.success : isChosen ? theme.danger : theme.muted} 
-                            />
-                            <Text style={[styles.optionText, { color: theme.text }, isCorrect && { fontWeight: '700' }]}>
-                              {opt} {isCorrect ? '(Correct)' : isChosen ? '(Chosen)' : ''}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
+                    <McqReviewOptions
+                      options={q.options}
+                      correctOption={q.correctOption}
+                      studentAnswer={answerVal}
+                      theme={theme}
+                    />
                   )}
 
                   {q.questionType === 'theory' && (
-                    <View style={[styles.theoryAnswerBox, { backgroundColor: theme.surfaceElevated }]}>
+                    <View style={[styles.theoryAnswerBox, {
+                      backgroundColor: normalizeMcqText(answerVal) ? theme.surfaceElevated : `${theme.danger}14`,
+                      borderColor: normalizeMcqText(answerVal) ? 'transparent' : theme.danger,
+                      borderWidth: normalizeMcqText(answerVal) ? 0 : 1,
+                    }]}>
                       <Text style={[styles.theoryAnswerLabel, { color: theme.muted }]}>Student Answer:</Text>
-                      <Text style={[styles.theoryAnswerText, { color: theme.text }]}>{answerVal || '[No Answer Submitted]'}</Text>
+                      <Text style={[styles.theoryAnswerText, {
+                        color: normalizeMcqText(answerVal) ? theme.text : theme.danger,
+                      }]}>
+                        {normalizeMcqText(answerVal) || '[No Answer Submitted]'}
+                      </Text>
                     </View>
                   )}
 

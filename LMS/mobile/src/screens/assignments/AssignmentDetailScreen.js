@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import McqReviewOptions, { getMcqAnswerState } from '../../components/McqReviewOptions';
 import { canManageAssignments } from '../../utils/roles';
 
 export default function AssignmentDetailScreen({ route, navigation }) {
@@ -213,12 +214,35 @@ export default function AssignmentDetailScreen({ route, navigation }) {
                   {assignment?.questions?.map((q, idx) => {
                     const ans = studentSubmission.answers && studentSubmission.answers[idx];
                     const points = formatScore(getQuestionPoints(q));
+                    const isMcq = assignment?.assignmentType === 'mcq' || (Array.isArray(q.options) && q.options.length > 0);
+                    const answerState = getMcqAnswerState(ans, q.correctOption);
+                    const showReview = studentSubmission.status === 'graded' || Boolean(q.correctOption);
+
                     return (
                       <View key={q._id || idx} style={[styles.subQuestionCard, { backgroundColor: theme.surfaceElevated }]}>
                         <Text style={[styles.questionNum, { color: theme.text }]}>Question {idx + 1} ({points} pts): {q.questionText}</Text>
-                        <Text style={[styles.submittedAnswerText, { color: theme.text }]}>Your Answer: {ans || 'N/A'}</Text>
-                        {q.correctOption && (
-                          <Text style={[styles.correctOptionText, { color: theme.success }]}>Correct Option: {q.correctOption}</Text>
+
+                        {isMcq && showReview ? (
+                          <McqReviewOptions
+                            options={q.options}
+                            correctOption={q.correctOption}
+                            studentAnswer={ans}
+                            theme={theme}
+                          />
+                        ) : (
+                          <>
+                            <Text style={[
+                              styles.submittedAnswerText,
+                              { color: showReview && answerState.isWrongOrMissed ? theme.danger : theme.text },
+                            ]}>
+                              Your Answer: {ans || 'N/A'}
+                            </Text>
+                            {q.correctOption ? (
+                              <Text style={[styles.correctOptionText, { color: theme.success }]}>
+                                Correct Option: {q.correctOption}
+                              </Text>
+                            ) : null}
+                          </>
                         )}
                       </View>
                     );
@@ -319,12 +343,34 @@ export default function AssignmentDetailScreen({ route, navigation }) {
 
                   {assignment?.questions?.map((q, idx) => {
                     const ans = selectedSubmission.answers && selectedSubmission.answers[idx];
+                    const isMcq = assignment?.assignmentType === 'mcq' || (Array.isArray(q.options) && q.options.length > 0);
+                    const answerState = getMcqAnswerState(ans, q.correctOption);
+
                     return (
                       <View key={q._id || idx} style={[styles.subQuestionCard, { backgroundColor: theme.surfaceElevated }]}>
                         <Text style={[styles.questionNum, { color: theme.text }]}>Question {idx + 1}: {q.questionText}</Text>
-                        <Text style={[styles.submittedAnswerText, { color: theme.text }]}>Student Answer: {ans || 'N/A'}</Text>
-                        {q.correctOption && (
-                          <Text style={[styles.correctOptionText, { color: theme.success }]}>Correct Option: {q.correctOption}</Text>
+
+                        {isMcq ? (
+                          <McqReviewOptions
+                            options={q.options}
+                            correctOption={q.correctOption}
+                            studentAnswer={ans}
+                            theme={theme}
+                          />
+                        ) : (
+                          <>
+                            <Text style={[
+                              styles.submittedAnswerText,
+                              { color: answerState.hasAnswer ? theme.text : theme.danger },
+                            ]}>
+                              Student Answer: {ans || 'N/A'}
+                            </Text>
+                            {q.correctOption ? (
+                              <Text style={[styles.correctOptionText, { color: theme.success }]}>
+                                Correct Option: {q.correctOption}
+                              </Text>
+                            ) : null}
+                          </>
                         )}
                       </View>
                     );

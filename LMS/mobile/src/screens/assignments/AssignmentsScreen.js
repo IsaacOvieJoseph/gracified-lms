@@ -159,13 +159,12 @@ export default function AssignmentsScreen({ navigation }) {
       </View>
 
       {/* Tabs / Filters */}
-      <View style={styles.filterBar}>
+      <View style={[styles.filterBar, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
         {['all', 'pending', 'submitted', 'graded'].map(f => (
           <Pressable
             key={f}
             style={[
               styles.filterBtn,
-              { backgroundColor: theme.surface },
               filter === f && { backgroundColor: theme.primary },
             ]}
             onPress={() => setFilter(f)}
@@ -221,7 +220,15 @@ const styles = StyleSheet.create({
   },
   iconButton: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '800' },
-  filterBar: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterBar: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 10,
+    gap: 4,
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
   filterBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
   filterBtnText: { fontSize: 13, fontWeight: '600' },
   list: { padding: 16, paddingBottom: 30 },

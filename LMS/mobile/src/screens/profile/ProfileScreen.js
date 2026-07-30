@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { canEditPayoutProfile } from '../../utils/roles';
+import { canEditPayoutProfile, canCreateTeachers } from '../../utils/roles';
 
 export default function ProfileScreen({ navigation }) {
   const { user, setUser, logout } = useAuth();
@@ -17,6 +17,7 @@ export default function ProfileScreen({ navigation }) {
   const [updating, setUpdating] = useState(false);
 
   const canEditBankDetails = canEditPayoutProfile(user);
+  const canManageTeachers = canCreateTeachers(user);
   const { theme, toggleTheme } = useTheme();
 
   const handleUpdateBank = async () => {
@@ -81,6 +82,19 @@ export default function ProfileScreen({ navigation }) {
             <Text style={[styles.actionText, { color: theme.text }]}>Billing & Payment History</Text>
             <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
           </Pressable>
+
+          {canManageTeachers && (
+            <Pressable
+              style={[styles.actionRow, { borderBottomColor: theme.border }]}
+              onPress={() => navigation.navigate('ManageTeachers')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: `${theme.info}1A` }]}>
+                <Ionicons name="people-outline" size={20} color={theme.info} />
+              </View>
+              <Text style={[styles.actionText, { color: theme.text }]}>Manage Teachers</Text>
+              <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
+            </Pressable>
+          )}
 
           <Pressable style={styles.actionRow} onPress={() => navigation.navigate('Notifications')}>
             <View style={[styles.actionIcon, { backgroundColor: theme.surfaceElevated }]}>

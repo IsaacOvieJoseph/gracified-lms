@@ -5,15 +5,15 @@
 5. AI interfacing for mobile 
 [x] 6. class in bottom nav truncates when in student profile
 [x] 7. Student sees list of enrolled students in class detail page - that should be visible only to authorized roles
-8. School admin can not initiate QnA - Authorized roles should be able to initiate  QnA
+[x] 8. School admin can not initiate QnA - Authorized roles should be able to initiate  QnA
 [x] 9. Both wrong and correct answer in student's script are green - missed OBJ should be red 
 [x] 10. In viewing script list of an exam, percentage should be on each student instead of pts
-11. In dark mode, assignment/topic/Exam tab selector and tab label color blends
+[x] 11. In dark mode, assignment/topic/Exam tab selector and tab label color blends
 [x] 12. Graded assignments do not need the x/y - the z% is okay
 [x] 13. Student can not filter class by level/subject
 [x] 14. Enrolled class count in student's dashboard assumes all published classes
 [x] 15. Live class indicator on student dashboard
 [x] 16. Sharable links are not available on mobile - class | School | Exam links
-17. All the filter section of explore classes screen should be collapsible 
+[x] 17. All the filter section of explore classes screen should be collapsible 
 [x] 18. Attempt to play youtube video lecture fails - error code: 152 - 4
  

@@ -27,6 +27,8 @@ export const canManageAssignments = (user) => isStaff(user);
 export const canEditPayoutProfile = (user) => hasRole(user, PAYOUT_PROFILE_ROLES);
 export const canUsePayments = (user) => hasRole(user, [ROLES.STUDENT, ...STAFF_ROLES]);
 export const canUseAssignmentsPortal = (user) => isStudent(user);
+export const canManageUsers = (user) => hasRole(user, [ROLES.SCHOOL_ADMIN, ROLES.ROOT_ADMIN]);
+export const canCreateTeachers = (user) => hasRole(user, [ROLES.SCHOOL_ADMIN, ROLES.ROOT_ADMIN]);
 
 export const getEntityId = (value) => (value?._id || value)?.toString?.();
 

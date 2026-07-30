@@ -38,6 +38,7 @@ export default function ClassroomsScreen({ navigation }) {
   const [priceFilter, setPriceFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [teachers, setTeachers] = useState([]);
@@ -187,6 +188,9 @@ export default function ClassroomsScreen({ navigation }) {
 
     return matchesSearch && matchesPrice && matchesSubject && matchesLevel;
   });
+
+  const activeFilterCount = [priceFilter !== 'all', subjectFilter !== 'all', levelFilter !== 'all']
+    .filter(Boolean).length;
 
   const enrolledClassrooms = filteredClassrooms.filter(isStudentEnrolled);
   const exploreClassrooms = filteredClassrooms.filter((item) => !isStudentEnrolled(item));
@@ -447,77 +451,101 @@ export default function ClassroomsScreen({ navigation }) {
           />
         </View>
 
-        <View style={styles.filterRow}>
-          {['all', 'free', 'paid'].map((filter) => (
-            <Pressable
-              key={filter}
-              style={[
-                styles.filterChip,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-                priceFilter === filter && { backgroundColor: theme.primary, borderColor: theme.primary },
-              ]}
-              onPress={() => setPriceFilter(filter)}
-            >
-              <Text style={[
-                styles.filterChipText,
-                { color: theme.muted },
-                priceFilter === filter && { color: theme.onPrimary },
-              ]}>
-                {filter === 'all' ? 'All' : filter === 'free' ? 'Free' : 'Paid'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Pressable
+          style={[styles.filterToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          onPress={() => setFiltersExpanded((prev) => !prev)}
+        >
+          <View style={styles.filterToggleLeft}>
+            <Ionicons name="options-outline" size={18} color={theme.primary} />
+            <Text style={[styles.filterToggleText, { color: theme.text }]}>Filters</Text>
+            {activeFilterCount > 0 && (
+              <View style={[styles.filterBadge, { backgroundColor: theme.primary }]}>
+                <Text style={[styles.filterBadgeText, { color: theme.onPrimary }]}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </View>
+          <Ionicons
+            name={filtersExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={theme.muted}
+          />
+        </Pressable>
 
-        <View style={styles.filterGroup}>
-          <Text style={[styles.filterLabel, { color: theme.muted }]}>Subject</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            {['all', ...subjectOptions].map((subject) => (
-              <Pressable
-                key={subject}
-                style={[
-                  styles.filterChip,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                  subjectFilter === subject && { backgroundColor: theme.primary, borderColor: theme.primary },
-                ]}
-                onPress={() => setSubjectFilter(subject)}
-              >
-                <Text style={[
-                  styles.filterChipText,
-                  { color: theme.muted },
-                  subjectFilter === subject && { color: theme.onPrimary },
-                ]}>
-                  {subject === 'all' ? 'All Subjects' : subject}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+        {filtersExpanded && (
+          <View style={styles.filterSection}>
+            <View style={styles.filterRow}>
+              {['all', 'free', 'paid'].map((filter) => (
+                <Pressable
+                  key={filter}
+                  style={[
+                    styles.filterChip,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                    priceFilter === filter && { backgroundColor: theme.primary, borderColor: theme.primary },
+                  ]}
+                  onPress={() => setPriceFilter(filter)}
+                >
+                  <Text style={[
+                    styles.filterChipText,
+                    { color: theme.muted },
+                    priceFilter === filter && { color: theme.onPrimary },
+                  ]}>
+                    {filter === 'all' ? 'All' : filter === 'free' ? 'Free' : 'Paid'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
-        <View style={styles.filterGroup}>
-          <Text style={[styles.filterLabel, { color: theme.muted }]}>Level</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            {['all', ...levelOptions].map((level) => (
-              <Pressable
-                key={level}
-                style={[
-                  styles.filterChip,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                  levelFilter === level && { backgroundColor: theme.primary, borderColor: theme.primary },
-                ]}
-                onPress={() => setLevelFilter(level)}
-              >
-                <Text style={[
-                  styles.filterChipText,
-                  { color: theme.muted },
-                  levelFilter === level && { color: theme.onPrimary },
-                ]}>
-                  {level === 'all' ? 'All Levels' : level}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+            <View style={styles.filterGroup}>
+              <Text style={[styles.filterLabel, { color: theme.muted }]}>Subject</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+                {['all', ...subjectOptions].map((subject) => (
+                  <Pressable
+                    key={subject}
+                    style={[
+                      styles.filterChip,
+                      { backgroundColor: theme.surface, borderColor: theme.border },
+                      subjectFilter === subject && { backgroundColor: theme.primary, borderColor: theme.primary },
+                    ]}
+                    onPress={() => setSubjectFilter(subject)}
+                  >
+                    <Text style={[
+                      styles.filterChipText,
+                      { color: theme.muted },
+                      subjectFilter === subject && { color: theme.onPrimary },
+                    ]}>
+                      {subject === 'all' ? 'All Subjects' : subject}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterGroup}>
+              <Text style={[styles.filterLabel, { color: theme.muted }]}>Level</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+                {['all', ...levelOptions].map((level) => (
+                  <Pressable
+                    key={level}
+                    style={[
+                      styles.filterChip,
+                      { backgroundColor: theme.surface, borderColor: theme.border },
+                      levelFilter === level && { backgroundColor: theme.primary, borderColor: theme.primary },
+                    ]}
+                    onPress={() => setLevelFilter(level)}
+                  >
+                    <Text style={[
+                      styles.filterChipText,
+                      { color: theme.muted },
+                      levelFilter === level && { color: theme.onPrimary },
+                    ]}>
+                      {level === 'all' ? 'All Levels' : level}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        )}
       </View>
 
       {loading ? (
@@ -702,7 +730,19 @@ export default function ClassroomsScreen({ navigation }) {
                   <Text style={[styles.sectionLabel, { color: theme.muted }]}>Assign teacher</Text>
                   <View style={styles.chipRow}>
                     {teachers.length === 0 ? (
-                      <Text style={[styles.helperText, { color: theme.muted }]}>No teacher list available.</Text>
+                      <View style={{ gap: 10 }}>
+                        <Text style={[styles.helperText, { color: theme.muted }]}>No teachers yet for your school.</Text>
+                        <Pressable
+                          style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20`, alignSelf: 'flex-start' }]}
+                          onPress={() => {
+                            setShowCreateModal(false);
+                            navigation.navigate('ManageTeachers');
+                          }}
+                        >
+                          <Ionicons name="person-add-outline" size={16} color={theme.primary} />
+                          <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Create Teacher</Text>
+                        </Pressable>
+                      </View>
                     ) : teachers.map((teacher) => (
                       <Pressable
                         key={teacher._id}
@@ -772,6 +812,28 @@ const styles = StyleSheet.create({
   searchPanel: { paddingHorizontal: 20, paddingBottom: 8 },
   searchBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
+  filterToggle: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  filterToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  filterToggleText: { fontSize: 14, fontWeight: '700' },
+  filterBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  filterBadgeText: { fontSize: 11, fontWeight: '800' },
+  filterSection: { marginTop: 4 },
   filterRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   filterGroup: { marginTop: 12 },
   filterLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 7 },

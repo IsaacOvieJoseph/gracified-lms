@@ -187,17 +187,85 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     navigation.navigate('Whiteboard', { classroomId });
   };
 
-  const handleJoinQnA = () => {
-    api.get(`/qna/classroom/${classroomId}`).then(res => {
-      const qnaToken = res.data?.token || res.data?.[0]?.token || res.data?.board?.shareableLink;
-      if (qnaToken) {
-        navigation.navigate('QnACenter', { token: qnaToken, isPresenter: canManage });
-      } else {
-        Alert.alert('Q&A Board Unavailable', 'The Q&A Board has not been initialized for this classroom.');
-      }
-    }).catch(err => {
-      Alert.alert('Q&A Board Info', 'No active Q&A board found for this classroom.');
+  const openQnABoard = (token) => {
+    if (!token) {
+      Alert.alert('Q&A Board Unavailable', 'Could not open the Q&A board.');
+      return;
+    }
+    navigation.navigate('QnACenter', { token, isPresenter: canManage });
+  };
+
+  const createQnABoard = async () => {
+    const response = await api.post('/qna/board', {
+      title: `${classroom?.name || 'Class'} Q&A`,
+      description: 'Live Q&A board for this classroom',
+      classroomId,
+      isPublic: false,
+      allowAnonymous: false,
     });
+    const board = response.data;
+    return board?.shareableLink || board?._id;
+  };
+
+  const handleJoinQnA = async () => {
+    try {
+      const res = await api.get(`/qna/classroom/${classroomId}`);
+      const boards = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+      const activeBoard = boards.find((b) => b?.isActive !== false) || boards[0];
+      const qnaToken = activeBoard?.shareableLink || activeBoard?._id || activeBoard?.token;
+
+      if (qnaToken) {
+        openQnABoard(qnaToken);
+        return;
+      }
+
+      if (!canManage) {
+        Alert.alert('Q&A Board Unavailable', 'The Q&A Board has not been initialized for this classroom.');
+        return;
+      }
+
+      Alert.alert(
+        'Start Q&A',
+        'No Q&A board exists yet. Create one for this classroom?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Create & Open',
+            onPress: async () => {
+              try {
+                const token = await createQnABoard();
+                openQnABoard(token);
+              } catch (err) {
+                Alert.alert('Q&A Error', err?.response?.data?.message || 'Failed to create Q&A board.');
+              }
+            },
+          },
+        ]
+      );
+    } catch (err) {
+      if (canManage) {
+        Alert.alert(
+          'Start Q&A',
+          'Could not load existing boards. Create a new Q&A board?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Create & Open',
+              onPress: async () => {
+                try {
+                  const token = await createQnABoard();
+                  openQnABoard(token);
+                } catch (createErr) {
+                  Alert.alert('Q&A Error', createErr?.response?.data?.message || 'Failed to create Q&A board.');
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Q&A Board Info', 'No active Q&A board found for this classroom.');
+      }
+    }
   };
 
   const openLectureLink = async (link) => {
@@ -777,7 +845,9 @@ export default function ClassroomDetailScreen({ route, navigation }) {
 
               <Pressable style={[styles.liveBtn, { backgroundColor: theme.success }]} onPress={handleJoinQnA}>
                 <Ionicons name="chatbubbles-outline" size={20} color={theme.onPrimary} />
-                <Text style={[styles.liveBtnText, { color: theme.onPrimary }]}>Q&A Board</Text>
+                <Text style={[styles.liveBtnText, { color: theme.onPrimary }]}>
+                  {canManage ? 'Start / Open Q&A' : 'Q&A Board'}
+                </Text>
               </Pressable>
             </View>
 
@@ -797,15 +867,22 @@ export default function ClassroomDetailScreen({ route, navigation }) {
             )}
 
             {/* Tabs */}
-            <View style={[styles.tabContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.tabContainer, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
               {['syllabus', 'assignments', 'exams'].map(t => (
                 <Pressable
                   key={t}
-                  style={[styles.tabButton, activeTab === t && { backgroundColor: theme.text }]}
+                  style={[
+                    styles.tabButton,
+                    activeTab === t && { backgroundColor: theme.primary },
+                  ]}
                   onPress={() => setActiveTab(t)}
                 >
-                  <Text style={[styles.tabText, { color: theme.muted }, activeTab === t && { color: theme.onPrimary }]}>
-                    {t.toUpperCase()}
+                  <Text style={[
+                    styles.tabText,
+                    { color: theme.muted },
+                    activeTab === t && { color: theme.onPrimary },
+                  ]}>
+                    {t === 'syllabus' ? 'Topics' : t.charAt(0).toUpperCase() + t.slice(1)}
                   </Text>
                 </Pressable>
               ))}
@@ -835,12 +912,21 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                       <View style={[
                         styles.orderBadge,
                         t.status === 'completed'
-                          ? { backgroundColor: theme.text }
+                          ? { backgroundColor: theme.primary }
                           : t.status === 'active'
                           ? { backgroundColor: theme.success }
                           : { backgroundColor: theme.border }
                       ]}>
-                        <Text style={[styles.orderText, { color: theme.onPrimary }]}>{idx + 1}</Text>
+                        <Text style={[
+                          styles.orderText,
+                          {
+                            color: t.status === 'completed'
+                              ? theme.onPrimary
+                              : t.status === 'active'
+                                ? theme.onPrimary
+                                : theme.muted,
+                          },
+                        ]}>{idx + 1}</Text>
                       </View>
 
                       <View style={{ flex: 1, marginLeft: 12 }}>
