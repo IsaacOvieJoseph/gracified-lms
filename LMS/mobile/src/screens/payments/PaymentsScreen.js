@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, RefreshControl, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -30,12 +30,26 @@ const formatPaymentDate = (payment) => {
   })}`;
 };
 
+const getPaymentReference = (payment) => payment?.paystackReference || payment?.stripePaymentId || payment?._id || 'N/A';
+const getPayerName = (payment) => payment?.userId?.name || payment?.userId?.email || 'Unknown payer';
+const getPaymentPurpose = (payment) => {
+  const type = String(payment?.type || 'transaction').replace(/_/g, ' ');
+  return type.replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+const getPaymentResourceName = (payment) => (
+  [payment?.classroomId?.name, payment?.topicId?.name, payment?.planId?.name]
+    .filter(Boolean)
+    .join(' · ')
+  || 'Platform transaction'
+);
+
 export default function PaymentsScreen({ navigation }) {
   const { theme } = useTheme();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
 
   const loadHistory = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -76,23 +90,37 @@ export default function PaymentsScreen({ navigation }) {
 
   const renderItem = ({ item }) => {
     const formattedDate = formatPaymentDate(item);
+    const reference = getPaymentReference(item);
+    const resourceName = getPaymentResourceName(item);
 
     return (
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.cardHeader}>
-          <Text style={[styles.refText, { color: theme.muted }]} numberOfLines={1}>REF: {item.paystackReference || item._id}</Text>
+          <Text style={[styles.refText, { color: theme.muted }]} numberOfLines={1}>REF: {reference}</Text>
           <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
             {item.status?.toUpperCase() || 'SUCCESS'}
           </Text>
         </View>
 
         <Text style={[styles.amount, { color: theme.text }]}>
-          NGN {item.amount ? item.amount.toLocaleString() : '0.00'}
+          {item.currency || 'NGN'} {Number(item.amount || 0).toLocaleString()}
         </Text>
 
-        <Text style={[styles.description, { color: theme.neutral }]}>
-          {item.classroomId?.name ? `Classroom Enrollment: ${item.classroomId.name}` : item.type || 'LMS Platform Transaction'}
-        </Text>
+        <View style={styles.detailRow}>
+          <Ionicons name="person-outline" size={14} color={theme.muted} />
+          <Text style={[styles.detailLabel, { color: theme.muted }]}>Paid by</Text>
+          <Text style={[styles.detailValue, { color: theme.text }]} numberOfLines={1}>{getPayerName(item)}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Ionicons name="pricetag-outline" size={14} color={theme.muted} />
+          <Text style={[styles.detailLabel, { color: theme.muted }]}>Purpose</Text>
+          <Text style={[styles.detailValue, { color: theme.text }]} numberOfLines={1}>{getPaymentPurpose(item)}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Ionicons name="school-outline" size={14} color={theme.muted} />
+          <Text style={[styles.detailLabel, { color: theme.muted }]}>For</Text>
+          <Text style={[styles.detailValue, { color: theme.text }]} numberOfLines={1}>{resourceName}</Text>
+        </View>
 
         <View style={styles.cardFooter}>
           <Ionicons name="calendar-outline" size={13} color={theme.muted} />
@@ -128,13 +156,57 @@ export default function PaymentsScreen({ navigation }) {
           <Text style={[styles.emptyText, { color: theme.muted }]}>Any course payments or platform disbursements will appear here.</Text>
         </View>
       ) : (
-        <FlatList
-          data={history}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
-        />
+        <>
+          <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="search-outline" size={19} color={theme.muted} />
+            <TextInput
+              style={[styles.searchInput, { color: theme.text }]}
+              placeholder="Search by payment reference"
+              placeholderTextColor={theme.muted}
+              value={search}
+              onChangeText={setSearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <Pressable onPress={() => setSearch('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={theme.muted} />
+              </Pressable>
+            )}
+          </View>
+          {(() => {
+            const query = search.trim().toLowerCase();
+            const filteredHistory = query
+              ? history.filter((payment) => [
+                getPaymentReference(payment),
+                getPayerName(payment),
+                getPaymentPurpose(payment),
+                getPaymentResourceName(payment),
+              ].some((value) => String(value).toLowerCase().includes(query)))
+              : history;
+
+            if (filteredHistory.length === 0) {
+              return (
+                <View style={styles.noResults}>
+                  <Ionicons name="search-outline" size={38} color={theme.muted} />
+                  <Text style={[styles.emptyTitle, { color: theme.text }]}>No matching payments</Text>
+                  <Text style={[styles.emptyText, { color: theme.muted }]}>Try another reference code.</Text>
+                </View>
+              );
+            }
+
+            return (
+              <FlatList
+                data={filteredHistory}
+                keyExtractor={(item, index) => item._id || `${getPaymentReference(item)}-${index}`}
+                renderItem={renderItem}
+                contentContainerStyle={styles.list}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
+              />
+            );
+          })()}
+        </>
       )}
     </SafeAreaView>
   );
@@ -159,6 +231,9 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 11, fontWeight: '800' },
   amount: { fontSize: 20, fontWeight: '800', marginBottom: 6 },
   description: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 7, gap: 7 },
+  detailLabel: { fontSize: 11, fontWeight: '700', width: 54 },
+  detailValue: { flex: 1, fontSize: 12, fontWeight: '700' },
   cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dateText: { fontSize: 11, fontWeight: '600' },
   errorCard: { padding: 24, alignItems: 'center', marginTop: 40 },
@@ -168,4 +243,7 @@ const styles = StyleSheet.create({
   emptyCard: { padding: 40, alignItems: 'center', marginTop: 60 },
   emptyTitle: { fontSize: 16, fontWeight: '700', marginTop: 16 },
   emptyText: { fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 18 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 16, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1 },
+  searchInput: { flex: 1, paddingVertical: 12, paddingHorizontal: 10, fontSize: 14 },
+  noResults: { alignItems: 'center', padding: 40 },
 });
