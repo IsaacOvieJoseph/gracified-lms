@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable, Alert, RefreshControl, Linking, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable, Alert, RefreshControl, Linking, TextInput, Modal, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ import api from '../../api/api';
 import { canManageClassroom, canViewClassroomContent } from '../../utils/roles';
 import { shareClassroomLink, shareExamLink } from '../../utils/links';
 import DateTimePicker from '../../components/ui/DateTimePicker';
+import SelectField from '../../components/ui/SelectField';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -1550,39 +1551,27 @@ export default function ClassroomDetailScreen({ route, navigation }) {
               />
               <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 2 }]}>Grade / academic level</Text>
               <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Choose the level that best matches your learners.</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
-                {['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other'].map(lvl => (
-                  <Pressable
-                    key={lvl}
-                    style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.level === lvl && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                    onPress={() => setEditFormData({ ...editFormData, level: lvl })}
-                  >
-                    <Text style={[styles.chipText, { color: editFormData.level === lvl ? theme.onPrimary : theme.muted }]}>{lvl}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <SelectField
+                value={editFormData.level}
+                options={['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other']}
+                onChange={(level) => setEditFormData({ ...editFormData, level })}
+                placeholder="Select grade / academic level"
+              />
 
               <Text style={[styles.fieldLabel, { color: theme.text, marginTop: 2 }]}>Access and payment</Text>
-              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 8 }]}>Tap an option to change it.</Text>
-              <View style={styles.inlineRow}>
-                <Pressable
-                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.isPaid && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => setEditFormData({ ...editFormData, isPaid: !editFormData.isPaid })}
-                >
-                  <Text style={[styles.chipText, { color: theme.muted }, editFormData.isPaid && { color: theme.onPrimary }]}>{editFormData.isPaid ? 'Paid classroom' : 'Free classroom'}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.isPrivate && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => setEditFormData({ ...editFormData, isPrivate: !editFormData.isPrivate })}
-                >
-                  <Text style={[styles.chipText, { color: theme.muted }, editFormData.isPrivate && { color: theme.onPrimary }]}>{editFormData.isPrivate ? 'Private' : 'Public'}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, editFormData.published && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => setEditFormData({ ...editFormData, published: !editFormData.published })}
-                >
-                  <Text style={[styles.chipText, { color: theme.muted }, editFormData.published && { color: theme.onPrimary }]}>{editFormData.published ? 'Published' : 'Draft'}</Text>
-                </Pressable>
+              <View style={[styles.toggleGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={styles.toggleRow}>
+                  <View style={styles.toggleCopy}><Text style={[styles.toggleTitle, { color: theme.text }]}>Paid classroom</Text><Text style={[styles.helperText, { color: theme.muted }]}>Require payment before enrollment.</Text></View>
+                  <Switch value={editFormData.isPaid} onValueChange={(isPaid) => setEditFormData({ ...editFormData, isPaid })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
+                </View>
+                <View style={[styles.toggleRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+                  <View style={styles.toggleCopy}><Text style={[styles.toggleTitle, { color: theme.text }]}>Private classroom</Text><Text style={[styles.helperText, { color: theme.muted }]}>Limit access to invited learners.</Text></View>
+                  <Switch value={editFormData.isPrivate} onValueChange={(isPrivate) => setEditFormData({ ...editFormData, isPrivate })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
+                </View>
+                <View style={[styles.toggleRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+                  <View style={styles.toggleCopy}><Text style={[styles.toggleTitle, { color: theme.text }]}>Published</Text><Text style={[styles.helperText, { color: theme.muted }]}>Make this class visible to learners.</Text></View>
+                  <Switch value={editFormData.published} onValueChange={(published) => setEditFormData({ ...editFormData, published })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
+                </View>
               </View>
 
               {editFormData.isPaid && (
@@ -1631,23 +1620,12 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                         </Pressable>
                       </View>
 
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginVertical: 8 }}>
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
-                          <Pressable
-                            key={day}
-                            style={[
-                              styles.miniChip,
-                              { backgroundColor: theme.background, borderColor: theme.border },
-                              slot.dayOfWeek === day && { backgroundColor: theme.primary, borderColor: theme.primary },
-                            ]}
-                            onPress={() => updateEditScheduleSlot(index, 'dayOfWeek', day)}
-                          >
-                            <Text style={[styles.miniChipText, { color: slot.dayOfWeek === day ? theme.onPrimary : theme.muted }]}>
-                              {day.slice(0, 3)}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
+                      <SelectField
+                        label="Day of week"
+                        value={slot.dayOfWeek}
+                        options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']}
+                        onChange={(value) => updateEditScheduleSlot(index, 'dayOfWeek', value)}
+                      />
 
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         <View style={{ flex: 1 }}>
@@ -1778,6 +1756,10 @@ const styles = StyleSheet.create({
   miniChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
   miniChipText: { fontSize: 11, fontWeight: '700' },
   helperText: { fontSize: 12 },
+  toggleGroup: { borderWidth: 1, borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
+  toggleRow: { minHeight: 62, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  toggleCopy: { flex: 1, paddingRight: 12 },
+  toggleTitle: { fontSize: 13, fontWeight: '800', marginBottom: 2 },
   tabSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   tabAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
   tabAddBtnText: { fontSize: 12, fontWeight: '700' },

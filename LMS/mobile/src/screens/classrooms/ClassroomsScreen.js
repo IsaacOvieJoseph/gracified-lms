@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, Pressable, Alert, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -15,6 +15,7 @@ import {
 } from '../../utils/roles';
 import { shareClassroomLink } from '../../utils/links';
 import DateTimePicker from '../../components/ui/DateTimePicker';
+import SelectField from '../../components/ui/SelectField';
 
 const normalizeClassroomsResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -614,33 +615,29 @@ export default function ClassroomsScreen({ navigation, route }) {
 
               <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 2 }]}>Grade / academic level</Text>
               <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Choose the level that best matches your learners.</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
-                {classroomLevels.map(lvl => (
-                  <Pressable
-                    key={lvl}
-                    style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.level === lvl && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                    onPress={() => setFormData({ ...formData, level: lvl })}
-                  >
-                    <Text style={[styles.chipText, { color: formData.level === lvl ? theme.onPrimary : theme.muted }]}>{lvl}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <SelectField
+                value={formData.level}
+                options={classroomLevels}
+                onChange={(level) => setFormData({ ...formData, level })}
+                placeholder="Select grade / academic level"
+              />
 
               <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 2 }]}>Access and payment</Text>
-              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 8 }]}>Tap an option to change it.</Text>
-              <View style={styles.inlineRow}>
-                <Pressable
-                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.isPaid && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
-                >
-                  <Text style={[styles.chipText, { color: formData.isPaid ? theme.onPrimary : theme.muted }]}>{formData.isPaid ? 'Paid classroom' : 'Free classroom'}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.isPrivate && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
-                >
-                  <Text style={[styles.chipText, { color: formData.isPrivate ? theme.onPrimary : theme.muted }]}>{formData.isPrivate ? 'Private' : 'Public'}</Text>
-                </Pressable>
+              <View style={[styles.toggleGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={styles.toggleRow}>
+                  <View style={styles.toggleCopy}>
+                    <Text style={[styles.toggleTitle, { color: theme.text }]}>Paid classroom</Text>
+                    <Text style={[styles.helperText, { color: theme.muted }]}>Require payment before enrollment.</Text>
+                  </View>
+                  <Switch value={formData.isPaid} onValueChange={(isPaid) => setFormData({ ...formData, isPaid })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
+                </View>
+                <View style={[styles.toggleRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+                  <View style={styles.toggleCopy}>
+                    <Text style={[styles.toggleTitle, { color: theme.text }]}>Private classroom</Text>
+                    <Text style={[styles.helperText, { color: theme.muted }]}>Limit access to invited learners.</Text>
+                  </View>
+                  <Switch value={formData.isPrivate} onValueChange={(isPrivate) => setFormData({ ...formData, isPrivate })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
+                </View>
               </View>
 
               {formData.isPaid && (
@@ -690,24 +687,12 @@ export default function ClassroomsScreen({ navigation, route }) {
                         </Pressable>
                       </View>
 
-                      {/* Day of week picker */}
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginVertical: 8 }}>
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
-                          <Pressable
-                            key={d}
-                            style={[
-                              styles.miniChip,
-                              { backgroundColor: theme.background, borderColor: theme.border },
-                              slot.dayOfWeek === d && { backgroundColor: theme.primary, borderColor: theme.primary }
-                            ]}
-                            onPress={() => updateScheduleSlot(index, 'dayOfWeek', d)}
-                          >
-                            <Text style={[styles.miniChipText, { color: slot.dayOfWeek === d ? theme.onPrimary : theme.muted }]}>
-                              {d.slice(0, 3)}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
+                      <SelectField
+                        label="Day of week"
+                        value={slot.dayOfWeek}
+                        options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']}
+                        onChange={(value) => updateScheduleSlot(index, 'dayOfWeek', value)}
+                      />
 
                       {/* Time pickers */}
                       <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -740,31 +725,28 @@ export default function ClassroomsScreen({ navigation, route }) {
               {['root_admin', 'school_admin'].includes(user?.role) && (
                 <View style={styles.cardsWrapper}>
                   <Text style={[styles.sectionLabel, { color: theme.muted }]}>Assign teacher</Text>
-                  <View style={styles.chipRow}>
-                    {teachers.length === 0 ? (
-                      <View style={{ gap: 10 }}>
-                        <Text style={[styles.helperText, { color: theme.muted }]}>No teachers yet for your school.</Text>
-                        <Pressable
-                          style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20`, alignSelf: 'flex-start' }]}
-                          onPress={() => {
-                            setShowCreateModal(false);
-                            navigation.navigate('ManageTeachers');
-                          }}
-                        >
-                          <Ionicons name="person-add-outline" size={16} color={theme.primary} />
-                          <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Create Teacher</Text>
-                        </Pressable>
-                      </View>
-                    ) : teachers.map((teacher) => (
+                  {teachers.length === 0 ? (
+                    <View style={{ gap: 10 }}>
+                      <Text style={[styles.helperText, { color: theme.muted }]}>No teachers yet for your school.</Text>
                       <Pressable
-                        key={teacher._id}
-                        style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.teacherId === teacher._id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                        onPress={() => setFormData({ ...formData, teacherId: teacher._id })}
+                        style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20`, alignSelf: 'flex-start' }]}
+                        onPress={() => {
+                          setShowCreateModal(false);
+                          navigation.navigate('ManageTeachers');
+                        }}
                       >
-                        <Text style={[styles.chipText, { color: formData.teacherId === teacher._id ? theme.onPrimary : theme.muted }]}>{teacher.name}</Text>
+                        <Ionicons name="person-add-outline" size={16} color={theme.primary} />
+                        <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Create Teacher</Text>
                       </Pressable>
-                    ))}
-                  </View>
+                    </View>
+                  ) : (
+                    <SelectField
+                      value={formData.teacherId}
+                      options={teachers.map((teacher) => ({ value: teacher._id, label: teacher.name }))}
+                      onChange={(teacherId) => setFormData({ ...formData, teacherId })}
+                      placeholder="Select a teacher"
+                    />
+                  )}
                 </View>
               )}
 
@@ -795,13 +777,14 @@ export default function ClassroomsScreen({ navigation, route }) {
                 </View>
               )}
 
-              <View style={styles.inlineRow}>
-                <Pressable
-                  style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.published && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => setFormData({ ...formData, published: !formData.published })}
-                >
-                  <Text style={[styles.chipText, { color: formData.published ? theme.onPrimary : theme.muted }]}>{formData.published ? 'Published' : 'Draft'}</Text>
-                </Pressable>
+              <View style={[styles.toggleGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={styles.toggleRow}>
+                  <View style={styles.toggleCopy}>
+                    <Text style={[styles.toggleTitle, { color: theme.text }]}>Publish classroom</Text>
+                    <Text style={[styles.helperText, { color: theme.muted }]}>Make this class visible to learners.</Text>
+                  </View>
+                  <Switch value={formData.published} onValueChange={(published) => setFormData({ ...formData, published })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
+                </View>
               </View>
 
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, createLoading && { opacity: 0.7 }]} onPress={handleCreateClassroom} disabled={createLoading}>
@@ -892,6 +875,10 @@ const styles = StyleSheet.create({
   optionalLabel: { fontSize: 11, fontWeight: '500' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   helperText: { fontSize: 12 },
+  toggleGroup: { borderWidth: 1, borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
+  toggleRow: { minHeight: 62, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  toggleCopy: { flex: 1, paddingRight: 12 },
+  toggleTitle: { fontSize: 13, fontWeight: '800', marginBottom: 2 },
   submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   submitBtnText: { fontWeight: '800', fontSize: 14 },
   scheduleBox: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12 },
