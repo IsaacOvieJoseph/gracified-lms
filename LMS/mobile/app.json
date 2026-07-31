@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/favicon.png",
         "backgroundColor": "#0F172A"
       },
       "package": "com.isaac_joseph.gracifiedlmsmobile"
