@@ -14,14 +14,24 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !password) {
       Alert.alert('Please enter your credentials');
       return;
     }
     setLoading(true);
     try {
-      await login(email, password);
+      await login(normalizedEmail, password);
     } catch (error) {
+      const responseData = error?.response?.data;
+      if (responseData?.redirectToVerify && responseData?.email) {
+        Alert.alert(
+          'Email verification required',
+          'This account has not completed email verification. We sent a new code to your email.',
+          [{ text: 'Verify email', onPress: () => navigation.navigate('VerifyEmail', { email: responseData.email }) }]
+        );
+        return;
+      }
       Alert.alert('Login failed', error?.response?.data?.message || 'Please try again.');
     } finally {
       setLoading(false);
@@ -40,7 +50,8 @@ export default function LoginScreen({ navigation }) {
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }] }>
         <Input placeholder="Email address" value={email} onChangeText={setEmail} />
         <Input placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-        <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} />
+        <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} disabled={loading} />
+        <Button title="Forgot password?" onPress={() => navigation.navigate('ForgotPassword')} variant="secondary" />
         {/* <Button title="Test network" onPress={() => navigation.navigate('NetworkTest')} variant="secondary" /> */}
         <Button title="Create account" onPress={() => navigation.navigate('Register')} variant="secondary" />
       </View>
