@@ -13,7 +13,7 @@ import {
   getUserSchoolIds,
   isStudent,
 } from '../../utils/roles';
-import { shareClassroomLink, shareSchoolLink } from '../../utils/links';
+import { shareClassroomLink } from '../../utils/links';
 import DateTimePicker from '../../components/ui/DateTimePicker';
 
 const normalizeClassroomsResponse = (payload) => {
@@ -301,7 +301,7 @@ export default function ClassroomsScreen({ navigation, route }) {
         pricing: { ...formData.pricing },
         isPrivate: formData.isPrivate,
         published: formData.published,
-        capacity: formData.capacity,
+        capacity: Number(formData.capacity) || 30,
         schedule: formData.schedule || [],
       };
 
@@ -430,39 +430,6 @@ export default function ClassroomsScreen({ navigation, route }) {
             : 'Your assigned and managed classrooms are shown here.'}
         </Text>
       </View>
-
-      {['root_admin', 'school_admin'].includes(user?.role) && schools.length > 0 && (
-        <View style={[styles.schoolSharePanel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.schoolShareHeader}>
-            <View style={[styles.schoolShareIcon, { backgroundColor: `${theme.primary}18` }]}>
-              <Ionicons name="business-outline" size={18} color={theme.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.schoolShareTitle, { color: theme.text }]}>School portal links</Text>
-              <Text style={[styles.schoolShareDescription, { color: theme.muted }]}>
-                Share a public link for any of your {schools.length} {schools.length === 1 ? 'school' : 'schools'}.
-              </Text>
-            </View>
-          </View>
-          {schools.map((school) => (
-            <View key={school._id} style={[styles.schoolShareRow, { backgroundColor: theme.background, borderColor: theme.border }]}>
-              <View style={styles.schoolShareInfo}>
-                <Text style={[styles.schoolShareName, { color: theme.text }]}>{school.name}</Text>
-                <Text style={[styles.schoolShareHint, { color: theme.muted }]}>Public school portal</Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Share ${school.name} school portal`}
-                style={[styles.schoolShareButton, { backgroundColor: theme.primary }]}
-                onPress={() => shareSchoolLink(school)}
-              >
-                <Ionicons name="share-social-outline" size={16} color={theme.onPrimary} />
-                <Text style={[styles.schoolShareButtonText, { color: theme.onPrimary }]}>Share</Text>
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      )}
 
       <View style={styles.searchPanel}>
         <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -695,7 +662,7 @@ export default function ClassroomsScreen({ navigation, route }) {
                 placeholderTextColor={theme.muted}
                 keyboardType="numeric"
                 value={String(formData.capacity)}
-                onChangeText={(value) => setFormData({ ...formData, capacity: Number(value) || 30 })}
+                onChangeText={(value) => setFormData({ ...formData, capacity: value === '' ? '' : Number(value) })}
               />
 
               {/* Weekly Schedule Builder */}
@@ -751,6 +718,7 @@ export default function ClassroomsScreen({ navigation, route }) {
                             onChange={(val) => updateScheduleSlot(index, 'startTime', val)}
                             mode="time"
                             placeholder="09:00"
+                            compact
                           />
                         </View>
                         <View style={{ flex: 1 }}>
@@ -760,6 +728,7 @@ export default function ClassroomsScreen({ navigation, route }) {
                             onChange={(val) => updateScheduleSlot(index, 'endTime', val)}
                             mode="time"
                             placeholder="10:00"
+                            compact
                           />
                         </View>
                       </View>
@@ -902,24 +871,13 @@ const styles = StyleSheet.create({
   headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   createBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16 },
   createBtnText: { fontWeight: '800' },
-  schoolSharePanel: { marginHorizontal: 20, marginBottom: 8, padding: 14, borderRadius: 18, borderWidth: 1 },
-  schoolShareHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  schoolShareIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  schoolShareTitle: { fontSize: 14, fontWeight: '800' },
-  schoolShareDescription: { fontSize: 11, lineHeight: 16, marginTop: 2 },
-  schoolShareRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, borderWidth: 1, marginTop: 8 },
-  schoolShareInfo: { flex: 1, minWidth: 0 },
-  schoolShareName: { fontSize: 13, fontWeight: '800' },
-  schoolShareHint: { fontSize: 11, marginTop: 3 },
-  schoolShareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9 },
-  schoolShareButtonText: { fontSize: 11, fontWeight: '800' },
   cardContent: { paddingBottom: 12 },
   adminActionsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   smallActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, minWidth: 88 },
   smallActionText: { fontSize: 11, fontWeight: '700' },
   modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1 },
-  modalContent: { padding: 20, gap: 14 },
+  modalContent: { padding: 20, gap: 8 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
   modalSubtitle: { fontSize: 12, lineHeight: 17, marginTop: 4 },
@@ -930,7 +888,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderRadius: 16 },
   chipText: { fontSize: 13, fontWeight: '700' },
   cardsWrapper: { marginBottom: 14 },
-  sectionLabel: { fontSize: 12, fontWeight: '800', marginBottom: 8 },
+  sectionLabel: { fontSize: 12, fontWeight: '800', marginBottom: 3 },
   optionalLabel: { fontSize: 11, fontWeight: '500' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   helperText: { fontSize: 12 },

@@ -546,7 +546,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
         pricing: { ...editFormData.pricing },
         isPrivate: editFormData.isPrivate,
         published: editFormData.published,
-        capacity: editFormData.capacity,
+        capacity: Number(editFormData.capacity) || 30,
         schedule: editFormData.schedule || [],
       };
 
@@ -1474,7 +1474,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 placeholderTextColor={theme.muted}
                 keyboardType="numeric"
                 value={String(editFormData.capacity)}
-                onChangeText={(value) => setEditFormData({ ...editFormData, capacity: Number(value) || 30 })}
+                onChangeText={(value) => setEditFormData({ ...editFormData, capacity: value === '' ? '' : Number(value) })}
               />
 
               <View style={[styles.scheduleBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -1527,6 +1527,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                             onChange={(value) => updateEditScheduleSlot(index, 'startTime', value)}
                             mode="time"
                             placeholder="09:00"
+                            compact
                           />
                         </View>
                         <View style={{ flex: 1 }}>
@@ -1536,6 +1537,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                             onChange={(value) => updateEditScheduleSlot(index, 'endTime', value)}
                             mode="time"
                             placeholder="10:00"
+                            compact
                           />
                         </View>
                       </View>
@@ -1622,7 +1624,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontStyle: 'italic', paddingLeft: 4 },
   modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1 },
-  modalContent: { padding: 20, gap: 14 },
+  modalContent: { padding: 20, gap: 8 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
   modalSubtitle: { fontSize: 12, lineHeight: 17, marginTop: 4 },
@@ -1656,7 +1658,7 @@ const styles = StyleSheet.create({
   questionBlockNum: { fontSize: 14, fontWeight: '800' },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   scoreInput: { borderWidth: 1, borderRadius: 10, width: 60, paddingVertical: 6, paddingHorizontal: 10, textAlign: 'center', fontSize: 14, fontWeight: '700' },
-  fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 3 },
   optionalLabel: { fontSize: 11, fontWeight: '500' },
   examRowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   examShareBtn: { padding: 4 },
