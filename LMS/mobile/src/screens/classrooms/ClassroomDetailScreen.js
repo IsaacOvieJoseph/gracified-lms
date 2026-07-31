@@ -1620,12 +1620,17 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                         </Pressable>
                       </View>
 
-                      <SelectField
-                        label="Day of week"
-                        value={slot.dayOfWeek}
-                        options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']}
-                        onChange={(value) => updateEditScheduleSlot(index, 'dayOfWeek', value)}
-                      />
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginVertical: 8 }}>
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                          <Pressable
+                            key={day}
+                            style={[styles.miniChip, { backgroundColor: theme.background, borderColor: theme.border }, slot.dayOfWeek === day && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                            onPress={() => updateEditScheduleSlot(index, 'dayOfWeek', day)}
+                          >
+                            <Text style={[styles.miniChipText, { color: slot.dayOfWeek === day ? theme.onPrimary : theme.muted }]}>{day.slice(0, 3)}</Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
 
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         <View style={{ flex: 1 }}>
