@@ -129,8 +129,9 @@ export default function ExamsScreen({ navigation }) {
     setQuestions(prev => prev.map((q, i) => {
       if (i !== qIdx) return q;
       const newOpts = [...q.options];
+      const wasCorrect = q.correctOption === newOpts[oIdx];
       newOpts[oIdx] = value;
-      return { ...q, options: newOpts };
+      return { ...q, options: newOpts, correctOption: wasCorrect ? value : q.correctOption };
     }));
   };
 
@@ -407,22 +408,17 @@ export default function ExamsScreen({ navigation }) {
                   {q.questionType === 'mcq' && (
                     <>
                       {q.options.map((opt, oIdx) => (
-                        <TextInput
+                        <View
                           key={oIdx}
-                          style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text, marginBottom: 8 }]}
-                          placeholder={`Option ${oIdx + 1}`}
-                          placeholderTextColor={theme.muted}
-                          value={opt}
-                          onChangeText={v => updateOption(qIdx, oIdx, v)}
-                        />
+                          style={[styles.optionEditor, { backgroundColor: theme.background, borderColor: q.correctOption === opt && opt.trim() ? theme.success : theme.border }]}
+                        >
+                          <TextInput style={[styles.optionInput, { color: theme.text }]} placeholder={`Option ${oIdx + 1}`} placeholderTextColor={theme.muted} value={opt} onChangeText={v => updateOption(qIdx, oIdx, v)} />
+                          <Pressable onPress={() => opt.trim() && updateQuestion(qIdx, 'correctOption', opt)} hitSlop={8} accessibilityRole="radio" accessibilityState={{ selected: q.correctOption === opt && !!opt.trim() }}>
+                            <Ionicons name={q.correctOption === opt && opt.trim() ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={q.correctOption === opt && opt.trim() ? theme.success : theme.muted} />
+                          </Pressable>
+                        </View>
                       ))}
-                      <TextInput
-                        style={[styles.input, { backgroundColor: theme.background, borderColor: `${theme.success}60`, color: theme.text }]}
-                        placeholder="Correct option (must match one above exactly)"
-                        placeholderTextColor={theme.muted}
-                        value={q.correctOption}
-                        onChangeText={v => updateQuestion(qIdx, 'correctOption', v)}
-                      />
+                      <Text style={[styles.helperText, { color: theme.muted }]}>Tap the check icon to mark the correct answer.</Text>
                     </>
                   )}
 
@@ -507,6 +503,8 @@ const styles = StyleSheet.create({
   questionBlock: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 16 },
   questionBlockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   questionBlockNum: { fontSize: 14, fontWeight: '800' },
+  optionEditor: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, marginBottom: 8, paddingLeft: 10, paddingRight: 12 },
+  optionInput: { flex: 1, paddingVertical: 10, paddingHorizontal: 0, fontSize: 14 },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   scoreInput: { borderWidth: 1, borderRadius: 10, width: 60, paddingVertical: 6, paddingHorizontal: 10, textAlign: 'center', fontSize: 14, fontWeight: '700' },
   submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },

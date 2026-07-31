@@ -1004,7 +1004,10 @@ router.delete('/submissions/:id', auth, authorize('root_admin', 'school_admin', 
  */
 router.get('/class/:classId', auth, async (req, res) => {
     try {
-        const exams = await Exam.find({ classId: req.params.classId, isPublished: true }).sort({ createdAt: -1 });
+        const query = { classId: req.params.classId };
+        // Staff need drafts in the classroom workspace; students only see published exams.
+        if (req.user.role === 'student') query.isPublished = true;
+        const exams = await Exam.find(query).sort({ createdAt: -1 });
         res.json(exams);
     } catch (error) {
         res.status(500).json({ message: error.message });
