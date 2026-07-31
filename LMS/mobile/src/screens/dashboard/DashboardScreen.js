@@ -273,8 +273,8 @@ export default function DashboardScreen({ navigation }) {
             </Pressable>
 
             <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Payments')}>
-              <View style={[styles.portalIcon, { backgroundColor: `${theme.warning}26` }]}>
-                <Ionicons name="receipt-outline" size={20} color={theme.warning} />
+              <View style={[styles.portalIcon, { backgroundColor: `${theme.info}26` }]}>
+                <Ionicons name="receipt-outline" size={20} color={theme.info} />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={[styles.portalTitle, { color: theme.text }]}>{studentUser ? 'Payments' : 'Payments & Payouts'}</Text>

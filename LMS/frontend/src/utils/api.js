@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Mobile WebViews can provide their reachable API host at runtime. This avoids
+// using the browser's localhost when the frontend is opened on a device.
+const runtimeApiUrl = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('mobileApiUrl') || window.__MOBILE_API_URL__
+  : null;
+const API_URL = runtimeApiUrl || import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 
 

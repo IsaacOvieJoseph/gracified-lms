@@ -24,10 +24,11 @@ export default function QnACenterScreen({ route, navigation }) {
   const webBaseUrl = (process.env.EXPO_PUBLIC_FRONTEND_URL || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api')
     .replace(/\/api$/i, '')
     .replace(':5000', ':5173');
+  const mobileApiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
   const qnaUrl = isPresenter
-    ? `${webBaseUrl}/qna/${token}/present`
-    : `${webBaseUrl}/qna/${token}`;
+    ? `${webBaseUrl}/qna/${token}/present?mobileApiUrl=${encodeURIComponent(mobileApiUrl)}`
+    : `${webBaseUrl}/qna/${token}?mobileApiUrl=${encodeURIComponent(mobileApiUrl)}`;
 
   const authInjection = `(function(){
     try{
@@ -35,6 +36,8 @@ export default function QnACenterScreen({ route, navigation }) {
       if(t){localStorage.setItem('token', t);}
       var u = ${JSON.stringify(user || null)};
       if(u){localStorage.setItem('user', JSON.stringify(u));}
+      var apiUrl = ${JSON.stringify(mobileApiUrl)};
+      if(apiUrl){window.__MOBILE_API_URL__ = apiUrl;}
     }catch(e){console.error(e)}
   })();true;`;
 
@@ -55,6 +58,7 @@ export default function QnACenterScreen({ route, navigation }) {
       <WebView
         source={{ uri: qnaUrl }}
         injectedJavaScriptBeforeContentLoaded={authInjection}
+        injectedJavaScript={authInjection}
         onLoadStart={() => setLoading(true)}
         onLoadEnd={() => setLoading(false)}
         startInLoadingState
