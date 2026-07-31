@@ -238,7 +238,7 @@ export default function DashboardScreen({ navigation }) {
 
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Portals</Text>
           <View style={styles.portalsList}>
-            <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('AIAssistant')}>
+            {!studentUser && <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('AIAssistant')}>
               <View style={[styles.portalIcon, { backgroundColor: `${theme.warning}26` }]}>
                 <Ionicons name="sparkles-outline" size={20} color={theme.warning} />
               </View>
@@ -247,7 +247,7 @@ export default function DashboardScreen({ navigation }) {
                 <Text style={[styles.portalSub, { color: theme.muted }]}>Generate topics, assignments, exams, slides, syllabi, and ask questions.</Text>
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
-            </Pressable>
+            </Pressable>}
             {canUseAssignmentsPortal(user) && (
               <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Assignments')}>
                 <View style={[styles.portalIcon, { backgroundColor: theme.surfaceElevated }]}>

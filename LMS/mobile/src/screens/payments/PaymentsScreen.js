@@ -15,6 +15,21 @@ const normalizePaymentsResponse = (payload) => {
   return [];
 };
 
+const formatPaymentDate = (payment) => {
+  // Payment records use paymentDate (createdAt is not part of the Payment schema).
+  // Keep the UI readable if older or partially populated records are returned.
+  const value = payment?.paymentDate || payment?.createdAt || payment?.updatedAt;
+  if (!value) return 'Date unavailable';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Date unavailable';
+
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+};
+
 export default function PaymentsScreen({ navigation }) {
   const { theme } = useTheme();
   const [history, setHistory] = useState([]);
@@ -60,7 +75,7 @@ export default function PaymentsScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    const formattedDate = new Date(item.createdAt).toLocaleDateString() + ' ' + new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formattedDate = formatPaymentDate(item);
 
     return (
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>

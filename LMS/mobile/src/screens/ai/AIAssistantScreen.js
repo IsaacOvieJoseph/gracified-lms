@@ -3,7 +3,9 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { isStudent } from '../../utils/roles';
 
 const MODES = [
   ['topic', 'Topic', 'book-outline', '/ai/generate-topic', 'topic'],
@@ -18,6 +20,7 @@ const MODES = [
 const initialForm = { subject: '', topicName: '', className: '', level: '', teacherHint: '', question: '', assignmentType: 'mcq', examType: 'mcq', questionCount: '5', slideCount: '8', duration: '60' };
 
 export default function AIAssistantScreen({ navigation }) {
+  const { user } = useAuth();
   const { theme } = useTheme();
   const generateButtonBackground = theme.mode === 'light' ? '#1E293B' : theme.primary;
   const generateButtonText = '#FFFFFF';
@@ -29,8 +32,15 @@ export default function AIAssistantScreen({ navigation }) {
   const [error, setError] = useState('');
   const [destinationClassrooms, setDestinationClassrooms] = useState([]);
   const config = useMemo(() => MODES.find((item) => item[0] === mode), [mode]);
+  React.useEffect(() => { if (!isStudent(user)) api.get('/ai/provider').then((res) => setProvider(res.data?.provider)).catch(() => {}); }, [user]);
 
-  React.useEffect(() => { api.get('/ai/provider').then((res) => setProvider(res.data?.provider)).catch(() => {}); }, []);
+  if (isStudent(user)) {
+    return <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}><Pressable onPress={() => navigation.goBack()}><Ionicons name="arrow-back-outline" size={24} color={theme.text} /></Pressable><Text style={[styles.title, { color: theme.text }]}>AI Assistant</Text><View style={{ width: 24 }} /></View>
+      <View style={styles.restricted}><Ionicons name="lock-closed-outline" size={34} color={theme.muted} /><Text style={[styles.restrictedTitle, { color: theme.text }]}>AI Assistant unavailable</Text><Text style={[styles.restrictedText, { color: theme.muted }]}>This feature is available to teaching and administrative accounts.</Text></View>
+    </SafeAreaView>;
+  }
+
   const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const generate = async () => {
     if (!form.subject.trim() && !form.topicName.trim() && !form.question.trim()) { setError('Enter a subject, topic, or question first.'); return; }
@@ -102,4 +112,4 @@ function Result({ result, mode, theme, classrooms, onUseResult }) {
   </View>;
 }
 
-const styles = StyleSheet.create({ container: { flex: 1 }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 }, title: { fontSize: 18, fontWeight: '800' }, content: { padding: 16, paddingBottom: 40 }, subtitle: { fontSize: 14, lineHeight: 20 }, provider: { fontSize: 11, fontWeight: '700', marginTop: 6 }, modeList: { gap: 8, paddingVertical: 18 }, mode: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9 }, modeText: { fontSize: 12, fontWeight: '700' }, card: { borderWidth: 1, borderRadius: 16, padding: 16 }, field: { marginBottom: 13 }, row: { flexDirection: 'row' }, label: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 6 }, input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 }, multiline: { minHeight: 76, textAlignVertical: 'top' }, choiceRow: { flexDirection: 'row', gap: 8 }, choice: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }, choiceText: { fontSize: 11, fontWeight: '800' }, generate: { borderRadius: 11, padding: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 4 }, generateText: { fontSize: 14, fontWeight: '800' }, error: { marginTop: 12, fontSize: 13 }, result: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 16 }, resultTitle: { fontSize: 16, fontWeight: '800', marginBottom: 10 }, resultText: { fontSize: 15, lineHeight: 23, marginBottom: 12 }, actionPanel: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12 }, actionTitle: { fontSize: 13, fontWeight: '800' }, actionHint: { fontSize: 11, lineHeight: 16, marginTop: 3, marginBottom: 9 }, useButton: { borderRadius: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }, useButtonText: { fontSize: 12, fontWeight: '800' }, destination: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, padding: 9, marginTop: 7 }, destinationName: { fontSize: 12, fontWeight: '800' }, destinationMeta: { fontSize: 10, marginTop: 2 }, resultItem: { borderTopWidth: 1, paddingVertical: 10 }, itemTitle: { fontSize: 13, fontWeight: '800', lineHeight: 19 }, itemText: { fontSize: 12, lineHeight: 18, marginTop: 3 }, json: { fontFamily: 'monospace', fontSize: 11, lineHeight: 16 }, });
+const styles = StyleSheet.create({ container: { flex: 1 }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 }, title: { fontSize: 18, fontWeight: '800' }, content: { padding: 16, paddingBottom: 40 }, restricted: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }, restrictedTitle: { fontSize: 18, fontWeight: '800', marginTop: 14 }, restrictedText: { fontSize: 13, textAlign: 'center', lineHeight: 19, marginTop: 8 }, subtitle: { fontSize: 14, lineHeight: 20 }, provider: { fontSize: 11, fontWeight: '700', marginTop: 6 }, modeList: { gap: 8, paddingVertical: 18 }, mode: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9 }, modeText: { fontSize: 12, fontWeight: '700' }, card: { borderWidth: 1, borderRadius: 16, padding: 16 }, field: { marginBottom: 13 }, row: { flexDirection: 'row' }, label: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 6 }, input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 }, multiline: { minHeight: 76, textAlignVertical: 'top' }, choiceRow: { flexDirection: 'row', gap: 8 }, choice: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }, choiceText: { fontSize: 11, fontWeight: '800' }, generate: { borderRadius: 11, padding: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 4 }, generateText: { fontSize: 14, fontWeight: '800' }, error: { marginTop: 12, fontSize: 13 }, result: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 16 }, resultTitle: { fontSize: 16, fontWeight: '800', marginBottom: 10 }, resultText: { fontSize: 15, lineHeight: 23, marginBottom: 12 }, actionPanel: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12 }, actionTitle: { fontSize: 13, fontWeight: '800' }, actionHint: { fontSize: 11, lineHeight: 16, marginTop: 3, marginBottom: 9 }, useButton: { borderRadius: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }, useButtonText: { fontSize: 12, fontWeight: '800' }, destination: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, padding: 9, marginTop: 7 }, destinationName: { fontSize: 12, fontWeight: '800' }, destinationMeta: { fontSize: 10, marginTop: 2 }, resultItem: { borderTopWidth: 1, paddingVertical: 10 }, itemTitle: { fontSize: 13, fontWeight: '800', lineHeight: 19 }, itemText: { fontSize: 12, lineHeight: 18, marginTop: 3 }, json: { fontFamily: 'monospace', fontSize: 11, lineHeight: 16 }, });
