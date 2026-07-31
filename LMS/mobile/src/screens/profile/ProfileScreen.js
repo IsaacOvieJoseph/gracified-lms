@@ -196,7 +196,7 @@ export default function ProfileScreen({ navigation }) {
             <View style={[styles.actionIcon, { backgroundColor: theme.surfaceElevated }]}>
               <Ionicons name="notifications-outline" size={20} color={theme.text} />
             </View>
-            <Text style={[styles.actionText, { color: theme.text }]}>Notifications Settings</Text>
+            <Text style={[styles.actionText, { color: theme.text }]}>Notifications</Text>
             <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
           </Pressable>
         </View>
