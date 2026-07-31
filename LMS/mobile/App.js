@@ -129,7 +129,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <SafeAreaProvider>
+        <SafeAreaProvider> 
           <NavigationContainer ref={navigationRef} linking={linking}>
             <AppContent />
           </NavigationContainer>
