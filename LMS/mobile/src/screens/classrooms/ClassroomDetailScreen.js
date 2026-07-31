@@ -59,20 +59,23 @@ export default function ClassroomDetailScreen({ route, navigation }) {
   // ── Topic creation ──────────────────────────────────────────
   const [showTopicModal, setShowTopicModal] = useState(false);
   const [topicForm, setTopicForm] = useState({ name: '', description: '' });
+  const [editingTopic, setEditingTopic] = useState(null);
   const [pendingTopicBatch, setPendingTopicBatch] = useState(null);
   const [topicLoading, setTopicLoading] = useState(false);
 
   // ── Assignment creation ──────────────────────────────────────
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [assignForm, setAssignForm] = useState({
-    title: '', description: '', assignmentType: 'mcq', dueDate: '',
+    title: '', description: '', assignmentType: 'mcq', dueDate: '', publishResultsAt: '',
     maxScore: '100', questions: [{ questionText: '', options: ['', '', '', ''], correctOption: '', maxScore: '1' }]
   });
   const [assignLoading, setAssignLoading] = useState(false);
 
   // ── Exam creation ─────────────────────────────────────────────
   const [showExamModal, setShowExamModal] = useState(false);
-  const [examForm, setExamForm] = useState({ title: '', description: '', duration: '60', accessMode: 'registered' });
+  const [examForm, setExamForm] = useState({
+    title: '', description: '', duration: '60', accessMode: 'registered', dueDate: '', resultPublishTime: ''
+  });
   const [examQuestions, setExamQuestions] = useState([{ questionText: '', questionType: 'mcq', options: ['', '', '', ''], correctOption: '', maxScore: '1' }]);
   const [examLoading, setExamLoading] = useState(false);
 
@@ -570,12 +573,32 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     }
     setTopicLoading(true);
     try {
+      if (editingTopic) {
+        const response = await api.put(`/topics/${editingTopic._id}`, {
+          name: topicForm.name.trim(),
+          description: topicForm.description.trim(),
+        });
+        const updatedTopic = response.data?.topic || response.data;
+        setTopics(prev => prev.map(topic => topic._id === editingTopic._id ? { ...topic, ...updatedTopic } : topic));
+        setShowTopicModal(false);
+        setEditingTopic(null);
+        setTopicForm({ name: '', description: '' });
+        Alert.alert('Updated', 'Topic details saved.');
+        return;
+      }
+
       const batch = pendingTopicBatch?.length
         ? [{ name: topicForm.name, description: topicForm.description }, ...pendingTopicBatch.slice(1)]
         : [{ name: topicForm.name, description: topicForm.description }];
-      const created = await Promise.all(batch.map((topic) => api.post('/topics', { name: topic.name, description: topic.description || '', classroomId })));
+      const created = await Promise.all(batch.map((topic, index) => api.post('/topics', {
+        name: topic.name,
+        description: topic.description || '',
+        classroomId,
+        order: topics.length + index,
+      })));
       setTopics(prev => [...prev, ...created.map((res) => res.data?.topic || res.data)]);
       setShowTopicModal(false);
+      setEditingTopic(null);
       setTopicForm({ name: '', description: '' });
       setPendingTopicBatch(null);
       Alert.alert('Created!', `${created.length} topic${created.length === 1 ? '' : 's'} added to curriculum.`);
@@ -584,6 +607,53 @@ export default function ClassroomDetailScreen({ route, navigation }) {
     } finally {
       setTopicLoading(false);
     }
+  };
+
+  const openTopicEditor = (topic) => {
+    setPendingTopicBatch(null);
+    setEditingTopic(topic);
+    setTopicForm({ name: topic.name || '', description: topic.description || '' });
+    setShowTopicModal(true);
+  };
+
+  const moveTopic = async (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= topics.length) return;
+
+    const previousTopics = topics;
+    const reorderedTopics = [...topics];
+    [reorderedTopics[index], reorderedTopics[targetIndex]] = [reorderedTopics[targetIndex], reorderedTopics[index]];
+    setTopics(reorderedTopics);
+
+    try {
+      await api.put('/topics/reorder', { orderedIds: reorderedTopics.map(topic => topic._id) });
+    } catch (err) {
+      setTopics(previousTopics);
+      Alert.alert('Reorder failed', err?.response?.data?.message || 'Unable to save the topic order.');
+    }
+  };
+
+  const deleteTopic = (topic) => {
+    Alert.alert(
+      'Delete topic?',
+      `This will permanently delete "${topic.name}".`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/topics/${topic._id}`);
+              setTopics(prev => prev.filter(item => item._id !== topic._id));
+              Alert.alert('Deleted', 'Topic deleted successfully.');
+            } catch (err) {
+              Alert.alert('Delete failed', err?.response?.data?.message || 'Unable to delete this topic.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // ── Create Assignment helpers ────────────────────────────────
@@ -623,6 +693,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
         classroomId,
         maxScore: Number(assignForm.maxScore) || 100,
         dueDate: assignForm.dueDate || undefined,
+        publishResultsAt: assignForm.assignmentType === 'mcq' ? (assignForm.publishResultsAt || undefined) : undefined,
         questions: assignForm.questions.map(q => ({
           questionText: q.questionText,
           options: assignForm.assignmentType === 'mcq' ? q.options.filter(o => o.trim()) : [],
@@ -633,7 +704,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       const res = await api.post('/assignments', payload);
       setAssignments(prev => [...prev, res.data?.assignment || res.data]);
       setShowAssignmentModal(false);
-      setAssignForm({ title: '', description: '', assignmentType: 'mcq', dueDate: '', maxScore: '100', questions: [{ questionText: '', options: ['', '', '', ''], correctOption: '', maxScore: '1' }] });
+      setAssignForm({ title: '', description: '', assignmentType: 'mcq', dueDate: '', publishResultsAt: '', maxScore: '100', questions: [{ questionText: '', options: ['', '', '', ''], correctOption: '', maxScore: '1' }] });
       Alert.alert('Created!', 'Assignment posted to classroom.');
     } catch (err) {
       Alert.alert('Error', err?.response?.data?.message || 'Failed to create assignment.');
@@ -671,6 +742,8 @@ export default function ClassroomDetailScreen({ route, navigation }) {
         description: examForm.description,
         duration: Number(examForm.duration),
         accessMode: examForm.accessMode,
+        dueDate: examForm.dueDate || undefined,
+        resultPublishTime: examForm.resultPublishTime || undefined,
         classId: classroomId,
         questions: examQuestions.map(q => ({
           questionText: q.questionText,
@@ -683,7 +756,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       const res = await api.post('/exams', payload);
       setExams(prev => [...prev, res.data?.exam || res.data]);
       setShowExamModal(false);
-      setExamForm({ title: '', description: '', duration: '60', accessMode: 'registered' });
+      setExamForm({ title: '', description: '', duration: '60', accessMode: 'registered', dueDate: '', resultPublishTime: '' });
       setExamQuestions([{ questionText: '', questionType: 'mcq', options: ['', '', '', ''], correctOption: '', maxScore: '1' }]);
       Alert.alert('Created!', 'Exam scheduled for this classroom.');
     } catch (err) {
@@ -956,7 +1029,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 <View style={styles.tabSectionHeader}>
                   <Text style={[styles.sectionTitle, { color: theme.text }]}>Curriculum timeline</Text>
                   {canManage && (
-                    <Pressable style={[styles.tabAddBtn, { backgroundColor: `${theme.primary}20` }]} onPress={() => { setPendingTopicBatch(null); setShowTopicModal(true); }}>
+                    <Pressable style={[styles.tabAddBtn, { backgroundColor: `${theme.primary}20` }]} onPress={() => { setPendingTopicBatch(null); setEditingTopic(null); setTopicForm({ name: '', description: '' }); setShowTopicModal(true); }}>
                       <Ionicons name="add-outline" size={16} color={theme.primary} />
                       <Text style={[styles.tabAddBtnText, { color: theme.primary }]}>Add Topic</Text>
                     </Pressable>
@@ -997,6 +1070,40 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                           {t.status?.toUpperCase() || 'PENDING'} {t.recordedVideos?.length > 0 ? `• ${t.recordedVideos.length} recordings` : ''}
                         </Text>
                       </View>
+                      {canManage && (
+                        <View style={styles.topicActions}>
+                          <Pressable
+                            style={styles.topicActionButton}
+                            onPress={(event) => { event.stopPropagation?.(); openTopicEditor(t); }}
+                            hitSlop={6}
+                          >
+                            <Ionicons name="create-outline" size={17} color={theme.primary} />
+                          </Pressable>
+                          <Pressable
+                            style={styles.topicActionButton}
+                            onPress={(event) => { event.stopPropagation?.(); moveTopic(idx, -1); }}
+                            disabled={idx === 0}
+                            hitSlop={6}
+                          >
+                            <Ionicons name="chevron-up-outline" size={17} color={idx === 0 ? theme.border : theme.muted} />
+                          </Pressable>
+                          <Pressable
+                            style={styles.topicActionButton}
+                            onPress={(event) => { event.stopPropagation?.(); moveTopic(idx, 1); }}
+                            disabled={idx === topics.length - 1}
+                            hitSlop={6}
+                          >
+                            <Ionicons name="chevron-down-outline" size={17} color={idx === topics.length - 1 ? theme.border : theme.muted} />
+                          </Pressable>
+                          <Pressable
+                            style={styles.topicActionButton}
+                            onPress={(event) => { event.stopPropagation?.(); deleteTopic(t); }}
+                            hitSlop={6}
+                          >
+                            <Ionicons name="trash-outline" size={17} color={theme.danger} />
+                          </Pressable>
+                        </View>
+                      )}
                       <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
                     </Pressable>
                   ))
@@ -1108,13 +1215,13 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* ── Create Topic Modal ── */}
-      <Modal visible={showTopicModal} animationType="slide" transparent onRequestClose={() => { setShowTopicModal(false); setPendingTopicBatch(null); }}>
+      <Modal visible={showTopicModal} animationType="slide" transparent onRequestClose={() => { setShowTopicModal(false); setEditingTopic(null); setPendingTopicBatch(null); }}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
             <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Add Topic</Text>
-                <Pressable onPress={() => { setShowTopicModal(false); setPendingTopicBatch(null); }} style={styles.modalCloseButton}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>{editingTopic ? 'Edit Topic' : 'Add Topic'}</Text>
+                <Pressable onPress={() => { setShowTopicModal(false); setEditingTopic(null); setPendingTopicBatch(null); }} style={styles.modalCloseButton}>
                   <Ionicons name="close" size={24} color={theme.muted} />
                 </Pressable>
               </View>
@@ -1134,7 +1241,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 multiline
               />
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, topicLoading && { opacity: 0.7 }]} onPress={handleCreateTopic} disabled={topicLoading}>
-                <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{topicLoading ? 'Creating...' : 'Add Topic'}</Text>
+                <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{topicLoading ? (editingTopic ? 'Saving...' : 'Creating...') : (editingTopic ? 'Save Topic' : 'Add Topic')}</Text>
               </Pressable>
             </ScrollView>
           </View>
@@ -1187,12 +1294,21 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                   <Pressable
                     key={type}
                     style={[styles.chip, { borderColor: theme.border }, assignForm.assignmentType === type && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                    onPress={() => setAssignForm({ ...assignForm, assignmentType: type })}
+                    onPress={() => setAssignForm({ ...assignForm, assignmentType: type, publishResultsAt: type === 'theory' ? '' : assignForm.publishResultsAt })}
                   >
                     <Text style={[styles.chipText, { color: theme.muted }, assignForm.assignmentType === type && { color: theme.onPrimary }]}>{type.toUpperCase()}</Text>
                   </Pressable>
                 ))}
               </View>
+              {assignForm.assignmentType === 'mcq' && (
+                <DateTimePicker
+                  label="Release Results At (optional)"
+                  value={assignForm.publishResultsAt}
+                  onChange={t => setAssignForm({ ...assignForm, publishResultsAt: t })}
+                  mode="datetime"
+                  placeholder="Release results immediately"
+                />
+              )}
               <View style={styles.questionSectionHeader}>
                 <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Questions</Text>
                 <Pressable style={[styles.addQBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addAssignQuestion}>
@@ -1289,6 +1405,20 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 keyboardType="numeric"
                 value={examForm.duration}
                 onChangeText={t => setExamForm({ ...examForm, duration: t })}
+              />
+              <DateTimePicker
+                label="Due Date (optional)"
+                value={examForm.dueDate}
+                onChange={t => setExamForm({ ...examForm, dueDate: t })}
+                mode="datetime"
+                placeholder="Select exam due date"
+              />
+              <DateTimePicker
+                label="Release Results At (optional)"
+                value={examForm.resultPublishTime}
+                onChange={t => setExamForm({ ...examForm, resultPublishTime: t })}
+                mode="datetime"
+                placeholder="Release results immediately"
               />
               <View style={styles.inlineRow}>
                 {['registered', 'open'].map(mode => (
@@ -1615,6 +1745,8 @@ const styles = StyleSheet.create({
   orderText: { fontSize: 14, fontWeight: '800' },
   topicName: { fontSize: 14, fontWeight: '750' },
   topicStatus: { fontSize: 11, marginTop: 4, fontWeight: '600' },
+  topicActions: { flexDirection: 'row', alignItems: 'center', gap: 2, marginLeft: 6 },
+  topicActionButton: { padding: 5 },
   videoCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 18, borderWidth: 1, marginTop: 16 },
   videoIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   videoTitle: { fontSize: 14, fontWeight: '700' },

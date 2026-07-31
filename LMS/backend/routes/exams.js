@@ -74,7 +74,7 @@ const canAccessExam = async (user, exam) => {
  */
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
     try {
-        const { title, description, duration, accessMode, startTime, endTime, questions, schoolId, classId, dueDate } = req.body;
+        const { title, description, duration, accessMode, startTime, endTime, questions, schoolId, classId, dueDate, resultPublishTime } = req.body;
 
         const exam = new Exam({
             title,
@@ -87,7 +87,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
             creatorId: req.user._id,
             schoolId: schoolId || (req.user.schoolId?.[0]) || null,
             classId: classId || null,
-            dueDate: dueDate || null
+            dueDate: dueDate || null,
+            resultPublishTime: resultPublishTime || null
         });
 
         await exam.save();
