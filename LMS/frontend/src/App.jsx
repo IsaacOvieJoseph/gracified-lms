@@ -42,6 +42,7 @@ import PublicSchool from './pages/PublicSchool';
 import AdminSubscriptionPlans from './pages/AdminSubscriptionPlans'; // Import new AdminSubscriptionPlans component
 import Marketing from './pages/Marketing';
 import ScriptSharePage from './pages/ScriptSharePage';
+import Legal from './pages/Legal';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -184,6 +185,8 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/subscription-management" element={<SubscriptionManagement />} /> {/* New subscription management route */}
       <Route path="/shared-script/:shareToken" element={<ScriptSharePage />} />
+      <Route path="/privacy" element={<Legal />} />
+      <Route path="/terms" element={<Legal />} />
 
       <Route
         path="/dashboard"

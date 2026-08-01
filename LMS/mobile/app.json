@@ -8,6 +8,15 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "splash": {
+      "image": "./gracified-expo-splash/assets/gracified/native-splash-light.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fbfcff",
+      "dark": {
+        "image": "./gracified-expo-splash/assets/gracified/native-splash-dark.png",
+        "backgroundColor": "#0a0d1f"
+      }
+    },
     "ios": {
       "supportsTablet": true
     },

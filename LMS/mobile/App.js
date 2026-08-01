@@ -40,10 +40,11 @@ if (typeof rootGlobal.DOMRect === 'undefined') {
 }
 
 import 'react-native-gesture-handler';
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
@@ -52,8 +53,11 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import api from './src/api/api';
 import AppNavigator from './src/navigation/AppNavigator';
+import GracifiedSplash from './components/GracifiedSplash';
 
 export const navigationRef = createNavigationContainerRef();
+
+SplashScreen.preventAutoHideAsync();
 
 const linking = {
   prefixes: [
@@ -86,6 +90,8 @@ Notifications.setNotificationHandler({
 function AppContent() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const [appReady, setAppReady] = useState(false);
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
 
   useEffect(() => {
     const registerPushToken = async () => {
@@ -116,6 +122,38 @@ function AppContent() {
 
     registerPushToken();
   }, [user]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAppReady(true), 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLayoutRootView = useCallback(async () => {
+    if (!appReady) return;
+
+    try {
+      await SplashScreen.hideAsync();
+    } catch (error) {
+      console.log('Splash hide failed:', error.message);
+    }
+  }, [appReady]);
+
+  useEffect(() => {
+    if (appReady) {
+      handleLayoutRootView();
+    }
+  }, [appReady, handleLayoutRootView]);
+
+  if (showCustomSplash) {
+    return (
+      <GracifiedSplash
+        theme={theme.mode === 'dark' ? 'dark' : 'light'}
+        onFinish={() => {
+          setShowCustomSplash(false);
+        }}
+      />
+    );
+  }
 
   return (
     <>
