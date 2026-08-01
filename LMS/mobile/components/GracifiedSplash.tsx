@@ -77,7 +77,7 @@ const PARTICLES = [
 
 export interface GracifiedSplashProps {
   theme?: Theme;
-  /** Called once the full reveal sequence has finished (~4.3s in). */
+  /** Called once the reveal sequence has completed and the splash has had a brief settle time. */
   onFinish?: () => void;
   /** Max width of the logo lockup, in dp. Defaults to 80% of screen width capped at 420. */
   maxWidth?: number;
@@ -168,7 +168,11 @@ export default function GracifiedSplash({
         useNativeDriver: true,
       }),
     ]).start(() => {
-      onFinish?.();
+      const settleTimer = setTimeout(() => {
+        onFinish?.();
+      }, 700);
+
+      return () => clearTimeout(settleTimer);
     });
 
     // Loading bar: fades in, then loops a sliding gradient sweep.

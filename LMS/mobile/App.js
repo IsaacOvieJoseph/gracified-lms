@@ -124,8 +124,17 @@ function AppContent() {
   }, [user]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setAppReady(true), 150);
-    return () => clearTimeout(timer);
+    const prepareApp = async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        setAppReady(true);
+      } catch (error) {
+        console.log('App bootstrap failed:', error.message);
+        setAppReady(true);
+      }
+    };
+
+    prepareApp();
   }, []);
 
   const handleLayoutRootView = useCallback(async () => {
@@ -144,7 +153,20 @@ function AppContent() {
     }
   }, [appReady, handleLayoutRootView]);
 
-  if (showCustomSplash) {
+  if (showCustomSplash && !appReady) {
+    return (
+      <GracifiedSplash
+        theme={theme.mode === 'dark' ? 'dark' : 'light'}
+        onFinish={() => {
+          if (appReady) {
+            setShowCustomSplash(false);
+          }
+        }}
+      />
+    );
+  }
+
+  if (showCustomSplash && appReady) {
     return (
       <GracifiedSplash
         theme={theme.mode === 'dark' ? 'dark' : 'light'}
