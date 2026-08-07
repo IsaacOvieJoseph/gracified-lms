@@ -92,6 +92,7 @@ function AppContent() {
   const { theme } = useTheme();
   const [appReady, setAppReady] = useState(false);
   const [showCustomSplash, setShowCustomSplash] = useState(true);
+  const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
 
   useEffect(() => {
     const registerPushToken = async () => {
@@ -124,18 +125,38 @@ function AppContent() {
   }, [user]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const prepareApp = async () => {
       try {
         await new Promise((resolve) => setTimeout(resolve, 400));
-        setAppReady(true);
+        if (isMounted) {
+          setAppReady(true);
+        }
       } catch (error) {
         console.log('App bootstrap failed:', error.message);
-        setAppReady(true);
+        if (isMounted) {
+          setAppReady(true);
+        }
       }
     };
 
     prepareApp();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!appReady || !splashAnimationComplete) return;
+
+    const transitionTimer = setTimeout(() => {
+      setShowCustomSplash(false);
+    }, 150);
+
+    return () => clearTimeout(transitionTimer);
+  }, [appReady, splashAnimationComplete]);
 
   const handleLayoutRootView = useCallback(async () => {
     if (!appReady) return;
@@ -153,24 +174,12 @@ function AppContent() {
     }
   }, [appReady, handleLayoutRootView]);
 
-  if (showCustomSplash && !appReady) {
+  if (showCustomSplash) {
     return (
       <GracifiedSplash
         theme={theme.mode === 'dark' ? 'dark' : 'light'}
         onFinish={() => {
-          if (appReady) {
-            setShowCustomSplash(false);
-          }
-        }}
-      />
-    );
-  }
-
-  if (showCustomSplash && appReady) {
-    return (
-      <GracifiedSplash
-        theme={theme.mode === 'dark' ? 'dark' : 'light'}
-        onFinish={() => {
+          setSplashAnimationComplete(true);
           setShowCustomSplash(false);
         }}
       />

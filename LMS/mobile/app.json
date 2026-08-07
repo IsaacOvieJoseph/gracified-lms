@@ -9,11 +9,11 @@
       "**/*"
     ],
     "splash": {
-      "image": "./gracified-expo-splash/assets/gracified/native-splash-light.png",
+      "image": "./assets/logo_lightmode.png",
       "resizeMode": "contain",
       "backgroundColor": "#fbfcff",
       "dark": {
-        "image": "./gracified-expo-splash/assets/gracified/native-splash-dark.png",
+        "image": "./assets/logo_darkmode.png",
         "backgroundColor": "#0a0d1f"
       }
     },
