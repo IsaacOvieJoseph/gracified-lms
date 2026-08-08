@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { MessageSquare, ThumbsUp, Send, User as UserIcon, CheckCircle, Clock, EyeOff, Sparkles } from 'lucide-react';
 import AIAssistantPanel from '../components/AIAssistantPanel';
@@ -11,6 +11,7 @@ const QnACenter = () => {
     const { token } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const isAdmin = user && ['teacher', 'personal_teacher', 'root_admin', 'school_admin'].includes(user.role);
 
@@ -143,7 +144,7 @@ const QnACenter = () => {
                     </div>
                     {user && (user.role === 'teacher' || user.role === 'personal_teacher' || user.role === 'root_admin' || user.role === 'school_admin') && (
                         <button
-                            onClick={() => navigate(`/qna/${token}/present`)}
+                            onClick={() => navigate(`/qna/${token}/present${location.search || ''}`)}
                             className="ml-4 shrink-0 px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-900 transition"
                         >
                             Present Mode

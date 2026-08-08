@@ -373,7 +373,7 @@ const AppRoutes = () => {
       />
       <Route path="/exam-center/:token" element={<ExamCenter />} />
       <Route path="/qna/:token" element={<QnACenter />} />
-      <Route path="/qna/:token/present" element={<PrivateRoute><QnAPresentation /></PrivateRoute>} />
+      <Route path="/qna/:token/present" element={<QnAPresentation />} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
       <Route

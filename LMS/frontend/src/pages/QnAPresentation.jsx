@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { ChevronLeft, ChevronRight, CheckCircle, XCircle, LayoutGrid, Monitor, PlayCircle, ThumbsUp, User, Sun, Moon } from 'lucide-react';
 import api from '../utils/api';
@@ -9,6 +9,7 @@ const QnAPresentation = () => {
     const { token } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [board, setBoard] = useState(null);
     const [questions, setQuestions] = useState([]);
@@ -37,7 +38,7 @@ const QnAPresentation = () => {
             }
             if (isInitial) {
                 toast.error('Failed to load presentation');
-                navigate(`/qna/${token}`);
+                navigate(`/qna/${token}${location.search || ''}`);
             } else {
                 console.error('Failed to refresh presentation data, check network:', err);
             }
@@ -79,7 +80,7 @@ const QnAPresentation = () => {
             <div className="max-w-md text-center">
                 <h1 className="text-xl font-bold mb-2">Presentation access required</h1>
                 <p className="text-slate-400 mb-6">Only the classroom teacher and authorized administrators can use presentation mode.</p>
-                <button onClick={() => navigate(`/qna/${token}`)} className="px-5 py-3 rounded-lg bg-indigo-600 font-semibold hover:bg-indigo-500">Return to Q&A board</button>
+                <button onClick={() => navigate(`/qna/${token}${location.search || ''}`)} className="px-5 py-3 rounded-lg bg-indigo-600 font-semibold hover:bg-indigo-500">Return to Q&A board</button>
             </div>
         </div>
     );
@@ -164,7 +165,7 @@ const QnAPresentation = () => {
 
                     <div className={`p-4 border-t shrink-0 ${isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                         <button
-                            onClick={() => navigate(`/qna/${token}`)}
+                            onClick={() => navigate(`/qna/${token}${location.search || ''}`)}
                             className={`w-full text-sm font-medium transition flex justify-center items-center py-2 rounded-lg ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
                         >
                             <XCircle className="w-4 h-4 mr-2" /> Exit Presentation
