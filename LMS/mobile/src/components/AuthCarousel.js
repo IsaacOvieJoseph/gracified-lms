@@ -13,6 +13,11 @@ const CAROUSEL_DATA = [
     subtitle: 'Master topics, join live sessions, and accelerate your study goals with smart AI assistance.',
   },
   {
+    image: require('../../assets/Teacher.jpg'),
+    title: 'Teach, Track, and Grow',
+    subtitle: 'Create lessons, guide learners, review submissions, and monitor classroom progress from one simple workspace.',
+  },
+  {
     image: require('../../assets/old.png'),
     title: 'All-in-One Teaching Workspace',
     subtitle: 'Manage schools, classrooms, curricula, and student payments seamlessly under one roof.',

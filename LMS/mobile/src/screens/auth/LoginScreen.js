@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   logoIcon: {
     width: 150,
     height: 150,
-    marginBottom: 20,
+    marginBottom: 8,
     borderRadius: 36,
     alignSelf: 'center',
   },
