@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import SelectField from '../../components/ui/SelectField';
+import PerformanceChart from '../../components/ui/PerformanceChart';
+import { exportReportSheetPDF, formatPct } from '../../utils/reportExport';
 
 export default function ReportsScreen({ navigation }) {
   const { user } = useAuth();
@@ -25,6 +28,10 @@ export default function ReportsScreen({ navigation }) {
   const [reportData, setReportData] = useState(null);
   const [allStudentsData, setAllStudentsData] = useState(null);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'all_students'
+  const [exporting, setExporting] = useState(false);
+
+  // Student filter state for Teachers/Admins
+  const [selectedStudentId, setSelectedStudentId] = useState('all');
 
   // Teacher state
   const [classrooms, setClassrooms] = useState([]);
@@ -61,7 +68,6 @@ export default function ReportsScreen({ navigation }) {
           setReportData(reportRes.data);
         }
 
-        // Fetch consolidated students report
         try {
           const allRes = await api.get('/reports/all-students');
           setAllStudentsData(allRes.data);
@@ -88,7 +94,6 @@ export default function ReportsScreen({ navigation }) {
           setReportData(reportRes.data);
         }
 
-        // Fetch consolidated students report for school admin
         try {
           const url = schoolId ? `/reports/all-students?schoolId=${schoolId}` : '/reports/all-students';
           const allRes = await api.get(url);
@@ -125,6 +130,77 @@ export default function ReportsScreen({ navigation }) {
     fetchReports(false);
   };
 
+  // PDF Export
+  const handleExportPDF = async () => {
+    if (!reportData && !allStudentsData) {
+      Alert.alert('No Report Data', 'Please wait for the report data to load before exporting.');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      if (role === 'student') {
+        const studentName = reportData?.student?.name || user?.name || 'Student';
+        const listData = reportData?.byClass || [];
+        await exportReportSheetPDF('Student Academic Report Sheet', studentName, listData);
+      } else if (selectedStudentId !== 'all') {
+        // Export specific student report sheet
+        const studentList = allStudentsData?.students || reportData?.studentStats || [];
+        const targetStudent = studentList.find((s) => (s.id || s._id) === selectedStudentId || s.email === selectedStudentId);
+        if (targetStudent) {
+          const scoresList = targetStudent.scores
+            ? Object.keys(targetStudent.scores).map((clsName) => ({
+                className: clsName,
+                averagePercentage: targetStudent.scores[clsName],
+              }))
+            : [
+                {
+                  className: 'Class Performance',
+                  averagePercentage: targetStudent.averagePercentage || targetStudent.overallAverage || 0,
+                  submittedCount: targetStudent.assignmentsSubmitted || 0,
+                  totalAssignments: targetStudent.totalAssignments || 0,
+                },
+              ];
+          await exportReportSheetPDF(
+            'Official Student Academic Report Sheet',
+            targetStudent.name || targetStudent.email,
+            scoresList
+          );
+        }
+      } else if (role === 'teacher' || role === 'personal_teacher') {
+        const currentClassName = classrooms.find((c) => c.value === selectedClassId)?.label || 'Classroom';
+        const listData = (reportData?.studentStats || []).map((s) => ({
+          className: s.name,
+          submittedCount: s.assignmentsSubmitted,
+          totalAssignments: s.totalAssignments,
+          averagePercentage: s.averagePercentage,
+        }));
+        await exportReportSheetPDF(`Class Performance Report - ${currentClassName}`, user?.name || 'Teacher', listData);
+      } else if (role === 'school_admin') {
+        const schoolName = reportData?.schoolName || 'School';
+        const listData = (reportData?.classPerformance || []).map((c) => ({
+          className: c.name,
+          submittedCount: c.studentCount,
+          totalAssignments: c.assignmentCount,
+          averagePercentage: c.averagePercentage,
+        }));
+        await exportReportSheetPDF(`School Performance Report - ${schoolName}`, user?.name || 'School Admin', listData);
+      } else if (role === 'root_admin') {
+        const listData = [
+          { className: 'Total Schools', averagePercentage: reportData?.totalSchools || 0 },
+          { className: 'Total Users', averagePercentage: reportData?.totalUsers || 0 },
+          { className: 'Total Classrooms', averagePercentage: reportData?.totalClassrooms || 0 },
+          { className: 'Total Assignments', averagePercentage: reportData?.totalAssignments || 0 },
+        ];
+        await exportReportSheetPDF('Global System Overview Report', 'Root Administrator', listData);
+      }
+    } catch (err) {
+      console.error('PDF export trigger error:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getScoreColor = (score) => {
     const val = Number(score) || 0;
     if (val >= 80) return '#10b981'; // Green
@@ -153,6 +229,20 @@ export default function ReportsScreen({ navigation }) {
             <Text style={[styles.headerTitle, { color: theme.text }]}>{student?.name || user?.name}</Text>
             <Text style={[styles.headerSub, { color: theme.muted }]}>{student?.email || user?.email}</Text>
           </View>
+          <Pressable
+            style={[styles.exportBtn, { backgroundColor: `${theme.primary}18`, borderColor: theme.primary }]}
+            onPress={handleExportPDF}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={16} color={theme.primary} />
+                <Text style={[styles.exportBtnText, { color: theme.primary }]}>Export PDF</Text>
+              </>
+            )}
+          </Pressable>
         </View>
 
         {/* Top Metric Cards */}
@@ -178,11 +268,14 @@ export default function ReportsScreen({ navigation }) {
           <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Ionicons name="ribbon-outline" size={20} color={getScoreColor(summary.overallPercentage || 0)} />
             <Text style={[styles.statValue, { color: getScoreColor(summary.overallPercentage || 0) }]}>
-              {summary.overallPercentage || 0}%
+              {formatPct(summary.overallPercentage || 0)}%
             </Text>
             <Text style={[styles.statLabel, { color: theme.muted }]}>Avg Score</Text>
           </View>
         </View>
+
+        {/* Graphical Presentation Component */}
+        <PerformanceChart title="Academic Subject Breakdown" data={byClass} />
 
         {/* Completion Bar */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -209,7 +302,7 @@ export default function ReportsScreen({ navigation }) {
                 </View>
                 <View style={[styles.scoreBadge, { backgroundColor: `${getScoreColor(cls.averagePercentage || cls.totalScore || 0)}18` }]}>
                   <Text style={[styles.scoreBadgeText, { color: getScoreColor(cls.averagePercentage || cls.totalScore || 0) }]}>
-                    {cls.averagePercentage || 0}%
+                    {formatPct(cls.averagePercentage || cls.totalScore || 0)}%
                   </Text>
                 </View>
               </View>
@@ -262,20 +355,37 @@ export default function ReportsScreen({ navigation }) {
     const assignmentStats = reportData?.assignmentStats || [];
     const studentStats = reportData?.studentStats || [];
 
-    // Calculate class average
     const totalStudents = classroomInfo.studentCount || studentStats.length || 0;
     const avgScoreSum = studentStats.reduce((acc, s) => acc + (s.averagePercentage || 0), 0);
-    const classAvgScore = studentStats.length > 0 ? Math.round(avgScoreSum / studentStats.length) : 0;
+    const classAvgScore = studentStats.length > 0 ? avgScoreSum / studentStats.length : 0;
+
+    // Options for Student Selector
+    const studentOptions = [
+      { label: 'All Enrolled Students', value: 'all' },
+      ...studentStats.map((s) => ({ label: s.name || s.email, value: s.id || s._id || s.email })),
+    ];
 
     return (
       <View style={styles.sectionContainer}>
-        <SelectField
-          label="Select Classroom"
-          value={selectedClassId}
-          options={classrooms}
-          onChange={setSelectedClassId}
-          placeholder="Choose classroom"
-        />
+        <View style={styles.filterRow}>
+          <View style={{ flex: 1 }}>
+            <SelectField
+              label="Select Classroom"
+              value={selectedClassId}
+              options={classrooms}
+              onChange={setSelectedClassId}
+              placeholder="Choose classroom"
+            />
+          </View>
+          <Pressable
+            style={[styles.exportBtnHeader, { backgroundColor: `${theme.primary}18`, borderColor: theme.primary }]}
+            onPress={handleExportPDF}
+            disabled={exporting}
+          >
+            <Ionicons name="download-outline" size={16} color={theme.primary} />
+            <Text style={[styles.exportBtnText, { color: theme.primary }]}>Export PDF</Text>
+          </Pressable>
+        </View>
 
         {/* Tab Toggle for Overview vs All Students */}
         <View style={styles.tabToggleRow}>
@@ -284,7 +394,10 @@ export default function ReportsScreen({ navigation }) {
               styles.tabBtn,
               { backgroundColor: activeTab === 'overview' ? theme.primary : theme.surface, borderColor: theme.border },
             ]}
-            onPress={() => setActiveTab('overview')}
+            onPress={() => {
+              setActiveTab('overview');
+              setSelectedStudentId('all');
+            }}
           >
             <Text style={[styles.tabBtnText, { color: activeTab === 'overview' ? theme.onPrimary : theme.text }]}>
               Class Overview
@@ -321,39 +434,47 @@ export default function ReportsScreen({ navigation }) {
 
               <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Ionicons name="stats-chart-outline" size={20} color={getScoreColor(classAvgScore)} />
-                <Text style={[styles.statValue, { color: getScoreColor(classAvgScore) }]}>{classAvgScore}%</Text>
+                <Text style={[styles.statValue, { color: getScoreColor(classAvgScore) }]}>{formatPct(classAvgScore)}%</Text>
                 <Text style={[styles.statLabel, { color: theme.muted }]}>Class Avg</Text>
               </View>
             </View>
 
-            {/* Assignment Performance */}
-            {assignmentStats.length > 0 && (
-              <>
-                <Text style={[styles.sectionHeading, { color: theme.text }]}>Assignment Stats</Text>
-                {assignmentStats.map((assign, idx) => (
-                  <View key={assign.id || idx} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                    <View style={styles.cardHeaderRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.cardTitle, { color: theme.text }]}>{assign.title}</Text>
-                        <Text style={[styles.cardSubText, { color: theme.muted }]}>
-                          Submissions: {assign.submissionCount || 0} / {assign.totalStudents || totalStudents}
-                        </Text>
-                      </View>
-                      <View style={[styles.scoreBadge, { backgroundColor: `${getScoreColor(assign.averageScore)}18` }]}>
-                        <Text style={[styles.scoreBadgeText, { color: getScoreColor(assign.averageScore) }]}>
-                          Avg: {assign.averageScore || 0} pts
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </>
+            {/* Student Quick Selector */}
+            {studentStats.length > 0 && (
+              <SelectField
+                label="Filter Report by Student"
+                value={selectedStudentId}
+                options={studentOptions}
+                onChange={setSelectedStudentId}
+                placeholder="All Enrolled Students"
+                searchable={true}
+                searchPlaceholder="Search student..."
+              />
+            )}
+
+            {/* Graphical Presentation Chart */}
+            {studentStats.length > 0 && (
+              <PerformanceChart
+                title="Student Scores Distribution"
+                data={(selectedStudentId !== 'all'
+                  ? studentStats.filter((s) => (s.id || s._id || s.email) === selectedStudentId)
+                  : studentStats
+                ).map((s) => ({
+                  name: s.name,
+                  score: s.averagePercentage,
+                }))}
+              />
             )}
 
             {/* Students List */}
-            <Text style={[styles.sectionHeading, { color: theme.text }]}>Enrolled Students ({studentStats.length})</Text>
+            <Text style={[styles.sectionHeading, { color: theme.text }]}>
+              {selectedStudentId !== 'all' ? 'Selected Student Details' : `Enrolled Students (${studentStats.length})`}
+            </Text>
             {studentStats.length > 0 ? (
-              studentStats.map((std, idx) => (
+              (selectedStudentId !== 'all'
+                ? studentStats.filter((s) => (s.id || s._id || s.email) === selectedStudentId)
+                : studentStats
+              ).map((std, idx) => (
                 <View key={std.id || idx} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <View style={styles.cardHeaderRow}>
                     <View style={{ flex: 1 }}>
@@ -364,7 +485,7 @@ export default function ReportsScreen({ navigation }) {
                     </View>
                     <View style={[styles.scoreBadge, { backgroundColor: `${getScoreColor(std.averagePercentage)}18` }]}>
                       <Text style={[styles.scoreBadgeText, { color: getScoreColor(std.averagePercentage) }]}>
-                        {std.averagePercentage || 0}%
+                        {formatPct(std.averagePercentage)}%
                       </Text>
                     </View>
                   </View>
@@ -394,13 +515,25 @@ export default function ReportsScreen({ navigation }) {
     return (
       <View style={styles.sectionContainer}>
         {schools.length > 0 && (
-          <SelectField
-            label="Select School"
-            value={selectedSchoolId}
-            options={schools}
-            onChange={setSelectedSchoolId}
-            placeholder="Select school"
-          />
+          <View style={styles.filterRow}>
+            <View style={{ flex: 1 }}>
+              <SelectField
+                label="Select School"
+                value={selectedSchoolId}
+                options={schools}
+                onChange={setSelectedSchoolId}
+                placeholder="Select school"
+              />
+            </View>
+            <Pressable
+              style={[styles.exportBtnHeader, { backgroundColor: `${theme.primary}18`, borderColor: theme.primary }]}
+              onPress={handleExportPDF}
+              disabled={exporting}
+            >
+              <Ionicons name="download-outline" size={16} color={theme.primary} />
+              <Text style={[styles.exportBtnText, { color: theme.primary }]}>Export PDF</Text>
+            </Pressable>
+          </View>
         )}
 
         {/* Tab Toggle */}
@@ -431,7 +564,6 @@ export default function ReportsScreen({ navigation }) {
 
         {activeTab === 'overview' ? (
           <>
-            {/* School Header Title */}
             <View style={[styles.headerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <View style={styles.headerIconContainer}>
                 <Ionicons name="business-outline" size={24} color={theme.primary} />
@@ -457,10 +589,21 @@ export default function ReportsScreen({ navigation }) {
 
               <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Ionicons name="ribbon-outline" size={20} color={getScoreColor(overallAverage)} />
-                <Text style={[styles.statValue, { color: getScoreColor(overallAverage) }]}>{overallAverage}%</Text>
+                <Text style={[styles.statValue, { color: getScoreColor(overallAverage) }]}>{formatPct(overallAverage)}%</Text>
                 <Text style={[styles.statLabel, { color: theme.muted }]}>School Avg</Text>
               </View>
             </View>
+
+            {/* Graphical Presentation Chart */}
+            {classPerformance.length > 0 && (
+              <PerformanceChart
+                title="Classrooms Comparative Scores"
+                data={classPerformance.map((c) => ({
+                  name: c.name,
+                  score: c.averagePercentage,
+                }))}
+              />
+            )}
 
             <Text style={[styles.sectionHeading, { color: theme.text }]}>Classrooms Performance</Text>
             {classPerformance.length > 0 ? (
@@ -475,7 +618,7 @@ export default function ReportsScreen({ navigation }) {
                     </View>
                     <View style={[styles.scoreBadge, { backgroundColor: `${getScoreColor(item.averagePercentage)}18` }]}>
                       <Text style={[styles.scoreBadgeText, { color: getScoreColor(item.averagePercentage) }]}>
-                        {item.averagePercentage || 0}% Avg
+                        {formatPct(item.averagePercentage)}% Avg
                       </Text>
                     </View>
                   </View>
@@ -500,6 +643,13 @@ export default function ReportsScreen({ navigation }) {
     const totalUsers = reportData?.totalUsers || 0;
     const totalClassrooms = reportData?.totalClassrooms || 0;
     const totalAssignments = reportData?.totalAssignments || 0;
+
+    const chartData = [
+      { name: 'Schools', score: totalSchools },
+      { name: 'Users', score: totalUsers },
+      { name: 'Classrooms', score: totalClassrooms },
+      { name: 'Tasks', score: totalAssignments },
+    ];
 
     return (
       <View style={styles.sectionContainer}>
@@ -530,31 +680,35 @@ export default function ReportsScreen({ navigation }) {
         </View>
 
         {activeTab === 'overview' ? (
-          <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Ionicons name="school-outline" size={20} color={theme.primary} />
-              <Text style={[styles.statValue, { color: theme.text }]}>{totalSchools}</Text>
-              <Text style={[styles.statLabel, { color: theme.muted }]}>Schools</Text>
+          <>
+            <View style={styles.statsGrid}>
+              <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Ionicons name="school-outline" size={20} color={theme.primary} />
+                <Text style={[styles.statValue, { color: theme.text }]}>{totalSchools}</Text>
+                <Text style={[styles.statLabel, { color: theme.muted }]}>Schools</Text>
+              </View>
+
+              <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Ionicons name="people-outline" size={20} color="#10b981" />
+                <Text style={[styles.statValue, { color: '#10b981' }]}>{totalUsers}</Text>
+                <Text style={[styles.statLabel, { color: theme.muted }]}>Users</Text>
+              </View>
+
+              <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Ionicons name="easel-outline" size={20} color="#f59e0b" />
+                <Text style={[styles.statValue, { color: '#f59e0b' }]}>{totalClassrooms}</Text>
+                <Text style={[styles.statLabel, { color: theme.muted }]}>Classes</Text>
+              </View>
+
+              <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Ionicons name="document-text-outline" size={20} color="#6366f1" />
+                <Text style={[styles.statValue, { color: '#6366f1' }]}>{totalAssignments}</Text>
+                <Text style={[styles.statLabel, { color: theme.muted }]}>Assignments</Text>
+              </View>
             </View>
 
-            <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Ionicons name="people-outline" size={20} color="#10b981" />
-              <Text style={[styles.statValue, { color: '#10b981' }]}>{totalUsers}</Text>
-              <Text style={[styles.statLabel, { color: theme.muted }]}>Users</Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Ionicons name="easel-outline" size={20} color="#f59e0b" />
-              <Text style={[styles.statValue, { color: '#f59e0b' }]}>{totalClassrooms}</Text>
-              <Text style={[styles.statLabel, { color: theme.muted }]}>Classes</Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Ionicons name="document-text-outline" size={20} color="#6366f1" />
-              <Text style={[styles.statValue, { color: '#6366f1' }]}>{totalAssignments}</Text>
-              <Text style={[styles.statLabel, { color: theme.muted }]}>Assignments</Text>
-            </View>
-          </View>
+            <PerformanceChart title="System Total Metrics" data={chartData} />
+          </>
         ) : (
           renderAllStudentsView()
         )}
@@ -566,11 +720,54 @@ export default function ReportsScreen({ navigation }) {
   const renderAllStudentsView = () => {
     const students = allStudentsData?.students || [];
 
+    const studentFilterOptions = [
+      { label: 'All Students', value: 'all' },
+      ...students.map((s) => ({ label: s.name || s.email, value: s.id || s.email })),
+    ];
+
+    const filteredStudents =
+      selectedStudentId !== 'all'
+        ? students.filter((s) => (s.id || s.email) === selectedStudentId)
+        : students;
+
     return (
       <View style={styles.sectionContainer}>
-        <Text style={[styles.sectionHeading, { color: theme.text }]}>Consolidated Student Performance</Text>
-        {students.length > 0 ? (
-          students.map((st, idx) => (
+        <View style={styles.headerCard}>
+          <Text style={[styles.sectionHeading, { color: theme.text, flex: 1, marginTop: 0 }]}>
+            Student Performance Summary
+          </Text>
+          <Pressable
+            style={[styles.exportBtnHeader, { backgroundColor: `${theme.primary}18`, borderColor: theme.primary }]}
+            onPress={handleExportPDF}
+            disabled={exporting}
+          >
+            <Ionicons name="download-outline" size={16} color={theme.primary} />
+            <Text style={[styles.exportBtnText, { color: theme.primary }]}>Export Sheet</Text>
+          </Pressable>
+        </View>
+
+        {/* Student Quick Selector */}
+        {students.length > 0 && (
+          <SelectField
+            label="Select Student to View & Export"
+            value={selectedStudentId}
+            options={studentFilterOptions}
+            onChange={setSelectedStudentId}
+            placeholder="All Students"
+            searchable={true}
+            searchPlaceholder="Quick search student..."
+          />
+        )}
+
+        {filteredStudents.length > 0 && (
+          <PerformanceChart
+            title="Students Overview"
+            data={filteredStudents.map((s) => ({ name: s.name, score: s.overallAverage }))}
+          />
+        )}
+
+        {filteredStudents.length > 0 ? (
+          filteredStudents.map((st, idx) => (
             <View key={st.id || st.email || idx} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <View style={styles.cardHeaderRow}>
                 <View style={{ flex: 1 }}>
@@ -579,7 +776,7 @@ export default function ReportsScreen({ navigation }) {
                 </View>
                 <View style={[styles.scoreBadge, { backgroundColor: `${getScoreColor(st.overallAverage)}18` }]}>
                   <Text style={[styles.scoreBadgeText, { color: getScoreColor(st.overallAverage) }]}>
-                    {st.overallAverage || 0}%
+                    {formatPct(st.overallAverage)}%
                   </Text>
                 </View>
               </View>
@@ -602,7 +799,10 @@ export default function ReportsScreen({ navigation }) {
           <Ionicons name="arrow-back-outline" size={22} color={theme.text} />
         </Pressable>
         <Text style={[styles.headerBarTitle, { color: theme.text }]}>Reports & Analytics</Text>
-        <View style={{ width: 28 }} />
+
+        <Pressable onPress={handleExportPDF} disabled={exporting} hitSlop={8}>
+          <Ionicons name="share-outline" size={20} color={theme.primary} />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -674,6 +874,34 @@ const styles = StyleSheet.create({
   headerTextCol: { flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: '800' },
   headerSub: { fontSize: 13, marginTop: 2, fontWeight: '500' },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  exportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  exportBtnHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 6,
+  },
+  exportBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
   tabToggleRow: {
     flexDirection: 'row',
     gap: 10,
