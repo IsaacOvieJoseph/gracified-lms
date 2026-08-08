@@ -18,6 +18,12 @@ import SelectField from '../../components/ui/SelectField';
 import PerformanceChart from '../../components/ui/PerformanceChart';
 import { exportReportSheetPDF, formatPct } from '../../utils/reportExport';
 
+const formatPercentBadge = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return '0%';
+  return `${formatPct(num)}%`;
+};
+
 export default function ReportsScreen({ navigation }) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -141,32 +147,47 @@ export default function ReportsScreen({ navigation }) {
     try {
       if (role === 'student') {
         const studentName = reportData?.student?.name || user?.name || 'Student';
-        const listData = reportData?.byClass || [];
-        await exportReportSheetPDF('Student Academic Report Sheet', studentName, listData);
+        const listData = (reportData?.byClass || []).map((cls) => ({
+          className: cls.className,
+          submittedCount: cls.submittedCount || 0,
+          totalAssignments: cls.totalAssignments || 0,
+          averagePercentage: cls.averagePercentage || cls.totalScore || 0,
+        }));
+        await exportReportSheetPDF('Student Academic Report Sheet', studentName, listData, {
+          reportType: 'Student View',
+          studentName,
+        });
       } else if (selectedStudentId !== 'all') {
-        // Export specific student report sheet
         const studentList = allStudentsData?.students || reportData?.studentStats || [];
         const targetStudent = studentList.find((s) => (s.id || s._id) === selectedStudentId || s.email === selectedStudentId);
-        if (targetStudent) {
-          const scoresList = targetStudent.scores
-            ? Object.keys(targetStudent.scores).map((clsName) => ({
-                className: clsName,
-                averagePercentage: targetStudent.scores[clsName],
-              }))
-            : [
-                {
-                  className: 'Class Performance',
-                  averagePercentage: targetStudent.averagePercentage || targetStudent.overallAverage || 0,
-                  submittedCount: targetStudent.assignmentsSubmitted || 0,
-                  totalAssignments: targetStudent.totalAssignments || 0,
-                },
-              ];
-          await exportReportSheetPDF(
-            'Official Student Academic Report Sheet',
-            targetStudent.name || targetStudent.email,
-            scoresList
-          );
+        if (!targetStudent) {
+          Alert.alert('No Student Selected', 'Please select a student before exporting.');
+          return;
         }
+
+        const scoresList = targetStudent.scores
+          ? Object.keys(targetStudent.scores).map((clsName) => ({
+              className: clsName,
+              averagePercentage: targetStudent.scores[clsName],
+            }))
+          : [{
+              className: 'Class Performance',
+              averagePercentage: targetStudent.averagePercentage || targetStudent.overallAverage || 0,
+              submittedCount: targetStudent.assignmentsSubmitted || 0,
+              totalAssignments: targetStudent.totalAssignments || 0,
+            }];
+
+        const currentClassName = classrooms.find((c) => c.value === selectedClassId)?.label || 'Selected Classroom';
+        await exportReportSheetPDF(
+          'Official Student Academic Report Sheet',
+          targetStudent.name || targetStudent.email,
+          scoresList,
+          {
+            reportType: 'Student Detail',
+            className: currentClassName,
+            studentName: targetStudent.name || targetStudent.email,
+          }
+        );
       } else if (role === 'teacher' || role === 'personal_teacher') {
         const currentClassName = classrooms.find((c) => c.value === selectedClassId)?.label || 'Classroom';
         const listData = (reportData?.studentStats || []).map((s) => ({
@@ -175,27 +196,66 @@ export default function ReportsScreen({ navigation }) {
           totalAssignments: s.totalAssignments,
           averagePercentage: s.averagePercentage,
         }));
-        await exportReportSheetPDF(`Class Performance Report - ${currentClassName}`, user?.name || 'Teacher', listData);
+        await exportReportSheetPDF(`Class Performance Report - ${currentClassName}`, user?.name || 'Teacher', listData, {
+          reportType: 'Class View',
+          className: currentClassName,
+          schoolName: user?.schoolName || 'Current School',
+        });
       } else if (role === 'school_admin') {
         const schoolName = reportData?.schoolName || 'School';
-        const listData = (reportData?.classPerformance || []).map((c) => ({
-          className: c.name,
-          submittedCount: c.studentCount,
-          totalAssignments: c.assignmentCount,
-          averagePercentage: c.averagePercentage,
-        }));
-        await exportReportSheetPDF(`School Performance Report - ${schoolName}`, user?.name || 'School Admin', listData);
+        const isAllStudentsView = activeTab === 'all_students';
+        const listData = isAllStudentsView
+          ? (allStudentsData?.students || []).map((s) => ({
+              className: s.name || s.email,
+              submittedCount: s.assignmentsSubmitted || 0,
+              totalAssignments: s.totalAssignments || 0,
+              averagePercentage: s.overallAverage || 0,
+            }))
+          : (reportData?.classPerformance || []).map((c) => ({
+              className: c.name,
+              submittedCount: c.studentCount,
+              totalAssignments: c.assignmentCount,
+              averagePercentage: c.averagePercentage,
+            }));
+
+        await exportReportSheetPDF(
+          isAllStudentsView ? `All Students Summary - ${schoolName}` : `School Performance Report - ${schoolName}`,
+          user?.name || 'School Admin',
+          listData,
+          {
+            reportType: isAllStudentsView ? 'All Students Summary' : 'School Overview',
+            schoolName,
+          }
+        );
       } else if (role === 'root_admin') {
-        const listData = [
-          { className: 'Total Schools', averagePercentage: reportData?.totalSchools || 0 },
-          { className: 'Total Users', averagePercentage: reportData?.totalUsers || 0 },
-          { className: 'Total Classrooms', averagePercentage: reportData?.totalClassrooms || 0 },
-          { className: 'Total Assignments', averagePercentage: reportData?.totalAssignments || 0 },
-        ];
-        await exportReportSheetPDF('Global System Overview Report', 'Root Administrator', listData);
+        const isAllStudentsView = activeTab === 'all_students';
+        const listData = isAllStudentsView
+          ? (allStudentsData?.students || []).map((s) => ({
+              className: s.name || s.email,
+              submittedCount: s.assignmentsSubmitted || 0,
+              totalAssignments: s.totalAssignments || 0,
+              averagePercentage: s.overallAverage || 0,
+            }))
+          : [
+              { className: 'Total Schools', averagePercentage: reportData?.totalSchools || 0 },
+              { className: 'Total Users', averagePercentage: reportData?.totalUsers || 0 },
+              { className: 'Total Classrooms', averagePercentage: reportData?.totalClassrooms || 0 },
+              { className: 'Total Assignments', averagePercentage: reportData?.totalAssignments || 0 },
+            ];
+
+        await exportReportSheetPDF(
+          isAllStudentsView ? 'Global All Students Summary' : 'Global System Overview Report',
+          'Root Administrator',
+          listData,
+          {
+            reportType: isAllStudentsView ? 'All Students Summary' : 'Global Overview',
+            schoolName: 'All Schools',
+          }
+        );
       }
     } catch (err) {
       console.error('PDF export trigger error:', err);
+      Alert.alert('Export Error', err?.message || 'Failed to generate PDF report.');
     } finally {
       setExporting(false);
     }
@@ -318,21 +378,28 @@ export default function ReportsScreen({ navigation }) {
         {recentAssignments.length > 0 && (
           <>
             <Text style={[styles.sectionHeading, { color: theme.text }]}>Recent Grades</Text>
-            {recentAssignments.slice(0, 5).map((item, idx) => (
-              <View key={item.id || item._id || idx} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title || item.assignmentTitle || 'Assignment'}</Text>
-                    <Text style={[styles.cardSubText, { color: theme.muted }]}>{item.className}</Text>
-                  </View>
-                  <View style={[styles.scoreBadge, { backgroundColor: item.status === 'graded' || item.status === 'returned' || item.submitted ? '#10b98118' : '#f59e0b18' }]}>
-                    <Text style={[styles.scoreBadgeText, { color: item.status === 'graded' || item.status === 'returned' || item.submitted ? '#10b981' : '#f59e0b' }]}>
-                      {item.score != null && item.score > 0 ? `${item.score} pts` : item.status === 'submitted' || item.submitted ? 'Submitted' : 'Pending'}
-                    </Text>
+            {recentAssignments.slice(0, 5).map((item, idx) => {
+              const scoreValue = Number(item.score ?? item.percentage ?? item.averagePercentage ?? item.overallAverage ?? 0);
+              const hasPercentageScore = Number.isFinite(scoreValue) && scoreValue > 0;
+
+              return (
+                <View key={item.id || item._id || idx} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <View style={styles.cardHeaderRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title || item.assignmentTitle || 'Assignment'}</Text>
+                      <Text style={[styles.cardSubText, { color: theme.muted }]}>{item.className}</Text>
+                    </View>
+                    <View style={[styles.scoreBadge, { backgroundColor: item.status === 'graded' || item.status === 'returned' || item.submitted ? '#10b98118' : '#f59e0b18' }]}>
+                      <Text style={[styles.scoreBadgeText, { color: item.status === 'graded' || item.status === 'returned' || item.submitted ? '#10b981' : '#f59e0b' }]}>
+                        {hasPercentageScore
+                          ? formatPercentBadge(scoreValue)
+                          : item.status === 'submitted' || item.submitted ? 'Submitted' : 'Pending'}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </>
         )}
       </View>

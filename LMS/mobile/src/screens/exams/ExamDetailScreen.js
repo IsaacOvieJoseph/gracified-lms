@@ -8,6 +8,7 @@ import api from '../../api/api';
 import Button from '../../components/ui/Button';
 import McqReviewOptions, { normalizeMcqText } from '../../components/McqReviewOptions';
 import { shareExamLink } from '../../utils/links';
+import { exportExamReportPDF } from '../../utils/reportExport';
 
 export default function ExamDetailScreen({ route, navigation }) {
   const { examId } = route.params || {};
@@ -132,9 +133,14 @@ export default function ExamDetailScreen({ route, navigation }) {
           {selectedSubmission ? 'Grading Exam' : exam?.title}
         </Text>
         {!selectedSubmission && exam ? (
-          <Pressable onPress={() => shareExamLink(exam)} style={styles.iconButton}>
-            <Ionicons name="share-outline" size={22} color={theme.primary} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => exportExamReportPDF(exam, submissions)} style={styles.iconButton}>
+              <Ionicons name="download-outline" size={22} color={theme.primary} />
+            </Pressable>
+            <Pressable onPress={() => shareExamLink(exam)} style={styles.iconButton}>
+              <Ionicons name="share-outline" size={22} color={theme.primary} />
+            </Pressable>
+          </View>
         ) : (
           <View style={{ width: 24 }} />
         )}
@@ -304,6 +310,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   iconButton: { padding: 4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 18, fontWeight: '800', flex: 1, textAlign: 'center' },
   content: { padding: 20, paddingBottom: 40 },
   infoCard: { padding: 16, borderRadius: 20, borderWidth: 1, marginBottom: 20 },
