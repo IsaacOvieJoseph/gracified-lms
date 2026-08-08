@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -39,21 +39,23 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }] }>
-      <View style={styles.hero}>
-        <View style={[styles.logoBadge, { backgroundColor: theme.text }] }>
-          <Text style={[styles.logoText, { color: theme.background }]}>GL</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.content}>
+        <View style={styles.hero}>
+          <Image
+            source={theme.mode === 'dark' ? require('../../../assets/icon_dark.png') : require('../../../assets/icon_light.png')}
+            style={styles.logoIcon}
+            resizeMode="contain"
+          />
+          <Text style={[styles.title, { color: theme.text }]}>Welcome back</Text>
+          <Text style={[styles.subtitle, { color: theme.muted }]}>Sign in to continue your learning journey.</Text>
         </View>
-        <Text style={[styles.title, { color: theme.text }]}>Welcome back</Text>
-        <Text style={[styles.subtitle, { color: theme.muted }]}>Sign in to continue your learning journey.</Text>
-      </View>
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }] }>
-        <Input placeholder="Email address" value={email} onChangeText={setEmail} />
-        <Input placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-        <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} disabled={loading} />
-        <Button title="Forgot password?" onPress={() => navigation.navigate('ForgotPassword')} variant="secondary" />
-        {/* <Button title="Test network" onPress={() => navigation.navigate('NetworkTest')} variant="secondary" /> */}
-        <Button title="Create account" onPress={() => navigation.navigate('Register')} variant="secondary" />
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Input placeholder="Email address" value={email} onChangeText={setEmail} />
+          <Input placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+          <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} disabled={loading} />
+          <Button title="Forgot password?" onPress={() => navigation.navigate('ForgotPassword')} variant="secondary" />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -61,17 +63,16 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
-  hero: { marginTop: 28, marginBottom: 18 },
-  logoBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
-    marginBottom: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  content: { flex: 1, justifyContent: 'center' },
+  hero: { marginBottom: 24 },
+  logoIcon: {
+    width: 150,
+    height: 150,
+    marginBottom: 20,
+    borderRadius: 36,
+    alignSelf: 'center',
   },
-  logoText: { fontSize: 24, fontWeight: '800' },
-  title: { fontSize: 28, fontWeight: '800' },
-  subtitle: { marginTop: 8, fontSize: 15 },
-  card: { borderRadius: 24, padding: 18 },
+  title: { fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  subtitle: { marginTop: 8, fontSize: 15, textAlign: 'center' },
+  card: { borderRadius: 24, padding: 18, borderWidth: 1 },
 });

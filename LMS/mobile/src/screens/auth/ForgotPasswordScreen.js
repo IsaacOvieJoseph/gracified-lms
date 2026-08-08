@@ -95,13 +95,14 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Reset password</Text>
-        <Text style={[styles.subtitle, { color: theme.muted }]}> 
-          {step === 1 && 'Enter your email to receive a password reset code.'}
-          {step === 2 && `Enter the 6-digit code sent to ${normalizedEmail}.`}
-          {step === 3 && 'Create a new password for your account.'}
-        </Text>
+      <View style={styles.content}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.title, { color: theme.text }]}>Reset password</Text>
+          <Text style={[styles.subtitle, { color: theme.muted }]}>
+            {step === 1 && 'Enter your email to receive a password reset code.'}
+            {step === 2 && `Enter the 6-digit code sent to ${normalizedEmail}.`}
+            {step === 3 && 'Create a new password for your account.'}
+          </Text>
 
         {step === 1 && (
           <>
@@ -128,13 +129,15 @@ export default function ForgotPasswordScreen({ navigation }) {
         )}
 
         <Button title="Back to login" onPress={() => navigation.replace('Login')} variant="secondary" />
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
+  container: { flex: 1, paddingHorizontal: 24 },
+  content: { flex: 1, justifyContent: 'center' },
   card: { borderRadius: 24, padding: 24, borderWidth: 1 },
   title: { fontSize: 24, fontWeight: '800', textAlign: 'center' },
   subtitle: { marginTop: 8, marginBottom: 20, fontSize: 15, textAlign: 'center', lineHeight: 22 },

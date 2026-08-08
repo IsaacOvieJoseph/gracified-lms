@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 // Auth Screens
+import AuthIntroScreen from '../screens/auth/AuthIntroScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import NetworkTestScreen from '../screens/auth/NetworkTestScreen';
@@ -139,6 +140,7 @@ export default function AppNavigator() {
       ) : (
         // Non-Authenticated Stack
         <>
+          <Stack.Screen name="AuthIntro" component={AuthIntroScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />

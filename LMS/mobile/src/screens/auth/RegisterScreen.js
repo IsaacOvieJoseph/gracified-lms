@@ -87,9 +87,9 @@ export default function RegisterScreen({ navigation }) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Create your account</Text>
-        <Text style={[styles.subtitle, { color: theme.muted }]}>Choose the same account type available on the web app.</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.title, { color: theme.text }]}>Create your account</Text>
+          <Text style={[styles.subtitle, { color: theme.muted }]}>Choose the same account type available on the web app.</Text>
 
         <View style={styles.accountList}>
           {accountTypes.map((type) => {
@@ -161,9 +161,9 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 24, paddingBottom: 40 },
-  card: { borderRadius: 24, padding: 18, marginTop: 24 },
+  container: { flex: 1, paddingHorizontal: 24 },
+  content: { paddingVertical: 24, paddingBottom: 40 },
+  card: { borderRadius: 24, padding: 18, borderWidth: 1 },
   title: { fontSize: 25, fontWeight: '800' },
   subtitle: { marginBottom: 16, marginTop: 8 },
   accountList: { gap: 10, marginBottom: 16 },
