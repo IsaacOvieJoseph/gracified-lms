@@ -134,6 +134,15 @@ export default function ProfileScreen({ navigation }) {
           <View style={[styles.roleBadge, { backgroundColor: getRoleBadgeColor(user?.role) }]}>
             <Text style={[styles.roleBadgeText, { color: theme.onPrimary }]}>{user?.role?.toUpperCase() || 'STUDENT'}</Text>
           </View>
+
+          <Pressable
+            style={[styles.reportsActionBtn, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={() => navigation.navigate('Reports')}
+          >
+            <Ionicons name="bar-chart-outline" size={18} color={theme.primary} />
+            <Text style={[styles.reportsActionText, { color: theme.text }]}>View Performance Reports</Text>
+            <Ionicons name="chevron-forward-outline" size={16} color={theme.muted} />
+          </Pressable>
         </View>
 
         {['root_admin', 'school_admin'].includes(user?.role) && schools.length > 0 && (
@@ -254,6 +263,17 @@ const styles = StyleSheet.create({
   email: { fontSize: 14, marginTop: 4, marginBottom: 12 },
   roleBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   roleBadgeText: { fontSize: 10, fontWeight: '800' },
+  reportsActionBtn: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+  },
+  reportsActionText: { fontSize: 13, fontWeight: '700', flex: 1 },
   schoolSharePanel: { borderRadius: 20, padding: 14, borderWidth: 1, marginBottom: 24 },
   schoolShareHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   schoolShareIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },

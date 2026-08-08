@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import SelectField from '../../components/ui/SelectField';
 
 const accountTypes = [
   { role: 'student', title: 'Student', subtitle: 'Join classes, submit assignments, and take exams.' },
@@ -22,7 +23,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('student');
-  const [schoolId, setSchoolId] = useState('');
+  const [schoolId, setSchoolId] = useState('none');
   const [schoolName, setSchoolName] = useState('');
   const [tutorialName, setTutorialName] = useState('');
   const [schools, setSchools] = useState([]);
@@ -39,6 +40,14 @@ export default function RegisterScreen({ navigation }) {
     };
     fetchSchools();
   }, []);
+
+  const schoolOptions = [
+    { label: 'None (Independent Student)', value: 'none' },
+    ...schools.map((school) => ({
+      label: school.name,
+      value: school._id,
+    })),
+  ];
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
@@ -122,26 +131,15 @@ export default function RegisterScreen({ navigation }) {
         <Input placeholder="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
         {role === 'student' && (
-          <View style={styles.selectorBlock}>
-            <Text style={[styles.fieldLabel, { color: theme.muted }]}>School / Tutorial Center</Text>
-            <View style={styles.chipRow}>
-              <Pressable
-                style={[styles.chip, { backgroundColor: theme.background, borderColor: theme.border }, schoolId === 'none' && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                onPress={() => setSchoolId('none')}
-              >
-                <Text style={[styles.chipText, { color: schoolId === 'none' ? theme.onPrimary : theme.text }]}>None</Text>
-              </Pressable>
-              {schools.map((school) => (
-                <Pressable
-                  key={school._id}
-                  style={[styles.chip, { backgroundColor: theme.background, borderColor: theme.border }, schoolId === school._id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => setSchoolId(school._id)}
-                >
-                  <Text style={[styles.chipText, { color: schoolId === school._id ? theme.onPrimary : theme.text }]}>{school.name}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+          <SelectField
+            label="School / Tutorial Center"
+            value={schoolId || 'none'}
+            options={schoolOptions}
+            onChange={setSchoolId}
+            placeholder="Select school or tutorial center"
+            searchable={true}
+            searchPlaceholder="Quick search school or center..."
+          />
         )}
 
         {role === 'school_admin' && (

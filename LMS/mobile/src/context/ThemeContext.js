@@ -28,11 +28,12 @@ const defaultLight = {
   background: '#F8FAFC',
   surface: '#FFFFFF',
   surfaceElevated: '#F1F5F9',
-  border: '#E2E8F0',
+  border: '#DBEAFE',      // light blue tint — secondary button background
   muted: '#64748B',
   text: '#0F172A',
-  primary: '#0F172A',
-  onPrimary: '#FFFFFF',
+  primary: '#FFFFFF',     // white — primary button background
+  onPrimary: '#0F172A',   // dark text on white primary button
+  secondaryText: '#1D4ED8', // blue label for the light-blue secondary button
   success: '#059669',
   danger: '#BE123C',
   info: '#0284C7',

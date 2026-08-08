@@ -37,6 +37,7 @@ import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import SharedResourceScreen from '../screens/shared/SharedResourceScreen';
 import ManageTeachersScreen from '../screens/users/ManageTeachersScreen';
 import AIAssistantScreen from '../screens/ai/AIAssistantScreen';
+import ReportsScreen from '../screens/reports/ReportsScreen';
 import { canUseAssignmentsPortal, canUsePayments } from '../utils/roles';
 
 const Stack = createStackNavigator();
@@ -135,6 +136,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="ManageTeachers" component={ManageTeachersScreen} />
             <Stack.Screen name="AIAssistant" component={AIAssistantScreen} />
+            <Stack.Screen name="Reports" component={ReportsScreen} />
           </>
         )
       ) : (

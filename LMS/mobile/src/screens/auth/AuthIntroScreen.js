@@ -15,7 +15,7 @@ export default function AuthIntroScreen({ navigation }) {
         <AuthCarousel showDots={true} />
       </View>
       
-      <View style={[styles.contentOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.3)' }]}>
+      <View style={[styles.contentOverlay, { backgroundColor: 'transparent' }]}>
         <View style={styles.buttonContainer}>
           <Button 
             title="Sign in" 

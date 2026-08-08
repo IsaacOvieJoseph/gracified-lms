@@ -4,18 +4,34 @@ import { useTheme } from '../../context/ThemeContext';
 
 export default function Button({ title, onPress, variant = 'primary', disabled = false }) {
   const { theme } = useTheme();
+
+  const isPrimary = variant === 'primary';
+
+  const bgColor = isPrimary ? theme.primary : theme.border;
+  const textColor = isPrimary
+    ? theme.onPrimary
+    : (theme.secondaryText || theme.text);
+
+  // In light mode the primary button is white — give it a visible border so it
+  // doesn't dissolve into white backgrounds. In dark mode the border is subtle.
+  const borderColor = isPrimary ? theme.onPrimary : (theme.secondaryText || theme.border);
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,
-        variant === 'secondary' ? { backgroundColor: theme.border } : { backgroundColor: theme.primary },
+        {
+          backgroundColor: bgColor,
+          borderColor: borderColor,
+          borderWidth: 1.5,
+        },
         disabled && styles.disabled,
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[styles.text, { color: variant === 'secondary' ? theme.text : theme.onPrimary }]}>{title}</Text>
+      <Text style={[styles.text, { color: textColor }]}>{title}</Text>
     </Pressable>
   );
 }

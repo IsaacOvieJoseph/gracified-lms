@@ -261,6 +261,17 @@ export default function DashboardScreen({ navigation }) {
               </Pressable>
             )}
 
+            <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Reports')}>
+              <View style={[styles.portalIcon, { backgroundColor: `${theme.primary}26` }]}>
+                <Ionicons name="bar-chart-outline" size={20} color={theme.primary} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.portalTitle, { color: theme.text }]}>Reports & Analytics</Text>
+                <Text style={[styles.portalSub, { color: theme.muted }]}>Track overall grades, classroom performance, and submission stats.</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
+            </Pressable>
+
             <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Exams')}>
               <View style={[styles.portalIcon, { backgroundColor: `${theme.success}26` }]}>
                 <Ionicons name="journal-outline" size={20} color={theme.success} />
