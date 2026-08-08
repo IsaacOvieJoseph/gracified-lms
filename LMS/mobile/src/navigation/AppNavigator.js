@@ -58,19 +58,28 @@ function MainTabs() {
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
           height: 82 + insets.bottom,
-          paddingBottom: 20 + insets.bottom,
-          paddingTop: 12,
+          paddingBottom: 18 + insets.bottom,
+          paddingTop: 10,
+          paddingHorizontal: 8,
         },
         tabBarItemStyle: {
           paddingHorizontal: 0,
+          paddingVertical: 0,
+          justifyContent: 'center',
+          minWidth: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+          textAlign: 'center',
+          marginTop: 2,
         },
         tabBarLabel: ({ color, children }) => (
           <Text
             allowFontScaling={false}
             numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.85}
-            style={{ color, fontSize: 11, fontWeight: '700', lineHeight: 13, textAlign: 'center' }}
+            adjustsFontSizeToFit={false}
+            style={{ color, fontSize: 10, fontWeight: '700', lineHeight: 12, textAlign: 'center' }}
           >
             {children}
           </Text>
