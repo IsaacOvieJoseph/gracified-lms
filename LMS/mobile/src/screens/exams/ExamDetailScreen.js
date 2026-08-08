@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, TextInput, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, Alert, TextInput, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import McqReviewOptions, { normalizeMcqText } from '../../components/McqReviewOptions';
 import { shareExamLink } from '../../utils/links';
 import { exportExamReportPDF } from '../../utils/reportExport';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 export default function ExamDetailScreen({ route, navigation }) {
   const { examId } = route.params || {};
@@ -146,7 +147,7 @@ export default function ExamDetailScreen({ route, navigation }) {
         )}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         {/* Exam Information Header */}
         {!selectedSubmission && (
           <View style={[styles.infoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -290,7 +291,7 @@ export default function ExamDetailScreen({ route, navigation }) {
             )}
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

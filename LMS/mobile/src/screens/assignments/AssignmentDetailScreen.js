@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,7 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import McqReviewOptions, { getMcqAnswerState } from '../../components/McqReviewOptions';
 import { canManageAssignments } from '../../utils/roles';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 export default function AssignmentDetailScreen({ route, navigation }) {
   const { assignmentId } = route.params || {};
@@ -163,7 +164,7 @@ export default function AssignmentDetailScreen({ route, navigation }) {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={styles.metaRow}>
           <View style={[styles.badge, { backgroundColor: theme.border }]}>
             <Text style={[styles.badgeText, { color: theme.muted }]}>MAX SCORE: {assignment?.maxScore || 100}</Text>
@@ -431,7 +432,7 @@ export default function AssignmentDetailScreen({ route, navigation }) {
             )}
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

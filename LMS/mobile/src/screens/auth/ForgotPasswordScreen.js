@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, SafeAreaView, StyleSheet, Text } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
 
@@ -95,7 +96,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.title, { color: theme.text }]}>Reset password</Text>
           <Text style={[styles.subtitle, { color: theme.muted }]}>
@@ -130,14 +131,14 @@ export default function ForgotPasswordScreen({ navigation }) {
 
         <Button title="Back to login" onPress={() => navigation.replace('Login')} variant="secondary" />
         </View>
-      </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
-  content: { flex: 1, justifyContent: 'center' },
+  content: { flexGrow: 1, justifyContent: 'center', paddingVertical: 24 },
   card: { borderRadius: 24, padding: 24, borderWidth: 1 },
   title: { fontSize: 24, fontWeight: '800', textAlign: 'center' },
   subtitle: { marginTop: 8, marginBottom: 20, fontSize: 15, textAlign: 'center', lineHeight: 22 },

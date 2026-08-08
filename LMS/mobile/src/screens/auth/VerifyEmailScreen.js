@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 export default function VerifyEmailScreen({ route, navigation }) {
   const { user, setUser, setToken, logout } = useAuth();
@@ -69,51 +70,54 @@ export default function VerifyEmailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }] }>
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }] }>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>Verify your email</Text>
-          <Text style={[styles.subtitle, { color: theme.muted }] }>
-            A 6-digit verification code was sent to <Text style={[styles.emailHighlight, { color: theme.info }]}>{email}</Text>.
-          </Text>
-        </View>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }] }>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: theme.text }]}>Verify your email</Text>
+            <Text style={[styles.subtitle, { color: theme.muted }] }>
+              A 6-digit verification code was sent to <Text style={[styles.emailHighlight, { color: theme.info }]}>{email}</Text>.
+            </Text>
+          </View>
 
-        <Input
-          placeholder="Enter 6-digit OTP"
-          value={otp}
-          onChangeText={setOtp}
-          keyboardType="number-pad"
-        />
-
-        <Button
-          title={loading ? 'Verifying...' : 'Verify email'}
-          onPress={handleVerify}
-          disabled={loading}
-        />
-
-        <View style={styles.options}>
-          {resending ? (
-            <ActivityIndicator color={theme.primary} />
-          ) : (
-            <Button
-              title="Resend code"
-              onPress={handleResend}
-              variant="secondary"
-            />
-          )}
+          <Input
+            placeholder="Enter 6-digit OTP"
+            value={otp}
+            onChangeText={setOtp}
+            keyboardType="number-pad"
+          />
 
           <Button
-            title={user ? 'Sign out' : 'Back to login'}
-            onPress={user ? logout : () => navigation?.replace('Login')}
-            variant="secondary"
+            title={loading ? 'Verifying...' : 'Verify email'}
+            onPress={handleVerify}
+            disabled={loading}
           />
+
+          <View style={styles.options}>
+            {resending ? (
+              <ActivityIndicator color={theme.primary} />
+            ) : (
+              <Button
+                title="Resend code"
+                onPress={handleResend}
+                variant="secondary"
+              />
+            )}
+
+            <Button
+              title={user ? 'Sign out' : 'Back to login'}
+              onPress={user ? logout : () => navigation?.replace('Login')}
+              variant="secondary"
+            />
+          </View>
         </View>
-      </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
+  container: { flex: 1, paddingHorizontal: 24 },
+  content: { flexGrow: 1, justifyContent: 'center', paddingVertical: 24 },
   card: { borderRadius: 24, padding: 24 },
   header: { marginBottom: 20 },
   title: { fontSize: 24, fontWeight: '800', textAlign: 'center' },

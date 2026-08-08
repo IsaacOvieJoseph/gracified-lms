@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 import { canEditPayoutProfile, canCreateTeachers } from '../../utils/roles';
 import { shareSchoolLink } from '../../utils/links';
 
@@ -117,7 +118,7 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={[styles.userCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Pressable onPress={handlePickProfileImage} disabled={uploadingImage} style={[styles.avatar, { backgroundColor: theme.border }]} accessibilityRole="button" accessibilityLabel="Change profile image or logo">
             {user?.profilePicture ? <Image source={{ uri: user.profilePicture }} style={styles.avatarImage} /> : <Ionicons name="person" size={32} color={theme.text} />}
@@ -245,7 +246,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={[styles.logoutBtnText, { color: '#FFFFFF' }]}>Sign out of account</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

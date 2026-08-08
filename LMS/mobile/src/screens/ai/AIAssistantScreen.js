@@ -8,6 +8,7 @@ import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { isStudent } from '../../utils/roles';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const MODES = [
   ['classroom', 'Class', 'school-outline', '/ai/generate-classroom', 'classroom'],
@@ -106,7 +107,7 @@ export default function AIAssistantScreen({ navigation }) {
   );
   return <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
     <View style={[styles.header, { borderBottomColor: theme.border }]}><Pressable onPress={() => navigation.goBack()}><Ionicons name="arrow-back-outline" size={24} color={theme.text} /></Pressable><Text style={[styles.title, { color: theme.text }]}>AI Assistant</Text><View style={{ width: 24 }} /></View>
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAwareScrollView contentContainerStyle={styles.content}>
       <Text style={[styles.subtitle, { color: theme.muted }]}>Create lessons, assessments, slides, and get academic help.</Text>
       {provider && <Text style={[styles.provider, { color: theme.primary }]}>Powered by {provider === 'gemini' ? 'Google Gemini' : 'Groq'}</Text>}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modeList}>{MODES.map(([key, label, icon]) => <Pressable key={key} onPress={() => { setMode(key); setResult(null); setError(''); }} style={[styles.mode, { borderColor: mode === key ? theme.primary : theme.border, backgroundColor: mode === key ? theme.surfaceElevated : theme.surface }]}><Ionicons name={icon} size={18} color={mode === key ? theme.primary : theme.muted} /><Text style={[styles.modeText, { color: mode === key ? theme.text : theme.muted }]}>{label}</Text></Pressable>)}</ScrollView>
@@ -115,7 +116,7 @@ export default function AIAssistantScreen({ navigation }) {
         if (action === 'classroom') navigation.navigate('MainTabs', { screen: 'Classes', params: { aiAction: 'classroom', aiResult: result } });
         else if (classroom?._id) navigation.navigate('ClassroomDetail', { classroomId: classroom._id, aiAction: action, aiResult: result });
       }} />}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   </SafeAreaView>;
 }
 

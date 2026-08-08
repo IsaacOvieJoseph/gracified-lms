@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, Linking, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, Alert, Linking, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import { canManageClassroom } from '../../utils/roles';
 import { getVideoEmbedInfo } from '../../utils/video';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const unwrapTopicResponse = (payload) => payload?.topic || payload?.data?.topic || payload?.data || payload || null;
 const asList = (value) => Array.isArray(value) ? value : [];
@@ -225,7 +226,7 @@ export default function TopicDetailScreen({ route, navigation }) {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={styles.metaRow}>
           <View style={[
             styles.badge,
@@ -460,7 +461,7 @@ export default function TopicDetailScreen({ route, navigation }) {
             <Text style={[styles.emptyText, { color: theme.muted }]}>No recorded lectures available yet.</Text>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

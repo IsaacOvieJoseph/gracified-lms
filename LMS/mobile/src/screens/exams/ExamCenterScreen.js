@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import Button from '../../components/ui/Button';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 export default function ExamCenterScreen({ route, navigation }) {
   const { theme } = useTheme();
@@ -206,7 +207,7 @@ export default function ExamCenterScreen({ route, navigation }) {
         </View>
       ) : (
         // Main Exam Taking Form
-        <ScrollView contentContainerStyle={styles.examScroll}>
+        <KeyboardAwareScrollView contentContainerStyle={styles.examScroll}>
           {questions.map((q, idx) => (
             <View key={q._id || idx} style={[styles.questionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Text style={[styles.questionNum, { color: theme.text }]}>Question {idx + 1}</Text>
@@ -274,7 +275,7 @@ export default function ExamCenterScreen({ route, navigation }) {
             }}
             disabled={submitting}
           />
-        </ScrollView>
+        </KeyboardAwareScrollView>
       )}
     </SafeAreaView>
   );

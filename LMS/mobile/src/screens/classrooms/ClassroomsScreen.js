@@ -16,6 +16,7 @@ import {
 import { shareClassroomLink } from '../../utils/links';
 import DateTimePicker from '../../components/ui/DateTimePicker';
 import SelectField from '../../components/ui/SelectField';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const normalizeClassroomsResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -572,7 +573,7 @@ export default function ClassroomsScreen({ navigation, route }) {
       {showCreateModal && (
         <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={[styles.modalTitle, { color: theme.text }]}>Create a classroom</Text>
@@ -795,7 +796,7 @@ export default function ClassroomsScreen({ navigation, route }) {
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, createLoading && { opacity: 0.7 }]} onPress={handleCreateClassroom} disabled={createLoading}>
                 <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{createLoading ? 'Creating…' : 'Create Classroom'}</Text>
               </Pressable>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
       )}
@@ -864,7 +865,8 @@ const styles = StyleSheet.create({
   smallActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, minWidth: 88 },
   smallActionText: { fontSize: 11, fontWeight: '700' },
   modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1 },
+  modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1, overflow: 'hidden' },
+  modalKeyboardScroll: { flex: 0 },
   modalContent: { padding: 20, gap: 8 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 20, fontWeight: '800' },

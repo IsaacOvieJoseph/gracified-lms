@@ -9,6 +9,7 @@ import { canManageClassroom, canViewClassroomContent } from '../../utils/roles';
 import { shareClassroomLink, shareExamLink } from '../../utils/links';
 import DateTimePicker from '../../components/ui/DateTimePicker';
 import SelectField from '../../components/ui/SelectField';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -1298,7 +1299,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       <Modal visible={showTopicModal} animationType="slide" transparent onRequestClose={() => { setShowTopicModal(false); setEditingTopic(null); setPendingTopicBatch(null); }}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: theme.text }]}>{editingTopic ? 'Edit Topic' : 'Add Topic'}</Text>
                 <Pressable onPress={() => { setShowTopicModal(false); setEditingTopic(null); setPendingTopicBatch(null); }} style={styles.modalCloseButton}>
@@ -1323,7 +1324,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, topicLoading && { opacity: 0.7 }]} onPress={handleCreateTopic} disabled={topicLoading}>
                 <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{topicLoading ? (editingTopic ? 'Saving...' : 'Creating...') : (editingTopic ? 'Save Topic' : 'Add Topic')}</Text>
               </Pressable>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
       </Modal>
@@ -1332,7 +1333,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       <Modal visible={showAssignmentModal} animationType="slide" transparent onRequestClose={() => setShowAssignmentModal(false)}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: theme.text }]}>{editingAssignment ? 'Edit Assignment' : 'New Assignment'}</Text>
                 <Pressable onPress={() => setShowAssignmentModal(false)} style={styles.modalCloseButton}>
@@ -1442,7 +1443,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, assignLoading && { opacity: 0.7 }]} onPress={handleCreateAssignment} disabled={assignLoading}>
                 <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{assignLoading ? 'Saving...' : editingAssignment ? 'Save Assignment' : 'Create Assignment'}</Text>
               </Pressable>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
       </Modal>
@@ -1451,7 +1452,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       <Modal visible={showExamModal} animationType="slide" transparent onRequestClose={() => setShowExamModal(false)}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: theme.text }]}>{editingExam ? 'Edit Exam' : 'Schedule Exam'}</Text>
                 <Pressable onPress={() => setShowExamModal(false)} style={styles.modalCloseButton}>
@@ -1570,7 +1571,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, examLoading && { opacity: 0.7 }]} onPress={handleCreateExam} disabled={examLoading}>
                 <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{examLoading ? 'Saving...' : editingExam ? 'Save Exam' : 'Schedule Exam'}</Text>
               </Pressable>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
       </Modal>
@@ -1578,7 +1579,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       {showEditModal && (
         <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={[styles.modalTitle, { color: theme.text }]}>Edit classroom</Text>
@@ -1731,7 +1732,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
               <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, editLoading && { opacity: 0.7 }]} onPress={handleUpdateClassroom} disabled={editLoading}>
                 <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{editLoading ? 'Saving...' : 'Save Changes'}</Text>
               </Pressable>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
       )}
@@ -1807,7 +1808,8 @@ const styles = StyleSheet.create({
   assignIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 14, fontStyle: 'italic', paddingLeft: 4 },
   modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1 },
+  modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1, overflow: 'hidden' },
+  modalKeyboardScroll: { flex: 0 },
   modalContent: { padding: 20, gap: 8 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 20, fontWeight: '800' },

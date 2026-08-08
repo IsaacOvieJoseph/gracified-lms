@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, StyleSheet, Alert, View } from 'react-native';
+import { Pressable, Text, StyleSheet, Alert, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ import api from '../../api/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import SelectField from '../../components/ui/SelectField';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const accountTypes = [
   { role: 'student', title: 'Student', subtitle: 'Join classes, submit assignments, and take exams.' },
@@ -95,7 +96,7 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.title, { color: theme.text }]}>Create your account</Text>
           <Text style={[styles.subtitle, { color: theme.muted }]}>Choose the same account type available on the web app.</Text>
@@ -153,14 +154,14 @@ export default function RegisterScreen({ navigation }) {
         <Button title={loading ? 'Creating account...' : 'Continue'} onPress={handleRegister} />
         <Button title="Back to login" onPress={() => navigation.goBack()} variant="secondary" />
       </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
-  content: { paddingVertical: 24, paddingBottom: 40 },
+  content: { flexGrow: 1, paddingVertical: 24, paddingBottom: 40 },
   card: { borderRadius: 24, padding: 18, borderWidth: 1 },
   title: { fontSize: 25, fontWeight: '800' },
   subtitle: { marginBottom: 16, marginTop: 8 },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, RefreshControl, Alert, Modal, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, RefreshControl, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/api';
 import { isStudent, canManageClassroom } from '../../utils/roles';
 import { shareExamLink } from '../../utils/links';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const normalizeListResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -323,7 +324,7 @@ export default function ExamsScreen({ navigation }) {
                 <Ionicons name="close" size={24} color={theme.muted} />
               </Pressable>
             </View>
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
                 placeholder="Exam Title *"
@@ -443,7 +444,7 @@ export default function ExamsScreen({ navigation }) {
                   {createLoading ? 'Creating...' : 'Create Exam'}
                 </Text>
               </Pressable>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
       </Modal>
@@ -487,7 +488,8 @@ const styles = StyleSheet.create({
   createEmptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 24, marginTop: 8 },
   createEmptyBtnText: { fontWeight: '800', fontSize: 13 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalContainer: { borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, maxHeight: '94%' },
+  modalContainer: { borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, maxHeight: '94%', overflow: 'hidden' },
+  modalKeyboardScroll: { flex: 0 },
   modalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1 },
   modalTitle: { fontSize: 18, fontWeight: '800' },
   modalContent: { padding: 20, paddingBottom: 40 },

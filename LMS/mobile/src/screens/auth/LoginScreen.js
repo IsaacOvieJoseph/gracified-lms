@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -40,7 +41,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Image
             source={theme.mode === 'dark' ? require('../../../assets/icon_dark.png') : require('../../../assets/icon_light.png')}
@@ -56,14 +57,14 @@ export default function LoginScreen({ navigation }) {
           <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} disabled={loading} />
           <Button title="Forgot password?" onPress={() => navigation.navigate('ForgotPassword')} variant="secondary" />
         </View>
-      </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
-  content: { flex: 1, justifyContent: 'center' },
+  content: { flexGrow: 1, justifyContent: 'center', paddingVertical: 24 },
   hero: { marginBottom: 24 },
   logoIcon: {
     width: 150,

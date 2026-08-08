@@ -8,7 +8,6 @@ import {
   Pressable,
   Alert,
   Modal,
-  ScrollView,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +19,7 @@ import api from '../../api/api';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { canCreateTeachers, getEntityId } from '../../utils/roles';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const EMPTY_FORM = {
   name: '',
@@ -254,7 +254,7 @@ export default function ManageTeachersScreen({ navigation }) {
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
               <Text style={[styles.fieldLabel, { color: theme.muted }]}>Full name</Text>
               <Input
                 placeholder="Teacher full name"
@@ -322,7 +322,7 @@ export default function ManageTeachersScreen({ navigation }) {
                   <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>Create Teacher Account</Text>
                 )}
               </Pressable>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         </View>
       </Modal>
@@ -393,6 +393,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
+  modalKeyboardScroll: { flex: 0 },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
