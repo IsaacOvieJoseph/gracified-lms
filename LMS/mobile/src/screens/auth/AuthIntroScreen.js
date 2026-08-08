@@ -22,7 +22,7 @@ export default function AuthIntroScreen({ navigation }) {
             onPress={() => navigation.navigate('Login')}
           />
           <Button 
-            title="Sign up" 
+            title="Create an account" 
             onPress={() => navigation.navigate('Register')}
             variant="secondary"
           />

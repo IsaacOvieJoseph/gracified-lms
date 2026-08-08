@@ -1051,7 +1051,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
                 <Text style={[styles.liveBtnText, { color: theme.onPrimary }]}>Whiteboard</Text>
               </Pressable>
 
-              <Pressable style={[styles.liveBtn, { backgroundColor: theme.success }]} onPress={handleJoinQnA}>
+              <Pressable style={[styles.liveBtn, { backgroundColor: theme.primary }]} onPress={handleJoinQnA}>
                 <Ionicons name="chatbubbles-outline" size={20} color={theme.onPrimary} />
                 <Text style={[styles.liveBtnText, { color: theme.onPrimary }]}>
                   {canManage ? 'Start / Open Q&A' : 'Q&A Board'}

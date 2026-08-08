@@ -405,7 +405,7 @@ export default function ClassroomsScreen({ navigation, route }) {
         )}
 
         {isStudent(user) && (
-          <Pressable style={[styles.actionBtn, { backgroundColor: enrolled ? theme.success : theme.primary }, enrolled && { backgroundColor: theme.success }]} onPress={() => enrolled ? navigation.navigate('ClassroomDetail', { classroomId: item._id }) : handleEnroll(item)}>
+          <Pressable style={[styles.actionBtn, { backgroundColor: theme.primary }]} onPress={() => enrolled ? navigation.navigate('ClassroomDetail', { classroomId: item._id }) : handleEnroll(item)}>
             <Text style={[styles.actionBtnText, { color: theme.onPrimary }]}>{enrolled ? 'Open' : item.isPaid ? 'Pay & Enroll' : 'Enroll'}</Text>
           </Pressable>
         )}

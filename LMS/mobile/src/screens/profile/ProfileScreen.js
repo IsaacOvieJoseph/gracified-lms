@@ -241,8 +241,8 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={{ marginTop: 32 }}>
           <Pressable style={[styles.logoutBtn, { backgroundColor: theme.danger }]} onPress={logout}>
-            <Ionicons name="log-out-outline" size={20} color={theme.onPrimary} />
-            <Text style={[styles.logoutBtnText, { color: theme.onPrimary }]}>Sign out of account</Text>
+            <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+            <Text style={[styles.logoutBtnText, { color: '#FFFFFF' }]}>Sign out of account</Text>
           </Pressable>
         </View>
       </ScrollView>
