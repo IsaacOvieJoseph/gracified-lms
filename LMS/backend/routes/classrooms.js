@@ -13,7 +13,94 @@ const Assignment = require('../models/Assignment');
 const Topic = require('../models/Topic');
 const FeedbackRequest = require('../models/FeedbackRequest');
 const { sendEmail } = require('../utils/email');
+const PublicAttendee = require('../models/PublicAttendee');
+const axios = require('axios');
 const router = express.Router();
+
+const PUBLIC_SESSION_WINDOW_MS = 55 * 60 * 1000;
+
+const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const publicClassroomPopulate = (query) => query
+  .populate({
+    path: 'teacherId',
+    select: 'name email role subscriptionStatus trialEndDate tutorialId',
+    populate: {
+      path: 'tutorialId',
+      select: 'name'
+    }
+  })
+  .populate('topics', 'name description status order isPaid price')
+  .populate({
+    path: 'schoolId',
+    select: 'name adminId shortCode logoUrl',
+    populate: {
+      path: 'adminId',
+      select: 'name email'
+    }
+  });
+
+const findPublicClassroom = async (identifier) => {
+  let classroom = await Classroom.findOne({ slug: identifier.toLowerCase() });
+
+  if (!classroom) {
+    classroom = await Classroom.findOne({ shortCode: identifier });
+  }
+
+  if (!classroom && require('mongoose').Types.ObjectId.isValid(identifier)) {
+    classroom = await Classroom.findById(identifier);
+  }
+
+  return classroom;
+};
+
+const getLatestPublicAccess = async (classroom) => {
+  const now = new Date();
+  const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
+  const isLive = latest && (now - new Date(latest.startedAt)) <= PUBLIC_SESSION_WINDOW_MS;
+
+  if (isLive) {
+    return {
+      accessType: 'live',
+      joinUrl: latest.link,
+      callSessionId: latest._id,
+      startedAt: latest.startedAt
+    };
+  }
+
+  if (classroom.publicAccess?.recordingUrl) {
+    return {
+      accessType: 'recording',
+      joinUrl: classroom.publicAccess.recordingUrl,
+      callSessionId: null,
+      startedAt: null
+    };
+  }
+
+  return {
+    accessType: 'none',
+    joinUrl: null,
+    callSessionId: null,
+    startedAt: null
+  };
+};
+
+const ensureGuestSeminarAvailable = (classroom) => {
+  if (!classroom) return 'Classroom not found';
+  if (!classroom.published) return 'This public lecture is not active yet.';
+  if (classroom.isPrivate) return 'This public lecture is private.';
+  if (!classroom.publicAccess?.allowGuestAccess) return 'Guest access is not enabled for this classroom.';
+
+  const now = new Date();
+  if (classroom.publicAccess?.startsAt && now < new Date(classroom.publicAccess.startsAt)) {
+    return 'This public lecture has not started yet.';
+  }
+  if (classroom.publicAccess?.endsAt && now > new Date(classroom.publicAccess.endsAt) && !classroom.publicAccess?.recordingUrl) {
+    return 'This public lecture has ended and no recording is available.';
+  }
+
+  return null;
+};
 
 // Public: Get classroom by shortCode for preview
 /**
@@ -37,42 +124,13 @@ const router = express.Router();
 router.get('/public/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
-    
-    // Try to find by slug first (most user-friendly)
-    let classroom = await Classroom.findOne({ slug: identifier.toLowerCase() });
-    
-    // Fall back to shortCode
-    if (!classroom) {
-      classroom = await Classroom.findOne({ shortCode: identifier });
-    }
-
-    // Fall back to ID
-    if (!classroom && require('mongoose').Types.ObjectId.isValid(identifier)) {
-      classroom = await Classroom.findById(identifier);
-    }
+    const classroom = await findPublicClassroom(identifier);
 
     if (!classroom) {
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
-    const populatedClassroom = await Classroom.findById(classroom._id)
-      .populate({
-        path: 'teacherId',
-        select: 'name email role subscriptionStatus trialEndDate tutorialId',
-        populate: {
-          path: 'tutorialId',
-          select: 'name'
-        }
-      })
-      .populate('topics', 'name description status order isPaid price')
-      .populate({
-        path: 'schoolId',
-        select: 'name adminId',
-        populate: {
-          path: 'adminId',
-          select: 'name email'
-        }
-      });
+    const populatedClassroom = await publicClassroomPopulate(Classroom.findById(classroom._id));
 
     if (!populatedClassroom.published) {
       return res.status(403).json({ message: 'Classroom is not currently active for public preview.' });
@@ -82,9 +140,255 @@ router.get('/public/:identifier', async (req, res) => {
       return res.status(403).json({ message: 'This is a private classroom and cannot be previewed via public link. Kindly reach out to your class coordinator or teacher for access.' });
     }
 
-    res.json({ classroom: populatedClassroom });
+    const latestAccess = await getLatestPublicAccess(populatedClassroom);
+
+    res.json({
+      classroom: populatedClassroom,
+      publicAccess: {
+        guestEnabled: !!populatedClassroom.publicAccess?.allowGuestAccess,
+        hasActiveLive: latestAccess.accessType === 'live',
+        hasRecording: !!populatedClassroom.publicAccess?.recordingUrl,
+        activeStartedAt: latestAccess.startedAt
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Public: guest join for free public lectures/seminars or paid attendees already verified.
+router.post('/public/:identifier/join', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { name, email, reference } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required to join.' });
+    }
+
+    const classroom = await findPublicClassroom(identifier);
+    const unavailableReason = ensureGuestSeminarAvailable(classroom);
+    if (unavailableReason) {
+      return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
+    }
+
+    const latestAccess = await getLatestPublicAccess(classroom);
+    if (!latestAccess.joinUrl) {
+      return res.status(404).json({ message: 'No live session or recording is available yet.' });
+    }
+
+    const amount = classroom.isPaid ? Number(classroom.pricing?.amount || 0) : 0;
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    if (amount > 0) {
+      const paidAttendee = await PublicAttendee.findOne({
+        classroomId: classroom._id,
+        email: normalizedEmail,
+        status: { $in: ['admitted', 'watched_recording'] },
+        ...(reference ? { paystackReference: reference } : {})
+      });
+
+      if (!paidAttendee) {
+        return res.status(402).json({
+          message: 'Payment is required before joining this public lecture.',
+          paymentRequired: true,
+          amount,
+          currency: process.env.PAYSTACK_CURRENCY || 'NGN'
+        });
+      }
+    }
+
+    const attendee = await PublicAttendee.findOneAndUpdate(
+      {
+        classroomId: classroom._id,
+        email: normalizedEmail,
+        ...(reference ? { paystackReference: reference } : {})
+      },
+      {
+        $set: {
+          name,
+          email: normalizedEmail,
+          callSessionId: latestAccess.callSessionId,
+          accessType: latestAccess.accessType,
+          status: latestAccess.accessType === 'recording' ? 'watched_recording' : 'admitted',
+          amount,
+          currency: process.env.PAYSTACK_CURRENCY || 'NGN',
+          joinedAt: new Date()
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({
+      message: 'Access granted',
+      joinUrl: latestAccess.joinUrl,
+      accessType: latestAccess.accessType,
+      attendeeId: attendee._id,
+      instructions: classroom.publicAccess?.joinInstructions || ''
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Public: initiate Paystack payment for guests who do not have a platform account.
+router.post('/public/:identifier/paystack/initiate', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { name, email, returnUrl } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required for payment.' });
+    }
+
+    const classroom = await findPublicClassroom(identifier);
+    const unavailableReason = ensureGuestSeminarAvailable(classroom);
+    if (unavailableReason) {
+      return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
+    }
+
+    const amount = Number(classroom.pricing?.amount || 0);
+    if (!classroom.isPaid || amount <= 0) {
+      return res.status(400).json({ message: 'This public lecture is free. Payment is not required.' });
+    }
+
+    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+    if (!PAYSTACK_SECRET) return res.status(500).json({ message: 'Paystack not configured' });
+
+    const currency = process.env.PAYSTACK_CURRENCY || 'NGN';
+    const payAmount = currency.toUpperCase() === 'NGN' ? Math.round(amount * 100) : Math.round(amount * 100);
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const callbackUrl = returnUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/c/${classroom.slug || classroom.shortCode}`;
+
+    const payload = {
+      email: normalizedEmail,
+      amount: payAmount,
+      currency,
+      callback_url: callbackUrl,
+      metadata: {
+        type: 'public_lecture_access',
+        classroomId: classroom._id.toString(),
+        guestName: name,
+        guestEmail: normalizedEmail
+      }
+    };
+
+    const resp = await axios.post('https://api.paystack.co/transaction/initialize', payload, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` }
+    });
+
+    if (resp.data && resp.data.status) {
+      const reference = resp.data.data.reference;
+      await PublicAttendee.findOneAndUpdate(
+        { classroomId: classroom._id, email: normalizedEmail },
+        {
+          $set: {
+            name,
+            email: normalizedEmail,
+            status: 'pending_payment',
+            amount,
+            currency,
+            paystackReference: reference
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      return res.json({ authorization_url: resp.data.data.authorization_url, reference });
+    }
+
+    return res.status(500).json({ message: 'Failed to initialize Paystack transaction' });
+  } catch (error) {
+    console.error('Public Paystack initiate error', error.message);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Public: verify a guest Paystack payment and grant access.
+router.get('/public/:identifier/paystack/verify', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { reference } = req.query;
+
+    if (!reference) return res.status(400).json({ message: 'Missing reference' });
+
+    const classroom = await findPublicClassroom(identifier);
+    const unavailableReason = ensureGuestSeminarAvailable(classroom);
+    if (unavailableReason) {
+      return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
+    }
+
+    const attendee = await PublicAttendee.findOne({ classroomId: classroom._id, paystackReference: reference });
+    if (attendee && ['admitted', 'watched_recording'].includes(attendee.status)) {
+      const latestAccess = await getLatestPublicAccess(classroom);
+      return res.json({
+        message: 'Payment already verified',
+        attendee,
+        joinUrl: latestAccess.joinUrl,
+        accessType: latestAccess.accessType
+      });
+    }
+
+    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+    if (!PAYSTACK_SECRET) return res.status(500).json({ message: 'Paystack not configured' });
+
+    const resp = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` }
+    });
+
+    if (!(resp.data && resp.data.data && resp.data.data.status === 'success')) {
+      return res.status(400).json({ message: 'Payment not successful', data: resp.data });
+    }
+
+    const data = resp.data.data;
+    const metadata = data.metadata || {};
+    const currency = data.currency || process.env.PAYSTACK_CURRENCY || 'NGN';
+    const paidAmount = currency.toUpperCase() === 'NGN' ? data.amount / 100 : data.amount / 100;
+    const expectedAmount = Number(classroom.pricing?.amount || 0);
+
+    if (paidAmount < expectedAmount) {
+      return res.status(400).json({ message: 'Payment amount is less than required access fee.' });
+    }
+
+    const latestAccess = await getLatestPublicAccess(classroom);
+
+    const updatedAttendee = await PublicAttendee.findOneAndUpdate(
+      { classroomId: classroom._id, paystackReference: reference },
+      {
+        $set: {
+          name: metadata.guestName || attendee?.name || 'Guest',
+          email: String(metadata.guestEmail || attendee?.email || data.customer?.email || '').toLowerCase(),
+          status: latestAccess.joinUrl
+            ? (latestAccess.accessType === 'recording' ? 'watched_recording' : 'admitted')
+            : 'admitted',
+          accessType: latestAccess.accessType || 'live',
+          callSessionId: latestAccess.callSessionId,
+          amount: expectedAmount,
+          currency,
+          joinedAt: new Date()
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    if (!latestAccess.joinUrl) {
+      return res.json({
+        message: 'Payment verified. The session is not live yet — check back when it goes live.',
+        attendee: updatedAttendee,
+        joinUrl: null,
+        accessType: 'none'
+      });
+    }
+
+    res.json({
+      message: 'Payment verified. Access granted.',
+      attendee: updatedAttendee,
+      joinUrl: latestAccess.joinUrl,
+      accessType: latestAccess.accessType
+    });
+  } catch (error) {
+    console.error('Public Paystack verify error', error.message);
+    return res.status(500).json({ message: error.message });
   }
 });
 
@@ -102,13 +406,100 @@ router.get('/public/:identifier', async (req, res) => {
  *       401:
  *         description: Unauthorized
  */
+// Public: catalog of published, guest-enabled public lectures/seminars for the marketing site.
+/**
+ * @swagger
+ * /api/classrooms/catalog:
+ *   get:
+ *     summary: Public catalog of public lectures and seminars (no auth)
+ *     tags: [Classrooms]
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema: { type: string }
+ *         description: Comma-separated class formats (public_lecture, public_seminar)
+ *       - in: query
+ *         name: subject
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isPaid
+ *         schema: { type: string, enum: [true, false] }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: List of public classrooms
+ */
+router.get('/catalog', async (req, res) => {
+  try {
+    const { format, subject, isPaid, search, limit } = req.query;
+
+    const query = {
+      published: true,
+      isPrivate: { $ne: true },
+      classFormat: { $in: ['public_lecture', 'public_seminar'] },
+      'publicAccess.allowGuestAccess': true
+    };
+
+    if (format) {
+      const formats = String(format).split(',').filter(Boolean);
+      if (formats.length > 0) query.classFormat = { $in: formats };
+    }
+    if (subject) query.subject = subject;
+    if (isPaid === 'true') query.isPaid = true;
+    else if (isPaid === 'false') query.isPaid = false;
+    if (search) {
+      const regex = new RegExp(escapeRegExp(search), 'i');
+      query.$or = [{ name: regex }, { description: regex }, { subject: regex }, { learningOutcomes: regex }];
+    }
+
+    const maxLimit = Math.min(parseInt(limit) || 50, 100);
+
+    const classrooms = await Classroom.find(query)
+      .sort({ createdAt: -1 })
+      .limit(maxLimit)
+      .populate({ path: 'teacherId', select: 'name' })
+      .populate({ path: 'schoolId', select: 'name shortCode' })
+      .select('name description subject level isPaid pricing classFormat publicAccess slug shortCode teacherId schoolId introVideo topics createdAt');
+
+    const ids = classrooms.map(c => c._id);
+    const now = new Date();
+    const liveSessions = ids.length > 0
+      ? await CallSession.find({
+          classroomId: { $in: ids },
+          startedAt: { $gte: new Date(now.getTime() - PUBLIC_SESSION_WINDOW_MS) }
+        })
+      : [];
+    const liveByClass = {};
+    liveSessions.forEach(s => { liveByClass[s.classroomId.toString()] = s; });
+
+    const result = classrooms.map(c => {
+      const latest = liveByClass[c._id.toString()];
+      return {
+        ...c.toObject(),
+        isLive: !!latest,
+        liveStartedAt: latest ? latest.startedAt : null,
+        hasRecording: !!c.publicAccess?.recordingUrl,
+        topicsCount: Array.isArray(c.topics) ? c.topics.length : 0
+      };
+    });
+
+    res.json({ classrooms: result });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get('/', auth, subscriptionCheck, async (req, res) => {
   try {
     let query = {};
 
     // Students see only published classes (enrolled or available for enrollment)
-    if (req.user.role === 'student') {
-      // Check strict restriction for Admin-created students
+    if (req.user.role === 'student') {      // Check strict restriction for Admin-created students
       if (req.user.createdBy) {
         const creator = await User.findById(req.user.createdBy);
         if (creator) {
@@ -683,7 +1074,9 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       isPrivate,
       introVideo,
       learningOutcomes,
-      subject
+      subject,
+      classFormat,
+      publicAccess
     } = req.body;
 
     // Validate schedule array
@@ -797,7 +1190,17 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       isPrivate: isPrivate !== undefined ? isPrivate : false,
       introVideo,
       learningOutcomes,
-      subject
+      subject,
+      classFormat: classFormat || 'classroom',
+      publicAccess: {
+        allowGuestAccess: !!publicAccess?.allowGuestAccess,
+        durationValue: Number(publicAccess?.durationValue || 1),
+        durationUnit: publicAccess?.durationUnit || 'days',
+        startsAt: publicAccess?.startsAt || null,
+        endsAt: publicAccess?.endsAt || null,
+        recordingUrl: publicAccess?.recordingUrl || null,
+        joinInstructions: publicAccess?.joinInstructions || ''
+      }
     });
 
     await classroom.save();
@@ -892,7 +1295,7 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate, introVideo, learningOutcomes, subject } = req.body;
+    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate, introVideo, learningOutcomes, subject, classFormat, publicAccess } = req.body;
 
     if (name) classroom.name = name;
     if (description) classroom.description = description;
@@ -908,6 +1311,19 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
     if (schoolId) classroom.schoolId = schoolId; // Further authorization/validation might be needed here
     if (published !== undefined) classroom.published = published;
     if (isPrivate !== undefined) classroom.isPrivate = isPrivate;
+    if (classFormat) classroom.classFormat = classFormat;
+    if (publicAccess) {
+      classroom.publicAccess = {
+        ...classroom.publicAccess,
+        allowGuestAccess: !!publicAccess.allowGuestAccess,
+        durationValue: Number(publicAccess.durationValue || classroom.publicAccess?.durationValue || 1),
+        durationUnit: publicAccess.durationUnit || classroom.publicAccess?.durationUnit || 'days',
+        startsAt: publicAccess.startsAt || null,
+        endsAt: publicAccess.endsAt || null,
+        recordingUrl: publicAccess.recordingUrl || null,
+        joinInstructions: publicAccess.joinInstructions || ''
+      };
+    }
 
     // Handle schedule update with validation
     if (schedule) {

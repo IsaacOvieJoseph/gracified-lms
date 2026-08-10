@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Classrooms from './pages/Classrooms';
+import PublicClasses from './pages/PublicClasses';
 import ClassroomDetail from './pages/ClassroomDetail';
 import Whiteboard from './components/Whiteboard';
 import SchoolDetails from './pages/SchoolDetail';
@@ -34,6 +35,7 @@ import ExamSubmissions from './pages/ExamSubmissions';
 import ExamSubmissionDetail from './pages/ExamSubmissionDetail';
 import Profile from './pages/Profile';
 import Landing from './pages/Landing';
+import Catalog from './pages/Catalog';
 import QnACenter from './pages/QnACenter';
 import QnAPresentation from './pages/QnAPresentation';
 import TopicManagement from './pages/TopicManagement';
@@ -178,6 +180,7 @@ const AppRoutes = () => {
       <Route path="/register" element={<RegisterChoice />} />
       <Route path="/c/:shortCode" element={<PublicClassroom />} />
       <Route path="/s/:identifier" element={<PublicSchool />} />
+      <Route path="/catalog" element={<Catalog />} />
       <Route path="/register/student" element={<RegisterStudent />} />
       <Route path="/register/school-admin" element={<RegisterSchoolAdmin />} />
       <Route path="/register/personal-teacher" element={<RegisterPersonalTeacher />} />
@@ -224,6 +227,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Classrooms />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/public-classes"
+        element={
+          <PrivateRoute>
+            <PublicClasses />
           </PrivateRoute>
         }
       />

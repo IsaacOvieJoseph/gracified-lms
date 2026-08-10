@@ -16,6 +16,7 @@ import {
   X,
   Mail,
   MessageCircle,
+  Globe,
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import logo from '../assets/logo.jpg';
@@ -114,6 +115,12 @@ const Landing = () => {
                 Contact Us
               </a>
               <Link
+                to="/catalog"
+                className="px-4 py-2 text-primary font-bold hover:text-primary/80 transition-colors"
+              >
+                Explore Classes
+              </Link>
+              <Link
                 to="/login"
                 className="px-4 py-2 text-muted-foreground font-semibold hover:text-primary transition-colors"
               >
@@ -152,6 +159,13 @@ const Landing = () => {
                 Contact Us
               </a>
               <Link
+                to="/catalog"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-3 text-primary font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              >
+                Explore Classes
+              </Link>
+              <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-3 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
@@ -188,19 +202,26 @@ const Landing = () => {
             Classrooms, assignments, exams, and analytics—all in one platform.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <Link
-              to="/register"
-              className="btn-premium px-8 py-4 rounded-xl text-base font-semibold flex items-center gap-2 w-full sm:w-auto justify-center"
-            >
-              Start Free Trial
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              to="/login"
-              className="btn-secondary px-8 py-4 rounded-xl text-base font-semibold w-full sm:w-auto justify-center"
-            >
-              Sign In
-            </Link>
+              <Link
+                to="/register"
+                className="btn-premium px-8 py-4 rounded-xl text-base font-semibold flex items-center gap-2 w-full sm:w-auto justify-center"
+              >
+                Start Free Trial
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+              <Link
+                to="/catalog"
+                className="btn-secondary px-8 py-4 rounded-xl text-base font-semibold flex items-center gap-2 w-full sm:w-auto justify-center"
+              >
+                <Globe className="w-5 h-5" />
+                Browse Public Lectures
+              </Link>
+              <Link
+                to="/login"
+                className="px-6 py-4 rounded-xl text-base font-semibold text-muted-foreground hover:text-primary transition-colors w-full sm:w-auto justify-center"
+              >
+                Sign In
+              </Link>
           </div>
           <p className="mt-6 text-xs sm:text-sm text-muted-foreground/60 animate-slide-up px-2" style={{ animationDelay: '0.4s' }}>
             No credit card required · Free trial for schools & teachers
@@ -368,6 +389,7 @@ const Landing = () => {
           </div>
           <div className="flex items-center gap-4 sm:gap-6 text-sm text-muted-foreground flex-wrap justify-center md:justify-end">
             <a href="#contact" className="hover:text-primary font-medium transition-colors">Contact Us</a>
+            <Link to="/catalog" className="hover:text-primary font-medium transition-colors">Explore Classes</Link>
             <Link to="/privacy" className="hover:text-primary font-medium transition-colors">Privacy</Link>
             <Link to="/terms" className="hover:text-primary font-medium transition-colors">Terms</Link>
             <Link to="/login" className="hover:text-primary font-medium transition-colors">Sign In</Link>

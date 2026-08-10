@@ -73,6 +73,44 @@ const classroomSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  classFormat: {
+    type: String,
+    enum: ['classroom', 'public_lecture', 'public_seminar'],
+    default: 'classroom'
+  },
+  publicAccess: {
+    allowGuestAccess: {
+      type: Boolean,
+      default: false
+    },
+    durationValue: {
+      type: Number,
+      default: 1
+    },
+    durationUnit: {
+      type: String,
+      enum: ['days', 'weeks'],
+      default: 'days'
+    },
+    startsAt: {
+      type: Date,
+      default: null
+    },
+    endsAt: {
+      type: Date,
+      default: null
+    },
+    recordingUrl: {
+      type: String,
+      trim: true,
+      default: null
+    },
+    joinInstructions: {
+      type: String,
+      trim: true,
+      default: ''
+    }
+  },
   topics: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Topic'

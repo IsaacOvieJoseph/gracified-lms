@@ -42,6 +42,14 @@ const defaultSubjects = [
   'Literature', 'Art', 'Music', 'Physical Education'
 ];
 
+const toDatetimeLocal = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const getVideoEmbedInfo = (url) => {
   if (!url) return null;
 
@@ -412,7 +420,7 @@ const ClassroomDetail = () => {
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s }))); // Dynamic subjects
-  const [editForm, setEditForm] = useState({ name: '', description: '', learningOutcomes: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false, isPaid: false, teacherId: '', schoolIds: [] });
+  const [editForm, setEditForm] = useState({ name: '', description: '', learningOutcomes: '', subject: '', level: 'Other', capacity: 30, pricingType: 'per_lecture', pricingAmount: 0, schedule: [], isPrivate: false, isPaid: false, teacherId: '', schoolIds: [], classFormat: 'classroom', publicAccess: { allowGuestAccess: false, durationValue: 1, durationUnit: 'days', startsAt: '', recordingUrl: '', joinInstructions: '' } });
   const [schools, setSchools] = useState([]);
   useEffect(() => {
     if (user?.role === 'school_admin') {
@@ -464,7 +472,16 @@ const ClassroomDetail = () => {
       teacherId: classroom.teacherId?._id || '',
       schoolIds: Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s._id || s) : [classroom.schoolId?._id || classroom.schoolId].filter(Boolean),
       isPrivate: classroom.isPrivate || false,
-      introVideo: classroom.introVideo || ''
+      introVideo: classroom.introVideo || '',
+      classFormat: classroom.classFormat || 'classroom',
+      publicAccess: {
+        allowGuestAccess: !!classroom.publicAccess?.allowGuestAccess,
+        durationValue: classroom.publicAccess?.durationValue || 1,
+        durationUnit: classroom.publicAccess?.durationUnit || 'days',
+        startsAt: toDatetimeLocal(classroom.publicAccess?.startsAt),
+        recordingUrl: classroom.publicAccess?.recordingUrl || '',
+        joinInstructions: classroom.publicAccess?.joinInstructions || ''
+      }
     });
     if (['root_admin', 'school_admin'].includes(user?.role)) {
       fetchAvailableTeachers();
@@ -488,6 +505,14 @@ const ClassroomDetail = () => {
         isPaid: editForm.isPaid,
         isPrivate: editForm.isPrivate,
         introVideo: editForm.introVideo,
+        classFormat: editForm.classFormat,
+        publicAccess: {
+          ...editForm.publicAccess,
+          allowGuestAccess: editForm.classFormat !== 'classroom' && editForm.publicAccess.allowGuestAccess,
+          endsAt: editForm.publicAccess.startsAt
+            ? new Date(new Date(editForm.publicAccess.startsAt).getTime() + Number(editForm.publicAccess.durationValue || 1) * (editForm.publicAccess.durationUnit === 'weeks' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString()
+            : null
+        },
         schedule: editForm.schedule.map(s => {
           const utc = convertLocalToUTC(s.dayOfWeek, s.startTime);
           const utcEnd = convertLocalToUTC(s.dayOfWeek, s.endTime);
@@ -1887,6 +1912,124 @@ const ClassroomDetail = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Class Format & Public Access */}
+                    <div className="p-6 rounded-[2rem] bg-muted/30 border border-border">
+                      <div className="flex items-center gap-2 mb-4 px-1">
+                        <Globe className="w-4 h-4 text-primary" />
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Delivery Format</label>
+                        <FormFieldHelp content="Classroom is a private course. Public Lecture / Public Seminar are open to guests who can join live or watch the recording — no account needed." />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                          { value: 'classroom', label: 'Classroom', desc: 'Private course for enrolled students', icon: Book },
+                          { value: 'public_lecture', label: 'Public Lecture', desc: 'Guests join live or watch the recording', icon: Globe },
+                          { value: 'public_seminar', label: 'Public Seminar', desc: 'Open multi-session guest seminar', icon: Users }
+                        ].map(opt => (
+                          <button
+                            type="button"
+                            key={opt.value}
+                            onClick={() => setEditForm(prev => ({
+                              ...prev,
+                              classFormat: opt.value,
+                              publicAccess: { ...prev.publicAccess, allowGuestAccess: opt.value !== 'classroom' }
+                            }))}
+                            className={`p-4 rounded-2xl border-2 text-left transition-all ${editForm.classFormat === opt.value ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
+                          >
+                            <opt.icon className={`w-5 h-5 mb-3 ${editForm.classFormat === opt.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <p className={`text-[10px] font-black uppercase tracking-widest ${editForm.classFormat === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</p>
+                            <p className="text-[9px] text-muted-foreground font-medium mt-1 leading-relaxed">{opt.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      {editForm.classFormat !== 'classroom' && (
+                        <div className="mt-6 pt-6 border-t border-border space-y-5 animate-slide-up">
+                          <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-primary" />
+                            <label className="text-[10px] font-black uppercase text-primary tracking-widest">Public Access</label>
+                            <FormFieldHelp content="Controls how guests access this public lecture or seminar. Guests use the public page link." />
+                          </div>
+
+                          <label
+                            onClick={() => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, allowGuestAccess: !prev.publicAccess.allowGuestAccess } }))}
+                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.publicAccess.allowGuestAccess ? 'border-primary bg-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
+                          >
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                              Allow Guest Access
+                              <span className="block text-[8px] font-medium normal-case tracking-normal opacity-60 mt-0.5">People can join live or watch the recording without an account</span>
+                            </span>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.publicAccess.allowGuestAccess ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.publicAccess.allowGuestAccess ? 'translate-x-4' : ''}`} />
+                            </div>
+                          </label>
+
+                          <div className="grid md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                                Starts At
+                                <FormFieldHelp content="When the public access window opens. Guests can join live sessions from this time onward." />
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={editForm.publicAccess.startsAt}
+                                onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, startsAt: e.target.value } }))}
+                                className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                                Access Duration
+                                <FormFieldHelp content="How long the public access window stays open (days or weeks). The end date is computed automatically." />
+                              </label>
+                              <div className="flex gap-3">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={editForm.publicAccess.durationValue}
+                                  onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, durationValue: parseInt(e.target.value) || 1 } }))}
+                                  className="w-24 bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                                />
+                                <select
+                                  value={editForm.publicAccess.durationUnit}
+                                  onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, durationUnit: e.target.value } }))}
+                                  className="flex-1 bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                                >
+                                  <option value="days">Days</option>
+                                  <option value="weeks">Weeks</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                              Recording URL (Optional)
+                              <FormFieldHelp content="Paste a YouTube/Vimeo link to the recorded session so guests can watch it after the live event." />
+                            </label>
+                            <input
+                              type="url"
+                              value={editForm.publicAccess.recordingUrl}
+                              onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, recordingUrl: e.target.value } }))}
+                              placeholder="https://www.youtube.com/watch?v=..."
+                              className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Join Instructions (Optional)</label>
+                            <textarea
+                              value={editForm.publicAccess.joinInstructions}
+                              onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, joinInstructions: e.target.value } }))}
+                              placeholder="e.g. Have your laptop ready and join 5 minutes early."
+                              className="w-full min-h-[80px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary focus:bg-muted transition-all outline-none italic"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Schedule Builder */}
                     <div className="space-y-4">

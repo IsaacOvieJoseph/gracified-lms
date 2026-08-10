@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Users, Calendar, Clock, BookOpen, ChevronRight, 
   CheckCircle2, Info, GraduationCap, MapPin, Globe,
-  ShieldCheck, ArrowRight, Share2, Star, Building2
+  ShieldCheck, ArrowRight, Share2, Star, Building2,
+  X, Loader2, ExternalLink, Copy, Radio, Video, Lock, Mail, User,
+  QrCode, Link2, Facebook, Twitter, MessageCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -16,17 +18,43 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const PublicClassroom = () => {
   const { shortCode } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [classroom, setClassroom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [publicAccessInfo, setPublicAccessInfo] = useState({
+    guestEnabled: false,
+    hasActiveLive: false,
+    hasRecording: false,
+    activeStartedAt: null
+  });
+
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [guestForm, setGuestForm] = useState({ name: '', email: '' });
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState(null);
+  const [accessResult, setAccessResult] = useState(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const searchParams = new URLSearchParams(location.search);
+  const referenceParam = searchParams.get('reference') || searchParams.get('trxref') || searchParams.get('ref');
 
   useEffect(() => {
     const fetchClassroom = async () => {
       try {
+        setLoading(true);
         const response = await axios.get(`${API_URL}/classrooms/public/${shortCode}`);
         const found = response.data.classroom;
-        
+        setPublicAccessInfo(response.data.publicAccess || {
+          guestEnabled: false,
+          hasActiveLive: false,
+          hasRecording: false,
+          activeStartedAt: null
+        });
+
         // Auto-redirect if user already has access
         if (user && found) {
           const isEnrolled = (user.enrolledClasses || []).some(id => id === found._id || id._id === found._id);
@@ -40,6 +68,30 @@ const PublicClassroom = () => {
         }
 
         setClassroom(found);
+        setError(null);
+
+        // Guest Paystack payment callback: verify and grant access
+        if (referenceParam) {
+          setShowJoinModal(true);
+          setVerifyingPayment(true);
+          setJoinError(null);
+          try {
+            const verifyRes = await axios.get(`${API_URL}/classrooms/public/${shortCode}/paystack/verify?reference=${encodeURIComponent(referenceParam)}`);
+            const data = verifyRes.data;
+            setAccessResult({
+              joinUrl: data.joinUrl,
+              accessType: data.accessType,
+              instructions: found.publicAccess?.joinInstructions || '',
+              message: data.message
+            });
+          } catch (err) {
+            console.error('Error verifying guest payment:', err);
+            setJoinError(err.response?.data?.message || 'Payment verification failed. Please try again.');
+          } finally {
+            setVerifyingPayment(false);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
       } catch (err) {
         console.error('Error fetching public classroom:', err);
         setError(err.response?.data?.message || 'Classroom not found');
@@ -49,9 +101,10 @@ const PublicClassroom = () => {
     };
 
     fetchClassroom();
-  }, [shortCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shortCode, location.search]);
 
-  const handleEnrollClick = async () => {
+  const handleEnrollClick = () => {
     if (user) {
       // If already logged in, just go to the class detail page. 
       // The detail page logic will handle enrollment for free classes 
@@ -59,14 +112,83 @@ const PublicClassroom = () => {
       navigate(`/classrooms/${classroom._id}`);
       return;
     }
+    if (publicAccessInfo.guestEnabled) {
+      // Guest can join without an account
+      setShowJoinModal(true);
+      setJoinError(null);
+      setAccessResult(null);
+      setGuestForm({ name: '', email: '' });
+      return;
+    }
     // Redirect to login with a fallback to return to the PRIVATE classroom view after auth
     navigate(`/login?redirect=/classrooms/${classroom._id}`);
   };
 
+  const handleGuestJoin = async (e) => {
+    e.preventDefault();
+    const name = guestForm.name.trim();
+    const email = guestForm.email.trim();
+    if (!name || !email) {
+      setJoinError('Please provide your name and email to join.');
+      return;
+    }
+    setJoining(true);
+    setJoinError(null);
+    try {
+      const isPaid = classroom.isPaid && Number(classroom.pricing?.amount || 0) > 0;
+      if (isPaid) {
+        const initRes = await axios.post(`${API_URL}/classrooms/public/${shortCode}/paystack/initiate`, {
+          name,
+          email,
+          returnUrl: window.location.href
+        });
+        if (initRes.data?.authorization_url) {
+          window.location.href = initRes.data.authorization_url;
+        } else {
+          setJoinError('Could not start payment. Please try again.');
+        }
+        return;
+      }
+
+      const joinRes = await axios.post(`${API_URL}/classrooms/public/${shortCode}/join`, { name, email });
+      setAccessResult({
+        joinUrl: joinRes.data.joinUrl,
+        accessType: joinRes.data.accessType,
+        instructions: joinRes.data.instructions || '',
+        message: joinRes.data.message
+      });
+    } catch (err) {
+      console.error('Guest join error:', err);
+      setJoinError(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const handleLaunchSession = () => {
+    if (!accessResult?.joinUrl) return;
+    window.open(accessResult.joinUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyLink = () => {
+    if (!accessResult?.joinUrl) return;
+    navigator.clipboard.writeText(accessResult.joinUrl);
+    toast.success('Join link copied to clipboard!');
+  };
+
   const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success('Link copied to clipboard!');
+    setShowShareModal(true);
+  };
+
+  const handleCopyPublicLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      toast.success('Public link copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Could not copy the link');
+    }
   };
 
   if (loading) {
@@ -117,6 +239,9 @@ const PublicClassroom = () => {
 
   const embedUrl = getEmbedUrl(classroom.introVideo);
 
+  const shareUrl = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || shortCode}`;
+  const shareText = `Join "${classroom.name}" on Gracified LMS!`;
+
   return (
     <div className="min-h-screen bg-background text-foreground font-inter selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
        {/* Global Navigation */}
@@ -141,7 +266,7 @@ const PublicClassroom = () => {
                   onClick={handleEnrollClick}
                   className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-[10px] hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 uppercase tracking-widest"
                 >
-                  Enroll Now
+                  {user ? 'Enroll Now' : publicAccessInfo.guestEnabled ? 'Join Now' : 'Enroll Now'}
                 </button>
              </div>
           </div>
@@ -157,6 +282,18 @@ const PublicClassroom = () => {
             <span className="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/20">
               Featured Class
             </span>
+            {publicAccessInfo.hasActiveLive && (
+              <span className="px-4 py-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/20 flex items-center gap-2 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-white" />
+                Live Now
+              </span>
+            )}
+            {!publicAccessInfo.hasActiveLive && publicAccessInfo.hasRecording && (
+              <span className="px-4 py-1.5 rounded-full bg-sky-500 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-sky-500/20 flex items-center gap-2">
+                <Video className="w-3 h-3" />
+                Recording Available
+              </span>
+            )}
             {school && (
                 <Link 
                   to={`/s/${school.shortCode || school._id}`}
@@ -244,12 +381,17 @@ const PublicClassroom = () => {
                         onClick={handleEnrollClick}
                         className="w-full py-5 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all transform hover:-translate-y-1 shadow-xl shadow-primary/20 active:scale-95 flex items-center justify-center gap-3 group"
                       >
-                         <span>Join Module Now</span>
+                         <span>{user ? 'Join Module Now' : publicAccessInfo.guestEnabled ? 'Join Now as Guest' : 'Join Module Now'}</span>
                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </button>
                       <p className="text-center text-muted-foreground text-[9px] font-black uppercase tracking-[0.2em] mt-6 bg-muted/40 py-3 rounded-xl border border-border italic">
                          Secure Checkout powered by Paystack
                       </p>
+                      {publicAccessInfo.guestEnabled && !user && (
+                        <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+                           No account required — join as a guest
+                        </p>
+                      )}
                     </div>
                   </div>
                </div>
@@ -393,12 +535,244 @@ const PublicClassroom = () => {
                 onClick={handleEnrollClick}
                 className="px-16 py-8 bg-primary text-white rounded-[2.5rem] font-black uppercase tracking-widest text-sm hover:bg-primary/90 transition-all transform hover:scale-105 shadow-2xl shadow-primary/30 active:scale-95 flex items-center justify-center gap-6 mx-auto group border border-white/10"
               >
-                 <span>Activate Membership</span>
+                 <span>{user ? 'Activate Membership' : publicAccessInfo.guestEnabled ? 'Join Now' : 'Activate Membership'}</span>
                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
          </div>
       </footer>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md bg-card text-foreground rounded-[2.5rem] shadow-2xl border border-border p-8 animate-fade-in">
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="absolute top-4 right-4 p-2 bg-muted text-muted-foreground rounded-xl hover:bg-muted/80 hover:text-foreground transition-all border border-border"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center border border-primary/20">
+                <QrCode className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-widest italic">Share this class</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">Invite people to join — no account needed</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center mb-6">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(shareUrl)}`}
+                alt="QR code for this class"
+                className="w-44 h-44 rounded-2xl border border-border bg-white p-2"
+              />
+              <p className="mt-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Scan to open the public page</p>
+            </div>
+
+            <div className="flex items-center gap-2 p-3 bg-muted/40 rounded-2xl border border-border mb-5">
+              <Link2 className="w-4 h-4 text-primary shrink-0" />
+              <span className="flex-1 text-[10px] font-bold text-muted-foreground truncate">{shareUrl}</span>
+              <button
+                onClick={handleCopyPublicLink}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all"
+              >
+                {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-2xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+              >
+                <MessageCircle className="w-5 h-5 text-emerald-500" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">WhatsApp</span>
+              </a>
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-2xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+              >
+                <Facebook className="w-5 h-5 text-blue-500" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Facebook</span>
+              </a>
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-2xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+              >
+                <Twitter className="w-5 h-5 text-sky-500" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Twitter / X</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Join Modal */}
+      {showJoinModal && (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md bg-card text-foreground rounded-[2.5rem] shadow-2xl border border-border p-8 animate-fade-in">
+            <button
+              onClick={() => setShowJoinModal(false)}
+              className="absolute top-4 right-4 p-2 bg-muted text-muted-foreground rounded-xl hover:bg-muted/80 hover:text-foreground transition-all border border-border"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {verifyingPayment ? (
+              <div className="py-12 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-3xl flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                </div>
+                <h3 className="text-xl font-black uppercase tracking-widest italic">Verifying Payment</h3>
+                <p className="text-sm text-muted-foreground font-medium">Please wait while we confirm your payment.</p>
+              </div>
+            ) : accessResult ? (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center border border-emerald-500/20">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black uppercase tracking-widest italic">Access Granted</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
+                      {accessResult.accessType === 'live' ? 'Live session is ready' : accessResult.accessType === 'recording' ? 'Recording is ready' : 'Payment confirmed'}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground font-medium leading-relaxed">{accessResult.message}</p>
+                {accessResult.instructions && (
+                  <div className="p-4 bg-muted/40 rounded-2xl border border-border text-sm text-muted-foreground font-medium leading-relaxed">
+                    {accessResult.instructions}
+                  </div>
+                )}
+                {accessResult.joinUrl ? (
+                  <div className="space-y-3 pt-2">
+                    <button
+                      onClick={handleLaunchSession}
+                      className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all transform hover:-translate-y-0.5 shadow-xl shadow-primary/20 active:scale-95 flex items-center justify-center gap-3"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      {accessResult.accessType === 'live' ? 'Join Live Session' : 'Watch Recording'}
+                    </button>
+                    <button
+                      onClick={handleCopyLink}
+                      className="w-full py-3.5 bg-muted text-muted-foreground rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-muted/80 hover:text-foreground transition-all border border-border flex items-center justify-center gap-3"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copy Link
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-2">
+                    <button
+                      onClick={() => setShowJoinModal(false)}
+                      className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all transform hover:-translate-y-0.5 shadow-xl shadow-primary/20 active:scale-95 flex items-center justify-center gap-3"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Got it
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center border border-primary/20">
+                    {classroom.isPaid ? <Lock className="w-7 h-7" /> : <Radio className="w-7 h-7" />}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black uppercase tracking-widest italic">
+                      {classroom.isPaid ? 'Pay to Join' : 'Join as a Guest'}
+                    </h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
+                      No account needed
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-baseline gap-2 bg-muted/30 rounded-2xl px-5 py-4 border border-border">
+                  <span className="text-2xl font-black italic text-foreground">
+                    {classroom.isPaid ? `₦${Number(classroom.pricing?.amount || 0).toLocaleString()}` : 'Free'}
+                  </span>
+                  {classroom.isPaid && (
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Access Fee</span>
+                  )}
+                </div>
+
+                {!publicAccessInfo.hasActiveLive && !publicAccessInfo.hasRecording && (
+                  <p className="text-xs text-muted-foreground font-medium leading-relaxed bg-muted/30 p-3 rounded-xl border border-border">
+                    This session is not live yet. Join when it starts, or watch the recording after it ends.
+                  </p>
+                )}
+
+                <form onSubmit={handleGuestJoin} className="space-y-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+                      <User className="w-3.5 h-3.5" /> Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={guestForm.name}
+                      onChange={(e) => setGuestForm({ ...guestForm, name: e.target.value })}
+                      placeholder="e.g. Ada Obi"
+                      className="w-full px-4 py-3.5 bg-muted/40 border border-border rounded-2xl text-sm font-medium text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+                      <Mail className="w-3.5 h-3.5" /> Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={guestForm.email}
+                      onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-3.5 bg-muted/40 border border-border rounded-2xl text-sm font-medium text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+
+                  {joinError && (
+                    <p className="text-xs font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 leading-relaxed">{joinError}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={joining}
+                    className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all transform hover:-translate-y-0.5 shadow-xl shadow-primary/20 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  >
+                    {joining ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {classroom.isPaid ? 'Contacting Payment Gateway...' : 'Joining...'}
+                      </>
+                    ) : (
+                      <>
+                        {classroom.isPaid ? 'Pay & Join Now' : 'Join Now'}
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                  <p className="text-center text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 bg-muted/40 py-3 rounded-xl border border-border italic">
+                    Secure Checkout powered by Paystack
+                  </p>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

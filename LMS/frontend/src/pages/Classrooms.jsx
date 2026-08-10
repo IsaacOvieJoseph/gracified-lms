@@ -63,7 +63,16 @@ const Classrooms = () => {
     name: '', description: '', learningOutcomes: '', subject: '',
     level: 'Other', schedule: [], capacity: 30,
     pricing: { type: user?.defaultPricingType || 'monthly', amount: 0 },
-    isPaid: false, teacherId: '', schoolIds: [], published: false, isPrivate: false
+    isPaid: false, teacherId: '', schoolIds: [], published: false, isPrivate: false,
+    classFormat: 'classroom',
+    publicAccess: {
+      allowGuestAccess: false,
+      durationValue: 1,
+      durationUnit: 'days',
+      startsAt: '',
+      recordingUrl: '',
+      joinInstructions: ''
+    }
   });
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
   const [selectedLevel, setSelectedLevel] = useState('All Levels');
@@ -216,6 +225,8 @@ const Classrooms = () => {
         console.error('Classrooms data is not an array:', filtered);
         filtered = [];
       }
+      // Public lectures & seminars live in their own module (/public-classes).
+      filtered = filtered.filter(c => !['public_lecture', 'public_seminar'].includes(c.classFormat));
       // Students should only see published classrooms.
       // Teachers should be able to see their own classrooms even if unpublished (so they can manage/publish them).
       if (user?.role === 'student') {
@@ -278,6 +289,13 @@ const Classrooms = () => {
       const submitData = {
         ...formData,
         isPaid: formData.isPaid && formData.pricing?.amount > 0,
+        publicAccess: {
+          ...formData.publicAccess,
+          allowGuestAccess: formData.classFormat !== 'classroom' && formData.publicAccess.allowGuestAccess,
+          endsAt: formData.publicAccess.startsAt
+            ? new Date(new Date(formData.publicAccess.startsAt).getTime() + Number(formData.publicAccess.durationValue || 1) * (formData.publicAccess.durationUnit === 'weeks' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString()
+            : null
+        },
         schedule: formData.schedule.map(s => {
           const utc = convertLocalToUTC(s.dayOfWeek, s.startTime);
           const utcEnd = convertLocalToUTC(s.dayOfWeek, s.endTime);

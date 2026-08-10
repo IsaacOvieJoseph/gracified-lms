@@ -5,7 +5,7 @@ import {
   Book, LogOut, Users, User, DollarSign, FileText,
   LayoutDashboard, Landmark, Bell, Menu, X,
   MessageSquare, BarChart2, Settings, ShieldCheck,
-  ChevronRight, Search, CreditCard, PieChart, ArrowLeft
+  ChevronRight, Search, CreditCard, PieChart, ArrowLeft, Radio
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -105,6 +105,7 @@ const Layout = ({ children }) => {
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/classrooms', icon: Book, label: 'Classrooms' },
+    ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/public-classes', icon: Radio, label: 'Public Classes' }] : []),
     ...(['student', 'root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/payments', icon: CreditCard, label: 'Payments' }] : []),
     { path: '/exams', icon: PieChart, label: 'Exams' },
     ...(user?.role === 'student' ? [{ path: '/assignments', icon: FileText, label: 'Assignments' }] : []),
