@@ -400,8 +400,6 @@ const AppRoutes = () => {
 };
 
 function App() {
-
-
   return (
     <ErrorBoundary>
       <ThemeProvider>

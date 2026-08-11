@@ -91,7 +91,9 @@ export default function Legal() {
   const sections = isPrivacy ? privacySections : termsSections;
   const Icon = isPrivacy ? Lock : FileText;
 
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">

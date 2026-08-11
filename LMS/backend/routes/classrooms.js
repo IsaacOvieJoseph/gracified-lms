@@ -85,18 +85,26 @@ const getLatestPublicAccess = async (classroom) => {
   };
 };
 
-const ensureGuestSeminarAvailable = (classroom) => {
+const ensureGuestSeminarAvailable = async (classroom) => {
   if (!classroom) return 'Classroom not found';
   if (!classroom.published) return 'This public lecture is not active yet.';
   if (classroom.isPrivate) return 'This public lecture is private.';
   if (!classroom.publicAccess?.allowGuestAccess) return 'Guest access is not enabled for this classroom.';
 
   const now = new Date();
-  if (classroom.publicAccess?.startsAt && now < new Date(classroom.publicAccess.startsAt)) {
-    return 'This public lecture has not started yet.';
-  }
-  if (classroom.publicAccess?.endsAt && now > new Date(classroom.publicAccess.endsAt) && !classroom.publicAccess?.recordingUrl) {
-    return 'This public lecture has ended and no recording is available.';
+
+  // If the lecturer has already started a live session, the lecture is underway,
+  // so guests may join even if the scheduled public access window hasn't opened yet.
+  const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
+  const hasActiveLive = !!latest && (now - new Date(latest.startedAt)) <= PUBLIC_SESSION_WINDOW_MS;
+
+  if (!hasActiveLive) {
+    if (classroom.publicAccess?.startsAt && now < new Date(classroom.publicAccess.startsAt)) {
+      return 'This public lecture has not started yet.';
+    }
+    if (classroom.publicAccess?.endsAt && now > new Date(classroom.publicAccess.endsAt) && !classroom.publicAccess?.recordingUrl) {
+      return 'This public lecture has ended and no recording is available.';
+    }
   }
 
   return null;
@@ -167,7 +175,7 @@ router.post('/public/:identifier/join', async (req, res) => {
     }
 
     const classroom = await findPublicClassroom(identifier);
-    const unavailableReason = ensureGuestSeminarAvailable(classroom);
+    const unavailableReason = await ensureGuestSeminarAvailable(classroom);
     if (unavailableReason) {
       return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
     }
@@ -242,7 +250,7 @@ router.post('/public/:identifier/paystack/initiate', async (req, res) => {
     }
 
     const classroom = await findPublicClassroom(identifier);
-    const unavailableReason = ensureGuestSeminarAvailable(classroom);
+    const unavailableReason = await ensureGuestSeminarAvailable(classroom);
     if (unavailableReason) {
       return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
     }
@@ -313,7 +321,7 @@ router.get('/public/:identifier/paystack/verify', async (req, res) => {
     if (!reference) return res.status(400).json({ message: 'Missing reference' });
 
     const classroom = await findPublicClassroom(identifier);
-    const unavailableReason = ensureGuestSeminarAvailable(classroom);
+    const unavailableReason = await ensureGuestSeminarAvailable(classroom);
     if (unavailableReason) {
       return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
     }
@@ -2052,7 +2060,8 @@ router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Only class teacher or admins can start the call.' });
     }
 
-    const { isPaid, amount } = req.body;
+    const isPaid = !!classroom.isPaid && Number(classroom.pricing?.amount || 0) > 0;
+    const amount = Number(classroom.pricing?.amount || 0);
 
     // Find latest call session
     const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });

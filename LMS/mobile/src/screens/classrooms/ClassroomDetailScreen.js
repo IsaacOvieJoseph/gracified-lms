@@ -378,20 +378,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
   };
 
   const handleStartLecture = () => {
-    const defaultAmount = Number(classroom?.pricing?.amount || 0);
-    if (classroom?.pricing?.type === 'per_lecture' && defaultAmount > 0) {
-      Alert.alert(
-        'Start lecture',
-        `Start this lecture as paid access for NGN ${defaultAmount.toLocaleString()} or free access?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Free', onPress: () => startLecture(false, 0) },
-          { text: 'Paid', onPress: () => startLecture(true, defaultAmount) },
-        ]
-      );
-      return;
-    }
-    startLecture(false, 0);
+    startLecture(!!classroom?.isPaid, Number(classroom?.pricing?.amount || 0));
   };
 
   const handleAttendLecture = async () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +6,8 @@ import logo from '../assets/logo.jpg';
 import { validateEmail } from '../utils/validation';
 import api from '../utils/api';
 import ThemeToggle from '../components/ThemeToggle';
+import AuthCarousel from '../components/AuthCarousel';
+import SplashScreen from '../components/SplashScreen';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +21,10 @@ const Login = () => {
   const [tempToken, setTempToken] = useState('');
   const [otp, setOtp] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
+
+  // Intro splash shown on successful login
+  const [showSplash, setShowSplash] = useState(false);
+  const redirectRef = useRef('/dashboard');
 
   const { login, setAuthData } = useAuth();
   const navigate = useNavigate();
@@ -39,8 +45,8 @@ const Login = () => {
       const result = await login(email, password);
       if (result.success) {
         const params = new URLSearchParams(location.search);
-        const redirectTo = params.get('redirect') || '/dashboard';
-        navigate(redirectTo);
+        redirectRef.current = params.get('redirect') || '/dashboard';
+        setShowSplash(true);
       } else if (result.requiresVerification) {
         setTempToken(result.tempToken);
         setShow2FAModal(true);
@@ -74,10 +80,10 @@ const Login = () => {
       };
 
       setAuthData(token, cleanedUser, trialExpired, subscriptionExpired);
-      
+
       const params = new URLSearchParams(location.search);
-      const redirectTo = params.get('redirect') || '/dashboard';
-      navigate(redirectTo);
+      redirectRef.current = params.get('redirect') || '/dashboard';
+      setShowSplash(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed. Please check your code.');
     } finally {
@@ -87,35 +93,15 @@ const Login = () => {
 
   return (
     <div className="h-screen bg-background text-foreground flex font-inter relative overflow-hidden transition-colors duration-300">
+      {showSplash && <SplashScreen onFinish={() => navigate(redirectRef.current)} />}
+
       {/* Ambient Background */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-[120px]" />
 
       {/* Left Decoration - Desktop Only */}
-      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
-        <div className="max-w-md text-center">
-          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-3xl shadow-xl mb-8" />
-          <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
-            Elevate Your <span className="text-primary italic">Learning Experience</span>
-          </h2>
-          <p className="text-muted-foreground text-lg leading-relaxed">
-            The most intuitive management system for modern educational environments.
-          </p>
-          <div className="mt-12 grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">10k+</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Students</div>
-            </div>
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">99.9%</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uptime</div>
-            </div>
-          </div>
-          <br /><br /><br />
-          <p className="mt-8 text-center text-muted-foreground/60 text-xs font-medium">
-            &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
-          </p>
-        </div>
+      <div className="hidden lg:block flex-1 relative overflow-hidden border-r border-border z-10">
+        <AuthCarousel showDots />
       </div>
 
       {/* Right Form */}

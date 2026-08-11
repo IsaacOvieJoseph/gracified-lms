@@ -1051,24 +1051,10 @@ const ClassroomDetail = () => {
   };
 
   const handleStartZoom = async () => {
-    // If pricing is per_lecture, ask teacher if this session should be paid
-    let isPaidLecture = false;
-    let lecturePrice = 0;
-
-    if (classroom.pricing?.type === 'per_lecture') {
-      const confirmPaid = window.confirm("Is this a paid lecture? Students will need to pay to join.");
-      if (confirmPaid) {
-        isPaidLecture = true;
-        const price = window.prompt("Enter price for this lecture (NGN):", classroom.pricing.amount || 0);
-        if (price === null) return; // cancelled
-        lecturePrice = parseFloat(price);
-      }
-    }
-
     try {
       const response = await api.post(`/classrooms/${id}/call/start`, {
-        isPaid: isPaidLecture,
-        amount: lecturePrice
+        isPaid: classroom.isPaid,
+        amount: classroom.pricing?.amount || 0
       });
       const link = response.data.link;
       if (link) {
