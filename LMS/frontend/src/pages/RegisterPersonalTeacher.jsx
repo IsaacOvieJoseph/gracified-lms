@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { validateEmail, validatePassword, passwordRequirements } from '../utils/validation';
 import logo from '../assets/logo.jpg';
 import ThemeToggle from '../components/ThemeToggle';
-import AuthCarousel from '../components/AuthCarousel';
 
 const RegisterPersonalTeacher = () => {
   const [formData, setFormData] = useState({
@@ -123,8 +122,30 @@ const RegisterPersonalTeacher = () => {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-[120px]" />
 
       {/* Left Decoration - Desktop */}
-      <div className="hidden lg:block flex-1 relative overflow-hidden border-r border-border z-10">
-        <AuthCarousel showDots />
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
+        <div className="max-w-md text-center">
+          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-3xl shadow-xl mb-8" />
+          <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
+            Elevate Your <span className="text-primary italic">Learning Experience</span>
+          </h2>
+          <p className="text-muted-foreground text-lg leading-relaxed">
+            The most intuitive management system for modern educational environments.
+          </p>
+          <div className="mt-12 grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl bg-muted border border-border">
+              <div className="text-2xl font-bold text-foreground">10k+</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Students</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-muted border border-border">
+              <div className="text-2xl font-bold text-foreground">99.9%</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uptime</div>
+            </div>
+          </div>
+          <br /><br /><br />
+          <p className="mt-8 text-center text-muted-foreground/60 text-xs font-medium">
+            &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
+          </p>
+        </div>
       </div>
 
       {/* Right Form */}

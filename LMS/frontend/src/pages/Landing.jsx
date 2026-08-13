@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  GraduationCap,
-  School,
   BookOpen,
   FileCheck,
   BarChart3,
@@ -335,50 +333,11 @@ const Landing = () => {
               </p>
             </div>
           </Reveal>
-          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-            <Reveal delay={0}>
-              <div className="p-6 sm:p-8 rounded-2xl bg-card border border-border shadow-sm text-center h-full">
-                <div className="inline-flex p-4 rounded-2xl bg-primary/10 text-primary mb-6 animate-float-slow">
-                  <School className="w-10 h-10" />
-                </div>
-                <h3 className="font-outfit text-xl font-bold text-foreground mb-2">School Admins</h3>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Manage multiple schools, classrooms, teachers, and students from a single dashboard.
-                </p>
-                <Link to="/register/school-admin" className="text-primary font-semibold text-sm hover:underline flex items-center justify-center gap-1">
-                  Register as School Admin <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </Reveal>
-            <Reveal delay={120}>
-              <div className="p-6 sm:p-8 rounded-2xl bg-card border border-border shadow-sm text-center h-full">
-                <div className="inline-flex p-4 rounded-2xl bg-primary/10 text-primary mb-6 animate-float-slow" style={{ animationDelay: '-2s' }}>
-                  <GraduationCap className="w-10 h-10" />
-                </div>
-                <h3 className="font-outfit text-xl font-bold text-foreground mb-2">Personal Teachers</h3>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Create your own tutorial center. Courses, assignments, and payments—all under your brand.
-                </p>
-                <Link to="/register/personal-teacher" className="text-primary font-semibold text-sm hover:underline flex items-center justify-center gap-1">
-                  Register as Teacher <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </Reveal>
-            <Reveal delay={240}>
-              <div className="p-6 sm:p-8 rounded-2xl bg-card border border-border shadow-sm text-center h-full">
-                <div className="inline-flex p-4 rounded-2xl bg-primary/10 text-primary mb-6 animate-float-slow" style={{ animationDelay: '-4s' }}>
-                  <BookOpen className="w-10 h-10" />
-                </div>
-                <h3 className="font-outfit text-xl font-bold text-foreground mb-2">Students</h3>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Access classes, submit assignments, take exams, and track your progress.
-                </p>
-                <Link to="/register/student" className="text-primary font-semibold text-sm hover:underline flex items-center justify-center gap-1">
-                  Register as Student <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </Reveal>
-          </div>
+          <Reveal>
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl min-h-[460px] sm:min-h-[520px]">
+              <AuthCarousel showDots showRegister />
+            </div>
+          </Reveal>
         </div>
       </section>
 

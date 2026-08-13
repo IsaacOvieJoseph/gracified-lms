@@ -1,29 +1,39 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import kid from '../assets/kid.jpg';
 import youth from '../assets/youth.jpg';
 import teacher from '../assets/Teacher.jpg';
 import old from '../assets/old.jpg';
 
-const CAROUSEL_DATA = [
+export const CAROUSEL_DATA = [
   {
     image: kid,
     title: 'Smart Classrooms for Kids',
     subtitle: 'Interactive lessons, engaging assignments, and real-time progress tracking for schools and young learners.',
+    registerTo: '/register/student',
+    registerLabel: 'Register as Student',
   },
   {
     image: youth,
     title: 'AI-Powered Learning & Exams',
     subtitle: 'Master topics, join live sessions, and accelerate your study goals with smart AI assistance.',
+    registerTo: '/register/student',
+    registerLabel: 'Register as Student',
   },
   {
     image: teacher,
     title: 'Teach, Track, and Grow',
     subtitle: 'Create lessons, guide learners, review submissions, and monitor classroom progress from one simple workspace.',
+    registerTo: '/register/personal-teacher',
+    registerLabel: 'Register as Teacher',
   },
   {
     image: old,
     title: 'All-in-One Teaching Workspace',
     subtitle: 'Manage schools, classrooms, curricula, and student payments seamlessly under one roof.',
+    registerTo: '/register/school-admin',
+    registerLabel: 'Register as School Admin',
   },
 ];
 
@@ -35,8 +45,18 @@ const PAN_DURATION = 6500;
  * Web port of the mobile AuthCarousel: full-bleed background with a slow
  * cinematic pan, cross-fade between slides, an overlaid title/subtitle, and
  * optional progress dots. Fills its parent container (no sizing of its own).
+ *
+ * Pass `slides` to supply custom slide data. When a slide includes
+ * `registerTo`/`registerLabel` and `showRegister` is true, a matching
+ * "Register as..." button is rendered on that slide.
  */
-const AuthCarousel = ({ showDots = false, hideText = false, className = '' }) => {
+const AuthCarousel = ({
+  showDots = false,
+  hideText = false,
+  showRegister = false,
+  slides = CAROUSEL_DATA,
+  className = '',
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const prevIndex = useRef(0);
   const [transitioning, setTransitioning] = useState(false);
@@ -46,18 +66,18 @@ const AuthCarousel = ({ showDots = false, hideText = false, className = '' }) =>
       prevIndex.current = currentIndex;
       setTransitioning(true);
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % CAROUSEL_DATA.length);
+        setCurrentIndex((prev) => (prev + 1) % slides.length);
         setTransitioning(false);
       }, 700);
     }, CAROUSEL_INTERVAL);
     return () => clearInterval(interval);
-  }, [currentIndex]);
+  }, [currentIndex, slides.length]);
 
-  const current = CAROUSEL_DATA[currentIndex];
-  const prev = CAROUSEL_DATA[prevIndex.current];
+  const current = slides[currentIndex];
+  const prev = slides[prevIndex.current];
 
   return (
-    <div className={`relative h-full w-full overflow-hidden bg-slate-900 ${className}`}>
+    <div className={`absolute inset-0 overflow-hidden bg-slate-900 ${className}`}>
       {/* Previous slide fading out */}
       {transitioning && prevIndex.current !== currentIndex && (
         <div className="absolute inset-0 carousel-fade-out">
@@ -88,7 +108,7 @@ const AuthCarousel = ({ showDots = false, hideText = false, className = '' }) =>
       {!hideText && (
         <div
           key={`text-${currentIndex}`}
-          className="absolute inset-x-0 top-[12%] px-6 sm:px-10 carousel-text-rise"
+          className="absolute inset-x-0 top-[10%] px-6 sm:px-10 carousel-text-rise"
         >
           <h3 className="text-2xl sm:text-3xl lg:text-4xl font-outfit font-black text-white mb-3 leading-tight drop-shadow-lg">
             {current.title}
@@ -96,9 +116,20 @@ const AuthCarousel = ({ showDots = false, hideText = false, className = '' }) =>
           <p className="max-w-md text-sm sm:text-base lg:text-lg text-white/90 leading-relaxed drop-shadow-md">
             {current.subtitle}
           </p>
+
+          {showRegister && current.registerTo && (
+            <Link
+              to={current.registerTo}
+              className="inline-flex items-center gap-2 mt-6 px-5 py-3 rounded-xl bg-white text-primary font-semibold text-sm sm:text-base hover:bg-white/90 hover:scale-105 transition-all shadow-lg"
+            >
+              {current.registerLabel || 'Register'}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
+
           {showDots && (
             <div className="flex items-center gap-2 mt-6">
-              {CAROUSEL_DATA.map((_, index) => (
+              {slides.map((_, index) => (
                 <span
                   key={index}
                   className={`h-2 rounded-full transition-all duration-500 ${
