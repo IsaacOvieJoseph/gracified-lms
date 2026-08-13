@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Product** | Gracified LMS |
-| **Document** | PRD — Version 1.1 |
+| **Document** | PRD — Version 1.2 |
 | **Status** | Living document — reflects current codebase state |
 | **Owner** | Product Manager |
 | **Surfaces** | Web app (React 18 / Vite / Tailwind), Mobile app (Expo / React Native), Backend API (Node.js / Express / MongoDB + Socket.io) |
@@ -149,6 +149,7 @@ Roles enum (backend `User.role`): `student`, `teacher`, `personal_teacher`, `sch
 
 ### 7.3 Classrooms
 - Classroom fields: name, description, learningOutcomes, subject, level (Pre-Primary → Postgraduate → Professional → Vocational → Other), teacherId, schoolId[], students[], schedule[] (dayOfWeek + start/end), capacity (default 30), pricing {type: per_lecture/per_topic/weekly/monthly/one_time/free, amount}, isPaid, classFormat, publicAccess, published, isPrivate, currentTopicId, introVideo, whiteboardUrl/whiteboardActiveAt, shortCode + slug.
+- **Schedule UI:** classroom `schedule[]` is rendered on web (classroom timeline) and in the mobile **Schedule** screen (Today/Weekly tabs, device-local time, live-meeting badges, taps into classroom detail).
 - Publication lifecycle: `POST /api/classrooms/:id/publish` and `/unpublish` (idempotent; sends `class_published` notifications).
 - Enrollment: `POST /api/classrooms/:id/enroll` (self) with subscription rules applied.
 - Share links: `/c/:shortCode`, slug-based `/c/:slug`.
@@ -251,7 +252,9 @@ Providers: **Groq** (default, LLaMA 3.3 70B) or **Gemini**; selected via `Settin
 
 ### 8.1 What's built
 - Navigation: auth stack → verify-email gate → MainTabs (Dashboard, Classes, Payments, Assignments [students only], Profile) + detail stacks.
-- 26 screens: AuthIntro, Login, Register (student role), VerifyEmail, ForgotPassword, NetworkTest, Dashboard, Classrooms, ClassroomDetail, TopicDetail, VideoPlayer, Assignments, AssignmentDetail, Exams, ExamCenter, ExamDetail, Payments, PaystackWebView, QnACenter (WebView), Whiteboard (WebView), Notifications, SharedResource (deep links), ManageTeachers, AIAssistant, Reports, Profile.
+- 27 screens: AuthIntro, Login, Register (student role), VerifyEmail, ForgotPassword, NetworkTest, Dashboard, Classrooms, ClassroomDetail, TopicDetail, VideoPlayer, Assignments, AssignmentDetail, Exams, ExamCenter, ExamDetail, Payments, PaystackWebView, QnACenter (WebView), Whiteboard (WebView), Notifications, SharedResource (deep links), ManageTeachers, AIAssistant, Reports, Schedule, Profile.
+- Dashboard portals: AI (Assistant for staff / Study Partner for students), **Schedule**, Reports & Analytics, Exams Portal, Classes, Live Sessions. The **Assignments Center** and **Payments** portal entries were removed from the dashboard — those features remain reachable via their bottom tabs and classroom pages.
+- **Schedule screen:** Today (day list) and Weekly (horizontal day-column columns) tabs; builds entries from each classroom's `schedule[]`, converts UTC day/time to the device's local day/time, shows a red "Live" badge for classes with active meetings (`GET /classrooms/active-meetings`), and taps through to ClassroomDetail. Visible to all roles; students see only their enrolled classes.
 - Session persistence via AsyncStorage + `GET /auth/me`; push-token registration; deep links (custom scheme + HTTPS hosts); Paystack via WebView; AI panel with PPTX download/share; PDF report export; avatar/logo upload; bank payout form (school_admin/personal_teacher); dark/light auto theme.
 
 ### 8.2 Known gaps (mobile vs web)
@@ -262,7 +265,7 @@ Providers: **Groq** (default, LLaMA 3.3 70B) or **Gemini**; selected via `Settin
 | M3 | No 2FA enrollment/verify flow in login | 2FA users effectively locked out of mobile |
 | M4 | No root-admin console (users/schools/settings/payouts oversight) | Platform operator can't administer from mobile |
 | M5 | No marketing/landing experience; AuthIntro is a light carousel | Poor discovery experience |
-| M6 | No class roster management, per-class student invites, schedule/calendar | Teacher gap |
+| M6 | No class roster management or per-class student invites | Teacher gap |
 | M7 | No student progress graph beyond Reports; no gradebook, certificates, parent view | Student gap |
 | M8 | Role gating is partially client-side; ownership checks inconsistent in some screens | Risk of unauthorized UI access (backend still guards data) |
 
@@ -302,6 +305,7 @@ Stories follow the "As a… I want… so that…" format, with acceptance criter
 | CLS-5 | M | As a visitor, I want to see Live Now / Recording / Window Closed status on public class cards, so that I know when to join. | Live-status detection via catalog polling. |
 | CLS-6 | S | As an admin, I want to decommission a public class with a purge confirmation, so that removals are deliberate and recoverable. | Decommission dialog with PURGE confirmation. |
 | CLS-7 | S | **(planned)** As a mobile teacher, I want to manage my class roster and invite students, so that I can run classes from my phone. | Closes gap M6; roster + invites in mobile. |
+| CLS-8 | S | As any user, I want a Schedule screen with today's and weekly classes in my local time, so that I can plan around my lessons. | Today + Weekly tabs on mobile; built from classroom `schedule[]`; UTC→local day/time conversion; Live badge for active-meeting classes; taps into ClassroomDetail; students see only enrolled classes. |
 
 ### 9.4 Topics & progression
 | ID | Priority | Story | Acceptance criteria |
@@ -557,7 +561,7 @@ Scheduler (node-cron): class reminders (every minute), exam-result emails (every
 | M5 — Growth | AI assistant (7 modes + marketing), marketing engine, public lectures/seminars | ✅ Done |
 | M6 — External grading | Script sharing (view/grade sessions, group links) | ✅ Done |
 | M7 — Insights | Role reports + CSV/PDF, feedback | ✅ Done |
-| M8 — Mobile | Role-aware navigation, auth persistence, payments, AI, reports, push, deep links | Mostly done (gaps §8.2) |
+| M8 — Mobile | Role-aware navigation, auth persistence, payments, AI, reports, schedule, push, deep links | Mostly done (gaps §8.2) |
 | M9 — Parity & hardening | Close mobile gaps (2FA, subscription UI, authoring, root console), API auth tests, offline caching, mobile smoke tests | Planned |
 | M10 — Scale | Coupons/invoices/self-serve refunds, attendance reporting, calendar sync, multi-language, marketplace | Roadmap |
 
