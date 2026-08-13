@@ -173,6 +173,7 @@ router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) 
       _id: s._id,
       name: s.name,
       shortCode: s.shortCode,
+      aiTutorAccess: s.aiTutorAccess || 'inherit',
       admin: s.adminId
         ? { name: s.adminId.name, email: s.adminId.email }
         : null,
@@ -223,11 +224,81 @@ router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, re
       name: s.name,
       admin: s.adminId, // Note: This is populated as an object
       shortCode: s.shortCode,
+      aiTutorAccess: s.aiTutorAccess || 'inherit',
       createdAt: s.createdAt,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error loading school" });
+  }
+});
+
+// UPDATE SCHOOL (Root Admin edits any; School Admin edits their own)
+/**
+ * @swagger
+ * /api/schools/{id}:
+ *   put:
+ *     summary: Update a school (Root Admin edits any; School Admin edits their own)
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               adminId:
+ *                 type: string
+ *               aiTutorAccess:
+ *                 type: string
+ *                 enum: [inherit, enabled, disabled]
+ *     responses:
+ *       200:
+ *         description: School updated
+ */
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const school = await School.findById(req.params.id);
+    if (!school) return res.status(404).json({ message: "School not found" });
+
+    if (req.user.role === "school_admin") {
+      // School admin can only edit their own school and cannot change AI Tutor access
+      if (!school.adminId || school.adminId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      if (req.body.aiTutorAccess !== undefined) {
+        return res.status(403).json({ message: "Only root admin can change AI Tutor access" });
+      }
+    } else if (req.user.role !== "root_admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (req.body.name !== undefined) school.name = req.body.name;
+
+    if (req.user.role === "root_admin") {
+      if (req.body.adminId !== undefined) school.adminId = req.body.adminId;
+      if (req.body.aiTutorAccess !== undefined) {
+        if (!["inherit", "enabled", "disabled"].includes(req.body.aiTutorAccess)) {
+          return res.status(400).json({ message: "aiTutorAccess must be inherit, enabled or disabled" });
+        }
+        school.aiTutorAccess = req.body.aiTutorAccess;
+      }
+    }
+
+    await school.save();
+    res.json({ message: "School updated successfully", school });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error updating school" });
   }
 });
 

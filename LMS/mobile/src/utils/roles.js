@@ -22,6 +22,7 @@ export const hasRole = (user, roles) => roles.includes(user?.role);
 export const isStudent = (user) => user?.role === ROLES.STUDENT;
 export const isRootAdmin = (user) => user?.role === ROLES.ROOT_ADMIN;
 export const isStaff = (user) => hasRole(user, STAFF_ROLES);
+export const canUseAITutor = (user) => isStudent(user);
 export const canCreateClassroom = (user) => isStaff(user);
 export const canManageAssignments = (user) => isStaff(user);
 export const canEditPayoutProfile = (user) => hasRole(user, PAYOUT_PROFILE_ROLES);

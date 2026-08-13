@@ -248,6 +248,20 @@ export default function TopicDetailScreen({ route, navigation }) {
         <Text style={[styles.title, { color: theme.text }]}>{topic?.name}</Text>
         <Text style={[styles.description, { color: theme.muted }]}>{topic?.description || 'No description provided.'}</Text>
 
+        {!canManage && (
+          <Pressable
+            style={[styles.aiTutorBtn, { backgroundColor: theme.primary }]}
+            onPress={() => navigation.navigate('AITutor', {
+              topicId,
+              subject: classroom?.name || topic?.classroomId?.name || '',
+              context: [topic?.name, topic?.description, outline].filter(Boolean).join(' — ').slice(0, 2000),
+            })}
+          >
+            <Ionicons name="sparkles-outline" size={18} color={theme.onPrimary} />
+            <Text style={[styles.aiTutorBtnText, { color: theme.onPrimary }]}>Practice with AI Tutor</Text>
+          </Pressable>
+        )}
+
         {outline ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Lesson outline</Text>
@@ -353,7 +367,12 @@ export default function TopicDetailScreen({ route, navigation }) {
                     if (material.type === 'video' || embedInfo) {
                       navigation.navigate('VideoPlayer', {
                         videoUrl: material.url,
-                        title: material.title || 'Topic Material'
+                        title: material.title || 'Topic Material',
+                        aiTutor: {
+                          topicId,
+                          subject: classroom?.name || topic?.classroomId?.name || '',
+                          context: [topic?.name, topic?.description, outline].filter(Boolean).join(' — ').slice(0, 2000),
+                        }
                       });
                     } else {
                       openLink(material.url);
@@ -434,7 +453,12 @@ export default function TopicDetailScreen({ route, navigation }) {
                     if (video.url) {
                       navigation.navigate('VideoPlayer', {
                         videoUrl: video.url,
-                        title: video.label || 'Recorded Lecture'
+                        title: video.label || 'Recorded Lecture',
+                        aiTutor: {
+                          topicId,
+                          subject: classroom?.name || topic?.classroomId?.name || '',
+                          context: [topic?.name, topic?.description, outline].filter(Boolean).join(' — ').slice(0, 2000),
+                        }
                       });
                     }
                   }}
@@ -491,6 +515,16 @@ const styles = StyleSheet.create({
   section: { marginTop: 24 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '700' },
+  aiTutorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginTop: 16,
+  },
+  aiTutorBtnText: { fontWeight: '800', fontSize: 14 },
   outlineCard: { borderRadius: 16, padding: 16, borderWidth: 1 },
   outlineText: { fontSize: 14, lineHeight: 20 },
   teacherControls: { marginTop: 24, padding: 16, borderRadius: 18, borderWidth: 1 },

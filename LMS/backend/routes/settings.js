@@ -71,7 +71,7 @@ router.put('/', auth, async (req, res) => {
             return res.status(403).json({ message: 'Access denied' });
         }
 
-        const { taxRate, vatRate, serviceFeeRate, subjects, subscriptionCheckingEnabled, activeAIProvider } = req.body;
+        const { taxRate, vatRate, serviceFeeRate, subjects, subscriptionCheckingEnabled, activeAIProvider, studentAIEnabled, studentAIDailyLimit } = req.body;
 
         let settings = await Settings.findOne();
         if (settings) {
@@ -81,6 +81,8 @@ router.put('/', auth, async (req, res) => {
             if (subjects) settings.subjects = subjects;
             if (subscriptionCheckingEnabled !== undefined) settings.subscriptionCheckingEnabled = subscriptionCheckingEnabled;
             if (activeAIProvider && ['groq', 'gemini'].includes(activeAIProvider)) settings.activeAIProvider = activeAIProvider;
+            if (studentAIEnabled !== undefined) settings.studentAIEnabled = studentAIEnabled;
+            if (studentAIDailyLimit !== undefined) settings.studentAIDailyLimit = Math.min(1000, Math.max(1, parseInt(studentAIDailyLimit) || settings.studentAIDailyLimit));
             settings.updatedBy = req.user._id;
             await settings.save();
         } else {
@@ -91,6 +93,8 @@ router.put('/', auth, async (req, res) => {
                 subjects,
                 subscriptionCheckingEnabled: subscriptionCheckingEnabled !== undefined ? subscriptionCheckingEnabled : true,
                 activeAIProvider: activeAIProvider || 'groq',
+                studentAIEnabled: studentAIEnabled !== undefined ? studentAIEnabled : false,
+                studentAIDailyLimit: Math.min(1000, Math.max(1, parseInt(studentAIDailyLimit) || 20)),
                 updatedBy: req.user._id
             });
         }

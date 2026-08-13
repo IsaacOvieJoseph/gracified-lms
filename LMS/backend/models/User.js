@@ -158,6 +158,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  aiTutorAccess: {
+    type: String,
+    enum: ['inherit', 'enabled', 'disabled'],
+    default: 'inherit',
+  },
+  aiTutorUsage: {
+    usageDate: { type: String, default: null }, // YYYY-MM-DD key for the daily cap
+    count: { type: Number, default: 0 },
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

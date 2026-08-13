@@ -120,6 +120,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
   const [form, setForm] = useState({
     name: "",
     adminId: "",
+    aiTutorAccess: "inherit",
   });
   const [admins, setAdmins] = useState([]);
 
@@ -128,6 +129,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
       setForm({
         name: school.name,
         adminId: school.admin?._id || "",
+        aiTutorAccess: school.aiTutorAccess || "inherit",
       });
     }
   }, [school]);
@@ -146,6 +148,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
       const payload = { name: form.name };
       if (user.role === 'root_admin') {
         payload.adminId = form.adminId;
+        payload.aiTutorAccess = form.aiTutorAccess;
       } else if (user.role === 'school_admin') {
         payload.adminId = user._id;
       }
@@ -210,6 +213,22 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
                   className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl cursor-not-allowed text-muted-foreground/40 font-medium"
                   disabled
                 />
+              </div>
+            )}
+
+            {user?.role === 'root_admin' && (
+              <div>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">AI Tutor Access</label>
+                <select
+                  value={form.aiTutorAccess}
+                  onChange={e => setForm({ ...form, aiTutorAccess: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium appearance-none"
+                >
+                  <option value="inherit">Inherit (use global setting)</option>
+                  <option value="enabled">Enabled for this school</option>
+                  <option value="disabled">Disabled for this school</option>
+                </select>
+                <p className="text-[11px] text-muted-foreground/60 font-medium mt-2">Overrides the global AI Tutor setting for students of this school. Individual student settings can still override this.</p>
               </div>
             )}
 

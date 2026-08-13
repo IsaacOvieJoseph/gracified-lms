@@ -50,6 +50,7 @@ require('./models/QnABoard');
 require('./models/QnAQuestion');
 require('./models/ScriptShareConfig');
 require('./models/ScriptAccessSession');
+require('./models/TutorSession');
 
 // Security Middlewares
 app.use(helmet({

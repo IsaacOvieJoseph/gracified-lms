@@ -164,14 +164,16 @@ const QnACenter = () => {
                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold text-gray-900">Ask a Question</h2>
-                        <button
-                            type="button"
-                            onClick={() => setShowAIPanel(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-md active:scale-95"
-                        >
-                            <Sparkles className="w-3.5 h-3.5" />
-                            Magic Assistant
-                        </button>
+                        {isAdmin && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAIPanel(true)}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-md active:scale-95"
+                            >
+                                <Sparkles className="w-3.5 h-3.5" />
+                                Magic Assistant
+                            </button>
+                        )}
                     </div>
                     <form onSubmit={handleSubmitQuestion} className="space-y-4">
                         {!user && board.allowAnonymous && (
@@ -301,17 +303,19 @@ const QnACenter = () => {
                 </div>
             </main>
 
-            <AIAssistantPanel
-                isOpen={showAIPanel}
-                onClose={() => setShowAIPanel(false)}
-                allowedModes={['qna']}
-                defaultMode="qna"
-                prefill={{
-                    subject: board?.classroomId?.name || '',
-                    topicName: board?.topicId?.name || '',
-                    qnaQuestion: newQuestion
-                }}
-            />
+            {isAdmin && (
+                <AIAssistantPanel
+                    isOpen={showAIPanel}
+                    onClose={() => setShowAIPanel(false)}
+                    allowedModes={['qna']}
+                    defaultMode="qna"
+                    prefill={{
+                        subject: board?.classroomId?.name || '',
+                        topicName: board?.topicId?.name || '',
+                        qnaQuestion: newQuestion
+                    }}
+                />
+            )}
         </div>
     );
 };

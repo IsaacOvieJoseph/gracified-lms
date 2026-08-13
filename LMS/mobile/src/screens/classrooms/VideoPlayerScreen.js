@@ -8,7 +8,7 @@ import { getVideoEmbedInfo } from '../../utils/video';
 
 export default function VideoPlayerScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { videoUrl, title } = route.params || {};
+  const { videoUrl, title, aiTutor } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -175,6 +175,16 @@ export default function VideoPlayerScreen({ route, navigation }) {
             </Pressable>
           </View>
         )}
+
+        {aiTutor && (
+          <Pressable
+            style={[styles.aiTutorBtn, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
+            onPress={() => navigation.navigate('AITutor', aiTutor)}
+          >
+            <Ionicons name="sparkles-outline" size={16} color="#FFF" />
+            <Text style={styles.aiTutorBtnText}>Ask AI</Text>
+          </Pressable>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -277,5 +287,24 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '800',
     fontSize: 14,
+  },
+  aiTutorBtn: {
+    position: 'absolute',
+    right: 14,
+    bottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    zIndex: 12,
+  },
+  aiTutorBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

@@ -3,6 +3,7 @@ const { auth } = require('../middleware/auth');
 const Settings = require('../models/Settings');
 const School = require('../models/School');
 const Tutorial = require('../models/Tutorial');
+const TutorSession = require('../models/TutorSession');
 const PptxGenJS = require('pptxgenjs');
 const fs = require('fs');
 const path = require('path');
@@ -85,6 +86,85 @@ const callAI = async (prompt) => {
 const parseJSON = (text) => {
     const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     return JSON.parse(cleaned);
+};
+
+// ─── AI Tutor (student self-learning) access control ──────────────────────────
+// Resolution order: student override → their school's override → global setting.
+// 'inherit' means "fall through to the next level".
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+const resolveStudentAIAccess = async (user) => {
+    const settings = await Settings.findOne();
+    let enabled = !!settings?.studentAIEnabled;
+    const dailyLimit = Math.min(1000, Math.max(1, parseInt(settings?.studentAIDailyLimit) || 20));
+
+    // School override (uses the student's first school)
+    if (user.schoolId && user.schoolId.length > 0) {
+        try {
+            const school = await School.findById(user.schoolId[0]);
+            if (school && school.aiTutorAccess === 'enabled') enabled = true;
+            if (school && school.aiTutorAccess === 'disabled') enabled = false;
+        } catch (_) { /* ignore school lookup errors */ }
+    }
+
+    // Student override (highest priority)
+    if (user.aiTutorAccess === 'enabled') enabled = true;
+    if (user.aiTutorAccess === 'disabled') enabled = false;
+
+    return { enabled, dailyLimit };
+};
+
+const getTutorUsage = (user) => {
+    const usage = user.aiTutorUsage || {};
+    return usage.usageDate === todayKey() ? (usage.count || 0) : 0;
+};
+
+// Enabled-only gate (reads: access, history)
+const requireStudentAITutor = async (req, res, next) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ message: 'AI Tutor is available to students only' });
+        }
+        const access = await resolveStudentAIAccess(req.user);
+        if (!access.enabled) {
+            return res.status(403).json({ message: 'AI Tutor is not enabled for your account. Contact your academy administrator.' });
+        }
+        req.aiTutor = { access, usedToday: getTutorUsage(req.user) };
+        next();
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// Full gate (AI-consuming endpoints): enabled + daily quota
+const requireStudentAI = async (req, res, next) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ message: 'AI Tutor is available to students only' });
+        }
+        const access = await resolveStudentAIAccess(req.user);
+        if (!access.enabled) {
+            return res.status(403).json({ message: 'AI Tutor is not enabled for your account. Contact your academy administrator.' });
+        }
+        const usedToday = getTutorUsage(req.user);
+        if (usedToday >= access.dailyLimit) {
+            return res.status(429).json({ message: `You have reached today's AI Tutor limit (${access.dailyLimit} interactions). Try again tomorrow.` });
+        }
+        req.aiTutor = { access, usedToday };
+        next();
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+const consumeTutorQuota = async (user) => {
+    const key = todayKey();
+    const usage = user.aiTutorUsage || {};
+    user.aiTutorUsage = usage.usageDate === key
+        ? { usageDate: key, count: (usage.count || 0) + 1 }
+        : { usageDate: key, count: 1 };
+    await user.save();
 };
 
 // ─── GET /api/ai/provider ─────────────────────────────────────────────────────
@@ -413,6 +493,9 @@ Return ONLY this JSON structure:
  */
 router.post('/qna-assistant', auth, async (req, res) => {
     try {
+        if (req.user.role === 'student') {
+            return res.status(403).json({ message: 'AI Q&A is not available to students. Use the AI Tutor instead.' });
+        }
         const { question, context } = req.body;
         const prompt = `You are an expert academic assistant. Provide a helpful, clear, and accurate answer to the following question.
 Context (if any): ${context || 'General knowledge'}
@@ -935,6 +1018,338 @@ ${schema}`;
         res.json({ success: true, campaign: result });
     } catch (err) {
         console.error('AI generate-marketing-campaign error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ═══ AI TUTOR — Student Self-Learning (mobile + web) ═══════════════════════════
+
+// ─── GET /api/ai/tutor/access ─────────────────────────────────────────────────
+// Effective AI Tutor access for the logged-in student (enabled + remaining quota).
+router.get('/tutor/access', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.json({ enabled: false, dailyLimit: 0, usedToday: 0, remaining: 0 });
+        }
+        const access = await resolveStudentAIAccess(req.user);
+        const usedToday = getTutorUsage(req.user);
+        res.json({
+            enabled: access.enabled,
+            dailyLimit: access.dailyLimit,
+            usedToday,
+            remaining: access.enabled ? Math.max(0, access.dailyLimit - usedToday) : 0
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─── GET /api/ai/tutor/history ────────────────────────────────────────────────
+// Lightweight list of the student's past tutor sessions.
+router.get('/tutor/history', auth, requireStudentAITutor, async (req, res) => {
+    try {
+        const sessions = await TutorSession.find({ userId: req.user._id }).sort({ updatedAt: -1 }).limit(50);
+        const history = sessions.map((s) => ({
+            _id: s._id,
+            topicId: s.topicId,
+            subject: s.subject,
+            updatedAt: s.updatedAt,
+            chatCount: (s.chat || []).length,
+            lastQuestion: (s.chat || []).filter((c) => c.role === 'user').slice(-1)[0]?.content || '',
+            quizzes: (s.quizzes || []).map((q) => ({
+                title: q.title,
+                attempts: (q.attempts || []).length,
+                bestScore: (q.attempts || []).reduce((best, a) => (a.total ? Math.max(best, Math.round((a.score / a.total) * 100)) : best), 0)
+            }))
+        }));
+        res.json({ success: true, history });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─── POST /api/ai/tutor/chat ──────────────────────────────────────────────────
+// Q&A with optional topic context. Never uses teacher assignment/exam content.
+router.post('/tutor/chat', auth, requireStudentAI, async (req, res) => {
+    try {
+        const { question, context, topicId, sessionId } = req.body;
+        if (!question || !String(question).trim()) {
+            return res.status(400).json({ message: 'question is required' });
+        }
+
+        const prompt = `You are a friendly, encouraging AI tutor helping a student learn independently. Answer clearly and accurately, building on the student's current understanding.
+Topic context (if any): ${context || 'General knowledge'}
+Student question: ${question}
+
+Return ONLY this JSON structure:
+{
+  "answer": "Markdown formatted detailed answer",
+  "suggestedFollowUp": ["Question 1", "Question 2"]
+}`;
+
+        const raw = await callAI(prompt);
+        const result = parseJSON(raw);
+
+        // Persist to the student's session for that topic (or explicit session)
+        let session = null;
+        if (sessionId) {
+            session = await TutorSession.findOne({ _id: sessionId, userId: req.user._id });
+        }
+        if (!session) {
+            session = await TutorSession.findOne({ userId: req.user._id, topicId: topicId || null });
+        }
+        if (!session) {
+            session = new TutorSession({ userId: req.user._id, topicId: topicId || null });
+            if (context) session.subject = String(context).slice(0, 200);
+        }
+        session.chat.push({ role: 'user', content: String(question).slice(0, 2000) });
+        session.chat.push({ role: 'assistant', content: String(result.answer || '').slice(0, 10000) });
+        await session.save();
+
+        await consumeTutorQuota(req.user);
+
+        res.json({ success: true, sessionId: session._id, answer: result.answer, suggestedFollowUp: result.suggestedFollowUp || [] });
+    } catch (err) {
+        console.error('AI tutor chat error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─── POST /api/ai/tutor/quiz ──────────────────────────────────────────────────
+// Generate a practice MCQ from topic STUDY MATERIAL ONLY (name/description/outline).
+// The answer key is stored server-side and never returned to the client.
+router.post('/tutor/quiz', auth, requireStudentAI, async (req, res) => {
+    try {
+        const { topicId, className, subject, level, questionCount } = req.body;
+        let topicContext = '';
+        let classroomName = className || '';
+
+        if (topicId) {
+            const topic = await Topic.findById(topicId);
+            if (topic) {
+                topicContext = [topic.name, topic.description, topic.lessonsOutline].filter(Boolean).join(' — ').slice(0, 2000);
+                if (!classroomName && topic.classroomId) {
+                    try {
+                        const Classroom = require('../models/Classroom');
+                        const cls = await Classroom.findById(topic.classroomId).select('name subject level');
+                        if (cls) classroomName = cls.name;
+                    } catch (_) { /* ignore */ }
+                }
+            }
+        }
+        if (!topicContext && subject) topicContext = subject;
+
+        const count = Math.min(parseInt(questionCount) || 5, 10);
+
+        const prompt = `Generate a short multiple-choice practice quiz to help a student self-assess and learn. IMPORTANT: Do NOT reference or reproduce any teacher's assignment or examination. Base every question only on the study context provided.
+Study context: "${topicContext || 'General'}"
+Class: "${classroomName || 'General'}"
+Subject: "${subject || 'General'}"
+Level: "${level || 'General'}"
+Number of questions: ${count}
+
+Return ONLY this JSON structure:
+{
+  "title": "Practice quiz title",
+  "questions": [
+    {
+      "questionText": "Question text",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctOption": "Exact text of the correct option",
+      "explanation": "1-2 sentence teaching explanation of the correct answer"
+    }
+  ]
+}
+IMPORTANT: correctOption must be the exact text of one of the options. Provide an explanation for every question.`;
+
+        const raw = await callAI(prompt);
+        const parsed = parseJSON(raw);
+        const quiz = {
+            title: parsed.title || 'Practice Quiz',
+            topicContext: topicContext || '',
+            questions: Array.isArray(parsed.questions) ? parsed.questions : []
+        };
+        if (!quiz.questions.length) {
+            return res.status(500).json({ message: 'AI returned no questions. Please try again.' });
+        }
+
+        // Persist quiz (with answer key) server-side only
+        let session = await TutorSession.findOne({ userId: req.user._id, topicId: topicId || null });
+        if (!session) {
+            session = new TutorSession({ userId: req.user._id, topicId: topicId || null, subject: subject || '' });
+        }
+        session.quizzes.push(quiz);
+        await session.save();
+
+        await consumeTutorQuota(req.user);
+
+        const quizIndex = session.quizzes.length - 1;
+        const safeQuestions = quiz.questions.map((q) => ({
+            questionText: q.questionText,
+            options: q.options || []
+        }));
+
+        res.json({ success: true, sessionId: session._id, quizIndex, title: quiz.title, questions: safeQuestions });
+    } catch (err) {
+        console.error('AI tutor quiz error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─── POST /api/ai/tutor/quiz/submit ───────────────────────────────────────────
+// Grade against the stored key, then AI writes per-question explanations + a summary.
+router.post('/tutor/quiz/submit', auth, requireStudentAI, async (req, res) => {
+    try {
+        const { sessionId, quizIndex, answers } = req.body;
+        if (!sessionId || quizIndex === undefined || quizIndex === null) {
+            return res.status(400).json({ message: 'sessionId and quizIndex are required' });
+        }
+
+        const session = await TutorSession.findOne({ _id: sessionId, userId: req.user._id });
+        if (!session) return res.status(404).json({ message: 'Session not found' });
+
+        const quiz = session.quizzes[quizIndex];
+        if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+
+        const selected = Array.isArray(answers) ? answers : [];
+        const perQuestion = quiz.questions.map((q, index) => {
+            const chosen = String(selected[index] !== undefined ? selected[index] : '').trim();
+            const correct = String(q.correctOption || '').trim();
+            return {
+                questionText: q.questionText,
+                selected: chosen || '(no answer)',
+                correct,
+                isCorrect: !!(chosen && chosen === correct),
+                explanation: q.explanation || ''
+            };
+        });
+
+        const score = perQuestion.filter((p) => p.isCorrect).length;
+        const total = perQuestion.length;
+
+        // AI summary feedback
+        let summaryFeedback = `You scored ${score} out of ${total}.`;
+        try {
+            const correctTopics = perQuestion.filter((p) => p.isCorrect).map((p) => p.questionText).join(' | ').slice(0, 800);
+            const weakTopics = perQuestion.filter((p) => !p.isCorrect).map((p) => p.questionText).join(' | ').slice(0, 800);
+            const feedbackPrompt = `A student just completed a practice quiz scoring ${score}/${total}.
+Areas done well: ${correctTopics || 'None'}
+Areas to improve: ${weakTopics || 'None'}
+
+Write a short, encouraging feedback summary (max 80 words) with 2-3 specific suggestions on what to study or practice next.
+
+Return ONLY this JSON structure:
+{
+  "summary": "Feedback summary with suggestions"
+}`;
+            const raw = await callAI(feedbackPrompt);
+            const parsed = parseJSON(raw);
+            if (parsed.summary) summaryFeedback = parsed.summary;
+        } catch (err) {
+            console.warn('AI tutor feedback failed, using default:', err.message);
+        }
+
+        quiz.attempts.push({ answers: selected, score, total, perQuestion, summaryFeedback });
+        await session.save();
+
+        await consumeTutorQuota(req.user);
+
+        res.json({ success: true, score, total, perQuestion, summaryFeedback });
+    } catch (err) {
+        console.error('AI tutor quiz submit error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ─── GET /api/ai/tutor/progress ───────────────────────────────────────────────
+// Aggregates ONLY the student's own data (topic progress, own submissions,
+// own AI quiz attempts) and asks AI for a growth summary + next step.
+router.get('/tutor/progress', auth, requireStudentAI, async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const TopicProgress = require('../models/TopicProgress');
+        const topicProgressDocs = await TopicProgress.find({ userId });
+        const topicsCompleted = topicProgressDocs.filter((p) => p.completionPercentage >= 100).length;
+        const averageVideoCompletion = topicProgressDocs.length
+            ? Math.round(topicProgressDocs.reduce((sum, p) => sum + (p.completionPercentage || 0), 0) / topicProgressDocs.length)
+            : 0;
+
+        const Assignment = require('../models/Assignment');
+        const assignments = await Assignment.find({ 'submissions.studentId': userId }).lean();
+        const assignmentPcts = [];
+        assignments.forEach((a) => {
+            (a.submissions || []).forEach((s) => {
+                if (s.studentId && String(s.studentId) === String(userId) && s.status === 'graded' && s.score !== undefined) {
+                    const maxScore = a.maxScore || 100;
+                    assignmentPcts.push({ title: a.title, pct: maxScore ? (s.score / maxScore) * 100 : 0 });
+                }
+            });
+        });
+
+        const ExamSubmission = require('../models/ExamSubmission');
+        const examSubs = await ExamSubmission.find({ studentId: userId, status: 'graded' }).populate('examId', 'title questions').lean();
+        const examPcts = [];
+        examSubs.forEach((s) => {
+            const maxScore = s.examId && Array.isArray(s.examId.questions)
+                ? s.examId.questions.reduce((sum, q) => sum + (q.maxScore || 1), 0)
+                : 0;
+            if (maxScore) examPcts.push({ title: s.examId?.title || 'Exam', pct: (s.totalScore || 0) / maxScore * 100 });
+        });
+
+        const sessions = await TutorSession.find({ userId });
+        let aiQuizPcts = [];
+        sessions.forEach((s) => {
+            (s.quizzes || []).forEach((q) => {
+                (q.attempts || []).forEach((att) => {
+                    if (att.total) aiQuizPcts.push({ title: q.title || 'Practice Quiz', pct: (att.score / att.total) * 100 });
+                });
+            });
+        });
+
+        const avg = (items) => items.length ? Math.round(items.reduce((sum, i) => sum + i.pct, 0) / items.length) : null;
+
+        const metrics = {
+            topicsStudied: topicProgressDocs.length,
+            topicsCompleted,
+            averageVideoCompletion,
+            assignmentsGraded: assignmentPcts.length,
+            assignmentAverage: avg(assignmentPcts),
+            examsGraded: examPcts.length,
+            examAverage: avg(examPcts),
+            aiQuizzesTaken: aiQuizPcts.length,
+            aiQuizAverage: avg(aiQuizPcts)
+        };
+
+        let summary = '';
+        let nextStep = '';
+        try {
+            const progressPrompt = `Here is a summary of a student's learning progress:
+- Topics studied: ${metrics.topicsStudied}, completed: ${metrics.topicsCompleted}, average video completion: ${metrics.averageVideoCompletion}%
+- Graded assignments: ${metrics.assignmentsGraded}, average score: ${metrics.assignmentAverage ?? 'N/A'}%
+- Graded exams: ${metrics.examsGraded}, average score: ${metrics.examAverage ?? 'N/A'}%
+- AI practice quizzes: ${metrics.aiQuizzesTaken}, average score: ${metrics.aiQuizAverage ?? 'N/A'}%
+
+Write an encouraging growth summary (max 80 words) and ONE specific recommended next growth step for this student.
+
+Return ONLY this JSON structure:
+{
+  "summary": "Growth summary",
+  "nextStep": "One concrete next step"
+}`;
+            const raw = await callAI(progressPrompt);
+            const parsed = parseJSON(raw);
+            summary = parsed.summary || '';
+            nextStep = parsed.nextStep || '';
+        } catch (err) {
+            console.warn('AI tutor progress summary failed:', err.message);
+        }
+
+        await consumeTutorQuota(req.user);
+
+        res.json({ success: true, metrics, summary, nextStep });
+    } catch (err) {
+        console.error('AI tutor progress error:', err.message);
         res.status(500).json({ message: err.message });
     }
 });

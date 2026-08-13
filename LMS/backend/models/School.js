@@ -31,6 +31,11 @@ const schoolSchema = new mongoose.Schema({
     index: true,
     lowercase: true
   },
+  aiTutorAccess: {
+    type: String,
+    enum: ['inherit', 'enabled', 'disabled'],
+    default: 'inherit'
+  },
 }, { timestamps: true });
 
 // Generate unique shortCode and slug before saving

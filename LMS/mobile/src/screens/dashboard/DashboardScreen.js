@@ -248,6 +248,16 @@ export default function DashboardScreen({ navigation }) {
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
             </Pressable>}
+            {studentUser && <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('AITutor')}>
+              <View style={[styles.portalIcon, { backgroundColor: `${theme.primary}26` }]}>
+                <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.portalTitle, { color: theme.text }]}>AI Tutor</Text>
+                <Text style={[styles.portalSub, { color: theme.muted }]}>Ask questions, take practice quizzes, and track your growth.</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
+            </Pressable>}
             {canUseAssignmentsPortal(user) && (
               <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Assignments')}>
                 <View style={[styles.portalIcon, { backgroundColor: theme.surfaceElevated }]}>

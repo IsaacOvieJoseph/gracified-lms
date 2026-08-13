@@ -30,6 +30,16 @@ const settingsSchema = new mongoose.Schema({
         enum: ['groq', 'gemini'],
         default: 'groq'
     },
+    studentAIEnabled: {
+        type: Boolean,
+        default: false
+    },
+    studentAIDailyLimit: {
+        type: Number,
+        default: 20,
+        min: 1,
+        max: 1000
+    },
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

@@ -557,6 +557,15 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, re
       }
     }
 
+    if (req.body.aiTutorAccess !== undefined) {
+      if (req.user.role !== 'root_admin') {
+        return res.status(403).json({ message: 'Only root admin can change AI Tutor access' });
+      }
+      if (!['inherit', 'enabled', 'disabled'].includes(req.body.aiTutorAccess)) {
+        return res.status(400).json({ message: 'aiTutorAccess must be inherit, enabled or disabled' });
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       req.body,

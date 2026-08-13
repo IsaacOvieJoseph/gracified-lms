@@ -12,7 +12,9 @@ const PlatformSettings = () => {
         vatRate: 0,
         serviceFeeRate: 0,
         subscriptionCheckingEnabled: true,
-        activeAIProvider: 'groq'
+        activeAIProvider: 'groq',
+        studentAIEnabled: false,
+        studentAIDailyLimit: 20
     });
 
     useEffect(() => {
@@ -143,6 +145,39 @@ const PlatformSettings = () => {
                                 </button>
                             </div>
                             <p className="text-xs text-slate-400 font-medium italic">⚙️ Configure API keys via <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">backend/.env</code> — GROQ_API_KEY and GEMINI_API_KEY</p>
+                        </div>
+
+                        {/* Student AI Tutor */}
+                        <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="font-bold text-slate-900 flex items-center gap-2"><Brain className="w-4 h-4 text-violet-600" /> AI Tutor for Students</h4>
+                                    <p className="text-sm text-slate-500 font-medium mt-1">Students can chat with the AI, take practice quizzes, and get growth feedback on mobile. Disabled by default — enable globally here, or per school/student from the Schools and Users pages.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setSettings({ ...settings, studentAIEnabled: !settings.studentAIEnabled })}
+                                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${settings.studentAIEnabled ? 'bg-primary' : 'bg-slate-300'}`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.studentAIEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                                    />
+                                </button>
+                            </div>
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Daily interaction limit per student
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="1000"
+                                    value={settings.studentAIDailyLimit}
+                                    onChange={(e) => setSettings({ ...settings, studentAIDailyLimit: parseInt(e.target.value) || 1 })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                                <p className="text-xs text-slate-400 font-medium mt-1">Controls AI cost. Chat messages, quiz generations, and quiz feedback each count as one interaction.</p>
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 gap-6">
                             <div>

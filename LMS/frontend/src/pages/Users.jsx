@@ -127,6 +127,16 @@ const Users = () => {
     }
   };
 
+  const handleAITutorAccessChange = async (userId, value) => {
+    try {
+      await api.put(`/users/${userId}`, { aiTutorAccess: value });
+      toast.success('AI Tutor access updated');
+      setUsers(prev => prev.map(u => u._id === userId ? { ...u, aiTutorAccess: value } : u));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update AI Tutor access');
+    }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
 
@@ -676,6 +686,9 @@ Bob Johnson,bob@example.com,student,`;
                 {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
                   <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Associated Academy</th>
                 )}
+                {user?.role === 'root_admin' && (
+                  <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">AI Tutor</th>
+                )}
                 <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Status</th>
                 {user?.role === 'root_admin' && (
                   <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Actions</th>
@@ -699,6 +712,20 @@ Bob Johnson,bob@example.com,student,`;
                       {Array.isArray(u.schoolId)
                         ? u.schoolId.map(s => s?.name || s).join(', ')
                         : (u.schoolId?.name || u.schoolName || u.schoolId || 'Individual')}
+                    </td>
+                  )}
+                  {user?.role === 'root_admin' && (
+                    <td className="px-6 py-4">
+                      <select
+                        value={u.aiTutorAccess || 'inherit'}
+                        onChange={(e) => handleAITutorAccessChange(u._id, e.target.value)}
+                        className="px-2.5 py-1.5 bg-muted border border-border rounded-lg text-xs font-bold text-foreground outline-none focus:border-primary transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="inherit">Inherit</option>
+                        <option value="enabled">Enabled</option>
+                        <option value="disabled">Disabled</option>
+                      </select>
                     </td>
                   )}
                   <td className="px-6 py-4 text-sm">
