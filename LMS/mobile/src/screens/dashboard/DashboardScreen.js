@@ -258,18 +258,16 @@ export default function DashboardScreen({ navigation }) {
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
             </Pressable>}
-            {canUseAssignmentsPortal(user) && (
-              <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Assignments')}>
-                <View style={[styles.portalIcon, { backgroundColor: theme.surfaceElevated }]}>
-                  <Ionicons name="clipboard-outline" size={20} color={theme.text} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.portalTitle, { color: theme.text }]}>Assignments Center</Text>
-                  <Text style={[styles.portalSub, { color: theme.muted }]}>View and submit homework, check graded feedback.</Text>
-                </View>
-                <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
-              </Pressable>
-            )}
+            <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Schedule')}>
+              <View style={[styles.portalIcon, { backgroundColor: `${theme.info}1A` }]}>
+                <Ionicons name="calendar-outline" size={20} color={theme.info} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.portalTitle, { color: theme.text }]}>Schedule</Text>
+                <Text style={[styles.portalSub, { color: theme.muted }]}>View your daily and weekly class schedule.</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
+            </Pressable>
 
             <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Reports')}>
               <View style={[styles.portalIcon, { backgroundColor: `${theme.primary}26` }]}>
@@ -289,17 +287,6 @@ export default function DashboardScreen({ navigation }) {
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={[styles.portalTitle, { color: theme.text }]}>Exams Portal</Text>
                 <Text style={[styles.portalSub, { color: theme.muted }]}>{studentUser ? 'Take timed multiple-choice and theory examinations.' : 'Review exams available to your classrooms.'}</Text>
-              </View>
-              <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
-            </Pressable>
-
-            <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('Payments')}>
-              <View style={[styles.portalIcon, { backgroundColor: `${theme.info}26` }]}>
-                <Ionicons name="receipt-outline" size={20} color={theme.info} />
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.portalTitle, { color: theme.text }]}>{studentUser ? 'Payments' : 'Payments & Payouts'}</Text>
-                <Text style={[styles.portalSub, { color: theme.muted }]}>{studentUser ? 'View course payment receipts and billing history.' : 'View classroom revenue, payouts, and transaction history.'}</Text>
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
             </Pressable>

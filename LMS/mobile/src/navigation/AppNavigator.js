@@ -35,6 +35,7 @@ import QnACenterScreen from '../screens/qna/QnACenterScreen';
 import WhiteboardScreen from '../screens/whiteboard/WhiteboardScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import SharedResourceScreen from '../screens/shared/SharedResourceScreen';
+import ScheduleScreen from '../screens/schedule/ScheduleScreen';
 import ManageTeachersScreen from '../screens/users/ManageTeachersScreen';
 import AIAssistantScreen from '../screens/ai/AIAssistantScreen';
 import AITutorScreen from '../screens/ai/AITutorScreen';
@@ -146,6 +147,7 @@ export default function AppNavigator() {
             <Stack.Screen name="QnACenter" component={QnACenterScreen} />
             <Stack.Screen name="Whiteboard" component={WhiteboardScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="Schedule" component={ScheduleScreen} />
             <Stack.Screen name="ManageTeachers" component={ManageTeachersScreen} />
             <Stack.Screen name="AIAssistant" component={AIAssistantScreen} />
             <Stack.Screen name="AITutor" component={AITutorScreen} />
