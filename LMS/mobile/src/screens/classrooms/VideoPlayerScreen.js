@@ -1,16 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { getVideoEmbedInfo } from '../../utils/video';
+import AITutorChatOverlay from '../../components/ai/AITutorChatOverlay';
 
 export default function VideoPlayerScreen({ route, navigation }) {
   const { theme } = useTheme();
   const { videoUrl, title, aiTutor } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const webViewRef = useRef(null);
+
+  useEffect(() => {
+    if (!chatOpen) return;
+    const t = setTimeout(() => {
+      webViewRef.current?.injectJavaScript(`
+        (function(){
+          try { var v = document.querySelector('video'); if (v) v.pause(); } catch(e){}
+          try {
+            var f = document.querySelector('iframe');
+            if (f && f.contentWindow) {
+              f.contentWindow.postMessage(JSON.stringify({event:'command', func:'pauseVideo', args:''}), '*');
+            }
+          } catch(e){}
+          true;
+        })();
+      `);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [chatOpen]);
 
   if (!videoUrl) {
     return (
@@ -128,6 +150,7 @@ export default function VideoPlayerScreen({ route, navigation }) {
       {/* Video Webview Area */}
       <View style={styles.videoWrapper}>
         <WebView
+          ref={webViewRef}
           source={webViewSource}
           allowsFullscreenVideo={true}
           allowsInlineMediaPlayback={true}
@@ -179,13 +202,23 @@ export default function VideoPlayerScreen({ route, navigation }) {
         {aiTutor && (
           <Pressable
             style={[styles.aiTutorBtn, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
-            onPress={() => navigation.navigate('AITutor', aiTutor)}
+            onPress={() => setChatOpen(true)}
           >
             <Ionicons name="sparkles-outline" size={16} color="#FFF" />
-            <Text style={styles.aiTutorBtnText}>Ask AI</Text>
+            <Text style={styles.aiTutorBtnText}>Ask Gracy</Text>
           </Pressable>
         )}
       </View>
+
+      {aiTutor && (
+        <AITutorChatOverlay
+          visible={chatOpen}
+          onClose={() => setChatOpen(false)}
+          topicId={aiTutor.topicId}
+          subject={aiTutor.subject}
+          context={aiTutor.context}
+        />
+      )}
     </SafeAreaView>
   );
 }

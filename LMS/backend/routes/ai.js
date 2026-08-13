@@ -1120,9 +1120,12 @@ Return ONLY this JSON structure:
 // The answer key is stored server-side and never returned to the client.
 router.post('/tutor/quiz', auth, requireStudentAI, async (req, res) => {
     try {
-        const { topicId, className, subject, level, questionCount } = req.body;
+        const { topicId, className, subject, level, questionCount, area, general } = req.body;
         let topicContext = '';
         let classroomName = className || '';
+        let pickedTopics = [];
+
+        const Topic = require('../models/Topic');
 
         if (topicId) {
             const topic = await Topic.findById(topicId);
@@ -1136,6 +1139,28 @@ router.post('/tutor/quiz', auth, requireStudentAI, async (req, res) => {
                     } catch (_) { /* ignore */ }
                 }
             }
+        } else if (general) {
+            // General mode: pick from completed topics of the classes the student is enrolled in.
+            const User = require('../models/User');
+            const student = await User.findById(req.user._id).select('enrolledClasses');
+            const enrolledClassIds = (student?.enrolledClasses || []).map((c) => c?._id || c).filter(Boolean);
+            const TopicProgress = require('../models/TopicProgress');
+            const completedProgress = await TopicProgress.find({ userId: req.user._id, completionPercentage: { $gte: 100 } });
+            const completedTopicIds = completedProgress.map((p) => p.topicId).filter(Boolean);
+
+            const classFilter = enrolledClassIds.length ? { classroomId: { $in: enrolledClassIds } } : {};
+            let candidates = [];
+            if (completedTopicIds.length) {
+                candidates = await Topic.find({ _id: { $in: completedTopicIds }, ...classFilter }).select('name description lessonsOutline classroomId');
+            }
+            if (!candidates.length && enrolledClassIds.length) {
+                candidates = await Topic.find(classFilter).select('name description lessonsOutline classroomId').limit(10);
+            }
+            const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, 3);
+            pickedTopics = shuffled.map((t) => t.name).filter(Boolean);
+            topicContext = shuffled.map((t) => [t.name, t.description, t.lessonsOutline].filter(Boolean).join(' — ')).join('\n').slice(0, 2000);
+        } else if (area && String(area).trim()) {
+            topicContext = String(area).trim();
         }
         if (!topicContext && subject) topicContext = subject;
 
@@ -1189,7 +1214,7 @@ IMPORTANT: correctOption must be the exact text of one of the options. Provide a
             options: q.options || []
         }));
 
-        res.json({ success: true, sessionId: session._id, quizIndex, title: quiz.title, questions: safeQuestions });
+        res.json({ success: true, sessionId: session._id, quizIndex, title: quiz.title, questions: safeQuestions, pickedTopics });
     } catch (err) {
         console.error('AI tutor quiz error:', err.message);
         res.status(500).json({ message: err.message });

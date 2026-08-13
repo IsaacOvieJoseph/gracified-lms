@@ -258,7 +258,7 @@ export default function TopicDetailScreen({ route, navigation }) {
             })}
           >
             <Ionicons name="sparkles-outline" size={18} color={theme.onPrimary} />
-            <Text style={[styles.aiTutorBtnText, { color: theme.onPrimary }]}>Practice with AI Tutor</Text>
+            <Text style={[styles.aiTutorBtnText, { color: theme.onPrimary }]}>Practice with Gracy</Text>
           </Pressable>
         )}
 

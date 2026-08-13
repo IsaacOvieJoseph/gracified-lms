@@ -7,10 +7,11 @@ import { useTheme } from '../../context/ThemeContext';
 
 export default function AITutorQuizScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { topicId, subject, context, sessionId } = route.params || {};
+  const { topicId, subject, area, general } = route.params || {};
 
   const [generating, setGenerating] = useState(true);
   const [quiz, setQuiz] = useState(null); // { sessionId, quizIndex, title, questions }
+  const [pickedTopics, setPickedTopics] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { score, total, perQuestion, summaryFeedback }
@@ -25,8 +26,11 @@ export default function AITutorQuizScreen({ route, navigation }) {
         subject: subject || '',
         level: '',
         questionCount: 5,
+        area,
+        general: !!general,
       });
       setQuiz({ sessionId: res.data.sessionId, quizIndex: res.data.quizIndex, title: res.data.title, questions: res.data.questions });
+      setPickedTopics(res.data.pickedTopics || []);
       setAnswers(new Array(res.data.questions.length).fill(''));
       setResult(null);
     } catch (err) {
@@ -77,7 +81,7 @@ export default function AITutorQuizScreen({ route, navigation }) {
         <Pressable onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back-outline" size={24} color={theme.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Practice Quiz</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Practice with Gracy</Text>
         <Pressable onPress={generate} disabled={generating || submitting}>
           <Ionicons name="refresh" size={22} color={generating || submitting ? theme.muted : theme.primary} />
         </Pressable>
@@ -99,7 +103,10 @@ export default function AITutorQuizScreen({ route, navigation }) {
         ) : quiz ? (
           <>
             <Text style={[styles.quizTitle, { color: theme.text }]}>{quiz.title}</Text>
-            <Text style={[styles.subject, { color: theme.muted }]}>Topic: {subject || 'General'}</Text>
+            <Text style={[styles.subject, { color: theme.muted }]}>Topic: {subject || area || 'General'}</Text>
+            {pickedTopics.length > 0 ? (
+              <Text style={[styles.picked, { color: theme.muted }]}>Based on: {pickedTopics.join(' • ')}</Text>
+            ) : null}
 
             {result ? (
               <View style={[styles.resultCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -210,7 +217,8 @@ const styles = StyleSheet.create({
   retryBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
   retryBtnText: { fontWeight: '800', fontSize: 13 },
   quizTitle: { fontSize: 18, fontWeight: '800' },
-  subject: { fontSize: 12, fontWeight: '600', marginTop: 4, marginBottom: 14 },
+  subject: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+  picked: { fontSize: 11, fontWeight: '600', marginTop: 2, marginBottom: 14 },
   resultCard: {
     alignItems: 'center',
     borderWidth: 1,

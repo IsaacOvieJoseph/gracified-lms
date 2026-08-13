@@ -243,7 +243,7 @@ export default function DashboardScreen({ navigation }) {
                 <Ionicons name="sparkles-outline" size={20} color={theme.warning} />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.portalTitle, { color: theme.text }]}>AI Assistant</Text>
+                <Text style={[styles.portalTitle, { color: theme.text }]}>AI Assistant (Gracy)</Text>
                 <Text style={[styles.portalSub, { color: theme.muted }]}>Generate topics, assignments, exams, slides, syllabi, and ask questions.</Text>
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
@@ -253,7 +253,7 @@ export default function DashboardScreen({ navigation }) {
                 <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.portalTitle, { color: theme.text }]}>AI Tutor</Text>
+                <Text style={[styles.portalTitle, { color: theme.text }]}>AI Study Partner (Gracy)</Text>
                 <Text style={[styles.portalSub, { color: theme.muted }]}>Ask questions, take practice quizzes, and track your growth.</Text>
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />

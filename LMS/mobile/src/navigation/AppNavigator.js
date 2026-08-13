@@ -39,6 +39,7 @@ import ManageTeachersScreen from '../screens/users/ManageTeachersScreen';
 import AIAssistantScreen from '../screens/ai/AIAssistantScreen';
 import AITutorScreen from '../screens/ai/AITutorScreen';
 import AITutorQuizScreen from '../screens/ai/AITutorQuizScreen';
+import AITutorGrowthScreen from '../screens/ai/AITutorGrowthScreen';
 import ReportsScreen from '../screens/reports/ReportsScreen';
 import { canUseAssignmentsPortal, canUsePayments } from '../utils/roles';
 
@@ -149,6 +150,7 @@ export default function AppNavigator() {
             <Stack.Screen name="AIAssistant" component={AIAssistantScreen} />
             <Stack.Screen name="AITutor" component={AITutorScreen} />
             <Stack.Screen name="AITutorQuiz" component={AITutorQuizScreen} />
+            <Stack.Screen name="AITutorGrowth" component={AITutorGrowthScreen} />
             <Stack.Screen name="Reports" component={ReportsScreen} />
           </>
         )
