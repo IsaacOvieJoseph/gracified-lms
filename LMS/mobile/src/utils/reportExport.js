@@ -24,22 +24,22 @@ export async function exportReportSheetPDF(title, studentName, classData = [], o
       const rawScore = item.averagePercentage ?? item.overallAverage ?? item.avgScore ?? item.score ?? 0;
       const scoreFormatted = formatPct(rawScore);
 
-      let badgeClass = 'badge-red';
-      let badgeLabel = 'Needs Improvement';
+      let scoreClass = 'score-red';
+      let scoreLabel = 'Needs Improvement';
       if (rawScore >= 80) {
-        badgeClass = 'badge-green';
-        badgeLabel = 'Excellent';
+        scoreClass = 'score-green';
+        scoreLabel = 'Excellent';
       } else if (rawScore >= 60) {
-        badgeClass = 'badge-amber';
-        badgeLabel = 'Good';
+        scoreClass = 'score-amber';
+        scoreLabel = 'Good';
       }
 
       return `
         <tr>
           <td style="font-weight: 700;">${className}</td>
           <td>${submitted} ${total > 0 ? `/ ${total}` : ''}</td>
-          <td style="font-weight: 700; color: #0f172a;">${scoreFormatted}%</td>
-          <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+          <td><span class="score ${scoreClass}">${scoreFormatted}%</span></td>
+          <td>${scoreLabel}</td>
         </tr>
       `;
     }).join('');
@@ -79,10 +79,10 @@ export async function exportReportSheetPDF(title, studentName, classData = [], o
             .table th { background: #4f46e5; color: #ffffff; text-align: left; padding: 12px 14px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
             .table td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
             .table tr:nth-child(even) { background: #f8fafc; }
-            .badge { padding: 4px 10px; border-radius: 12px; font-weight: 800; font-size: 11px; text-transform: uppercase; display: inline-block; }
-            .badge-green { background: #d1fae5; color: #047857; }
-            .badge-amber { background: #fef3c7; color: #b45309; }
-            .badge-red { background: #fee2e2; color: #b91c1c; }
+            .score { font-weight: 800; font-size: 13px; }
+            .score-green { color: #047857; }
+            .score-amber { color: #b45309; }
+            .score-red { color: #b91c1c; }
             .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
           </style>
         </head>

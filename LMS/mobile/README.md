@@ -43,6 +43,9 @@ For a physical device, replace the URL with your local network IP or your deploy
 - `npm run ios` – launch on iOS
 - `npm run web` – launch in web mode
 
+- eas build --platform android --profile production
+Generate Build
+
 ## Notes
 - The mobile app is wired to the existing backend authentication endpoints.
 - For production, update the API URL in the `.env` file to point to your deployed backend.
