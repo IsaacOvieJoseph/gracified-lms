@@ -142,8 +142,8 @@ export default function DashboardScreen({ navigation }) {
         <Pressable onPress={() => navigation.navigate('Notifications')} style={[styles.notificationBell, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Ionicons name="notifications-outline" size={24} color={theme.text} />
           {unreadNotifications > 0 && (
-            <View style={[styles.badgeCount, { backgroundColor: theme.danger }]}>
-              <Text style={[styles.badgeCountText, { color: theme.onPrimary }]}>{unreadNotifications}</Text>
+            <View style={[styles.badgeCount, { backgroundColor: `${theme.danger}1A` }]}>
+              <Text style={[styles.badgeCountText, { color: theme.danger }]}>{unreadNotifications}</Text>
             </View>
           )}
         </Pressable>

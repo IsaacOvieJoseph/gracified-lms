@@ -84,16 +84,16 @@ export default function AssignmentsScreen({ navigation }) {
     if (!hasSubmission) {
       const isOverdue = item.dueDate && new Date(item.dueDate) < new Date();
       return (
-        <View style={[styles.badge, { backgroundColor: isOverdue ? theme.danger : theme.neutral }]}>
-          <Text style={[styles.badgeText, { color: theme.onPrimary }]}>{isOverdue ? 'OVERDUE' : 'PENDING'}</Text>
+        <View style={[styles.badge, { backgroundColor: isOverdue ? `${theme.danger}1A` : `${theme.neutral}1A` }]}>
+          <Text style={[styles.badgeText, { color: isOverdue ? theme.danger : theme.muted }]}>{isOverdue ? 'OVERDUE' : 'PENDING'}</Text>
         </View>
       );
     }
 
     if (submission.status === 'graded') {
       return (
-        <View style={[styles.badge, { backgroundColor: theme.success }]}>
-          <Text style={[styles.badgeText, { color: theme.onPrimary }]}>
+        <View style={[styles.badge, { backgroundColor: `${theme.success}1A` }]}>
+          <Text style={[styles.badgeText, { color: theme.success }]}>
             GRADED • {formatPercentage(submission.score, item.totalPoints || 100)}
           </Text>
         </View>
@@ -101,8 +101,8 @@ export default function AssignmentsScreen({ navigation }) {
     }
 
     return (
-      <View style={[styles.badge, { backgroundColor: theme.info }]}>
-        <Text style={[styles.badgeText, { color: theme.onPrimary }]}>SUBMITTED</Text>
+      <View style={[styles.badge, { backgroundColor: `${theme.info}1A` }]}>
+        <Text style={[styles.badgeText, { color: theme.info }]}>SUBMITTED</Text>
       </View>
     );
   };

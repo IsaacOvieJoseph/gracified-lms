@@ -334,7 +334,7 @@ const Landing = () => {
             </div>
           </Reveal>
           <Reveal>
-            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl min-h-[460px] sm:min-h-[520px]">
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl min-h-[560px] sm:min-h-[640px]">
               <AuthCarousel showDots showRegister />
             </div>
           </Reveal>

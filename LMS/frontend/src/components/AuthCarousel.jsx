@@ -27,6 +27,7 @@ export const CAROUSEL_DATA = [
     subtitle: 'Create lessons, guide learners, review submissions, and monitor classroom progress from one simple workspace.',
     registerTo: '/register/personal-teacher',
     registerLabel: 'Register as Teacher',
+    objectPosition: '50% 33%',
   },
   {
     image: old,
@@ -84,6 +85,7 @@ const AuthCarousel = ({
           <img
             src={prev.image}
             alt=""
+            style={{ objectPosition: prev.objectPosition }}
             className="h-full w-full object-cover carousel-pan"
           />
         </div>
@@ -97,6 +99,7 @@ const AuthCarousel = ({
         <img
           src={current.image}
           alt={current.title}
+          style={{ objectPosition: current.objectPosition || 'center top' }}
           className="h-full w-full object-cover carousel-pan"
         />
       </div>
