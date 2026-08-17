@@ -20,7 +20,7 @@ const callGroq = async (prompt) => {
     const Groq = require('groq-sdk');
     const groq = new Groq({ apiKey });
 
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const model = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
     try {
         const completion = await groq.chat.completions.create({
             messages: [
@@ -46,7 +46,7 @@ const callGemini = async (prompt) => {
     if (!apiKey) throw new Error('GEMINI_API_KEY is not configured.');
 
     const fetch = (await import('node-fetch')).default;
-    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const body = {
