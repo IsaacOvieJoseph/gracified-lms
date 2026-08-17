@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 export default function AITutorQuizScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { topicId, subject, area, general } = route.params || {};
+  const { topicId, subject, area, general, questionCount } = route.params || {};
 
   const [generating, setGenerating] = useState(true);
   const [quiz, setQuiz] = useState(null); // { sessionId, quizIndex, title, questions }
@@ -25,7 +25,7 @@ export default function AITutorQuizScreen({ route, navigation }) {
         topicId,
         subject: subject || '',
         level: '',
-        questionCount: 5,
+        questionCount: parseInt(questionCount) || 5,
         area,
         general: !!general,
       });

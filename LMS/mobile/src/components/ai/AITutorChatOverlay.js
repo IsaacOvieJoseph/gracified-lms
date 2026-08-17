@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
-import { isPracticeRequest, extractPracticeArea } from '../../utils/tutor';
+import { isPracticeRequest, extractPracticeArea, extractPracticeQuantityFromMessage, isQuantityOnly } from '../../utils/tutor';
 
 export default function AITutorChatOverlay({ visible, onClose, topicId, subject, context }) {
   const { theme } = useTheme();
@@ -16,6 +16,7 @@ export default function AITutorChatOverlay({ visible, onClose, topicId, subject,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [access, setAccess] = useState(null);
+  const [pendingPractice, setPendingPractice] = useState(null);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -56,15 +57,48 @@ export default function AITutorChatOverlay({ visible, onClose, topicId, subject,
     if (!question || loading) return;
     setMessages((prev) => [...prev, { role: 'user', content: question }]);
     setInput('');
+
+    if (pendingPractice) {
+      const qty = extractPracticeQuantityFromMessage(question);
+      if (qty || isQuantityOnly(question)) {
+        const count = qty || parseInt(question, 10) || 5;
+        const area = pendingPractice.area;
+        setPendingPractice(null);
+        onClose();
+        navigation.navigate('AITutorQuiz', {
+          topicId: area ? null : topicId,
+          subject,
+          area,
+          general: !area,
+          questionCount: count,
+        });
+        return;
+      }
+      setPendingPractice(null);
+    }
+
     if (isPracticeRequest(question)) {
       const area = extractPracticeArea(question);
-      onClose();
-      navigation.navigate('AITutorQuiz', {
-        topicId: area ? null : topicId,
-        subject,
-        area,
-        general: !area,
-      });
+      const qty = extractPracticeQuantityFromMessage(question);
+      if (qty) {
+        onClose();
+        navigation.navigate('AITutorQuiz', {
+          topicId: area ? null : topicId,
+          subject,
+          area,
+          general: !area,
+          questionCount: qty,
+        });
+        return;
+      }
+      setPendingPractice({ area: area || '' });
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: area
+          ? `Great! How many questions would you like for your ${area} quiz?`
+          : 'How many questions would you like? (1-20)',
+        followUps: ['5 questions', '10 questions', '15 questions'],
+      }]);
       return;
     }
     setLoading(true);

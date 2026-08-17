@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
 import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
-import { isPracticeRequest, extractPracticeArea } from '../../utils/tutor';
+import { isPracticeRequest, extractPracticeArea, extractPracticeQuantity, extractPracticeQuantityFromMessage, isQuantityOnly } from '../../utils/tutor';
 
 export default function AITutorScreen({ route, navigation }) {
   const { theme } = useTheme();
@@ -16,8 +16,10 @@ export default function AITutorScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState('chat');
   const [quizArea, setQuizArea] = useState('');
   const [quizGeneral, setQuizGeneral] = useState(false);
+  const [quizCount, setQuizCount] = useState('5');
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [pendingPractice, setPendingPractice] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,15 +60,17 @@ export default function AITutorScreen({ route, navigation }) {
     }
   }, [messages]);
 
-  const startQuiz = (area, general) => {
+  const startQuiz = (area, general, questionCount) => {
     const trimmed = (area || '').trim();
     const useArea = !!trimmed;
     const useGeneral = general && !useArea;
+    const count = Math.min(Math.max(parseInt(questionCount) || 5, 1), 20);
     navigation.navigate('AITutorQuiz', {
       topicId: useArea || useGeneral ? null : topicId,
       subject,
       area: trimmed,
       general: useGeneral,
+      questionCount: count,
     });
   };
 
@@ -75,13 +79,34 @@ export default function AITutorScreen({ route, navigation }) {
     if (!question || loading) return;
     setMessages((prev) => [...prev, { role: 'user', content: question }]);
     setInput('');
+
+    if (pendingPractice) {
+      const qty = extractPracticeQuantityFromMessage(question);
+      if (qty || isQuantityOnly(question)) {
+        const count = qty || parseInt(question, 10) || 5;
+        const area = pendingPractice.area;
+        setPendingPractice(null);
+        startQuiz(area, !area, count);
+        return;
+      }
+      setPendingPractice(null);
+    }
+
     if (isPracticeRequest(question)) {
       const area = extractPracticeArea(question);
-      if (area) {
-        startQuiz(area, false);
-      } else {
-        startQuiz('', true);
+      const qty = extractPracticeQuantityFromMessage(question);
+      if (qty) {
+        startQuiz(area || '', !area, qty);
+        return;
       }
+      setPendingPractice({ area: area || '' });
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: area
+          ? `Great! How many questions would you like for your ${area} quiz?`
+          : 'How many questions would you like? (1-20)',
+        followUps: ['5 questions', '10 questions', '15 questions'],
+      }]);
       return;
     }
     setLoading(true);
@@ -220,9 +245,41 @@ export default function AITutorScreen({ route, navigation }) {
                 ? 'General picks from all topics you have completed in classes you are enrolled in.'
                 : 'Type the area you want to be quizzed on, or pick General for a mix of your completed topics.'}
             </Text>
+            <View style={styles.countRow}>
+              <Text style={[styles.countLabel, { color: theme.text }]}>Questions</Text>
+              <View style={styles.countControls}>
+                <Pressable
+                  hitSlop={8}
+                  style={[styles.countBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+                  onPress={() => setQuizCount((prev) => String(Math.max(parseInt(prev) || 5, 1) - 1))}
+                >
+                  <Ionicons name="remove" size={16} color={theme.text} />
+                </Pressable>
+                <TextInput
+                  style={[styles.countInput, { color: theme.text, backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+                  value={quizCount}
+                  onChangeText={(t) => {
+                    const cleaned = t.replace(/[^0-9]/g, '');
+                    if (cleaned === '') { setQuizCount(''); return; }
+                    const n = parseInt(cleaned, 10);
+                    if (n >= 1 && n <= 20) setQuizCount(cleaned);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={2}
+                  showSoftInputOnFocus={false}
+                />
+                <Pressable
+                  hitSlop={8}
+                  style={[styles.countBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+                  onPress={() => setQuizCount((prev) => String(Math.min(parseInt(prev) || 5, 20)))}
+                >
+                  <Ionicons name="add" size={16} color={theme.text} />
+                </Pressable>
+              </View>
+            </View>
             <Pressable
               style={[styles.startBtn, { backgroundColor: theme.primary }]}
-              onPress={() => startQuiz(quizArea, quizGeneral)}
+              onPress={() => startQuiz(quizArea, quizGeneral, quizCount)}
             >
               <Ionicons name="clipboard-outline" size={17} color={theme.onPrimary} />
               <Text style={[styles.startBtnText, { color: theme.onPrimary }]}>Start Practice Quiz</Text>
@@ -348,6 +405,28 @@ const styles = StyleSheet.create({
   },
   modeChipText: { fontSize: 12, fontWeight: '800' },
   modeHint: { fontSize: 11, lineHeight: 16, marginTop: 12 },
+  countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
+  countLabel: { fontSize: 13, fontWeight: '700' },
+  countControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  countBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countInput: {
+    width: 48,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    fontSize: 15,
+    fontWeight: '800',
+    padding: 0,
+  },
   startBtn: {
     flexDirection: 'row',
     alignItems: 'center',
