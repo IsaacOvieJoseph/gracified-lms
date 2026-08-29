@@ -144,10 +144,10 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
                   <Text style={[styles.referralLine, { color: theme.muted }]}>Class: {request.referral.classroomName}</Text>
                 </View>
               ) : null}
-              {viewerIsStudent && request.referral.classUrl ? (
+              {viewerIsStudent && request.referral.classroomId ? (
                 <Pressable
                   style={[styles.classBtn, { backgroundColor: theme.success }]}
-                  onPress={() => Linking.openURL(request.referral.classUrl).catch(() => {})}
+                  onPress={() => navigation.navigate('ClassroomDetail', { classroomId: request.referral.classroomId })}
                 >
                   <Ionicons name="log-in-outline" size={16} color="#fff" />
                   <Text style={styles.classBtnText}>Join Your New Class</Text>
