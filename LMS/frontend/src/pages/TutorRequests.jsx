@@ -296,6 +296,85 @@ const TutorRequests = () => {
                     {selected.referral.notes && <p className="text-xs text-gray-600 mt-1">{selected.referral.notes}</p>}
                   </div>
                 )}
+
+                {selected.mode === 'admin' && selected.applications?.length > 0 && (
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-4 h-4 text-indigo-600" />
+                      <h3 className="font-bold text-gray-800 text-sm">Tutor Applicants ({selected.applications.length})</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {selected.applications.map((app) => {
+                        const isAccepted = app.status === 'accepted';
+                        const isDeclined = app.status === 'declined';
+                        const isOpen = expandedApp === app._id;
+                        const unread = (app.messages || []).filter((m) => m.senderRole === 'personal_teacher' && !m.readByAdmin).length;
+                        return (
+                          <div key={app._id} className="border border-gray-200 rounded-lg p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                                {app.tutorId?.profilePicture
+                                  ? <img src={app.tutorId.profilePicture} alt="" className="w-full h-full rounded-full object-cover" />
+                                  : <User className="w-4 h-4 text-indigo-600" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-gray-800 text-sm truncate">{app.tutorId?.name || 'Tutor'}</p>
+                                {app.message && <p className="text-xs text-gray-500 line-clamp-2">{app.message}</p>}
+                                <p className="text-[10px] text-gray-400">
+                                  Applied {new Date(app.appliedAt).toLocaleDateString()} • {(app.messages || []).length} msgs
+                                  {unread > 0 ? ` • ${unread} new` : ''}
+                                </p>
+                              </div>
+                              {isAccepted && (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Matched</span>
+                              )}
+                              {isDeclined && (
+                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Declined</span>
+                              )}
+                              <button onClick={() => setExpandedApp(isOpen ? null : app._id)} className="text-gray-400">
+                                <ChevronDown className={`w-4 h-4 transition ${isOpen ? 'rotate-180' : ''}`} />
+                              </button>
+                            </div>
+                            {isOpen && app.status === 'pending' && (
+                              <div className="mt-3 border-t border-gray-100 pt-3">
+                                <div className="space-y-2 max-h-48 overflow-y-auto pr-1 mb-2">
+                                  {(app.messages || []).length === 0 ? (
+                                    <p className="text-xs text-gray-400">Chat privately with this tutor about their application.</p>
+                                  ) : (
+                                    app.messages.map((m, i) => (
+                                      <div key={i} className={`max-w-[90%] rounded-lg p-2 text-xs ${m.senderRole === 'root_admin' ? 'bg-indigo-600 text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
+                                        <p className="text-[9px] font-bold opacity-70 mb-0.5">{m.senderRole === 'root_admin' ? 'You' : app.tutorId?.name || 'Tutor'}</p>
+                                        <p>{m.message}</p>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    value={appReplies[app._id] || ''}
+                                    onChange={(e) => setAppReplies((m) => ({ ...m, [app._id]: e.target.value }))}
+                                    onKeyDown={(e) => e.key === 'Enter' && appSend(app._id)}
+                                    placeholder="Message this tutor..."
+                                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                  <button onClick={() => appSend(app._id)} disabled={sendingApp} className="bg-indigo-600 text-white p-1.5 rounded-lg disabled:opacity-40">
+                                    {sendingApp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                                  </button>
+                                  <button onClick={() => openClassPicker(app)} disabled={changingApp} className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40">
+                                    Match
+                                  </button>
+                                  <button onClick={() => declineApp(app._id)} disabled={changingApp} className="bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40">
+                                    Decline
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-5">
@@ -373,6 +452,43 @@ const TutorRequests = () => {
           </div>
         )}
       </div>
+
+      {showClassPicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-800">Match with {classPicker.tutorName}</h3>
+              <button onClick={() => setShowClassPicker(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Pick the tutor&apos;s class to link. The student receives the class link immediately.</p>
+            {classPicker.classes.length === 0 ? (
+              <p className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
+                This tutor has no classes yet. They&apos;ll be matched without a class link and can share one later.
+              </p>
+            ) : (
+              <select
+                value={classPicker.selected}
+                onChange={(e) => setClassPicker((c) => ({ ...c, selected: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+              >
+                {classPicker.classes.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name} — {c.subject || 'General'}{c.isPaid ? ' (Paid)' : ' (Free)'}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={confirmAccept}
+              disabled={accepting}
+              className="w-full bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              {accepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Accept & Match Tutor
+            </button>
+          </div>
+        </div>
+      )}
 
       {showReferral && selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
