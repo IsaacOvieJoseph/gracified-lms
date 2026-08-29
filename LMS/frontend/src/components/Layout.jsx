@@ -5,7 +5,7 @@ import {
   Book, LogOut, Users, User, DollarSign, FileText,
   LayoutDashboard, Landmark, Bell, Menu, X,
   MessageSquare, BarChart2, Settings, ShieldCheck,
-  ChevronRight, Search, CreditCard, PieChart, ArrowLeft, Radio
+  ChevronRight, Search, CreditCard, PieChart, ArrowLeft, Radio, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -108,14 +108,19 @@ const Layout = ({ children }) => {
     ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/public-classes', icon: Radio, label: 'Public Classes' }] : []),
     ...(['student', 'root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/payments', icon: CreditCard, label: 'Payments' }] : []),
     { path: '/exams', icon: PieChart, label: 'Exams' },
-    ...(user?.role === 'student' ? [{ path: '/assignments', icon: FileText, label: 'Assignments' }] : []),
+    ...(user?.role === 'student' ? [
+      { path: '/assignments', icon: FileText, label: 'Assignments' },
+      { path: '/find-tutor', icon: GraduationCap, label: 'Find a Tutor' }
+    ] : []),
     ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
+    ...(user?.role === 'personal_teacher' ? [{ path: '/tutor-referrals', icon: GraduationCap, label: 'Student Referrals' }] : []),
     { path: '/reports', icon: BarChart2, label: 'Reports' },
     ...(['root_admin', 'school_admin'].includes(user?.role) ? [{ path: '/schools', icon: Landmark, label: 'Schools' }] : []),
     ...(user?.role === 'root_admin' ? [
       { path: '/disbursements', icon: Landmark, label: 'Disbursements' },
       { path: '/subscription-plans-admin', icon: CreditCard, label: 'Subscription Plans' },
       { path: '/feedbacks', icon: MessageSquare, label: 'Feedbacks' },
+      { path: '/tutor-requests', icon: GraduationCap, label: 'Tutor Requests' },
       { path: '/platform-settings', icon: Settings, label: 'Platform Settings' },
       { path: '/marketing', icon: ShieldCheck, label: 'Marketing' }
     ] : []),

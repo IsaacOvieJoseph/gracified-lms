@@ -41,6 +41,9 @@ import AIAssistantScreen from '../screens/ai/AIAssistantScreen';
 import AITutorScreen from '../screens/ai/AITutorScreen';
 import AITutorQuizScreen from '../screens/ai/AITutorQuizScreen';
 import AITutorGrowthScreen from '../screens/ai/AITutorGrowthScreen';
+import TutorRequestScreen from '../screens/tutors/TutorRequestScreen';
+import TutorRequestDetailScreen from '../screens/tutors/TutorRequestDetailScreen';
+import TutorReferralsScreen from '../screens/tutors/TutorReferralsScreen';
 import ReportsScreen from '../screens/reports/ReportsScreen';
 import { canUseAssignmentsPortal, canUsePayments } from '../utils/roles';
 
@@ -153,6 +156,9 @@ export default function AppNavigator() {
             <Stack.Screen name="AITutor" component={AITutorScreen} />
             <Stack.Screen name="AITutorQuiz" component={AITutorQuizScreen} />
             <Stack.Screen name="AITutorGrowth" component={AITutorGrowthScreen} />
+            <Stack.Screen name="TutorRequest" component={TutorRequestScreen} />
+            <Stack.Screen name="TutorRequestDetail" component={TutorRequestDetailScreen} />
+            <Stack.Screen name="TutorReferrals" component={TutorReferralsScreen} />
             <Stack.Screen name="Reports" component={ReportsScreen} />
           </>
         )

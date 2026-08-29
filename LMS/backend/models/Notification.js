@@ -28,7 +28,11 @@ const notificationSchema = new mongoose.Schema({
       'new_class_created',
       'class_published',
       'classroom_ended',
-      'marketing_job'
+      'marketing_job',
+      'tutor_request',
+      'tutor_request_message',
+      'tutor_request_resolved',
+      'tutor_application'
     ],
     required: true,
   },
@@ -40,7 +44,7 @@ const notificationSchema = new mongoose.Schema({
   entityRef: {
     type: String,
     required: function () { return this.entityId != null; },
-    enum: ['Assignment', 'Classroom', 'Payment', 'Topic', 'User'],
+    enum: ['Assignment', 'Classroom', 'Payment', 'Topic', 'User', 'TutorRequest'],
   },
   read: {
     type: Boolean,

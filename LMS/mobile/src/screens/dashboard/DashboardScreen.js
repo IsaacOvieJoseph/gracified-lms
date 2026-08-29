@@ -248,6 +248,16 @@ export default function DashboardScreen({ navigation }) {
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
             </Pressable>}
+            {!studentUser && user?.role === 'personal_teacher' && <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('TutorReferrals')}>
+              <View style={[styles.portalIcon, { backgroundColor: `${theme.success}1A` }]}>
+                <Ionicons name="people-outline" size={20} color={theme.success} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.portalTitle, { color: theme.text }]}>Student Referrals</Text>
+                <Text style={[styles.portalSub, { color: theme.muted }]}>Students matched to you — chat and start teaching.</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
+            </Pressable>}
             {studentUser && <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('AITutor')}>
               <View style={[styles.portalIcon, { backgroundColor: `${theme.primary}26` }]}>
                 <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
@@ -255,6 +265,16 @@ export default function DashboardScreen({ navigation }) {
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={[styles.portalTitle, { color: theme.text }]}>AI Study Partner (Gracy)</Text>
                 <Text style={[styles.portalSub, { color: theme.muted }]}>Ask questions, take practice quizzes, and track your growth.</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
+            </Pressable>}
+            {studentUser && <Pressable style={[styles.portalItem, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.navigate('TutorRequest')}>
+              <View style={[styles.portalIcon, { backgroundColor: `${theme.success}1A` }]}>
+                <Ionicons name="people-outline" size={20} color={theme.success} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.portalTitle, { color: theme.text }]}>Find a Tutor</Text>
+                <Text style={[styles.portalSub, { color: theme.muted }]}>Get matched with active tutors or request one from our team.</Text>
               </View>
               <Ionicons name="chevron-forward-outline" size={18} color={theme.muted} />
             </Pressable>}

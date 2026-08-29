@@ -51,6 +51,7 @@ require('./models/QnAQuestion');
 require('./models/ScriptShareConfig');
 require('./models/ScriptAccessSession');
 require('./models/TutorSession');
+require('./models/TutorRequest');
 
 // Security Middlewares
 app.use(helmet({
@@ -131,6 +132,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/exams', require('./routes/exams'));
 app.use('/api/qna', require('./routes/qna'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/tutor-requests', require('./routes/tutorRequests'));
 app.use('/api/scripts', require('./routes/scripts'));
 
 // Swagger Documentation

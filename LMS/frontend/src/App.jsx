@@ -45,6 +45,9 @@ import AdminSubscriptionPlans from './pages/AdminSubscriptionPlans'; // Import n
 import Marketing from './pages/Marketing';
 import ScriptSharePage from './pages/ScriptSharePage';
 import Legal from './pages/Legal';
+import TutorRequests from './pages/TutorRequests';
+import StudentTutorRequests from './pages/StudentTutorRequests';
+import TutorReferrals from './pages/TutorReferrals';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -339,6 +342,30 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Marketing />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/tutor-requests"
+        element={
+          <PrivateRoute>
+            <TutorRequests />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/find-tutor"
+        element={
+          <PrivateRoute>
+            <StudentTutorRequests />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/tutor-referrals"
+        element={
+          <PrivateRoute>
+            <TutorReferrals />
           </PrivateRoute>
         }
       />

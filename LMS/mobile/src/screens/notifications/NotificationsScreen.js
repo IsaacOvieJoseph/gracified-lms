@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function NotificationsScreen({ navigation }) {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -98,6 +100,12 @@ export default function NotificationsScreen({ navigation }) {
             navigation.navigate('AssignmentDetail', { assignmentId: item.entityId });
           } else if (item.entityRef === 'Classroom') {
             navigation.navigate('ClassroomDetail', { classroomId: item.entityId });
+          } else if (item.entityRef === 'TutorRequest') {
+            if (user?.role === 'personal_teacher') {
+              navigation.navigate('TutorReferrals');
+            } else {
+              navigation.navigate('TutorRequestDetail', { requestId: item.entityId });
+            }
           }
         }}
       >

@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Classroom',
   }],
+  personalTeacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // Referred personal tutor linked to a student
   otp: String, // Field for storing OTP (email verification)
   otpExpires: Date, // Field for OTP expiry time (email verification)
   passwordResetOTP: String, // Field for storing password reset OTP
