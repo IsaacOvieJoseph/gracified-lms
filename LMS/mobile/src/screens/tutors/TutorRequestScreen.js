@@ -26,6 +26,7 @@ export default function TutorRequestScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [startingId, setStartingId] = useState(null);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ subject: '', description: '', urgency: 'medium', preferredSchedule: '' });
 
