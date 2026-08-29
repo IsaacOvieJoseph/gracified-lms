@@ -87,9 +87,38 @@ export default function TutorRequestScreen({ navigation }) {
           <Text key={i} style={[styles.sugReason, { color: theme.muted }]} numberOfLines={1}>• {r}</Text>
         ))}
       </View>
-      <Ionicons name="person-circle-outline" size={20} color={theme.primary} />
+      <Pressable
+        style={[styles.chatBtn, { backgroundColor: theme.primary }]}
+        onPress={() => startDirectChat(s)}
+        disabled={startingId === String(s.tutorId)}
+      >
+        {startingId === String(s.tutorId) ? (
+          <ActivityIndicator color={theme.onPrimary} size="small" />
+        ) : (
+          <Ionicons name="chatbubble-ellipses" size={16} color={theme.onPrimary} />
+        )}
+      </Pressable>
     </View>
   );
+
+  const startDirectChat = async (s) => {
+    if (!s || !s.tutorId || startingId) return;
+    setStartingId(String(s.tutorId));
+    setError('');
+    try {
+      const res = await api.post('/tutor-requests/direct', { tutorId: s.tutorId });
+      const request = res.data?.request;
+      if (request?._id) {
+        navigation.navigate('TutorRequestDetail', { requestId: request._id });
+      } else {
+        await load(false);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Could not start a chat with this tutor.');
+    } finally {
+      setStartingId(null);
+    }
+  };
 
   const renderRequest = (r) => {
     const meta = STATUS_META[r.status];
@@ -326,6 +355,13 @@ const styles = StyleSheet.create({
   sugBody: { flex: 1 },
   sugName: { fontSize: 14, fontWeight: '700' },
   sugReason: { fontSize: 11, lineHeight: 15, marginTop: 1 },
+  chatBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   divider: { borderTopWidth: 1, marginVertical: 20 },
   countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
   countText: { fontSize: 11, fontWeight: '800' },

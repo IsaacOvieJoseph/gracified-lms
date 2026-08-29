@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
@@ -138,6 +138,21 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
               {request.referral.notes ? (
                 <Text style={[styles.referralLine, { color: theme.muted }]}>{request.referral.notes}</Text>
               ) : null}
+              {request.referral.classroomName ? (
+                <View style={styles.classLine}>
+                  <Ionicons name="videocam-outline" size={15} color={theme.success} />
+                  <Text style={[styles.referralLine, { color: theme.muted }]}>Class: {request.referral.classroomName}</Text>
+                </View>
+              ) : null}
+              {viewerIsStudent && request.referral.classUrl ? (
+                <Pressable
+                  style={[styles.classBtn, { backgroundColor: theme.success }]}
+                  onPress={() => Linking.openURL(request.referral.classUrl).catch(() => {})}
+                >
+                  <Ionicons name="log-in-outline" size={16} color="#fff" />
+                  <Text style={styles.classBtnText}>Join Your New Class</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
 
@@ -239,6 +254,17 @@ const styles = StyleSheet.create({
   referralTitle: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   referralName: { fontSize: 18, fontWeight: '900', marginTop: 8 },
   referralLine: { fontSize: 13, lineHeight: 18, marginTop: 4 },
+  classLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 },
+  classBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  classBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   rejectedCard: {
     flexDirection: 'row',
     alignItems: 'center',
