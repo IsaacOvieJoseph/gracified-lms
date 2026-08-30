@@ -49,5 +49,22 @@ Closed-loop feature: Student requests a tutor → Root admin communicates → Re
 - [x] `frontend/src/App.jsx` — `/tutor-referrals` route
 - [x] `frontend/src/components/Layout.jsx` — "Student Referrals" sidebar for personal_teacher
 
+## Backend — Two-path marketplace (admin-match + direct)
+- [x] `backend/models/TutorRequest.js` — `mode` (`admin`|`direct`), `published`, `applications[]` subdocs (`tutorId`, `message`, `status`, `messages[]` with `readByTutor`/`readByAdmin`, `appliedAt`, `reviewedAt`); referral gains `classroomId`, `classroomName`, `classUrl`; index `{published:1,status:1,createdAt:-1}`
+- [x] `backend/models/Notification.js` — added `tutor_application` to type enum
+- [x] `backend/routes/tutorRequests.js` — `GET /published` (tutor browse, hides student identity, `myApplication`, marks admin msgs read), `POST /:id/apply`, `POST /:id/applications/:appId/messages` (private admin↔tutor), `PUT /:id/applications/:appId/status` (accept matches + auto-picks/uses class + links `User.personalTeacherId` + declines others; decline notifies), `GET /:id/applications/:appId/tutor-classes`, `POST /direct` (student pick, reuse flood rule), `PUT /:id/class-link` (tutor shares class → resolved), `PUT /:id/publish`; list/detail populate applications + referral.classroomId; `POST /:id/messages` only notifies admins when mode admin
+
+## Web — Marketplace
+- [x] `frontend/src/pages/StudentTutorRequests.jsx` — direct chat via `POST /tutor-requests/direct`, "Chat with {name}" on suggestion cards, "Direct" chip, resolved referral card with class name + "Join Your New Class" (navigates classUrl)
+- [x] `frontend/src/pages/TutorRequests.jsx` (admin) — Publish/Unpublish header button, "Tutor Applicants" panel with expandable private chat + Match/Decline, class-picker modal (`GET .../tutor-classes` → `PUT .../status`)
+- [x] `frontend/src/pages/TutorReferrals.jsx` — tabs: Browse Requests (apply + inline private admin chat + status chips) and My Students (with "Share Your Class" → `GET /classrooms` + `PUT /:id/class-link`)
+
+## Mobile — Marketplace
+- [x] `mobile/src/screens/tutors/TutorRequestScreen.js` — suggestion "chat" → `POST /tutor-requests/direct`, opens TutorRequestDetail
+- [x] `mobile/src/screens/tutors/TutorRequestDetailScreen.js` — role-aware (student/tutor/admin); resolved referral card + "Join Your New Class" (navigates ClassroomDetail)
+- [x] `mobile/src/screens/tutors/TutorReferralsScreen.js` — tabs: Browse Requests (apply + private admin chat) and My Students (Share Class picker → `PUT /:id/class-link`)
+- [x] `mobile/src/navigation/AppNavigator.js` — screens registered
+- [x] Mobile detail/navigator/notifications role-aware routing
+
 ## Verification
 - [x] Syntax-check all new/modified files (backend `node --check`, frontend + mobile esbuild)
