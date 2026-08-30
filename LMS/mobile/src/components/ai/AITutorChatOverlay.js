@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
+import AIMarkdownText from './AIMarkdownText';
 import { isPracticeRequest, extractPracticeArea, extractPracticeQuantityFromMessage, isQuantityOnly } from '../../utils/tutor';
 
 export default function AITutorChatOverlay({ visible, onClose, topicId, subject, context }) {
@@ -175,7 +176,11 @@ export default function AITutorChatOverlay({ visible, onClose, topicId, subject,
                       ]}
                     >
                       <Text style={[styles.bubbleText, { color: msg.role === 'user' ? theme.onPrimary : theme.text }]}>
-                        {msg.content}
+                        {msg.role === 'assistant' ? (
+                          <AIMarkdownText text={msg.content} theme={theme} />
+                        ) : (
+                          msg.content
+                        )}
                       </Text>
                     </View>
                   ))

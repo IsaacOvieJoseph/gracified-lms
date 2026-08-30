@@ -4,6 +4,7 @@ import { Sparkles, X, Loader2, Wand2, BookOpen, Clock, FileText, Presentation, C
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 import MathText from './MathText';
+import Markdown from './Markdown';
 
 // ── Modes ─────────────────────────────────────────────────────────────────────
 const MODES = {
@@ -268,8 +269,8 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
       <div className="space-y-3 animate-in slide-in-from-bottom-4">
         <h4 className="text-xs font-black text-amber-600 uppercase tracking-widest">✨ AI Assistant Answer</h4>
         <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-5 space-y-4">
-          <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed prose prose-slate dark:prose-invert max-w-none">
-            {result.answer.split('\n').map((line, i) => <p key={i} className="mb-2">{line}</p>)}
+          <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed max-w-none">
+            <Markdown>{result.answer}</Markdown>
           </div>
           {result.suggestedFollowUp && result.suggestedFollowUp.length > 0 && (
             <div className="pt-3 border-t border-amber-200 dark:border-amber-800/50">
