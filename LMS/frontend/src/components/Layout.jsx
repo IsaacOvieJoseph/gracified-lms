@@ -14,6 +14,7 @@ import SchoolSwitcher from './SchoolSwitcher';
 import FeedbackManager from './FeedbackManager';
 import OnboardingTour from './OnboardingTour';
 import ThemeToggle from './ThemeToggle';
+import GracyChat from './GracyChat';
 import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
@@ -338,6 +339,9 @@ const Layout = ({ children }) => {
       )}
       {/* Onboarding Tour */}
       <OnboardingTour user={user} />
+      
+      {/* Gracy AI Chat Widget */}
+      <GracyChat user={user} />
     </div>
   );
 };
