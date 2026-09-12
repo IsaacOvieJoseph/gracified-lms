@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
+import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const URGENCY_OPTIONS = [
   { key: 'low', label: 'Low', icon: 'leaf-outline' },
@@ -158,11 +159,17 @@ export default function TutorRequestScreen({ navigation }) {
         </Pressable>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(false); }} />}
       >
+        {error ? (
+          <View style={[styles.errorBanner, { backgroundColor: `${theme.danger}14`, borderColor: theme.danger }]}>
+            <Ionicons name="alert-circle-outline" size={15} color={theme.danger} />
+            <Text style={[styles.errorText, { color: theme.danger }]}>{error}</Text>
+          </View>
+        ) : null}
         {showForm ? (
           <View style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.primary }]}>
             <Text style={[styles.formTitle, { color: theme.text }]}>Request a Tutor</Text>
@@ -219,8 +226,6 @@ export default function TutorRequestScreen({ navigation }) {
               ))}
             </View>
 
-            {error ? <Text style={[styles.error, { color: theme.danger }]}>{error}</Text> : null}
-
             <Pressable
               style={[styles.submitBtn, { backgroundColor: theme.primary }, (!form.subject.trim() || form.description.trim().length < 10 || submitting) && { opacity: 0.5 }]}
               onPress={submit}
@@ -275,7 +280,7 @@ export default function TutorRequestScreen({ navigation }) {
             </Text>
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
@@ -318,6 +323,16 @@ const styles = StyleSheet.create({
   },
   urgencyText: { fontSize: 12, fontWeight: '700' },
   error: { fontSize: 12, marginTop: 10 },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  errorText: { fontSize: 12, fontWeight: '600', flex: 1, lineHeight: 17 },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',

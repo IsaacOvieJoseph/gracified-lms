@@ -438,15 +438,24 @@ router.put('/:id/applications/:appId/status', auth, authorize('root_admin'), asy
 // ─── POST /api/tutor-requests/direct (student picks a suggested tutor) ────────
 router.post('/direct', auth, authorize('student'), async (req, res) => {
   try {
-    const { tutorId, subject, description } = req.body;
+    const { tutorId } = req.body;
     if (!tutorId) return res.status(400).json({ message: 'Choose a tutor to start chatting.' });
-    if (!subject || !String(subject).trim() || !description || String(description).trim().length < 10) {
-      return res.status(400).json({ message: 'Please provide a subject and a short description.' });
-    }
 
     const tutor = await User.findById(tutorId).select('name role');
     if (!tutor || tutor.role !== 'personal_teacher') {
       return res.status(400).json({ message: 'This tutor is not available.' });
+    }
+
+    // Reuse an existing direct chat with this tutor instead of creating a
+    // duplicate thread every time the chat icon is tapped.
+    const existing = await TutorRequest.findOne({
+      studentId: req.user._id,
+      mode: 'direct',
+      'referral.tutorId': tutor._id,
+      status: { $in: ['open', 'in_progress', 'resolved'] },
+    });
+    if (existing) {
+      return res.status(200).json({ success: true, request: existing });
     }
 
     const openCount = await TutorRequest.countDocuments({
@@ -457,10 +466,17 @@ router.post('/direct', auth, authorize('student'), async (req, res) => {
       return res.status(429).json({ message: 'You already have 3 active requests. Please close one before starting another.' });
     }
 
+    const subject = req.body.subject && String(req.body.subject).trim()
+      ? String(req.body.subject).trim()
+      : 'Tutoring help';
+    const description = req.body.description && String(req.body.description).trim()
+      ? String(req.body.description).trim()
+      : `Connected directly with ${tutor.name} on Gracified.`;
+
     const request = new TutorRequest({
       studentId: req.user._id,
-      subject: String(subject).trim(),
-      description: String(description).trim(),
+      subject,
+      description,
       urgency: 'medium',
       mode: 'direct',
       status: 'in_progress',
@@ -626,7 +642,12 @@ router.post('/:id/messages', auth, async (req, res) => {
     const isTutor = req.user.role === 'personal_teacher' && request.referral?.tutorId &&
       String(request.referral.tutorId) === String(req.user._id);
     if (!isOwner && !isAdmin && !isTutor) return res.status(403).json({ message: 'Forbidden.' });
-    if (['resolved', 'rejected'].includes(request.status)) {
+
+    // A platform-tutor referral keeps a student–tutor thread open even after
+    // admin resolution; external referrals (name only) and rejections are closed.
+    const isResolved = request.status === 'resolved';
+    const hasPlatformTutor = !!request.referral?.tutorId;
+    if (request.status === 'rejected' || (isResolved && !hasPlatformTutor)) {
       return res.status(400).json({ message: 'This request is closed.' });
     }
 
@@ -661,7 +682,7 @@ router.post('/:id/messages', auth, async (req, res) => {
         entityRef: 'TutorRequest',
       });
     }
-    if (!isAdmin && request.mode === 'admin') {
+    if (!isAdmin && request.mode === 'admin' && !isResolved) {
       await notifyRootAdmins({
         message: `${req.user.name} replied on the "${request.subject}" tutor request.`,
         type: 'tutor_request_message',

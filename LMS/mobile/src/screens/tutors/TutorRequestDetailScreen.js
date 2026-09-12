@@ -23,6 +23,7 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
   const [reply, setReply] = useState('');
   const [error, setError] = useState('');
   const scrollRef = useRef(null);
+  const composerRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -86,7 +87,11 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
   }
 
   const meta = STATUS_META[request.status];
-  const isClosed = ['resolved', 'rejected'].includes(request.status);
+  const isResolved = request.status === 'resolved';
+  const isRejected = request.status === 'rejected';
+  const hasPlatformTutor = !!request.referral?.tutorId;
+  // Students and matched tutors keep chatting once a platform tutor is referred.
+  const chatOpen = !isRejected && (!isResolved || hasPlatformTutor);
   const viewerRole = ['student', 'personal_teacher', 'root_admin'].includes(user?.role) ? user.role : 'student';
   const viewerIsStudent = viewerRole === 'student';
   const authorOf = (m) => {
@@ -108,8 +113,8 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
         </View>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <View style={[styles.detailCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.label, { color: theme.muted }]}>What you need help with</Text>
             <Text style={[styles.description, { color: theme.text }]}>{request.description}</Text>
@@ -125,7 +130,7 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
             ) : null}
           </View>
 
-          {isClosed && request.referral?.givenAt ? (
+          {isResolved && request.referral?.givenAt ? (
             <View style={[styles.referralCard, { backgroundColor: `${theme.success}14`, borderColor: theme.success }]}>
               <View style={styles.referralHeader}>
                 <Ionicons name="checkmark-done-circle" size={20} color={theme.success} />
@@ -153,6 +158,15 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
                   <Text style={styles.classBtnText}>Join Your New Class</Text>
                 </Pressable>
               ) : null}
+              {viewerIsStudent && hasPlatformTutor ? (
+                <Pressable
+                  style={[styles.chatBtn, { backgroundColor: theme.primary }]}
+                  onPress={() => composerRef.current?.focus()}
+                >
+                  <Ionicons name="chatbubble-ellipses" size={16} color={theme.onPrimary} />
+                  <Text style={[styles.chatBtnText, { color: theme.onPrimary }]}>Chat with {request.referral.tutorName}</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
 
@@ -163,7 +177,16 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
             </View>
           ) : null}
 
-          {!isClosed ? (
+          {viewerIsStudent && !isResolved && request.referral?.tutorName ? (
+            <View style={[styles.directCard, { backgroundColor: `${theme.primary}10`, borderColor: theme.primary }]}>
+              <Ionicons name="person-outline" size={16} color={theme.primary} />
+              <Text style={[styles.directText, { color: theme.text }]}>
+                Chatting with <Text style={styles.directName}>{request.referral.tutorName}</Text> — say hello to get started.
+              </Text>
+            </View>
+          ) : null}
+
+          {chatOpen ? (
             <>
               <View style={styles.sectionHeader}>
                 <Ionicons name="chatbubbles-outline" size={15} color={theme.primary} />
@@ -171,7 +194,9 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
               </View>
               {request.messages.length === 0 ? (
                 <Text style={[styles.threadEmpty, { color: theme.muted }]}>
-                  Our team has been notified. Replies will appear here.
+                  {hasPlatformTutor
+                    ? 'Say hello to start chatting. Replies will appear here.'
+                    : 'Our team has been notified. Replies will appear here.'}
                 </Text>
               ) : (
                 <View style={styles.thread}>
@@ -205,9 +230,10 @@ export default function TutorRequestDetailScreen({ route, navigation }) {
           {error ? <Text style={[styles.error, { color: theme.danger }]}>{error}</Text> : null}
         </ScrollView>
 
-        {!isClosed ? (
+        {chatOpen ? (
           <View style={[styles.inputBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
             <TextInput
+              ref={composerRef}
               style={[styles.input, { color: theme.text }]}
               placeholder="Type a message..."
               placeholderTextColor={theme.muted}
@@ -265,6 +291,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   classBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  chatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  chatBtnText: { fontWeight: '800', fontSize: 14 },
   rejectedCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -275,6 +311,17 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   rejectedText: { fontSize: 13, fontWeight: '600', flex: 1, lineHeight: 18 },
+  directCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 13,
+    marginTop: 14,
+  },
+  directText: { fontSize: 13, lineHeight: 18, flex: 1 },
+  directName: { fontWeight: '800' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 22, marginBottom: 10 },
   sectionTitle: { fontSize: 13, fontWeight: '800' },
   threadEmpty: { fontSize: 12, lineHeight: 17 },
