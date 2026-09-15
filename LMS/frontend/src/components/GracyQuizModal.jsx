@@ -235,7 +235,7 @@ const GracyQuizModal = ({ quizConfig, onClose, onNewQuiz }) => {
                   <button
                     onClick={submit}
                     disabled={submitting}
-                    className="w-full max-w-sm py-3.5   hover:from-sky-600 hover:to-blue-700 text-white rounded-xl font-semibold shadow-none transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+                    className="w-full max-w-sm py-3.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold shadow-none transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</>

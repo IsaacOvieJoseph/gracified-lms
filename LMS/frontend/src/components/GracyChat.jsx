@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X, Send, Loader2, MessageSquare, Bot, TrendingUp,
-  ClipboardList, ChevronDown, Plus, Minus
+  ClipboardList, ChevronDown, Plus, Minus, Wand2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
@@ -10,11 +10,13 @@ import Markdown from './Markdown';
 import { useLocation } from 'react-router-dom';
 import GracyQuizModal from './GracyQuizModal';
 import GracyGrowth from './GracyGrowth';
+import GracyAssistTab from './GracyAssistTab';
 import {
   isPracticeRequest,
   extractPracticeArea,
   extractPracticeQuantityFromMessage,
   isQuantityOnly,
+  extractAssistIntent,
 } from '../utils/tutor';
 
 // ── Multi-Select Dropdown ────────────────────────────────────────────────────
@@ -137,7 +139,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
           </div>
           <p className="text-xs text-slate-400 mt-2">
             {mode === 'general'
-              ? 'Gracy picks from all your enrolled topics for a mixed practice.'
+              ? 'Gracy picks broadly for a mixed practice.'
               : 'Choose specific subjects, difficulty levels, and topics.'}
           </p>
         </div>
@@ -234,76 +236,108 @@ const PracticeSetup = ({ onStartQuiz }) => {
 };
 
 // ── Chat Panel ──────────────────────────────────────────────────────────────
-const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef }) => (
-  <>
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50 custom-scrollbar">
-      {messages.map((msg, idx) => (
-        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-          <div
-            className={`max-w-[85%] rounded-xl p-3 ${
-              msg.role === 'user'
-                ? 'bg-primary text-white rounded-br-none'
-                : msg.isError
-                ? 'bg-red-50 dark:bg-red-950/30 text-red-600 border border-red-200 dark:border-red-800 rounded-bl-none'
-                : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-none'
-            }`}
-          >
-            <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
-              {msg.role === 'user' ? msg.content : <Markdown>{msg.content}</Markdown>}
-            </div>
+const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef }) => {
+  const inputRef = useRef(null);
 
-            {msg.suggestedFollowUp && msg.suggestedFollowUp.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {msg.suggestedFollowUp.map((followUp, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onSend(null, followUp)}
-                    className="text-xs bg-primary/10 dark:bg-sky-900/30 text-primary dark:text-primary border border-primary/20 dark:border-primary/30 px-2 py-1.5 rounded-xl hover:bg-primary/20 dark:hover:bg-sky-900/50 transition-colors text-left"
-                  >
-                    {followUp}
-                  </button>
-                ))}
+  // Auto-grow the textarea as long input wraps to multiple lines.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [inputValue]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (inputValue.trim() && !isLoading) onSend();
+    }
+  };
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50 custom-scrollbar">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              className={`max-w-[85%] rounded-xl p-3 ${
+                msg.role === 'user'
+                  ? 'bg-primary text-white rounded-br-none'
+                  : msg.isError
+                  ? 'bg-red-50 dark:bg-red-950/30 text-red-600 border border-red-200 dark:border-red-800 rounded-bl-none'
+                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-none'
+              }`}
+            >
+              <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                {msg.role === 'user' ? msg.content : <Markdown>{msg.content}</Markdown>}
               </div>
-            )}
-          </div>
-        </div>
-      ))}
 
-      {isLoading && (
-        <div className="flex justify-start">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl rounded-bl-none p-4 shadow-none flex items-center gap-2 text-sky-500">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-xs font-medium">Gracy is typing...</span>
+              {msg.suggestedFollowUp && msg.suggestedFollowUp.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {msg.suggestedFollowUp.map((followUp, i) => (
+                    <button
+                      key={i}
+                      onClick={() => onSend(null, followUp)}
+                      className="text-xs bg-primary/10 dark:bg-sky-900/30 text-primary dark:text-primary border border-primary/20 dark:border-primary/30 px-2 py-1.5 rounded-xl hover:bg-primary/20 dark:hover:bg-sky-900/50 transition-colors text-left"
+                    >
+                      {followUp}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      <div ref={messagesEndRef} />
-    </div>
+        ))}
 
-    <div className="p-3 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
-      <form
-        onSubmit={onSend}
-        className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 pr-2 focus-within:ring-2 ring-sky-400 transition-shadow-none"
-      >
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Ask a question or 'quiz me on...'..."
-          className="flex-1 bg-transparent px-3 py-2 text-sm text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400"
-          disabled={isLoading}
-        />
-        <button
-          type="submit"
-          disabled={!inputValue.trim() || isLoading}
-          className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-xl disabled:opacity-50 disabled:bg-slate-300 hover:bg-primary/90 transition-colors"
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl rounded-bl-none p-4 shadow-none flex items-center gap-2 text-sky-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-xs font-medium">Gracy is typing...</span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-3 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
+        <form
+          onSubmit={onSend}
+          className="flex items-end gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 pr-2 focus-within:ring-2 ring-sky-400 transition-shadow-none"
         >
-          <Send className="w-4 h-4 ml-0.5" />
-        </button>
-      </form>
-    </div>
-  </>
-);
+          <textarea
+            ref={inputRef}
+            rows={1}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask a question or 'quiz me on...'..."
+            className="flex-1 bg-transparent px-3 py-2 text-sm text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 resize-none overflow-y-auto max-h-[120px] leading-relaxed"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            disabled={!inputValue.trim() || isLoading}
+            className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-xl disabled:opacity-50 disabled:bg-slate-300 hover:bg-primary/90 transition-colors shrink-0"
+          >
+            <Send className="w-4 h-4 ml-0.5" />
+          </button>
+        </form>
+      </div>
+    </>
+  );
+};
+
+// ── Role-aware copy helpers ───────────────────────────────────────────────────
+const isStudent = (user) => user?.role === 'student';
+const gracyLabel = (user) => (isStudent(user) ? 'AI Study Partner' : 'AI Assistant');
+
+const getIntroMessage = (user) => {
+  if (isStudent(user)) {
+    return "Hi! I'm **Gracy**, your AI study partner. 👋\n\nI can:\n- **Answer questions** about any topic\n- **Quiz you** — just say *\"quiz me on photosynthesis\"*\n- **Track your progress** in the Growth tab\n\nWhat shall we work on today?";
+  }
+  return "Hi! I'm **Gracy**, your AI assistant. 👋\n\nI can help you:\n- **Create classes, topics, syllabuses, assignments, and exams**\n- **Make presentation slides** you can download as .pptx\n- **Answer academic questions** and draft content\n\nUse the **Assist** tab to generate, or just ask me in chat. What can I help you with today?";
+};
 
 // ── Main GracyChat Component ─────────────────────────────────────────────────
 const GracyChatInner = ({ user }) => {
@@ -318,6 +352,10 @@ const GracyChatInner = ({ user }) => {
   // Quiz Modal state
   const [quizModal, setQuizModal] = useState(null); // { quizConfig } | null
 
+  // Assist tab handoff (non-student chat → Assist)
+  const [assistPrefill, setAssistPrefill] = useState(null);
+  const pendingAssist = useRef(null);
+
   // Pending practice (NLP: waiting for question count)
   const pendingPractice = useRef(null);
 
@@ -329,9 +367,13 @@ const GracyChatInner = ({ user }) => {
   const messagesEndRef = useRef(null);
   const location = useLocation();
 
-  // ── Session Storage persistence ──
+  // ── Per-user session storage ──
+  // Keyed by the logged-in user so that someone else logging in on the same
+  // browser/device never sees (or inherits) this user's chat history.
+  const storageKey = `gracy_chat_state_${user?._id || user?.id || user?.email || 'anonymous'}`;
+
   useEffect(() => {
-    const savedState = sessionStorage.getItem('gracy_chat_state');
+    const savedState = sessionStorage.getItem(storageKey);
     if (savedState) {
       try {
         const parsed = JSON.parse(savedState);
@@ -341,14 +383,14 @@ const GracyChatInner = ({ user }) => {
         if (parsed.activeTab) setActiveTab(parsed.activeTab);
       } catch (_) {}
     } else {
-      setMessages([{ role: 'assistant', content: "Hi! I'm **Gracy**, your AI study partner. 👋\n\nI can:\n- **Answer questions** about any topic\n- **Quiz you** — just say *\"quiz me on photosynthesis\"*\n- **Track your progress** in the Growth tab\n\nWhat shall we work on today?" }]);
+      setMessages([{ role: 'assistant', content: getIntroMessage(user) }]);
     }
     checkAccess();
   }, []);
 
   useEffect(() => {
     if (!access.loading && access.enabled) {
-      sessionStorage.setItem('gracy_chat_state', JSON.stringify({ messages, sessionId, isOpen, activeTab }));
+      sessionStorage.setItem(storageKey, JSON.stringify({ messages, sessionId, isOpen, activeTab }));
     }
   }, [messages, sessionId, isOpen, activeTab, access.loading, access.enabled]);
 
@@ -367,7 +409,27 @@ const GracyChatInner = ({ user }) => {
     }
   };
 
-  // ── Message sending with NLP quiz detection ──
+  // ── Assist handoff: prefill the Assist tab and auto-generate from chat ──
+  const runAssist = useCallback(({ type, label, area, count }) => {
+    const defaultCount = { assignment: 5, exam: 10, slides: 8 }[type] || null;
+    const qty = count || defaultCount;
+    setAssistPrefill({
+      mode: type,
+      subject: area || '',
+      topicName: area || '',
+      questionCount: qty || 5,
+      slideCount: qty || 8,
+      autoGenerate: true,
+    });
+    setActiveTab('assist');
+    setIsOpen(true);
+    setMessages((prev) => [...prev, {
+      role: 'assistant',
+      content: `I've opened the **${label}** generator in the **Assist** tab${area ? ` for **${area}**` : ''}${qty ? ` (${qty} ${type === 'slides' ? 'slides' : 'questions'})` : ''} and started generating it for you. ✨`,
+    }]);
+  }, []);
+
+  // ── Message sending with NLP quiz + assist detection ──
   const handleSendMessage = useCallback(async (e, text = null) => {
     if (e) e.preventDefault();
     const messageText = text || inputValue;
@@ -389,6 +451,15 @@ const GracyChatInner = ({ user }) => {
         return;
       }
       pendingPractice.current = null;
+    }
+
+    // Check for pending assist (awaiting a focus area)
+    if (pendingAssist.current) {
+      const assist = pendingAssist.current;
+      pendingAssist.current = null;
+      setIsLoading(false);
+      runAssist({ type: assist.type, label: assist.label, count: assist.count, area: messageText.replace(/[?!.,]+$/g, '').trim().slice(0, 80) });
+      return;
     }
 
     // Check for practice request via NLP
@@ -413,12 +484,31 @@ const GracyChatInner = ({ user }) => {
       return;
     }
 
+    // Assist generation request (staff): route into the Assist tab.
+    if (!isStudent(user)) {
+      const assist = extractAssistIntent(messageText);
+      if (assist) {
+        setIsLoading(false);
+        if (assist.area) {
+          runAssist(assist);
+        } else {
+          pendingAssist.current = { type: assist.type, label: assist.label, count: assist.count };
+          setMessages((prev) => [...prev, {
+            role: 'assistant',
+            content: `What should the **${assist.label}** cover? Just tell me the focus — e.g. \`a ${assist.label.toLowerCase()} on quadratic equations\`.`,
+            suggestedFollowUp: ['quadratic equations', 'cell division', 'the water cycle'],
+          }]);
+        }
+        return;
+      }
+    }
+
     // Normal chat
     try {
       const res = await api.post('/ai/tutor/chat', {
         question: messageText,
         sessionId,
-        context: `Student is currently on page: ${location.pathname}`,
+        context: `${isStudent(user) ? 'Student' : 'User'} is currently on page: ${location.pathname}`,
       });
       setMessages((prev) => [...prev, {
         role: 'assistant',
@@ -435,7 +525,7 @@ const GracyChatInner = ({ user }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, sessionId, location.pathname]);
+  }, [inputValue, isLoading, sessionId, location.pathname, runAssist]);
 
   // ── Drag handlers ──
   const handlePointerMove = useCallback((e) => {
@@ -480,11 +570,19 @@ const GracyChatInner = ({ user }) => {
   if (access.loading) return null;
   if (!access.enabled) return null;
 
-  const tabs = [
-    { key: 'chat', label: 'Chat', icon: <MessageSquare className="w-4 h-4" /> },
-    { key: 'practice', label: 'Practice', icon: <ClipboardList className="w-4 h-4" /> },
-    { key: 'growth', label: 'Growth', icon: <TrendingUp className="w-4 h-4" /> },
-  ];
+  const tabs = isStudent(user)
+    ? [
+        { key: 'chat', label: 'Chat', icon: <MessageSquare className="w-4 h-4" /> },
+        { key: 'practice', label: 'Practice', icon: <ClipboardList className="w-4 h-4" /> },
+        { key: 'growth', label: 'Growth', icon: <TrendingUp className="w-4 h-4" /> },
+      ]
+    : [
+        { key: 'chat', label: 'Chat', icon: <MessageSquare className="w-4 h-4" /> },
+        { key: 'assist', label: 'Assist', icon: <Wand2 className="w-4 h-4" /> },
+      ];
+
+  // Non-students have no Growth tab; fall back to Chat if state references it.
+  const effectiveTab = tabs.some((t) => t.key === activeTab) ? activeTab : 'chat';
 
   return (
     <>
@@ -522,7 +620,7 @@ const GracyChatInner = ({ user }) => {
                 <div>
                   <h3 className="font-semibold text-lg leading-tight">Gracy</h3>
                   <p className="text-xs text-sky-100 font-medium">
-                    AI Study Partner
+                    {gracyLabel(user)}
                     {access.remaining !== undefined && (
                       <span className="ml-2 opacity-80">· {access.remaining}/{access.dailyLimit} left today</span>
                     )}
@@ -544,7 +642,7 @@ const GracyChatInner = ({ user }) => {
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors border-b-2 ${
-                    activeTab === tab.key
+                    effectiveTab === tab.key
                       ? 'border-sky-500 text-primary dark:text-primary bg-white dark:bg-slate-950'
                       : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                   }`}
@@ -556,7 +654,7 @@ const GracyChatInner = ({ user }) => {
             </div>
 
             {/* Tab Contents */}
-            {activeTab === 'chat' && (
+            {effectiveTab === 'chat' && (
               <ChatPanel
                 messages={messages}
                 isLoading={isLoading}
@@ -567,7 +665,7 @@ const GracyChatInner = ({ user }) => {
               />
             )}
 
-            {activeTab === 'practice' && (
+            {effectiveTab === 'practice' && (
               <PracticeSetup
                 onStartQuiz={(config) => {
                   setIsOpen(false);
@@ -576,7 +674,11 @@ const GracyChatInner = ({ user }) => {
               />
             )}
 
-            {activeTab === 'growth' && (
+            {effectiveTab === 'assist' && (
+              <GracyAssistTab prefill={assistPrefill} />
+            )}
+
+            {effectiveTab === 'growth' && (
               <GracyGrowth access={access} />
             )}
           </div>
@@ -601,9 +703,10 @@ const GracyChatInner = ({ user }) => {
   );
 };
 
-// Role guard wrapper to keep hooks from running for non-students
+// Role-agnostic wrapper: Gracy is available to every logged-in platform user
+// (AI Study Partner for students, AI Assistant for staff roles).
 const GracyChat = ({ user }) => {
-  if (!user || user.role !== 'student') return null;
+  if (!user) return null;
   return createPortal(<GracyChatInner user={user} />, document.body);
 };
 

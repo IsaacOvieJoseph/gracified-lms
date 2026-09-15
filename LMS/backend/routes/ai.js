@@ -94,10 +94,27 @@ const parseJSON = (text) => {
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
+// The AI agent must never disclose or hint at anything about the product's
+// codebase (backend or mobile/web implementation).
+const NO_CODEBASE_HINT =
+    'Never mention, reference, or hint at the product\'s underlying codebase, source code, frameworks, ' +
+    'infrastructure, or its mobile/web application implementation. Answer strictly at the level of the ' +
+    'subject matter and user-facing product features, as if the product is a single integrated service.';
+
 const resolveStudentAIAccess = async (user) => {
     const settings = await Settings.findOne();
-    let enabled = !!settings?.studentAIEnabled;
     const dailyLimit = Math.min(1000, Math.max(1, parseInt(settings?.studentAIDailyLimit) || 20));
+
+    // Staff (teachers, school/root admins, personal teachers) get AI Assistant access
+    // by default. They can still be turned off via their own account override.
+    if (user.role !== 'student') {
+        let enabled = true;
+        if (user.aiTutorAccess === 'disabled') enabled = false;
+        if (user.aiTutorAccess === 'enabled') enabled = true;
+        return { enabled, dailyLimit };
+    }
+
+    let enabled = !!settings?.studentAIEnabled;
 
     // School override (uses the student's first school)
     if (user.schoolId && user.schoolId.length > 0) {
@@ -123,9 +140,6 @@ const getTutorUsage = (user) => {
 // Enabled-only gate (reads: access, history)
 const requireStudentAITutor = async (req, res, next) => {
     try {
-        if (req.user.role !== 'student') {
-            return res.status(403).json({ message: 'AI Tutor is available to students only' });
-        }
         const access = await resolveStudentAIAccess(req.user);
         if (!access.enabled) {
             return res.status(403).json({ message: 'AI Tutor is not enabled for your account. Contact your academy administrator.' });
@@ -140,9 +154,6 @@ const requireStudentAITutor = async (req, res, next) => {
 // Full gate (AI-consuming endpoints): enabled + daily quota
 const requireStudentAI = async (req, res, next) => {
     try {
-        if (req.user.role !== 'student') {
-            return res.status(403).json({ message: 'AI Tutor is available to students only' });
-        }
         const access = await resolveStudentAIAccess(req.user);
         if (!access.enabled) {
             return res.status(403).json({ message: 'AI Tutor is not enabled for your account. Contact your academy administrator.' });
@@ -498,6 +509,7 @@ router.post('/qna-assistant', auth, async (req, res) => {
         }
         const { question, context } = req.body;
         const prompt = `You are an expert academic assistant. Provide a helpful, clear, and accurate answer to the following question.
+${NO_CODEBASE_HINT}
 Context (if any): ${context || 'General knowledge'}
 Question: ${question}
 
@@ -1025,12 +1037,9 @@ ${schema}`;
 // ═══ AI TUTOR — Student Self-Learning (mobile + web) ═══════════════════════════
 
 // ─── GET /api/ai/tutor/access ─────────────────────────────────────────────────
-// Effective AI Tutor access for the logged-in student (enabled + remaining quota).
+// Effective AI Tutor access for the logged-in user (enabled + remaining quota).
 router.get('/tutor/access', auth, async (req, res) => {
     try {
-        if (req.user.role !== 'student') {
-            return res.json({ enabled: false, dailyLimit: 0, usedToday: 0, remaining: 0 });
-        }
         const access = await resolveStudentAIAccess(req.user);
         const usedToday = getTutorUsage(req.user);
         res.json({
@@ -1070,6 +1079,7 @@ router.get('/tutor/history', auth, requireStudentAITutor, async (req, res) => {
 
 // ─── POST /api/ai/tutor/chat ──────────────────────────────────────────────────
 // Q&A with optional topic context. Never uses teacher assignment/exam content.
+// Students get an "AI Study Partner" persona; staff get an "AI Assistant" persona.
 router.post('/tutor/chat', auth, requireStudentAI, async (req, res) => {
     try {
         const { question, context, topicId, sessionId } = req.body;
@@ -1077,9 +1087,15 @@ router.post('/tutor/chat', auth, requireStudentAI, async (req, res) => {
             return res.status(400).json({ message: 'question is required' });
         }
 
-        const prompt = `You are a friendly, encouraging AI tutor helping a student learn independently. Answer clearly and accurately, building on the student's current understanding.
+        const isStaff = req.user && req.user.role !== 'student';
+        const persona = isStaff
+            ? 'You are Gracy, a practical, task-oriented AI assistant for academy staff (teachers and administrators). Help them plan lessons, draft and simplify content, brainstorm questions and quiz items, and give clear, well-structured, accurate answers. Be concise and professional.'
+            : 'You are a friendly, encouraging AI tutor helping a student learn independently. Answer clearly and accurately, building on the student\'s current understanding.';
+
+        const prompt = `${persona}
+${NO_CODEBASE_HINT}
 Topic context (if any): ${context || 'General knowledge'}
-Student question: ${question}
+Question: ${question}
 
 Return ONLY this JSON structure:
 {
@@ -1223,6 +1239,53 @@ IMPORTANT: correctOption must be the exact text of one of the options. Provide a
 
 // ─── POST /api/ai/tutor/quiz/submit ───────────────────────────────────────────
 // Grade against the stored key, then AI writes per-question explanations + a summary.
+
+// Normalize an option/correct-answer string for forgiving comparison:
+// lowercases, trims, strips leading letter labels ("a)", "b.", "option c"),
+// collapses whitespace, and drops trailing punctuation.
+const normalizeQuizOption = (value) => String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/^\(?[a-d]\)?\s*[-.)]\s*/, '')
+    .replace(/^(option|opt\.?)\s*[a-d]\b\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[.,;:!?]+$/g, '')
+    .trim();
+
+// Resolve the AI-provided correctOption back to the canonical option text.
+// Handles letter-only references ("A", "option B"), and near/exact matches so
+// the answer key maps to the question correctly regardless of formatting.
+const resolveCorrectOption = (q) => {
+    const options = Array.isArray(q.options) ? q.options : [];
+    const raw = String(q.correctOption || '').trim();
+    if (!options.length) return raw;
+
+    const letterMatch = raw.match(/^(?:option\s*)?\(?([a-d])\)?$/i);
+    if (letterMatch) {
+        const idx = letterMatch[1].toLowerCase().charCodeAt(0) - 97;
+        return options[idx] !== undefined ? options[idx] : raw;
+    }
+
+    const nCorrect = normalizeQuizOption(raw);
+    if (!nCorrect) return raw;
+
+    for (const opt of options) {
+        if (normalizeQuizOption(opt) === nCorrect) return opt;
+    }
+
+    let best = null;
+    let bestLen = 0;
+    for (const opt of options) {
+        const nOpt = normalizeQuizOption(opt);
+        if (!nOpt || nOpt.length < 4) continue;
+        if ((nOpt.includes(nCorrect) || nCorrect.includes(nOpt)) && nOpt.length >= bestLen) {
+            best = opt;
+            bestLen = nOpt.length;
+        }
+    }
+    return best || raw;
+};
+
 router.post('/tutor/quiz/submit', auth, requireStudentAI, async (req, res) => {
     try {
         const { sessionId, quizIndex, answers } = req.body;
@@ -1239,12 +1302,14 @@ router.post('/tutor/quiz/submit', auth, requireStudentAI, async (req, res) => {
         const selected = Array.isArray(answers) ? answers : [];
         const perQuestion = quiz.questions.map((q, index) => {
             const chosen = String(selected[index] !== undefined ? selected[index] : '').trim();
-            const correct = String(q.correctOption || '').trim();
+            const correct = resolveCorrectOption(q);
+            const isCorrect = !!(chosen)
+                && (chosen === correct || normalizeQuizOption(chosen) === normalizeQuizOption(correct));
             return {
                 questionText: q.questionText,
                 selected: chosen || '(no answer)',
                 correct,
-                isCorrect: !!(chosen && chosen === correct),
+                isCorrect,
                 explanation: q.explanation || ''
             };
         });
@@ -1289,8 +1354,18 @@ Return ONLY this JSON structure:
 // ─── GET /api/ai/tutor/progress ───────────────────────────────────────────────
 // Aggregates ONLY the student's own data (topic progress, own submissions,
 // own AI quiz attempts) and asks AI for a growth summary + next step.
+// Growth tracking is a Study Partner feature, so it is student-only.
 router.get('/tutor/progress', auth, requireStudentAI, async (req, res) => {
     try {
+        if (req.user.role !== 'student') {
+            return res.json({
+                success: true,
+                metrics: {},
+                summary: 'Growth tracking is part of the student AI Study Partner experience. Your AI Assistant focuses on helping you plan, draft, and practice content.',
+                nextStep: ''
+            });
+        }
+
         const userId = req.user._id;
 
         const TopicProgress = require('../models/TopicProgress');

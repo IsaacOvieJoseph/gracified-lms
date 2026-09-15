@@ -48,3 +48,53 @@ export const extractPracticeQuantityFromMessage = (q) => {
   }
   return null;
 };
+
+// ── Assist (generation) intent ──────────────────────────────────────────────
+// Turn "create a topic on quadratic equations" into an Assist tab action,
+// mirroring how students trigger a quiz straight from chat.
+
+const ASSIST_TYPES = [
+  { type: 'classroom', label: 'Class', keywords: ['classroom', 'a class', 'class'] },
+  { type: 'topic', label: 'Topic', keywords: ['topic'] },
+  { type: 'syllabus', label: 'Syllabus', keywords: ['syllabus', 'curriculum'] },
+  { type: 'assignment', label: 'Assignment', keywords: ['assignment'] },
+  { type: 'exam', label: 'Exam', keywords: ['exam'] },
+  { type: 'slides', label: 'Slides', keywords: ['slides', 'slide deck', 'presentation', 'powerpoint', 'power point', 'ppt'] },
+];
+
+const ASSIST_VERBS = ['create', 'generate', 'make', 'build', 'draft', 'prepare', 'write', 'produce', 'design', 'develop'];
+const ASSIST_COUNT_RE = /(\d{1,2})\s*(questions?|qs|items|mcqs|slides?|marks?|minutes?|mins?)/i;
+
+export const extractAssistIntent = (text) => {
+  if (!text || typeof text !== 'string') return null;
+  const lower = text.toLowerCase();
+
+  for (const { type, label, keywords } of ASSIST_TYPES) {
+    const kw = keywords.find((k) => lower.includes(k));
+    if (!kw) continue;
+
+    const kwIndex = lower.indexOf(kw);
+    const before = lower.slice(0, kwIndex);
+    const verb = ASSIST_VERBS.find((v) => before.includes(v));
+    if (!verb) continue;
+
+    let area = lower.slice(kwIndex + kw.length);
+    for (let i = 0; i < 6; i++) {
+      const prev = area;
+      area = area.replace(/^\s+(?:on|about|for|of|covering|with|in|around|me|us|an?|the|some|my|a|that)\s+/i, '');
+      if (area === prev) break;
+    }
+    area = area
+      .replace(/[\s,]*(with|using|covering|that has|that includes|that is about)\b.*$/i, '')
+      .replace(/[?!.,;:]+$/g, '')
+      .trim();
+
+    const countMatch = lower.match(ASSIST_COUNT_RE);
+    const count = countMatch ? Math.min(parseInt(countMatch[1], 10), 30) : null;
+
+    return { type, label, verb, area, count };
+  }
+  return null;
+};
+
+export const isAssistRequest = (text) => !!extractAssistIntent(text);

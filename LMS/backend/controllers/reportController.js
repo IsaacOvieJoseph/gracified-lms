@@ -11,7 +11,7 @@ const calculateStats = (scores) => {
     const sum = scores.reduce((a, b) => a + b, 0);
     const avg = sum / scores.length;
     return {
-        average: parseFloat(avg.toFixed(2)),
+        average: parseFloat(avg.toFixed(1)),
         min: Math.min(...scores),
         max: Math.max(...scores),
         count: scores.length
@@ -113,7 +113,7 @@ exports.getStudentPerformance = async (req, res) => {
             performanceByClass[classId].attendance = {
                 attended: attendedSessions,
                 total: totalSessions,
-                percentage: totalSessions > 0 ? (attendedSessions / totalSessions) * 100 : 0
+                percentage: totalSessions > 0 ? parseFloat(((attendedSessions / totalSessions) * 100).toFixed(1)) : 0
             };
         }
 
@@ -132,7 +132,7 @@ exports.getStudentPerformance = async (req, res) => {
         const overallPercentage = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
 
         Object.values(performanceByClass).forEach(cls => {
-            cls.averagePercentage = cls.maxPossibleScore > 0 ? (cls.totalScore / cls.maxPossibleScore) * 100 : 0;
+            cls.averagePercentage = cls.maxPossibleScore > 0 ? parseFloat(((cls.totalScore / cls.maxPossibleScore) * 100).toFixed(1)) : 0;
         });
 
         res.json({
@@ -143,9 +143,9 @@ exports.getStudentPerformance = async (req, res) => {
             summary: {
                 totalAssignments,
                 submittedCount,
-                overallPercentage: parseFloat(overallPercentage.toFixed(2)),
+                overallPercentage: parseFloat(overallPercentage.toFixed(1)),
                 pendingCount: totalAssignments - submittedCount, // Roughly, or specifically calculate 'missing'
-                attendancePercentage: parseFloat(globalAttendancePercentage.toFixed(2))
+                attendancePercentage: parseFloat(globalAttendancePercentage.toFixed(1))
             },
             byClass: Object.values(performanceByClass),
             recentAssignments: assignmentDetails.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate)).slice(0, 10)
@@ -246,8 +246,8 @@ exports.getClassPerformance = async (req, res) => {
                 email: student.email,
                 assignmentsSubmitted: submittedCount,
                 totalAssignments: assignments.length,
-                averagePercentage: parseFloat(percentage.toFixed(2)),
-                attendancePercentage: parseFloat(attendPct.toFixed(2)),
+                averagePercentage: parseFloat(percentage.toFixed(1)),
+                attendancePercentage: parseFloat(attendPct.toFixed(1)),
                 classesAttended: attendedCount,
                 totalClasses: totalSessions
             });
@@ -366,8 +366,8 @@ exports.getSchoolPerformance = async (req, res) => {
                 id: classroom._id,
                 name: classroom.name,
                 studentCount: classroom.students.length,
-                averagePercentage: parseFloat(clsAvg.toFixed(2)),
-                attendancePercentage: parseFloat(avgAttendance.toFixed(2)),
+                averagePercentage: parseFloat(clsAvg.toFixed(1)),
+                attendancePercentage: parseFloat(avgAttendance.toFixed(1)),
                 assignmentCount: assignments.length
             });
         }
@@ -376,7 +376,7 @@ exports.getSchoolPerformance = async (req, res) => {
             schoolName: reportName,
             totalStudents: totalStudents.size,
             totalClassrooms: classrooms.length,
-            overallAverage: globalMaxScoreSum > 0 ? parseFloat(((globalScoreSum / globalMaxScoreSum) * 100).toFixed(2)) : 0,
+            overallAverage: globalMaxScoreSum > 0 ? parseFloat(((globalScoreSum / globalMaxScoreSum) * 100).toFixed(1)) : 0,
             classPerformance: classPerformance.sort((a, b) => b.averagePercentage - a.averagePercentage)
         });
 
@@ -460,7 +460,7 @@ exports.getAllStudentsReport = async (req, res) => {
                     }
                 });
 
-                const percentage = maxPossible > 0 ? parseFloat(((totalScore / maxPossible) * 100).toFixed(2)) : 0;
+                const percentage = maxPossible > 0 ? parseFloat(((totalScore / maxPossible) * 100).toFixed(1)) : 0;
 
                 if (!studentMap[student.email]) {
                     studentMap[student.email] = {
@@ -478,7 +478,7 @@ exports.getAllStudentsReport = async (req, res) => {
         const students = Object.values(studentMap).map(s => {
             const scoreValues = Object.values(s.scores);
             const overallAverage = scoreValues.length > 0
-                ? parseFloat((scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length).toFixed(2))
+                ? parseFloat((scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length).toFixed(1))
                 : 0;
             return { ...s, overallAverage };
         });

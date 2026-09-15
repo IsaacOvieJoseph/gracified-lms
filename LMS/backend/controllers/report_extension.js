@@ -54,8 +54,8 @@ exports.getAllStudentsReport = async (req, res) => {
                     studentName: student.name,
                     studentEmail: student.email,
                     className: classroom.name,
-                    averagePercentage: parseFloat(percentage.toFixed(2)),
-                    attendancePercentage: parseFloat(attendPct.toFixed(2)),
+                    averagePercentage: parseFloat(percentage.toFixed(1)),
+                    attendancePercentage: parseFloat(attendPct.toFixed(1)),
                     assignmentsSubmitted: submittedCount,
                     totalAssignments: assignments.length
                 });
