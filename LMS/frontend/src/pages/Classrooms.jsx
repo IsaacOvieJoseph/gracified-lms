@@ -408,7 +408,7 @@ const Classrooms = () => {
 
         <div className="px-5 pt-4 pb-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-serif text-[19px] font-semibold leading-snug min-w-0" style={{ color: INK }}>
+            <h3 className="flex-1 font-serif text-[19px] font-semibold leading-snug min-w-0" style={{ color: INK }}>
               {classroom.name}
               {isNew && <span className="ml-2 text-[10px] font-sans align-middle px-1.5 py-0.5 tracking-wide" style={{ color: '#B7791F', border: '1px solid #EAD8BC', backgroundColor: '#FBF4E8', borderRadius: '2px' }}>New</span>}
             </h3>
@@ -470,7 +470,7 @@ const Classrooms = () => {
           </div>
         </div>
 
-        <div className="px-5 py-4">
+        <div className="px-5 py-4 mt-auto">
           <Link
             to={`/classrooms/${classroom._id}`}
             className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
@@ -506,7 +506,7 @@ const Classrooms = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-3 px-4 py-3 flex-[2] min-w-[220px]" style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: '2px' }}>
+          <div className="flex items-center gap-3 px-4 h-[48px] flex-[2] min-w-[220px]" style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: '2px' }}>
             <Search size={15} style={{ color: SLATE }} />
             <input
               type="text"
