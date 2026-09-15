@@ -658,7 +658,7 @@ const ScriptSharePage = () => {
                                 <span className="font-mono text-sm font-semibold tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
                             </div>
 
-                            <ThemeToggle />
+                            {/* <ThemeToggle /> */}
 
                             {isGrader && (
                             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -732,7 +732,7 @@ const ScriptSharePage = () => {
                                     )}
                                     <div className="flex justify-between items-center">
                                         <span className={`text-xs font-semibold tracking-wide ${cardSubText}`}>Theme</span>
-                                        <ThemeToggle />
+                                        {/* <ThemeToggle /> */}
                                     </div>
                                 </div>
                             </div>

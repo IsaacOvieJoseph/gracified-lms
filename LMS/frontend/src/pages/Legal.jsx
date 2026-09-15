@@ -104,7 +104,7 @@ export default function Legal() {
             <span className="font-serif font-semibold text-foreground text-base sm:text-xl truncate">Gracified Learning Platform</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <Link to="/" className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="w-4 h-4" /> Back to home
             </Link>

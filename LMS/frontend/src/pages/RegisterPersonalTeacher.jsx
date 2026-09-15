@@ -152,13 +152,13 @@ const RegisterPersonalTeacher = () => {
       <div className="flex-1 flex justify-center p-6 pt-10 pb-10 relative z-10">
         <div className="w-full max-w-lg animate-slide-up">
           <div className="lg:hidden text-center mb-8 relative">
-            <div className="absolute top-0 right-0"><ThemeToggle /></div>
+            <div className="absolute top-0 right-0">{/* <ThemeToggle /> */}</div>
             <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-xl shadow-none mb-4" />
             <h1 className="text-2xl font-semibold text-foreground">Gracified LMS</h1>
           </div>
 
           <div className="card-premium p-8 md:p-10 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto relative">
-            <div className="hidden lg:flex absolute top-6 right-6"><ThemeToggle /></div>
+            <div className="hidden lg:flex absolute top-6 right-6">{/* <ThemeToggle /> */}</div>
             <div className="text-center mb-8">
               <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">Personal Teacher</h1>
               <p className="text-muted-foreground">Start your independent teaching journey</p>

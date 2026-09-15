@@ -88,7 +88,7 @@ const PublicSchool = () => {
              <span className="text-xl font-semibold text-foreground tracking-tight italic">Gracified<span className="text-primary">LMS</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <button 
               onClick={handleShare}
               className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-muted text-muted-foreground rounded-xl font-semibold text-xs hover:bg-muted/80 transition-all tracking-wide border border-border"

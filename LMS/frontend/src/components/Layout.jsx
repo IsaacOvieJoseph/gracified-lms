@@ -224,7 +224,7 @@ const Layout = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
 
             <div className="relative" ref={notificationsRef}>

@@ -104,7 +104,7 @@ const RegisterChoice = () => {
 
       {/* Theme toggle */}
       <div className="absolute top-4 right-4">
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
       </div>
 
       <div className="w-full max-w-lg bg-card border border-border  rounded-xl shadow-none p-8 relative z-10">

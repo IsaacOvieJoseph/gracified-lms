@@ -127,7 +127,7 @@ const ForgotPassword = () => {
 
       {/* Theme toggle - top right */}
       <div className="absolute top-4 right-4 z-20">
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
       </div>
 
       <div className="w-full max-w-md relative z-10 animate-slide-up">

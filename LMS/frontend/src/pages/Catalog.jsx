@@ -158,7 +158,7 @@ const Catalog = () => {
               </span>
             </Link>
             <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-              <ThemeToggle />
+              {/* <ThemeToggle /> */}
               <Link
                 to="/catalog"
                 className="px-4 py-2 text-primary font-semibold hover:text-primary/80 transition-colors"
@@ -192,7 +192,7 @@ const Catalog = () => {
             <div className="md:hidden py-4 border-t border-slate-200/60 flex flex-col gap-2 animate-slide-up">
               <div className="px-4 py-3 flex items-center justify-between">
                 <span className="text-slate-600 dark:text-slate-400 font-semibold">Theme</span>
-                <ThemeToggle />
+                {/* <ThemeToggle /> */}
               </div>
               <Link
                 to="/catalog"

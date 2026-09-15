@@ -132,7 +132,7 @@ const RegisterStudent = () => {
           {/* Mobile header */}
           <div className="lg:hidden text-center mb-8 relative">
             <div className="absolute top-0 right-0">
-              <ThemeToggle />
+              {/* <ThemeToggle /> */}
             </div>
             <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-xl shadow-none mb-4" />
             <h1 className="text-2xl font-semibold text-foreground">Gracified LMS</h1>
@@ -141,7 +141,7 @@ const RegisterStudent = () => {
           <div className="card-premium p-8 md:p-10 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto relative">
             {/* Desktop theme toggle */}
             <div className="hidden lg:flex absolute top-6 right-6">
-              <ThemeToggle />
+              {/* <ThemeToggle /> */}
             </div>
 
             <div className="text-center mb-8">
