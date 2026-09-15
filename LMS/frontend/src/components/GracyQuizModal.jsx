@@ -25,6 +25,7 @@ const GracyQuizModal = ({ quizConfig, onClose, onNewQuiz }) => {
       });
       setQuiz({
         sessionId: res.data.sessionId,
+        quizId: res.data.quizId,
         quizIndex: res.data.quizIndex,
         title: res.data.title,
         questions: res.data.questions,
@@ -56,6 +57,7 @@ const GracyQuizModal = ({ quizConfig, onClose, onNewQuiz }) => {
     try {
       const res = await api.post('/ai/tutor/quiz/submit', {
         sessionId: quiz.sessionId,
+        quizId: quiz.quizId,
         quizIndex: quiz.quizIndex,
         answers,
       });

@@ -1214,13 +1214,17 @@ IMPORTANT: correctOption must be the exact text of one of the options. Provide a
             return res.status(500).json({ message: 'AI returned no questions. Please try again.' });
         }
 
-        // Persist quiz (with answer key) server-side only
-        let session = await TutorSession.findOne({ userId: req.user._id, topicId: topicId || null });
-        if (!session) {
-            session = new TutorSession({ userId: req.user._id, topicId: topicId || null, subject: subject || '' });
-        }
-        session.quizzes.push(quiz);
-        await session.save();
+        // Persist quiz (with answer key) server-side only.
+        // Assign an explicit _id and append atomically via $push, so that when
+        // multiple general quizzes share the same session (topicId null),
+        // concurrent generations can never overwrite each other's questions.
+        const quizId = new (require('mongoose').Types.ObjectId)();
+        quiz._id = quizId;
+        const session = await TutorSession.findOneAndUpdate(
+            { userId: req.user._id, topicId: topicId || null },
+            { $push: { quizzes: quiz }, $setOnInsert: { subject: subject || '' } },
+            { upsert: true, new: true }
+        );
 
         await consumeTutorQuota(req.user);
 
@@ -1230,7 +1234,7 @@ IMPORTANT: correctOption must be the exact text of one of the options. Provide a
             options: q.options || []
         }));
 
-        res.json({ success: true, sessionId: session._id, quizIndex, title: quiz.title, questions: safeQuestions, pickedTopics });
+        res.json({ success: true, sessionId: session._id, quizIndex, quizId: quizId.toString(), title: quiz.title, questions: safeQuestions, pickedTopics });
     } catch (err) {
         console.error('AI tutor quiz error:', err.message);
         res.status(500).json({ message: err.message });
@@ -1288,15 +1292,20 @@ const resolveCorrectOption = (q) => {
 
 router.post('/tutor/quiz/submit', auth, requireStudentAI, async (req, res) => {
     try {
-        const { sessionId, quizIndex, answers } = req.body;
-        if (!sessionId || quizIndex === undefined || quizIndex === null) {
-            return res.status(400).json({ message: 'sessionId and quizIndex are required' });
+        const { sessionId, quizIndex, quizId, answers } = req.body;
+        if (!sessionId || (quizIndex === undefined && !quizId)) {
+            return res.status(400).json({ message: 'sessionId and quizId are required' });
         }
 
         const session = await TutorSession.findOne({ _id: sessionId, userId: req.user._id });
         if (!session) return res.status(404).json({ message: 'Session not found' });
 
-        const quiz = session.quizzes[quizIndex];
+        // Look the quiz up by its exact id so the graded quiz is ALWAYS the one
+        // whose questions were shown to the student — never a positional index
+        // that can drift when multiple quizzes share a session (general mode).
+        const quiz = quizId
+            ? session.quizzes.find((q) => q && String(q._id) === String(quizId))
+            : session.quizzes[quizIndex];
         if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
 
         const selected = Array.isArray(answers) ? answers : [];
