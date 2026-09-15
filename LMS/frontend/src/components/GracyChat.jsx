@@ -223,7 +223,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
         {/* Start Button */}
         <button
           onClick={handleStart}
-          className="w-full py-3   text-white rounded-xl font-semibold shadow-none hover:from-sky-600 hover:to-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+          className="w-full py-3 bg-primary text-white rounded-xl font-semibold shadow-none hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
         >
           <ClipboardList className="w-5 h-5" />
           Start Practice Quiz
@@ -514,7 +514,7 @@ const GracyChatInner = ({ user }) => {
           <div className="absolute bottom-20 right-0 w-[360px] sm:w-[400px] h-[540px] max-h-[82vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto">
 
             {/* Header */}
-            <div className="bg-gradient-to-r   p-4 flex items-center justify-between text-white flex-shrink-0">
+            <div className="bg-primary p-4 flex items-center justify-between text-white flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                   <Bot className="w-6 h-6" />
@@ -589,7 +589,7 @@ const GracyChatInner = ({ user }) => {
           onClick={() => {
             if (!dragStartPos.current.hasMoved) setIsOpen((o) => !o);
           }}
-          className={`absolute bottom-0 right-0 w-14 h-14 rounded-full   text-white shadow-none flex items-center justify-center hover:scale-105 active:scale-95 transition-transform pointer-events-auto cursor-grab active:cursor-grabbing z-50 ${
+          className={`absolute bottom-0 right-0 w-14 h-14 rounded-full bg-primary text-white shadow-none flex items-center justify-center hover:scale-105 hover:bg-primary/90 active:scale-95 transition-transform pointer-events-auto cursor-grab active:cursor-grabbing z-50 ${
             isOpen ? 'ring-4 ring-sky-300/40' : ''
           }`}
           title="Chat with Gracy"
