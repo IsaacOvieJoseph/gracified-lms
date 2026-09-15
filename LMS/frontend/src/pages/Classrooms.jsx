@@ -386,71 +386,98 @@ const Classrooms = () => {
   };
 
   const renderClassroomCard = (classroom) => {
-    const isEnrolled = user?.enrolledClasses?.includes(classroom._id) || classroom.students?.some(s => s._id === user?._id);
     const isNew = new Date(classroom.createdAt) > new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
     const isAdmin = ['root_admin', 'school_admin', 'personal_teacher'].includes(user?.role);
+    const canModify = user?.role === 'root_admin' || user?.role === 'school_admin' || user?._id === classroom.teacherId?._id;
+    const isFree = !classroom.isPaid || (classroom.pricing?.amount || 0) <= 0;
+
+    const firstSession = classroom.schedule && classroom.schedule[0];
+    let scheduleLabel = 'TBA';
+    if (firstSession) {
+      try {
+        const local = convertUTCToLocal(firstSession.dayOfWeek, firstSession.startTime);
+        scheduleLabel = `${local.dayOfWeek ? local.dayOfWeek.substring(0, 3) : 'TBA'} ${local.hhmm}`;
+      } catch {
+        scheduleLabel = `${firstSession.dayOfWeek || 'TBA'} ${firstSession.startTime || ''}`;
+      }
+    }
 
     return (
-      <div key={classroom._id} className="card-premium flex flex-col group overflow-hidden bg-card border border-border shadow-none transition-all duration-300 hover:shadow-none hover:border-primary/20">
-        <div className="relative h-2  from-primary/40 to-primary/5" />
-        <div className="p-6 flex flex-col h-full">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex-1 min-w-0 pr-2">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-xl font-semibold text-foreground tracking-tight truncate group-hover:text-primary transition-colors pr-2 pb-1">{classroom.name}</h3>
-                {isNew && <span className="bg-amber-500/10 text-amber-500 text-xs font-semibold px-1.5 py-0.5 rounded tracking-wide border border-amber-500/20">New</span>}
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold tracking-wide">
-                <User className="w-3 h-3 text-primary" />
-                <span>{classroom.teacherId?.name || 'TBA'}</span>
-              </div>
-            </div>
+      <div key={classroom._id} className="flex flex-col" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}` }}>
+        <div style={{ height: '3px', backgroundColor: NAVY }} />
 
-            <div className="flex flex-col items-end gap-2">
-              {classroom.isPaid ? (
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-foreground">{formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}</div>
-                  <div className="text-xs font-semibold text-primary tracking-wide opacity-70">{(classroom.pricing?.type || 'Lecture').replace('_', ' ')}</div>
+        <div className="px-5 pt-4 pb-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-serif text-[19px] font-semibold leading-snug min-w-0" style={{ color: INK }}>
+              {classroom.name}
+              {isNew && <span className="ml-2 text-[10px] font-sans align-middle px-1.5 py-0.5 tracking-wide" style={{ color: '#B7791F', border: '1px solid #EAD8BC', backgroundColor: '#FBF4E8', borderRadius: '2px' }}>New</span>}
+            </h3>
+            {isFree ? (
+              <span className="text-xs font-semibold px-2 py-1 shrink-0 whitespace-nowrap" style={{ color: FOREST, border: `1px solid #CFE3D6`, backgroundColor: '#F2F8F4', borderRadius: '2px' }}>
+                Free
+              </span>
+            ) : (
+              <div className="text-right shrink-0">
+                <div className="font-serif text-lg font-semibold leading-none" style={{ color: GOLD }}>
+                  {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
                 </div>
-              ) : (
-                <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 tracking-wide">Free</span>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-3 mb-6 flex-1">
-            <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-muted-foreground">
-              <Layers className="w-4 h-4 text-primary/40" />
-              <span>Level:</span>
-              <span className="text-foreground">{classroom.level || 'Other'}</span>
-            </div>
-            <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-muted-foreground">
-              <Calendar className="w-4 h-4 text-primary/40" />
-              <span>Schedule:</span>
-              <span className="text-foreground truncate">{classroom.schedule?.[0]?.dayOfWeek || 'TBA'} {classroom.schedule?.[0]?.startTime || ''}</span>
-            </div>
-            {isAdmin && (
-              <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground">
-                  <Users className="w-3.5 h-3.5 text-primary" /> {classroom.students?.length || 0} Enrolled
-                </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => handlePublishToggle(classroom._id, classroom.published)} className={`p-1.5 rounded-xl transition ${classroom.published ? 'text-emerald-500 bg-emerald-500/10' : 'text-muted-foreground bg-muted'}`}>
-                    {publishingClassId === classroom._id ? <Loader2 className="w-4 h-4 animate-spin" /> : (classroom.published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />)}
-                  </button>
-                  {(user?.role === 'root_admin' || user?.role === 'school_admin' || user?._id === classroom.teacherId?._id) && (
-                    <button onClick={(e) => handleDeleteClick(classroom._id, e)} className="p-1.5 rounded-xl text-rose-500 bg-rose-500/10 hover:bg-danger/90 hover:text-white transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                <div className="text-xs mt-1" style={{ color: SLATE }}>
+                  {classroom.pricing?.type ? classroom.pricing.type.replace('_', ' ') : 'paid'}
                 </div>
               </div>
             )}
           </div>
+          <div className="flex items-center gap-2 mt-2 text-sm" style={{ color: SLATE }}>
+            <User size={14} />
+            <span className="truncate">{classroom.teacherId?.name || 'TBA'}</span>
+          </div>
+        </div>
 
-          <Link to={`/classrooms/${classroom._id}`} className="btn-premium w-full group/btn">
-            <span>View Classroom</span>
-            <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+        <div className="px-5 py-3 flex flex-col gap-2" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+          <DetailRow icon={Layers} label="Level:" value={classroom.level || 'Other'} />
+          <DetailRow icon={Calendar} label="Schedule:" value={scheduleLabel} />
+        </div>
+
+        <div className="px-5 py-3 flex items-center justify-between gap-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+          <div className="flex items-center gap-2 text-sm" style={{ color: SLATE }}>
+            <Users size={14} />
+            {classroom.students?.length || 0} enrolled
+          </div>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => handlePublishToggle(classroom._id, classroom.published)}
+                title={classroom.published ? 'Unpublish' : 'Publish'}
+                className="flex items-center justify-center w-8 h-8"
+                style={{ border: `1px solid ${classroom.published ? '#CFE3D6' : HAIRLINE}`, borderRadius: '2px' }}
+                aria-label={classroom.published ? 'Unpublish class' : 'Publish class'}
+              >
+                {publishingClassId === classroom._id
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: INK }} />
+                  : classroom.published ? <Eye size={14} style={{ color: FOREST }} /> : <EyeOff size={14} style={{ color: SLATE }} />}
+              </button>
+            )}
+            {canModify && (
+              <button
+                onClick={(e) => handleDeleteClick(classroom._id, e)}
+                className="flex items-center justify-center w-8 h-8"
+                style={{ border: '1px solid #EBD3CE', borderRadius: '2px' }}
+                aria-label="Delete class"
+              >
+                <Trash2 size={14} style={{ color: ROSE }} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="px-5 py-4">
+          <Link
+            to={`/classrooms/${classroom._id}`}
+            className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+            style={primaryActionStyle}
+          >
+            View classroom
+            <ArrowRight size={15} />
           </Link>
         </div>
       </div>
@@ -462,36 +489,36 @@ const Classrooms = () => {
   return (
     <Layout>
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 card-premium p-6 shadow-none">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}` }}>
           <div>
-            <h1 className="text-3xl font-semibold text-foreground tracking-tight flex items-center gap-3">
-              Explore Academies <Sparkles className="w-6 h-6 text-amber-500" />
-            </h1>
-            <p className="text-xs tracking-wide font-semibold text-muted-foreground mt-1">Discover and manage elite educational modules.</p>
+            <h1 className="font-serif text-[26px] font-semibold" style={{ color: INK }}>Explore academies</h1>
+            <p className="text-sm mt-1" style={{ color: SLATE }}>Browse and manage the classes you teach or oversee.</p>
           </div>
           {canCreate && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="btn-premium whitespace-nowrap"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold whitespace-nowrap hover:opacity-90 transition-opacity"
+              style={primaryActionStyle}
             >
-              <Plus className="w-5 h-5" /> Create New Class
+              <Plus size={16} /> Create new class
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-          <div className="relative group w-full lg:col-span-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+        <div className="flex flex-wrap gap-3">
+          <div className="flex items-center gap-3 px-4 py-3 flex-[2] min-w-[220px]" style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: '2px' }}>
+            <Search size={15} style={{ color: SLATE }} />
             <input
               type="text"
               placeholder="Filter by title, subject, teacher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 bg-card border-2 border-border h-12 shadow-none focus:shadow-none focus:border-primary transition-all outline-none rounded-xl font-semibold"
+              className="text-sm w-full outline-none bg-transparent"
+              style={{ color: INK }}
             />
           </div>
-          
-          <div className="w-full">
+
+          <div className="flex-1 min-w-[180px]">
             <Select
               options={[{ value: 'All Subjects', label: 'All Subjects' }, ...subjectOptions]}
               value={{ value: selectedSubject, label: selectedSubject }}
@@ -500,11 +527,11 @@ const Classrooms = () => {
               classNamePrefix="react-select"
               menuPortalTarget={document.body}
               styles={filterSelectStyles}
-              components={{ DropdownIndicator: () => <Filter className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
+              components={{ DropdownIndicator: () => <SlidersHorizontal size={14} style={{ color: SLATE }} />, IndicatorSeparator: () => null }}
             />
           </div>
 
-          <div className="w-full">
+          <div className="flex-1 min-w-[180px]">
             <Select
               options={[{ value: 'All Levels', label: 'All Levels' }, ...levelOptions]}
               value={{ value: selectedLevel, label: selectedLevel }}
@@ -513,11 +540,11 @@ const Classrooms = () => {
               classNamePrefix="react-select"
               menuPortalTarget={document.body}
               styles={filterSelectStyles}
-              components={{ DropdownIndicator: () => <Layers className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
+              components={{ DropdownIndicator: () => <Layers size={14} style={{ color: SLATE }} />, IndicatorSeparator: () => null }}
             />
           </div>
 
-          <div className="w-full">
+          <div className="flex-1 min-w-[180px]">
             <Select
               options={[
                 { value: 'All Prices', label: 'All Prices' },
@@ -530,7 +557,7 @@ const Classrooms = () => {
               classNamePrefix="react-select"
               menuPortalTarget={document.body}
               styles={filterSelectStyles}
-              components={{ DropdownIndicator: () => <DollarSign className="w-4 h-4 text-muted-foreground mr-4" />, IndicatorSeparator: () => null }}
+              components={{ DropdownIndicator: () => <Coins size={14} style={{ color: SLATE }} />, IndicatorSeparator: () => null }}
             />
           </div>
         </div>
@@ -539,34 +566,34 @@ const Classrooms = () => {
           {user?.role === 'student' && user?.schoolId?.length > 0 ? (
             <>
               <SectionHeader title="Your Facilities" count={filteredClassrooms.filter(isMySchoolClass).length} icon={School} />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
+              <div className="animate-slide-up" style={cardGridStyle}>
                 {filteredClassrooms.filter(isMySchoolClass).map(renderClassroomCard)}
               </div>
 
               {filteredClassrooms.filter(c => !isMySchoolClass(c)).length > 0 && (
                 <>
-                  <div className="pt-12 mb-8 border-t border-border/10">
+                  <div className="pt-12 mb-8 border-t" style={{ borderColor: HAIRLINE }}>
                     <SectionHeader title="Global Classrooms" count={filteredClassrooms.filter(c => !isMySchoolClass(c)).length} icon={Sparkles} />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
+                  <div className="animate-slide-up" style={cardGridStyle}>
                     {filteredClassrooms.filter(c => !isMySchoolClass(c)).map(renderClassroomCard)}
                   </div>
                 </>
               )}
             </>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
+            <div className="animate-slide-up" style={cardGridStyle}>
               {filteredClassrooms.map(renderClassroomCard)}
             </div>
           )}
 
           {filteredClassrooms.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center card-premium border-dashed">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
-                <Search className="w-10 h-10 text-muted-foreground/30" />
+            <div className="flex flex-col items-center justify-center py-20 text-center px-6" style={{ backgroundColor: PAPER, border: `1px dashed ${HAIRLINE}` }}>
+              <div className="w-16 h-16 flex items-center justify-center mb-6" style={{ backgroundColor: PANEL, borderRadius: '2px' }}>
+                <Search className="w-8 h-8" style={{ color: SLATE, opacity: 0.5 }} />
               </div>
-              <h3 className="text-xl font-semibold text-foreground">No classes matches your search</h3>
-              <p className="text-muted-foreground mt-2">Try adjusting your filters or search keywords.</p>
+              <h3 className="font-serif text-[20px] font-semibold" style={{ color: INK }}>No classes match</h3>
+              <p className="text-sm mt-1" style={{ color: SLATE }}>Try adjusting your filters or search keywords.</p>
             </div>
           )}
         </div>
