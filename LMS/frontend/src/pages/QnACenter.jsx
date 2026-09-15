@@ -131,21 +131,21 @@ const QnACenter = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans">
-            <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+            <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-none">
                 <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3 w-full">
-                        <div className="bg-indigo-100 p-2 rounded-lg shrink-0">
-                            <MessageSquare className="w-5 h-5 text-indigo-600" />
+                        <div className="bg-indigo-100 p-2 rounded-xl shrink-0">
+                            <MessageSquare className="w-5 h-5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h1 className="font-bold text-gray-900 truncate">{board.title}</h1>
+                            <h1 className="font-semibold text-gray-900 truncate">{board.title}</h1>
                             <p className="text-xs text-gray-500 truncate">{board.classroomId?.name} {board.topicId ? `• ${board.topicId.name}` : ''}</p>
                         </div>
                     </div>
                     {user && (user.role === 'teacher' || user.role === 'personal_teacher' || user.role === 'root_admin' || user.role === 'school_admin') && (
                         <button
                             onClick={() => navigate(`/qna/${token}/present${location.search || ''}`)}
-                            className="ml-4 shrink-0 px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-900 transition"
+                            className="ml-4 shrink-0 px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-xl hover:bg-slate-900 transition"
                         >
                             Present Mode
                         </button>
@@ -155,20 +155,20 @@ const QnACenter = () => {
 
             <main className="max-w-3xl mx-auto px-4 py-8">
                 {board.description && (
-                    <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
+                    <div className="bg-white rounded-xl shadow-none p-6 mb-8 border border-gray-100">
                         <p className="text-gray-700 text-lg">{board.description}</p>
                     </div>
                 )}
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                <div className="bg-white rounded-xl shadow-none border border-gray-100 p-6 mb-8 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-gray-900">Ask a Question</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Ask a Question</h2>
                         {isAdmin && (
                             <button
                                 type="button"
                                 onClick={() => setShowAIPanel(true)}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-md active:scale-95"
+                                className="flex items-center gap-2 px-3 py-1.5   text-white rounded-xl text-xs font-semibold tracking-wider hover:opacity-90 transition-all shadow-none active:scale-95"
                             >
                                 <Sparkles className="w-3.5 h-3.5" />
                                 Magic Assistant
@@ -183,7 +183,7 @@ const QnACenter = () => {
                                     placeholder="Your Name (optional)"
                                     value={authorName}
                                     onChange={e => setAuthorName(e.target.value)}
-                                    className="w-full sm:w-64 border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full sm:w-64 border-gray-300 rounded-xl shadow-none focus:ring-indigo-500 focus:border-primary/50"
                                 />
                             </div>
                         )}
@@ -195,7 +195,7 @@ const QnACenter = () => {
                                     placeholder="Your Name"
                                     value={authorName}
                                     onChange={e => setAuthorName(e.target.value)}
-                                    className="w-full sm:w-64 border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full sm:w-64 border-gray-300 rounded-xl shadow-none focus:ring-indigo-500 focus:border-primary/50"
                                 />
                             </div>
                         )}
@@ -206,7 +206,7 @@ const QnACenter = () => {
                                     id="stayAnonymous"
                                     checked={stayAnonymous}
                                     onChange={e => setStayAnonymous(e.target.checked)}
-                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
                                 />
                                 <label htmlFor="stayAnonymous" className="text-sm font-medium text-gray-700 cursor-pointer">Stay anonymous</label>
                             </div>
@@ -218,12 +218,12 @@ const QnACenter = () => {
                                 value={newQuestion}
                                 onChange={e => setNewQuestion(e.target.value)}
                                 placeholder="What's on your mind?"
-                                className="w-full border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 resize-none pr-16"
+                                className="w-full border-gray-300 rounded-xl shadow-none focus:ring-indigo-500 focus:border-primary/50 resize-none pr-16"
                             />
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="absolute bottom-3 right-3 bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition drop-shadow-md"
+                                className="absolute bottom-3 right-3 bg-primary text-white p-2.5 rounded-xl hover:bg-primary/90 disabled:opacity-50 transition drop-shadow-none"
                             >
                                 <Send className="w-5 h-5 text-white transform translate-x-px -translate-y-px" />
                             </button>
@@ -233,9 +233,9 @@ const QnACenter = () => {
 
                 <div className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                        <h2 className="text-xl font-bold text-gray-900">Questions <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-2">{sortedQuestions.length}</span></h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Questions <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-2">{sortedQuestions.length}</span></h2>
                         {!isAdmin && board.hideQuestions && (
-                            <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded font-medium border border-indigo-100 shadow-sm flex items-center">
+                            <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded font-medium border border-primary/20 shadow-none flex items-center">
                                 <EyeOff className="w-3.5 h-3.5 mr-1" />
                                 Hidden to Class
                             </span>
@@ -259,11 +259,11 @@ const QnACenter = () => {
                             const hasUpvoted = ident && q.upvotes.includes(ident);
 
                             return (
-                                <div key={q._id} className={`bg-white rounded-xl p-5 shadow-sm border ${q.isAnswered ? 'border-green-300 bg-green-50/10' : 'border-gray-100'} transition flex gap-4`}>
+                                <div key={q._id} className={`bg-white rounded-xl p-5 shadow-none border ${q.isAnswered ? 'border-green-300 bg-green-50/10' : 'border-gray-100'} transition flex gap-4`}>
                                     <div className="flex flex-col items-center">
                                         <button
                                             onClick={() => handleUpvote(q._id)}
-                                            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition ${hasUpvoted ? 'bg-indigo-100 text-indigo-700 font-bold' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                                            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition ${hasUpvoted ? 'bg-indigo-100 text-primary font-semibold' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
                                         >
                                             <ThumbsUp className={`w-5 h-5 mb-1 ${hasUpvoted ? 'fill-current' : ''}`} />
                                             <span className="text-xs">{q.upvotes.length}</span>
@@ -273,19 +273,19 @@ const QnACenter = () => {
                                         <div className="flex items-start justify-between">
                                             <p className="text-gray-900 text-lg leading-snug whitespace-pre-wrap">{q.text}</p>
                                             {q.isAnswered && (
-                                                <span className="shrink-0 flex items-center text-[10px] md:text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-lg ml-4">
+                                                <span className="shrink-0 flex items-center text-xs md:text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-xl ml-4">
                                                     <CheckCircle className="w-3.5 h-3.5 mr-1" /> Answered
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 md:gap-4 mt-3 text-[10px] md:text-xs text-gray-500">
+                                        <div className="flex items-center gap-2 md:gap-4 mt-3 text-xs md:text-xs text-gray-500">
                                             <div className="flex items-center">
                                                 <UserIcon className="w-3.5 h-3.5 mr-1" />
                                                 <span className="font-medium text-gray-700">
                                                     {(board.allowAnonymous && !isAdmin) ? 'Anonymous' : q.authorName}
                                                 </span>
                                                 {board.allowAnonymous && isAdmin && q.authorName !== 'Anonymous' && (
-                                                    <span className="ml-2 text-[9px] font-bold tracking-wider uppercase bg-indigo-50 text-indigo-500 border border-indigo-100 px-1.5 py-0.5 rounded">
+                                                    <span className="ml-2 text-xs font-semibold tracking-wider bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded">
                                                         Anon to Class
                                                     </span>
                                                 )}

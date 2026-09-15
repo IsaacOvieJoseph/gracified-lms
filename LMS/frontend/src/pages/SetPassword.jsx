@@ -84,7 +84,7 @@ const SetPassword = () => {
 
     if (verifying) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+            <div className="min-h-screen  via-white  flex items-center justify-center p-4">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
                     <p className="mt-4 text-gray-600">Verifying invite link...</p>
@@ -95,16 +95,16 @@ const SetPassword = () => {
 
     if (!tokenValid) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-                <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+            <div className="min-h-screen  via-white  flex items-center justify-center p-4">
+                <div className="bg-white/95  rounded-xl shadow-none p-8 w-full max-w-md text-center">
                     <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <XCircle className="w-10 h-10 text-red-600" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Invite Link</h1>
+                    <h1 className="text-2xl font-semibold text-gray-900 mb-2">Invalid Invite Link</h1>
                     <p className="text-gray-600 mb-6">{error}</p>
                     <Link
                         to="/login"
-                        className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                        className="inline-block px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition"
                     >
                         Go to Login
                     </Link>
@@ -114,14 +114,14 @@ const SetPassword = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md transform transition-all">
+        <div className="min-h-screen  via-white  flex items-center justify-center p-4">
+            <div className="bg-white/95  rounded-xl shadow-none p-8 w-full max-w-md transform transition-all">
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-6">
                         <img
                             src={logo}
                             alt="Gracified LMS Logo"
-                            className="w-24 h-24 object-contain rounded-full shadow-md transform hover:scale-105 transition-transform duration-300"
+                            className="w-24 h-24 object-contain rounded-full shadow-none transform hover:scale-105 transition-transform duration-300"
                         />
                     </div>
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -181,11 +181,11 @@ const SetPassword = () => {
                         </div>
                     </div>
 
-                    <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
+                    <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl">
                         <p className="font-semibold mb-1">Password requirements:</p>
                         <ul className="list-disc list-inside space-y-0.5">
                             <li>At least 8 characters long</li>
-                            <li>Contains uppercase and lowercase letters</li>
+                            <li>Contains and lowercase letters</li>
                             <li>Contains at least one number</li>
                             <li>Contains at least one special character</li>
                         </ul>
@@ -200,7 +200,7 @@ const SetPassword = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full py-3.5 px-4   hover:from-indigo-700 hover:to-purple-700 text-white text-lg font-semibold rounded-xl shadow-none hover:shadow-none transform transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <span className="flex items-center justify-center">

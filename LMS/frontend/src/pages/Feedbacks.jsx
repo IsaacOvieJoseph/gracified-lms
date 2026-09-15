@@ -71,15 +71,15 @@ const Feedbacks = () => {
         <Layout>
             <div className="space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 className="text-2xl font-bold text-gray-800">Feedback Management</h2>
+                    <h2 className="text-2xl font-semibold text-gray-800">Feedback Management</h2>
                     <div className="flex items-center gap-3">
-                        <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
+                        <div className="bg-white px-4 py-2 rounded-xl shadow-none">
                             <span className="text-gray-500 text-sm">Total:</span>
-                            <span className="ml-2 font-bold text-indigo-600">{feedbacks.length}</span>
+                            <span className="ml-2 font-semibold text-primary">{feedbacks.length}</span>
                         </div>
                         <button
                             onClick={() => setShowRequestModal(true)}
-                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center space-x-2 shadow-sm"
+                            className="bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition flex items-center space-x-2 shadow-none"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Request Feedback</span>
@@ -87,7 +87,7 @@ const Feedbacks = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                <div className="bg-white rounded-xl shadow-none overflow-hidden">
                     {feedbacks.length > 0 ? (
                         <div className="divide-y divide-gray-100">
                             {feedbacks.map((fb) => (
@@ -101,7 +101,7 @@ const Feedbacks = () => {
                                                 <h3 className="font-semibold text-gray-900">
                                                     {fb.type === 'platform' ? 'Platform Feedback' : (fb.classroomName || 'Classroom Feedback')}
                                                 </h3>
-                                                <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold ${fb.type === 'platform' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${fb.type === 'platform' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                                                     {fb.type || 'Classroom'}
                                                 </span>
                                             </div>
@@ -137,7 +137,7 @@ const Feedbacks = () => {
                                                 </div>
                                                 {fb.title && <div className="text-sm font-medium text-gray-700 mb-2">Prompt: "{fb.title}"</div>}
                                                 {fb.comment ? (
-                                                    <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                                    <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-none">
                                                         <p className="text-gray-700 text-sm leading-relaxed">"{fb.comment}"</p>
                                                     </div>
                                                 ) : (
@@ -160,10 +160,10 @@ const Feedbacks = () => {
 
             {/* Request Feedback Modal */}
             {showRequestModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 animate-slide-up">
+                <div className="fixed inset-0 bg-slate-900/60  z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-none max-w-md w-full p-8 animate-slide-up">
                         <div className="flex justify-between items-center mb-8">
-                            <h3 className="text-2xl font-bold text-slate-900">Request Feedback</h3>
+                            <h3 className="text-2xl font-semibold text-slate-900">Request Feedback</h3>
                             <button onClick={() => setShowRequestModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">
                                 <X className="w-6 h-6" />
                             </button>
@@ -193,14 +193,14 @@ const Feedbacks = () => {
                                     placeholder="e.g. How can we improve your learning experience?"
                                     required
                                 />
-                                <p className="text-[10px] text-slate-400 mt-2">This will be sent as a notification to the selected users.</p>
+                                <p className="text-xs text-slate-400 mt-2">This will be sent as a notification to the selected users.</p>
                             </div>
 
                             <div className="flex gap-4 pt-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowRequestModal(false)}
-                                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition"
+                                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 font-semibold text-slate-600 hover:bg-slate-50 transition"
                                     disabled={isRequesting}
                                 >
                                     Discard

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,38 +6,48 @@
 
 @layer base {
   :root {
-    --primary: 199 89% 48%;
+    --primary: 212 50% 23%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 199 89% 95%;
-    --secondary-foreground: 201 96% 20%;
-    --accent: 199 89% 95%;
-    --accent-foreground: 199 89% 40%;
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --muted: 199 89% 96%;
-    --muted-foreground: 215 16% 47%;
+    --secondary: 212 39% 93%;
+    --secondary-foreground: 211 39% 13%;
+    --accent: 212 39% 93%;
+    --accent-foreground: 211 39% 13%;
+    --background: 210 17% 97%;
+    --foreground: 211 39% 13%;
+    --muted: 210 14% 95%;
+    --muted-foreground: 210 15% 42%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --border: 199 60% 90%;
-    --ring: 199 89% 48%;
-    --radius: 0.75rem;
+    --card-foreground: 211 39% 13%;
+    --border: 210 21% 89%;
+    --ring: 212 50% 23%;
+    --success: 149 40% 31%;
+    --success-foreground: 0 0% 100%;
+    --danger: 7 56% 41%;
+    --danger-foreground: 0 0% 100%;
+    --gold: 39 69% 39%;
+    --radius: 2px;
   }
 
   .dark {
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 211 60% 58%;
+    --primary-foreground: 211 39% 10%;
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 98%;
     --accent: 0 0% 20%;
     --accent-foreground: 0 0% 98%;
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 64%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
-    --border: 0 0% 18%;
-    --ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 8%;
+    --foreground: 0 0% 96%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 62%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 96%;
+    --border: 0 0% 20%;
+    --ring: 211 60% 58%;
+    --success: 149 40% 40%;
+    --success-foreground: 0 0% 98%;
+    --danger: 7 56% 48%;
+    --danger-foreground: 0 0% 98%;
+    --gold: 39 60% 50%;
   }
 
   body {
@@ -56,9 +66,9 @@
   h4,
   h5,
   h6 {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     color: hsl(var(--foreground));
   }
 
@@ -94,13 +104,13 @@
 
 @layer components {
 
-  /* Glassmorphism Utilities */
+  /* Flat Surfaces */
   .glass {
-    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/30 dark:border-white/10;
+    @apply bg-white dark:bg-slate-900 border border-border;
   }
 
   .glass-dark {
-    @apply bg-slate-900/80 dark:bg-black/80 backdrop-blur-xl border border-white/10 dark:border-white/5;
+    @apply bg-card border border-border;
   }
 
   /* Premium Component Styles */
@@ -108,28 +118,24 @@
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border) / 1);
     border-radius: var(--radius);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.2s ease;
     color: hsl(var(--card-foreground));
   }
 
   .card-premium:hover {
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    transform: translateY(-2px);
-    border-color: hsl(var(--primary) / 0.4);
+    border-color: hsl(var(--primary) / 0.35);
   }
 
   .btn-premium {
-    @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
-    @apply shadow-sm shadow-indigo-500/20 dark:shadow-none;
+    @apply px-5 py-2.5 font-semibold transition-all duration-200 flex items-center justify-center gap-2;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
     border: 1px solid hsl(var(--primary) / 0.2);
+    border-radius: var(--radius);
   }
 
   .btn-premium:hover {
-    background: hsl(var(--primary) / 0.9);
-    transform: translateY(-1px);
-    @apply shadow-md shadow-indigo-500/30 dark:shadow-none;
+    background: hsl(var(--primary) / 0.92);
   }
 
   .btn-premium:active {
@@ -137,45 +143,47 @@
   }
 
   .btn-secondary {
-    @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
-    background: hsl(var(--secondary));
-    color: hsl(var(--secondary-foreground));
+    @apply px-5 py-2.5 font-semibold transition-all duration-200 flex items-center justify-center gap-2;
+    background: hsl(var(--card));
+    color: hsl(var(--foreground));
     border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
   }
 
   .btn-secondary:hover {
-    @apply opacity-80;
     border-color: hsl(var(--primary) / 0.4);
+    background: hsl(var(--background));
   }
 
   .btn-success {
-    @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
-    @apply shadow-sm shadow-emerald-500/20 dark:shadow-none;
-    background: #10b981;
-    color: white;
+    @apply px-5 py-2.5 font-semibold transition-all duration-200 flex items-center justify-center gap-2;
+    background: hsl(var(--success));
+    color: hsl(var(--success-foreground));
+    border-radius: var(--radius);
   }
 
   .btn-success:hover {
-    opacity: 0.9;
+    background: hsl(var(--success) / 0.92);
   }
 
   .btn-danger {
-    @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2;
-    @apply shadow-sm shadow-rose-500/20 dark:shadow-none;
-    background: #ef4444;
-    color: white;
+    @apply px-5 py-2.5 font-semibold transition-all duration-200 flex items-center justify-center gap-2;
+    background: hsl(var(--danger));
+    color: hsl(var(--danger-foreground));
+    border-radius: var(--radius);
   }
 
   .btn-danger:hover {
-    opacity: 0.9;
+    background: hsl(var(--danger) / 0.92);
   }
 
   .nav-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-muted-foreground;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-none transition-all duration-200 font-medium text-muted-foreground;
   }
 
   .nav-link.active {
-    @apply bg-primary/10 text-primary;
+    @apply bg-background text-primary font-semibold;
+    border-left: 2px solid hsl(var(--primary));
   }
 
   .nav-link:not(.active):hover {
@@ -198,7 +206,7 @@
   }
 
   .modern-select .react-select__menu {
-    @apply rounded-xl border-border shadow-2xl overflow-hidden mt-2;
+    @apply rounded-xl border-border shadow-sm overflow-hidden mt-2;
     background-color: hsl(var(--card)) !important;
     border: 1px solid hsl(var(--border)) !important;
   }
@@ -257,7 +265,7 @@
   }
 
   to {
-    transform: translateY(0);
+    transform: none;
     opacity: 1;
   }
 }
@@ -269,7 +277,7 @@
   }
 
   to {
-    transform: translateX(0);
+    transform: none;
     opacity: 1;
   }
 }

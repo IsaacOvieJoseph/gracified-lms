@@ -60,7 +60,7 @@ const TeacherReport = () => {
     return (
         <div className="space-y-8">
             <div className="w-full max-w-md">
-                <label className="block text-sm font-bold text-muted-foreground mb-2">Select Classroom</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">Select Classroom</label>
                 <Select
                     options={classrooms}
                     value={selectedClass}
@@ -76,36 +76,36 @@ const TeacherReport = () => {
                 <>
                     {/* Top Stats */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 animate-slide-up">
-                        <div className="bg-primary/10 rounded-[2rem] p-6 text-primary border border-primary/20 shadow-xl transition-all hover:-translate-y-1 group relative overflow-hidden">
+                        <div className="bg-primary/10 rounded-xl p-6 text-primary border border-primary/20 shadow-none transition-all hover:-translate-y-1 group relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                                 <Users size={64} />
                             </div>
                             <div className="flex items-center space-x-3 mb-4">
-                                <div className="p-3 bg-primary rounded-xl text-white shadow-lg"><Users size={20} /></div>
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Students</h3>
+                                <div className="p-3 bg-primary rounded-xl text-white shadow-none"><Users size={20} /></div>
+                                <h3 className="text-xs font-semibold tracking-wide opacity-80">Total Students</h3>
                             </div>
-                            <p className="text-3xl sm:text-4xl font-black italic">{reportData.classroom.studentCount}</p>
+                            <p className="text-3xl sm:text-4xl font-semibold">{reportData.classroom.studentCount}</p>
                         </div>
-                        <div className="bg-card/40 backdrop-blur-md border border-border/50 rounded-[2rem] p-6 shadow-xl transition-all hover:-translate-y-1 hover:border-emerald-500/30 group relative overflow-hidden">
+                        <div className="bg-card  border border-border/50 rounded-xl p-6 shadow-none transition-all hover:-translate-y-1 hover:border-emerald-500/30 group relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                                 <FileText size={64} className="text-emerald-500" />
                             </div>
                             <div className="flex items-center space-x-3 mb-4 text-emerald-500">
                                 <div className="p-3 bg-emerald-500/10 rounded-xl"><FileText size={20} /></div>
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Assignments</h3>
+                                <h3 className="text-xs font-semibold tracking-wide text-muted-foreground">Assignments</h3>
                             </div>
-                            <p className="text-3xl sm:text-4xl font-black text-foreground italic">{reportData.assignmentStats.length}</p>
+                            <p className="text-3xl sm:text-4xl font-semibold text-foreground">{reportData.assignmentStats.length}</p>
                         </div>
-                        <div className="bg-card/40 backdrop-blur-md border border-border/50 rounded-[2rem] p-6 shadow-xl transition-all hover:-translate-y-1 hover:border-blue-500/30 group relative overflow-hidden">
+                        <div className="bg-card  border border-border/50 rounded-xl p-6 shadow-none transition-all hover:-translate-y-1 hover:border-blue-500/30 group relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                                 <TrendingUp size={64} className="text-blue-500" />
                             </div>
                             <div className="flex items-center space-x-3 mb-4 text-blue-500">
-                                <div className="p-3 bg-blue-500/10 rounded-xl"><TrendingUp size={20} /></div>
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Class Average</h3>
+                                <div className="p-3 bg-primary/10 rounded-xl"><TrendingUp size={20} /></div>
+                                <h3 className="text-xs font-semibold tracking-wide text-muted-foreground">Class Average</h3>
                             </div>
                             {/* Calculate overall average from assignments avg */}
-                            <p className="text-3xl sm:text-4xl font-black text-foreground italic">
+                            <p className="text-3xl sm:text-4xl font-semibold text-foreground">
                                 {(reportData.assignmentStats.reduce((acc, curr) => acc + curr.averageScore, 0) / (reportData.assignmentStats.length || 1)).toFixed(1)}%
                             </p>
                         </div>
@@ -113,11 +113,11 @@ const TeacherReport = () => {
 
                     {/* Charts Section */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                        <div className="bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-border/50 shadow-2xl relative overflow-hidden group hover:border-primary/30 transition-all">
+                        <div className="bg-card  p-8 rounded-xl border border-border/50 shadow-none relative overflow-hidden group hover:border-primary/30 transition-all">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
                                 <TrendingUp className="w-48 h-48 text-primary" />
                             </div>
-                            <h3 className="text-sm font-black italic text-foreground mb-8 uppercase tracking-widest px-2 relative z-10">Assignment Performance</h3>
+                            <h3 className="text-sm font-semibold text-foreground mb-8 tracking-wide px-2 relative z-10">Assignment Performance</h3>
                             <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-muted relative z-10">
                                 <div className="min-w-[600px] sm:min-w-full h-80">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -135,7 +135,7 @@ const TeacherReport = () => {
                                     </ResponsiveContainer>
                                 </div>
                             </div>
-                            <p className="text-[9px] font-black italic text-muted-foreground/40 mt-4 block sm:hidden text-center uppercase tracking-widest relative z-10">← Swipe to analyze →</p>
+                            <p className="text-xs font-semibold text-muted-foreground/40 mt-4 block sm:hidden text-center tracking-wide relative z-10">← Swipe to analyze →</p>
                         </div>
 
                         {/* Student Leaderboard / At Risk */}

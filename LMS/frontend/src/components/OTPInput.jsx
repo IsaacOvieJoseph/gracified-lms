@@ -4,8 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 const OTPInput = ({ length = 6, value = '', onChange }) => {
     const { theme } = useTheme();
     const otpInputClass = theme === 'dark'
-        ? 'w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold border border-slate-700 rounded-lg focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-sm bg-slate-950 text-slate-100'
-        : 'w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold border border-slate-300 rounded-lg focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-sm bg-white text-slate-900';
+        ? 'w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-semibold border border-slate-700 rounded-xl focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-none bg-slate-950 text-slate-100'
+        : 'w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-semibold border border-slate-300 rounded-xl focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-none bg-white text-slate-900';
     const inputsRef = useRef([]);
 
     useEffect(() => {

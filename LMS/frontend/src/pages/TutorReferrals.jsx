@@ -153,7 +153,7 @@ const TutorReferrals = () => {
   const canShareClass = selected && ['open', 'in_progress'].includes(selected.status) && !selected.referral?.classroomId;
 
   if (loading) {
-    return <Layout><div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div></Layout>;
+    return <Layout><div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>;
   }
 
   return (
@@ -161,19 +161,19 @@ const TutorReferrals = () => {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Tutor Center</h2>
+            <h2 className="text-2xl font-semibold text-gray-800">Tutor Center</h2>
             <p className="text-sm text-gray-500">Apply to student requests the Gracified team publishes, and manage your matched students.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setTab('browse'); setSelected(null); }}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${tab === 'browse' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 ${tab === 'browse' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
             >
               <Megaphone className="w-4 h-4" /> Browse Requests
             </button>
             <button
               onClick={() => setTab('referrals')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${tab === 'referrals' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 ${tab === 'referrals' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
             >
               <Users className="w-4 h-4" /> My Students
             </button>
@@ -181,9 +181,9 @@ const TutorReferrals = () => {
         </div>
 
         {tab === 'browse' && (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-none overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800">Open Requests</h3>
+              <h3 className="font-semibold text-gray-800">Open Requests</h3>
               <p className="text-xs text-gray-500">Requests published by the Gracified team. Apply and chat with them to get matched.</p>
             </div>
             {published.length > 0 ? (
@@ -196,12 +196,12 @@ const TutorReferrals = () => {
                     <div key={r._id} className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                          <GraduationCap className="w-5 h-5 text-indigo-600" />
+                          <GraduationCap className="w-5 h-5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-800 truncate">{r.subject}</span>
-                            {appStatus && <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${appStatus.badge}`}>{appStatus.label}</span>}
+                            <span className="font-semibold text-gray-800 truncate">{r.subject}</span>
+                            {appStatus && <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${appStatus.badge}`}>{appStatus.label}</span>}
                           </div>
                           <p className="text-xs text-gray-500 truncate">{r.description}</p>
                           <p className="text-[11px] text-gray-400">
@@ -223,12 +223,12 @@ const TutorReferrals = () => {
                                 value={applyFor === r._id ? coverNote : ''}
                                 onChange={(e) => { setApplyFor(r._id); setCoverNote(e.target.value); }}
                                 placeholder="Optional note to the Gracified team..."
-                                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                               <button
                                 onClick={() => apply(r._id)}
                                 disabled={applying}
-                                className="bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40 flex items-center justify-center gap-2"
+                                className="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2"
                               >
                                 {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 Apply
@@ -241,8 +241,8 @@ const TutorReferrals = () => {
                                   <p className="text-xs text-gray-400">Your application is in review. The Gracified team can message you here.</p>
                                 ) : (
                                   app.messages.map((m, i) => (
-                                    <div key={i} className={`max-w-[90%] rounded-lg p-2 text-xs ${m.senderRole === 'personal_teacher' ? 'bg-indigo-600 text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
-                                      <p className="text-[9px] font-bold opacity-70 mb-0.5">{m.senderRole === 'personal_teacher' ? 'You' : 'Gracified Team'}</p>
+                                    <div key={i} className={`max-w-[90%] rounded-xl p-2 text-xs ${m.senderRole === 'personal_teacher' ? 'bg-primary text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
+                                      <p className="text-xs font-semibold opacity-70 mb-0.5">{m.senderRole === 'personal_teacher' ? 'You' : 'Gracified Team'}</p>
                                       <p>{m.message}</p>
                                     </div>
                                   ))
@@ -254,18 +254,18 @@ const TutorReferrals = () => {
                                   onChange={(e) => setAppReplies((m) => ({ ...m, [app._id]: e.target.value }))}
                                   onKeyDown={(e) => e.key === 'Enter' && appSend(r._id, app._id)}
                                   placeholder="Message the Gracified team..."
-                                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 />
                                 <button
                                   onClick={() => appSend(r._id, app._id)}
                                   disabled={sendingApp}
-                                  className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40"
+                                  className="bg-primary text-white p-2 rounded-xl hover:bg-primary/90 disabled:opacity-40"
                                 >
                                   {sendingApp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 </button>
                               </div>
                               {app.status === 'accepted' && (
-                                <button onClick={() => { setTab('referrals'); loadReferrals(); }} className="text-sm font-bold text-emerald-600 hover:underline">
+                                <button onClick={() => { setTab('referrals'); loadReferrals(); }} className="text-sm font-semibold text-emerald-600 hover:underline">
                                   You were matched — view the student →
                                 </button>
                               )}
@@ -293,17 +293,17 @@ const TutorReferrals = () => {
 
         {tab === 'referrals' && (
           selected ? (
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-none overflow-hidden">
               <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
                 <button onClick={() => setSelected(null)} className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-sm font-medium">
                   <ArrowLeft className="w-4 h-4" /> Back to my students
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${STATUS_META[selected.status].badge}`}>
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${STATUS_META[selected.status].badge}`}>
                     {STATUS_META[selected.status].label}
                   </span>
                   {canShareClass && (
-                    <button onClick={openShareClass} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
+                    <button onClick={openShareClass} className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-success text-white hover:bg-success/90">
                       Share Your Class
                     </button>
                   )}
@@ -317,18 +317,18 @@ const TutorReferrals = () => {
                       {selected.studentId?.profilePicture ? (
                         <img src={selected.studentId.profilePicture} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <User className="w-5 h-5 text-indigo-600" />
+                        <User className="w-5 h-5 text-primary" />
                       )}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-800">{selected.studentId?.name || 'Student'}</p>
+                      <p className="font-semibold text-gray-800">{selected.studentId?.name || 'Student'}</p>
                       <p className="text-xs text-gray-500">{selected.studentId?.email}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mb-2">
-                    <GraduationCap className="w-4 h-4 text-indigo-600" />
-                    <h3 className="font-bold text-gray-800">{selected.subject}</h3>
+                    <GraduationCap className="w-4 h-4 text-primary" />
+                    <h3 className="font-semibold text-gray-800">{selected.subject}</h3>
                   </div>
                   <p className="text-sm text-gray-600 mb-3">{selected.description}</p>
                   <div className="flex flex-wrap gap-2 mb-4 text-xs text-gray-500">
@@ -342,12 +342,12 @@ const TutorReferrals = () => {
                   </div>
 
                   {selected.status === 'resolved' && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-1">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span className="font-bold text-emerald-700 text-sm">Matched</span>
+                        <span className="font-semibold text-emerald-700 text-sm">Matched</span>
                       </div>
-                      <p className="font-bold text-gray-800">{selected.referral.tutorName}</p>
+                      <p className="font-semibold text-gray-800">{selected.referral.tutorName}</p>
                       {selected.referral.classroomName && <p className="text-xs text-gray-600">Class linked: {selected.referral.classroomName}</p>}
                       {selected.referral.notes && <p className="text-xs text-gray-600 mt-1">{selected.referral.notes}</p>}
                     </div>
@@ -356,16 +356,16 @@ const TutorReferrals = () => {
 
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <MessageSquare className="w-4 h-4 text-indigo-600" />
-                    <span className="font-bold text-gray-800 text-sm">Conversation</span>
+                    <MessageSquare className="w-4 h-4 text-primary" />
+                    <span className="font-semibold text-gray-800 text-sm">Conversation</span>
                   </div>
                   <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {selected.messages?.length === 0 ? (
                       <p className="text-xs text-gray-400">Say hello and agree on your first session.</p>
                     ) : (
                       selected.messages.map((m, i) => (
-                        <div key={i} className={`max-w-[85%] rounded-lg p-2.5 text-sm ${m.senderRole === 'personal_teacher' ? 'bg-indigo-600 text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
-                          <p className="text-[10px] font-bold opacity-70 mb-0.5">
+                        <div key={i} className={`max-w-[85%] rounded-xl p-2.5 text-sm ${m.senderRole === 'personal_teacher' ? 'bg-primary text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
+                          <p className="text-xs font-semibold opacity-70 mb-0.5">
                             {m.senderRole === 'personal_teacher' ? 'You' : m.senderRole === 'root_admin' ? 'Gracified Team' : m.senderId?.name || 'Student'}
                           </p>
                           <p>{m.message}</p>
@@ -380,12 +380,12 @@ const TutorReferrals = () => {
                         onChange={(e) => setReply(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && sendReply()}
                         placeholder="Reply to student..."
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                       <button
                         onClick={sendReply}
                         disabled={sending || !reply.trim()}
-                        className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40"
+                        className="bg-primary text-white p-2 rounded-xl hover:bg-primary/90 disabled:opacity-40"
                       >
                         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       </button>
@@ -395,7 +395,7 @@ const TutorReferrals = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-none overflow-hidden">
               {requests.length > 0 ? (
                 <div className="divide-y divide-gray-100">
                   {requests.map((r) => {
@@ -411,19 +411,19 @@ const TutorReferrals = () => {
                           {r.studentId?.profilePicture ? (
                             <img src={r.studentId.profilePicture} alt="" className="w-full h-full rounded-full object-cover" />
                           ) : (
-                            <User className="w-5 h-5 text-indigo-600" />
+                            <User className="w-5 h-5 text-primary" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-800 truncate">{r.studentId?.name || 'Student'}</span>
-                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${meta.badge}`}>{meta.label}</span>
+                            <span className="font-semibold text-gray-800 truncate">{r.studentId?.name || 'Student'}</span>
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${meta.badge}`}>{meta.label}</span>
                           </div>
                           <p className="text-xs text-gray-500">{r.subject} • {new Date(r.createdAt).toLocaleDateString()}</p>
                           <p className="text-xs text-gray-500 truncate">{r.description}</p>
                         </div>
                         {unread > 0 && (
-                          <span className="bg-indigo-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0">{unread}</span>
+                          <span className="bg-primary text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center shrink-0">{unread}</span>
                         )}
                       </button>
                     );
@@ -443,26 +443,26 @@ const TutorReferrals = () => {
 
       {applyFor && !published.find((p) => p._id === applyFor)?.applied && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="bg-white rounded-xl shadow-none w-full max-w-md p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-gray-800">Apply to help</h3>
+              <h3 className="font-semibold text-gray-800">Apply to help</h3>
               <button onClick={() => setApplyFor(null)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">Note to the Gracified team (optional)</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Note to the Gracified team (optional)</label>
                 <textarea
                   value={coverNote}
                   onChange={(e) => setCoverNote(e.target.value)}
                   rows={3}
                   placeholder="e.g. I'm an experienced Math tutor and available afternoons..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <button
                 onClick={() => apply(applyFor)}
                 disabled={applying}
-                className="w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-40 flex items-center justify-center gap-2"
+                className="w-full bg-primary text-white font-semibold py-2.5 rounded-xl hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2"
               >
                 {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Submit Application
@@ -474,21 +474,21 @@ const TutorReferrals = () => {
 
       {showShareClass && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="bg-white rounded-xl shadow-none w-full max-w-md p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-gray-800">Share Your Class</h3>
+              <h3 className="font-semibold text-gray-800">Share Your Class</h3>
               <button onClick={() => setShowShareClass(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <p className="text-xs text-gray-500 mb-3">Pick a class to share with this student. Sharing it closes this chat.</p>
             {myClasses.length === 0 ? (
-              <p className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
+              <p className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
                 You don&apos;t have any classes yet. Create one under Classrooms first.
               </p>
             ) : (
               <select
                 value={shareClass}
                 onChange={(e) => setShareClass(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
               >
                 <option value="">Select a class...</option>
                 {myClasses.map((c) => (
@@ -499,7 +499,7 @@ const TutorReferrals = () => {
             <button
               onClick={submitShareClass}
               disabled={sharing || !shareClass}
-              className="w-full bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"
+              className="w-full bg-success text-white font-semibold py-2.5 rounded-xl hover:bg-success/90 disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {sharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Share Class & Close Chat

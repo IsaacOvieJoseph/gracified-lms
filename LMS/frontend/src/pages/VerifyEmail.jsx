@@ -78,8 +78,8 @@ const VerifyEmail = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-900">Verify Your Email</h2>
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-none">
+        <h2 className="text-2xl font-semibold text-center text-gray-900">Verify Your Email</h2>
         <p className="text-center text-gray-600">An OTP has been sent to <strong>{email}</strong>. Please enter it below to verify your email address.</p>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex justify-center">
@@ -94,16 +94,16 @@ const VerifyEmail = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-2 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="w-full px-4 py-2 text-white bg-primary rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {loading ? 'Verifying...' : 'Verify Email'}
           </button>
         </form>
         <p className="text-sm text-center text-gray-600">
-          Didn't receive the OTP? <button onClick={handleResendOtp} disabled={loading} className="font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50">Resend OTP</button>
+          Didn't receive the OTP? <button onClick={handleResendOtp} disabled={loading} className="font-medium text-primary hover:text-primary disabled:opacity-50">Resend OTP</button>
         </p>
         <p className="text-sm text-center text-gray-600">
-          <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">Back to Login</Link>
+          <Link to="/login" className="font-medium text-primary hover:text-primary">Back to Login</Link>
         </p>
       </div>
     </div>

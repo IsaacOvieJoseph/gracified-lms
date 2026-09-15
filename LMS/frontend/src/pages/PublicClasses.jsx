@@ -338,35 +338,35 @@ const PublicClasses = () => {
     const link = getGuestLink(c);
 
     return (
-      <div key={c._id} className="card-premium flex flex-col group overflow-hidden bg-card border border-border shadow-lg transition-all duration-300 hover:shadow-2xl hover:border-primary/20">
-        <div className="relative h-2 bg-gradient-to-r from-primary/40 to-primary/5" />
+      <div key={c._id} className="card-premium flex flex-col group overflow-hidden bg-card border border-border shadow-none transition-all duration-300 hover:shadow-none hover:border-primary/20">
+        <div className="relative h-2  from-primary/40 to-primary/5" />
         <div className="p-6 flex flex-col h-full">
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1 min-w-0 pr-2">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h3 className="text-xl font-black italic text-foreground tracking-tight truncate group-hover:text-primary transition-colors">{c.name}</h3>
+                <h3 className="text-xl font-semibold italic text-foreground tracking-tight truncate group-hover:text-primary transition-colors">{c.name}</h3>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide border border-primary/20 flex items-center gap-1">
                   <Radio className="w-3 h-3" /> {formatLabel(c.classFormat)}
                 </span>
                 {isLive && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
+                  <span className="px-2 py-0.5 rounded-full bg-success text-white text-xs font-semibold tracking-wide flex items-center gap-1.5 animate-pulse">
                     <span className="w-1.5 h-1.5 rounded-full bg-white" /> Live Now
                   </span>
                 )}
                 {!isLive && hasRecording && (
-                  <span className="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-500 text-[9px] font-black uppercase tracking-widest border border-sky-500/20 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-sky-500 text-xs font-semibold tracking-wide border border-sky-500/20 flex items-center gap-1">
                     <Video className="w-3 h-3" /> Recording
                   </span>
                 )}
                 {inWindow === false && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-500 text-[9px] font-black uppercase tracking-widest border border-amber-500/20 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-500 text-xs font-semibold tracking-wide border border-amber-500/20 flex items-center gap-1">
                     <Clock className="w-3 h-3" /> Window Closed
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest italic">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold tracking-wide italic">
                 <Users className="w-3 h-3 text-primary" />
                 <span>{c.teacherId?.name || 'TBA'}</span>
               </div>
@@ -375,11 +375,11 @@ const PublicClasses = () => {
             <div className="flex flex-col items-end gap-2">
               {c.isPaid ? (
                 <div className="text-right">
-                  <div className="text-sm font-black text-foreground italic">{formatAmount(c.pricing?.amount || 0, c.pricing?.currency || 'NGN')}</div>
-                  <div className="text-[9px] font-black text-primary uppercase tracking-widest opacity-70">Access Fee</div>
+                  <div className="text-sm font-semibold text-foreground italic">{formatAmount(c.pricing?.amount || 0, c.pricing?.currency || 'NGN')}</div>
+                  <div className="text-xs font-semibold text-primary tracking-wide opacity-70">Access Fee</div>
                 </div>
               ) : (
-                <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-widest">Free</span>
+                <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 tracking-wide">Free</span>
               )}
             </div>
           </div>
@@ -389,20 +389,20 @@ const PublicClasses = () => {
           </p>
 
           <div className="space-y-2.5 mb-5 flex-1">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground">
               <CalendarDays className="w-3.5 h-3.5 text-primary/40" />
               <span>Access Window:</span>
-              <span className="text-foreground normal-case font-bold">{formatDate(c.publicAccess?.startsAt)} → {formatDate(c.publicAccess?.endsAt)}</span>
+              <span className="text-foreground normal-case font-semibold">{formatDate(c.publicAccess?.startsAt)} → {formatDate(c.publicAccess?.endsAt)}</span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground">
               <Link2 className="w-3.5 h-3.5 text-primary/40" />
               <span>Guest Access:</span>
-              <span className={c.publicAccess?.allowGuestAccess ? 'text-emerald-500 font-black' : 'text-rose-500 font-black'}>
+              <span className={c.publicAccess?.allowGuestAccess ? 'text-emerald-500 font-semibold' : 'text-rose-500 font-semibold'}>
                 {c.publicAccess?.allowGuestAccess ? 'Enabled' : 'Disabled'}
               </span>
             </div>
             {!c.published && (
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500">
+              <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-amber-600 dark:text-amber-500">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Not published — public link is inactive</span>
               </div>
@@ -413,7 +413,7 @@ const PublicClasses = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => copyGuestLink(c)}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 transition-all"
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 border-primary/30 text-primary text-xs font-semibold tracking-wide hover:bg-primary/10 transition-all"
               >
                 {copiedId === c._id ? <Check className="w-4 h-4 text-emerald-500" /> : <Link2 className="w-4 h-4" />}
                 {copiedId === c._id ? 'Copied!' : 'Copy Public Link'}
@@ -427,7 +427,7 @@ const PublicClasses = () => {
               </button>
               <button
                 onClick={(e) => handleDeleteClick(c._id, e)}
-                className="p-2.5 rounded-xl text-rose-500 bg-rose-500/10 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20"
+                className="p-2.5 rounded-xl text-rose-500 bg-rose-500/10 hover:bg-danger/90 hover:text-white transition-all border border-rose-500/20"
                 title="Delete"
               >
                 <Trash2 className="w-4 h-4" />
@@ -437,7 +437,7 @@ const PublicClasses = () => {
               <span>Manage Class</span>
               <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
             </Link>
-            <p className="text-center text-[9px] text-muted-foreground/50 font-medium break-all px-1">{link}</p>
+            <p className="text-center text-xs text-muted-foreground/50 font-medium break-all px-1">{link}</p>
           </div>
         </div>
       </div>
@@ -449,12 +449,12 @@ const PublicClasses = () => {
   return (
     <Layout>
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 card-premium p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 card-premium p-6 shadow-none">
           <div>
-            <h1 className="text-3xl font-black italic text-foreground tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl font-semibold italic text-foreground tracking-tight flex items-center gap-3">
               Public Classes <Radio className="w-6 h-6 text-primary" />
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground mt-1">
+            <p className="text-xs tracking-[0.2em] font-semibold text-muted-foreground mt-1">
               Public lectures & seminars open to guests — no account needed to join.
             </p>
           </div>
@@ -476,7 +476,7 @@ const PublicClasses = () => {
               placeholder="Filter by title, subject, teacher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 bg-card border-2 border-border h-12 shadow-sm focus:shadow-lg focus:border-primary transition-all outline-none rounded-2xl font-bold italic"
+              className="w-full pl-12 pr-4 bg-card border-2 border-border h-12 shadow-none focus:shadow-none focus:border-primary transition-all outline-none rounded-xl font-semibold italic"
             />
           </div>
 
@@ -524,7 +524,7 @@ const PublicClasses = () => {
             <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
               <Radio className="w-10 h-10 text-muted-foreground/30" />
             </div>
-            <h3 className="text-xl font-bold text-foreground">No public classes yet</h3>
+            <h3 className="text-xl font-semibold text-foreground">No public classes yet</h3>
             <p className="text-muted-foreground mt-2">Create a public lecture or seminar and share its link — anyone can join as a guest.</p>
             {canCreate && (
               <button onClick={() => setShowCreateModal(true)} className="btn-premium mt-6">
@@ -537,23 +537,23 @@ const PublicClasses = () => {
 
       {/* Create Public Class Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-xl z-[100] overflow-y-auto">
+        <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-6">
-            <div className="bg-card border border-border rounded-[3rem] w-full max-w-2xl p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
+            <div className="bg-card border border-border rounded-xl w-full max-w-2xl p-10 shadow-none animate-in zoom-in-95 duration-300">
               <div className="flex justify-between items-center mb-10">
-                <h2 className="text-3xl font-black italic tracking-tighter text-foreground uppercase">
+                <h2 className="text-3xl font-semibold italic tracking-tight text-foreground">
                   Create <span className="text-primary not-italic">Public Class</span>
                 </h2>
-                <button onClick={() => setShowCreateModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60">
+                <button onClick={() => setShowCreateModal(false)} className="p-3 hover:bg-muted rounded-xl transition text-muted-foreground/60">
                   <X className="w-6 h-6" />
                 </button>
               </div>
               <form onSubmit={handleCreate} className="space-y-8 pb-4">
                 {/* Format */}
-                <div className="p-6 rounded-[2rem] bg-muted/30 border border-border">
+                <div className="p-6 rounded-xl bg-muted border border-border">
                   <div className="flex items-center gap-2 mb-4 px-1">
                     <Globe className="w-4 h-4 text-primary" />
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Delivery Format</label>
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide">Delivery Format</label>
                     <FormFieldHelp content="Both formats are open to guests. Public Lectures are single-session talks; Public Seminars are open multi-session programs." />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -565,11 +565,11 @@ const PublicClasses = () => {
                         type="button"
                         key={opt.value}
                         onClick={() => setFormData(prev => ({ ...prev, classFormat: opt.value }))}
-                        className={`p-4 rounded-2xl border-2 text-left transition-all ${formData.classFormat === opt.value ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10' : 'border-border bg-card/50 hover:border-border/80'}`}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${formData.classFormat === opt.value ? 'border-primary bg-primary/10 shadow-none' : 'border-border bg-card hover:border-border/80'}`}
                       >
                         <opt.icon className={`w-5 h-5 mb-3 ${formData.classFormat === opt.value ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${formData.classFormat === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</p>
-                        <p className="text-[9px] text-muted-foreground font-medium mt-1 leading-relaxed">{opt.desc}</p>
+                        <p className={`text-xs font-semibold tracking-wide ${formData.classFormat === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</p>
+                        <p className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">{opt.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -578,18 +578,18 @@ const PublicClasses = () => {
                 {/* Basic Info */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Class Title</label>
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Class Title</label>
                     <input
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g. The Future of AI in Education"
-                      className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
+                      className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                       required
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                       Grade Level
                       <FormFieldHelp content="The grade or difficulty level of this class." />
                     </label>
@@ -605,7 +605,7 @@ const PublicClasses = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                       Subject Matter
                       <FormFieldHelp content="Categorize your class for better discoverability in the public catalog." />
                     </label>
@@ -621,31 +621,31 @@ const PublicClasses = () => {
                   </div>
 
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Description</label>
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Description</label>
                     <textarea
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Tell guests what this public class is about..."
-                      className="w-full min-h-[100px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
+                      className="w-full min-h-[100px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
                     />
                   </div>
 
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Learning Outcomes</label>
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Learning Outcomes</label>
                     <textarea
                       value={formData.learningOutcomes}
                       onChange={e => setFormData({ ...formData, learningOutcomes: e.target.value })}
                       placeholder="What will attendees learn? (comma separated)..."
-                      className="w-full min-h-[80px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
+                      className="w-full min-h-[80px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
                     />
                   </div>
                 </div>
 
                 {/* Roles & Visibility */}
-                <div className="grid md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-[2rem] border border-border">
+                <div className="grid md:grid-cols-2 gap-6 bg-muted p-6 rounded-xl border border-border">
                   {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign Teacher</label>
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Assign Teacher</label>
                       <Select
                         options={teachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
                         value={teachers.find(t => t._id === formData.teacherId) ? { value: formData.teacherId, label: teachers.find(t => t._id === formData.teacherId).name } : null}
@@ -661,7 +661,7 @@ const PublicClasses = () => {
 
                   {['school_admin', 'root_admin'].includes(user?.role) && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">
                         Assign to Schools {user?.role === 'root_admin' && '(Optional - leave blank for none)'}
                       </label>
                       <Select
@@ -683,7 +683,7 @@ const PublicClasses = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 md:col-span-2">
                     <div className="space-y-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Billet Limit</span>
+                        <span className="text-xs font-semibold text-muted-foreground tracking-wide">Billet Limit</span>
                         <FormFieldHelp content="The maximum number of attendees allowed to join this public class." />
                       </div>
                       <div className="relative">
@@ -692,7 +692,7 @@ const PublicClasses = () => {
                           value={formData.capacity}
                           onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 100 })}
                           onWheel={(e) => e.target.blur()}
-                          className="w-full pl-4 pr-4 py-3 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all outline-none font-bold text-foreground"
+                          className="w-full pl-4 pr-4 py-3 bg-card border-2 border-border rounded-xl focus:border-primary transition-all outline-none font-semibold text-foreground"
                           min="1"
                           placeholder="100"
                         />
@@ -701,11 +701,11 @@ const PublicClasses = () => {
 
                     <div className="space-y-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none">Visibility</span>
+                        <span className="text-xs font-semibold text-muted-foreground tracking-wide leading-none">Visibility</span>
                         <FormFieldHelp content="Public classes are always visible via their public link and the catalog. This shows the publishing state." />
                       </div>
-                      <div className="flex items-center justify-between px-4 py-3 rounded-2xl border-2 border-primary/30 bg-primary/5 min-h-[64px]">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Public</span>
+                      <div className="flex items-center justify-between px-4 py-3 rounded-xl border-2 border-primary/30 bg-primary/5 min-h-[64px]">
+                        <span className="text-xs font-semibold tracking-wide text-primary">Public</span>
                         <div className="w-10 h-6 rounded-full bg-primary relative shrink-0">
                           <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full translate-x-4" />
                         </div>
@@ -714,14 +714,14 @@ const PublicClasses = () => {
 
                     <div className="space-y-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none">Monetization</span>
+                        <span className="text-xs font-semibold text-muted-foreground tracking-wide leading-none">Monetization</span>
                         <FormFieldHelp content="If enabled, guests must pay the specified fee to join the live session or watch the recording." />
                       </div>
                       <label
                         onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
-                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPaid ? 'border-primary bg-primary/5' : 'border-border bg-card/50 hover:border-border/80'}`}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPaid ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-border/80'}`}
                       >
-                        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${formData.isPaid ? 'text-primary' : 'text-muted-foreground'}`}>Premium</span>
+                        <span className={`text-xs font-semibold tracking-wide transition-colors ${formData.isPaid ? 'text-primary' : 'text-muted-foreground'}`}>Premium</span>
                         <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPaid ? 'bg-primary' : 'bg-muted'}`}>
                           <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
                         </div>
@@ -731,16 +731,16 @@ const PublicClasses = () => {
                 </div>
 
                 {/* Public Access */}
-                <div className="p-6 rounded-[2rem] bg-primary/5 border border-primary/20">
+                <div className="p-6 rounded-xl bg-primary/5 border border-primary/20">
                   <div className="flex items-center gap-2 mb-4 px-1">
                     <Globe className="w-4 h-4 text-primary" />
-                    <label className="text-[10px] font-black uppercase text-primary tracking-widest">Public Access</label>
+                    <label className="text-xs font-semibold text-primary tracking-wide">Public Access</label>
                     <FormFieldHelp content="A public link is generated automatically when you save. Anyone with the link can join live or watch the recording — no account needed." />
                   </div>
 
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 mb-5">
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-emerald-500/30 bg-emerald-500/5 mb-5">
                     <ShieldCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-500">
+                    <span className="text-xs font-semibold tracking-wide text-emerald-600 dark:text-emerald-500">
                       Guest access is always enabled for public classes
                       <span className="block text-[8px] font-medium normal-case tracking-normal opacity-60 mt-0.5">Visitors join with just a name and email — no account required</span>
                     </span>
@@ -748,7 +748,7 @@ const PublicClasses = () => {
 
                   <div className="grid md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                         Starts At
                         <FormFieldHelp content="When the public access window opens. Guests can join live sessions from this time onward." />
                       </label>
@@ -756,12 +756,12 @@ const PublicClasses = () => {
                         type="datetime-local"
                         value={formData.publicAccess.startsAt}
                         onChange={e => setFormData(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, startsAt: e.target.value } }))}
-                        className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
+                        className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                         Access Duration
                         <FormFieldHelp content="How long the public access window stays open (days or weeks). The end date is computed automatically." />
                       </label>
@@ -771,12 +771,12 @@ const PublicClasses = () => {
                           min="1"
                           value={formData.publicAccess.durationValue}
                           onChange={e => setFormData(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, durationValue: parseInt(e.target.value) || 1 } }))}
-                          className="w-24 bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
+                          className="w-24 bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                         />
                         <select
                           value={formData.publicAccess.durationUnit}
                           onChange={e => setFormData(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, durationUnit: e.target.value } }))}
-                          className="flex-1 bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
+                          className="flex-1 bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                         >
                           <option value="days">Days</option>
                           <option value="weeks">Weeks</option>
@@ -786,7 +786,7 @@ const PublicClasses = () => {
                   </div>
 
                   <div className="space-y-1.5 mt-5">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                       Recording URL (Optional)
                       <FormFieldHelp content="Paste a YouTube/Vimeo link to the recorded session so guests can watch it after the live event." />
                     </label>
@@ -795,27 +795,27 @@ const PublicClasses = () => {
                       value={formData.publicAccess.recordingUrl}
                       onChange={e => setFormData(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, recordingUrl: e.target.value } }))}
                       placeholder="https://www.youtube.com/watch?v=..."
-                      className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
+                      className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                     />
                   </div>
 
                   <div className="space-y-1.5 mt-5">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Join Instructions (Optional)</label>
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Join Instructions (Optional)</label>
                     <textarea
                       value={formData.publicAccess.joinInstructions}
                       onChange={e => setFormData(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, joinInstructions: e.target.value } }))}
                       placeholder="e.g. Have your laptop ready and join 5 minutes early."
-                      className="w-full min-h-[80px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
+                      className="w-full min-h-[80px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
                     />
                   </div>
                 </div>
 
                 {/* Pricing details if paid */}
                 {formData.isPaid && (
-                  <div className="p-6 rounded-[2rem] bg-primary/10 border border-primary/20 animate-in fade-in duration-300">
+                  <div className="p-6 rounded-xl bg-primary/10 border border-primary/20 animate-in fade-in duration-300">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
+                        <label className="text-xs font-semibold text-primary tracking-wide px-1 flex items-center">
                           Billing Protocol
                           <FormFieldHelp content="For public classes, guests are charged Per Lecture (on join) or One Time (full access)." />
                         </label>
@@ -848,7 +848,7 @@ const PublicClasses = () => {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
+                        <label className="text-xs font-semibold text-primary tracking-wide px-1 flex items-center">
                           Value ({import.meta.env.VITE_CURRENCY || 'NGN'})
                           <FormFieldHelp content="The fee guests will pay to access this public class." />
                         </label>
@@ -857,7 +857,7 @@ const PublicClasses = () => {
                           value={formData.pricing.amount}
                           onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 } })}
                           onWheel={(e) => e.target.blur()}
-                          className="w-full h-[60px] bg-muted/50 border-2 border-border rounded-2xl focus:border-primary focus:bg-card transition-all outline-none px-4 font-black text-foreground italic"
+                          className="w-full h-[60px] bg-muted border-2 border-border rounded-xl focus:border-primary focus:bg-card transition-all outline-none px-4 font-semibold text-foreground italic"
                           min="0"
                           placeholder="e.g. 5000"
                           required={formData.isPaid}
@@ -870,11 +870,11 @@ const PublicClasses = () => {
                 {/* Schedule Builder */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Temporal Logistics</label>
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide">Temporal Logistics</label>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, schedule: [...formData.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
-                      className="text-[9px] font-black text-primary flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded-lg transition-all uppercase tracking-widest border border-primary/20"
+                      className="text-xs font-semibold text-primary flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded-xl transition-all tracking-wide border border-primary/20"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Schedule Slot
                     </button>
@@ -882,7 +882,7 @@ const PublicClasses = () => {
 
                   <div className="space-y-3">
                     {formData.schedule.map((s, idx) => (
-                      <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted/30 rounded-2xl border border-border animate-in slide-in-from-right duration-300">
+                      <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted rounded-xl border border-border animate-in slide-in-from-right duration-300">
                         <select
                           value={s.dayOfWeek}
                           onChange={e => {
@@ -890,7 +890,7 @@ const PublicClasses = () => {
                             newSched[idx].dayOfWeek = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="flex-1 min-w-[120px] bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0"
+                          className="flex-1 min-w-[120px] bg-card border-none rounded-xl text-xs font-semibold tracking-wide focus:ring-0"
                         >
                           {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d} className="bg-card">{d}</option>)}
                         </select>
@@ -903,7 +903,7 @@ const PublicClasses = () => {
                             newSched[idx].startTime = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0 cursor-pointer"
+                          className="w-32 bg-card border-none rounded-xl text-xs font-semibold tracking-wide focus:ring-0 cursor-pointer"
                         />
                         <span className="text-muted-foreground">to</span>
                         <input
@@ -915,7 +915,7 @@ const PublicClasses = () => {
                             newSched[idx].endTime = e.target.value;
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="w-32 bg-card border-none rounded-xl text-xs font-black uppercase tracking-widest focus:ring-0 cursor-pointer"
+                          className="w-32 bg-card border-none rounded-xl text-xs font-semibold tracking-wide focus:ring-0 cursor-pointer"
                         />
                         <button
                           type="button"
@@ -923,20 +923,20 @@ const PublicClasses = () => {
                             const newSched = formData.schedule.filter((_, i) => i !== idx);
                             setFormData({ ...formData, schedule: newSched });
                           }}
-                          className="p-2.5 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all border border-border/50"
+                          className="p-2.5 text-rose-500 hover:bg-danger/10 rounded-xl transition-all border border-border/50"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                     {formData.schedule.length === 0 && (
-                      <p className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.2em] italic text-center py-8 bg-muted/20 rounded-2xl border border-dashed border-border/30">No operational windows scheduled yet.</p>
+                      <p className="text-xs font-semibold text-muted-foreground/30 tracking-[0.2em] italic text-center py-8 bg-muted rounded-xl border border-dashed border-border/30">No operational windows scheduled yet.</p>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-8 flex gap-4 sticky bottom-0 bg-card/90 backdrop-blur-md pb-2 border-t border-border mt-4">
-                  <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-4 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition">ABORT</button>
+                <div className="pt-8 flex gap-4 sticky bottom-0 bg-card  pb-2 border-t border-border mt-4">
+                  <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-4 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition">ABORT</button>
                   <button type="submit" disabled={isCreating} className="btn-premium flex-1">
                     {isCreating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'CREATE PUBLIC CLASS'}
                   </button>
@@ -949,23 +949,23 @@ const PublicClasses = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-300 text-center">
+        <div className="fixed inset-0 bg-slate-950/80  z-[200] flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-xl w-full max-w-sm p-8 shadow-none animate-in zoom-in-95 duration-300 text-center">
             <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <Trash2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-black italic text-foreground mb-2 uppercase tracking-tight">Decommission Public Class?</h3>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-8">This action is irreversible. All data and active attendees will be removed from the platform.</p>
+            <h3 className="text-xl font-semibold italic text-foreground mb-2 tracking-tight">Decommission Public Class?</h3>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-8">This action is irreversible. All data and active attendees will be removed from the platform.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-6 py-4 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
+                className="flex-1 px-6 py-4 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition"
               >
                 ABORT
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 px-6 py-4 rounded-2xl bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition"
+                className="flex-1 px-6 py-4 rounded-xl bg-danger text-white font-semibold text-xs tracking-wide shadow-none hover:bg-danger/90 transition"
               >
                 PURGE
               </button>

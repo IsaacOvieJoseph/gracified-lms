@@ -415,15 +415,15 @@ const TopicManagement = () => {
                     <div className="flex items-center gap-5 w-full md:w-auto">
                         <button 
                             onClick={() => navigate(`/classrooms/${classroomId}`)}
-                            className="w-14 h-14 flex items-center justify-center bg-card border border-border text-muted-foreground rounded-2xl hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
+                            className="w-14 h-14 flex items-center justify-center bg-card border border-border text-muted-foreground rounded-xl hover:bg-primary hover:text-white transition-all shadow-none active:scale-95"
                         >
                             <ArrowLeft className="w-6 h-6" />
                         </button>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1">Curriculum Builder</p>
-                            <h1 className="text-4xl font-black text-foreground italic uppercase tracking-tighter">Manage Topics</h1>
+                            <p className="text-xs font-semibold tracking-[0.3em] text-primary mb-1">Curriculum Builder</p>
+                            <h1 className="text-4xl font-semibold text-foreground italic tracking-tight">Manage Topics</h1>
                             {classroom && (
-                                <p className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                                <p className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
                                     <School className="w-3 h-3" /> {classroom.name}
                                 </p>
                             )}
@@ -431,27 +431,27 @@ const TopicManagement = () => {
                     </div>
 
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="bg-card border border-border p-4 rounded-3xl flex items-center gap-6 shadow-sm">
+                        <div className="bg-card border border-border p-4 rounded-xl flex items-center gap-6 shadow-none">
                             <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60">Modules</span>
-                                <span className="text-xl font-black text-primary">{topics.length}</span>
+                                <span className="text-xs font-semibold text-muted-foreground opacity-60">Modules</span>
+                                <span className="text-xl font-semibold text-primary">{topics.length}</span>
                             </div>
                             <div className="w-px h-8 bg-border" />
                             <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60">Duration</span>
-                                <span className="text-xl font-black text-foreground italic">{totalDuration}</span>
+                                <span className="text-xs font-semibold text-muted-foreground opacity-60">Duration</span>
+                                <span className="text-xl font-semibold text-foreground italic">{totalDuration}</span>
                             </div>
                         </div>
                         <button
                             onClick={() => setShowAIPanel(true)}
-                            className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all active:scale-95"
+                            className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-xl flex items-center justify-center shadow-none shadow-none hover:scale-105 transition-all active:scale-95"
                             title="AI Syllabus Assistant"
                         >
                             <Sparkles className="w-6 h-6" />
                         </button>
                         <button
                             onClick={() => { resetForm(); setShowCreateForm(true); }}
-                            className="h-14 px-6 bg-primary text-white rounded-2xl flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95 font-black uppercase tracking-widest text-[10px]"
+                            className="h-14 px-6 bg-primary text-white rounded-xl flex items-center gap-3 shadow-none shadow-none hover:scale-105 transition-all active:scale-95 font-semibold tracking-wide text-xs"
                         >
                             <Plus className="w-5 h-5" />
                             Add Topic
@@ -462,42 +462,42 @@ const TopicManagement = () => {
                 <div className="max-w-4xl mx-auto">
                     {/* Creation/Editing Form Modal */}
                     {showCreateForm && (
-                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto py-10">
-                            <div className="bg-card rounded-[3rem] p-10 shadow-2xl border border-border w-full max-w-2xl relative animate-in fade-in zoom-in duration-300">
+                        <div className="fixed inset-0 bg-slate-900/80  z-[100] flex items-center justify-center p-4 overflow-y-auto py-10">
+                            <div className="bg-card rounded-xl p-10 shadow-none border border-border w-full max-w-2xl relative animate-in fade-in zoom-in duration-300">
                                 <button 
                                     onClick={resetForm}
-                                    className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-red-500 hover:text-white transition-all active:scale-95 z-10"
+                                    className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-danger/90 hover:text-white transition-all active:scale-95 z-10"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
 
                                 <div className="flex items-center gap-5 mb-10">
-                                    <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 shadow-inner">
+                                    <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 shadow-none">
                                         {editingTopic ? <Pencil className="w-7 h-7" /> : <Plus className="w-8 h-8" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter italic mb-1">
+                                        <h3 className="text-2xl font-semibold text-foreground tracking-tight italic mb-1">
                                             {editingTopic ? 'Edit Module' : 'New Module'}
                                         </h3>
-                                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-50">Building your journey</p>
+                                        <p className="text-xs text-muted-foreground font-semibold tracking-[0.2em] opacity-50">Building your journey</p>
                                     </div>
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     <div>
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground mb-3 block tracking-widest italic opacity-60">Topic Name</label>
+                                        <label className="text-xs font-semibold text-muted-foreground mb-3 block tracking-wide italic opacity-60">Topic Name</label>
                                         <input
                                             type="text"
                                             placeholder="e.g. Introduction to Calculus"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            className="w-full px-5 py-4 rounded-2xl bg-muted/50 border-2 border-border focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-foreground font-black italic tracking-tight placeholder:opacity-30 placeholder:italic"
+                                            className="w-full px-5 py-4 rounded-xl bg-muted border-2 border-border focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-foreground font-semibold italic tracking-tight placeholder:opacity-30 placeholder:italic"
                                             required
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-bold text-muted-foreground mb-2 block">Description</label>
+                                        <label className="text-sm font-semibold text-muted-foreground mb-2 block">Description</label>
                                         <textarea
                                             placeholder="What will students learn in this topic?"
                                             value={formData.description}
@@ -508,7 +508,7 @@ const TopicManagement = () => {
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-bold text-muted-foreground mb-2 block">Lesson Outline</label>
+                                        <label className="text-sm font-semibold text-muted-foreground mb-2 block">Lesson Outline</label>
                                         <textarea
                                             placeholder="Briefly outline the lessons..."
                                             value={formData.lessonsOutline}
@@ -520,7 +520,7 @@ const TopicManagement = () => {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-bold text-muted-foreground mb-2 flex items-center">
+                                            <label className="text-sm font-semibold text-muted-foreground mb-2 flex items-center">
                                                 Duration Mode
                                                 <FormFieldHelp content="Choose a time unit (Days, Weeks, Months) to estimate the duration of this topic." />
                                             </label>
@@ -540,7 +540,7 @@ const TopicManagement = () => {
                                         </div>
 
                                         <div>
-                                            <label className="text-sm font-bold text-muted-foreground mb-2 block">Value</label>
+                                            <label className="text-sm font-semibold text-muted-foreground mb-2 block">Value</label>
                                             <input
                                                 type="number"
                                                 min="1"
@@ -557,7 +557,7 @@ const TopicManagement = () => {
 
                                     {showPaidTopics && (
                                         <div className="pt-2">
-                                            <div className="flex items-center gap-6 p-4 bg-muted rounded-2xl border border-border">
+                                            <div className="flex items-center gap-6 p-4 bg-muted rounded-xl border border-border">
                                                 <label className="flex items-center gap-3 mb-0 ml-0 cursor-pointer">
                                                     <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${formData.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                                                         <input
@@ -566,23 +566,23 @@ const TopicManagement = () => {
                                                             checked={formData.isPaid}
                                                             onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
                                                         />
-                                                        <div className={`bg-card w-4 h-4 rounded-full shadow-sm transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                                                        <div className={`bg-card w-4 h-4 rounded-full shadow-none transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
                                                     </div>
-                                                    <span className="font-bold text-foreground flex items-center">
+                                                    <span className="font-semibold text-foreground flex items-center">
                                                         Paid Topic
                                                         <FormFieldHelp content="If enabled, students must pay an individual fee to unlock this topic and its materials." />
                                                     </span>
                                                 </label>
                                                 {formData.isPaid && (
                                                     <div className="flex-1 flex items-center gap-2">
-                                                        <span className="font-bold text-muted-foreground">₦</span>
+                                                        <span className="font-semibold text-muted-foreground">₦</span>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             value={formData.price}
                                                             onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                                                             placeholder="Price"
-                                                            className="flex-1 px-3 py-1.5 rounded-lg bg-card border border-border text-foreground"
+                                                            className="flex-1 px-3 py-1.5 rounded-xl bg-card border border-border text-foreground"
                                                         />
                                                     </div>
                                                 )}
@@ -594,14 +594,14 @@ const TopicManagement = () => {
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="flex-1 px-6 py-4 rounded-2xl border-2 border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition-all active:scale-95"
+                                            className="flex-1 px-6 py-4 rounded-xl border-2 border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition-all active:scale-95"
                                         >
                                             CANCEL
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={loading}
-                                            className="btn-premium flex-1 py-4 flex items-center justify-center text-[10px]"
+                                            className="btn-premium flex-1 py-4 flex items-center justify-center text-xs"
                                         >
                                             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingTopic ? 'UPDATE' : 'CREATE')}
                                         </button>
@@ -615,11 +615,11 @@ const TopicManagement = () => {
                     <div className="w-full">
                         <div className="space-y-6">
                             {topics.length === 0 ? (
-                                <div className="text-center py-20 bg-card rounded-[2.5rem] border-2 border-dashed border-border">
+                                <div className="text-center py-20 bg-card rounded-xl border-2 border-dashed border-border">
                                     <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                                         <Book className="w-10 h-10 text-muted-foreground/30" />
                                     </div>
-                                    <h4 className="text-xl font-bold text-foreground mb-2">No topics yet</h4>
+                                    <h4 className="text-xl font-semibold text-foreground mb-2">No topics yet</h4>
                                     <p className="text-muted-foreground">Create your first topic to get started with the curriculum!</p>
                                 </div>
                             ) : (
@@ -647,11 +647,11 @@ const TopicManagement = () => {
                                             )}
 
                                             {/* Timeline Node */}
-                                            <div className={`absolute left-0 top-1 w-12 h-12 rounded-2xl flex items-center justify-center z-10 border-4 border-card transition-all ${isCurrent ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                                                {isDone ? <CheckCircle className="w-6 h-6" /> : <span className="font-black italic">{index + 1}</span>}
+                                            <div className={`absolute left-0 top-1 w-12 h-12 rounded-xl flex items-center justify-center z-10 border-4 border-card transition-all ${isCurrent ? 'bg-primary text-white scale-110 shadow-none shadow-none' : isDone ? 'bg-success text-white' : 'bg-muted text-muted-foreground'}`}>
+                                                {isDone ? <CheckCircle className="w-6 h-6" /> : <span className="font-semibold italic">{index + 1}</span>}
                                             </div>
 
-                                            <div className={`bg-card border-2 rounded-[2.5rem] p-8 transition-all group shadow-sm ${isCurrent ? 'border-primary shadow-2xl shadow-primary/10' : isDone ? 'border-emerald-500/20 opacity-80' : 'border-border hover:border-primary/20 hover:shadow-xl hover:shadow-muted/50'}`}>
+                                            <div className={`bg-card border-2 rounded-xl p-8 transition-all group shadow-none ${isCurrent ? 'border-primary shadow-none shadow-none' : isDone ? 'border-emerald-500/20 opacity-80' : 'border-border hover:border-primary/20 hover:shadow-none hover:shadow-none'}`}>
                                                 {/* Topic Header */}
                                                 <div className="flex items-start justify-between gap-4 mb-8">
                                                     <div className="flex items-start gap-4 flex-1">
@@ -660,17 +660,17 @@ const TopicManagement = () => {
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex items-center flex-wrap gap-2 mb-3">
-                                                                <h4 className="text-xl font-black text-foreground italic tracking-tighter uppercase">{topic.name}</h4>
-                                                                {isCurrent && <span className="px-3 py-1 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Active Lesson</span>}
-                                                                {isDone && <span className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">Done</span>}
+                                                                <h4 className="text-xl font-semibold text-foreground italic tracking-tight">{topic.name}</h4>
+                                                                {isCurrent && <span className="px-3 py-1 bg-primary text-white rounded-xl text-[8px] font-semibold tracking-wide shadow-none shadow-none">Active Lesson</span>}
+                                                                {isDone && <span className="px-3 py-1 bg-success text-white rounded-xl text-[8px] font-semibold tracking-wide shadow-none shadow-none">Done</span>}
                                                                 {hasVideos && (
-                                                                    <span className="px-3 py-1 bg-muted border border-border text-foreground rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                                                    <span className="px-3 py-1 bg-muted border border-border text-foreground rounded-xl text-[8px] font-semibold tracking-wide flex items-center gap-1.5">
                                                                         <Video className="w-2.5 h-2.5 text-primary" /> {recordedVideos.length} Assets
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <p className="text-muted-foreground text-xs mb-4 line-clamp-2 italic font-black uppercase tracking-widest opacity-60 leading-relaxed">"{topic.description}"</p>
-                                                            <div className="flex items-center gap-5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
+                                                            <p className="text-muted-foreground text-xs mb-4 line-clamp-2 italic font-semibold tracking-wide opacity-60 leading-relaxed">"{topic.description}"</p>
+                                                            <div className="flex items-center gap-5 text-xs font-semibold text-muted-foreground tracking-[0.2em] italic">
                                                                 <span className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-primary" /> {getDurationText(topic.duration)}</span>
                                                                 {topic.isPaid && <span className="text-emerald-500 flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20"><AlertCircle className="w-3.5 h-3.5" /> ₦{topic.price}</span>}
                                                             </div>
@@ -682,24 +682,24 @@ const TopicManagement = () => {
                                                             <button onClick={() => handleActivate(topic._id)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition" title="Activate Topic"><Play className="w-5 h-5 fill-current" /></button>
                                                         )}
                                                         {isCurrent && (
-                                                            <button onClick={() => handleComplete(topic._id)} className="p-2.5 text-emerald-600 hover:bg-emerald-500/10 rounded-xl transition" title="Mark Complete"><CheckCircle className="w-5 h-5" /></button>
+                                                            <button onClick={() => handleComplete(topic._id)} className="p-2.5 text-emerald-600 hover:bg-success/90/10 rounded-xl transition" title="Mark Complete"><CheckCircle className="w-5 h-5" /></button>
                                                         )}
                                                         {isDone && (
                                                             <button onClick={() => handleReactivate(topic._id)} className="p-2.5 text-orange-600 hover:bg-orange-500/10 rounded-xl transition" title="Reactivate"><RotateCcw className="w-5 h-5" /></button>
                                                         )}
-                                                        <button onClick={() => openEditForm(topic)} className="p-2.5 text-indigo-600 hover:bg-indigo-500/10 rounded-xl transition"><Pencil className="w-5 h-5" /></button>
-                                                        <button onClick={() => handleDelete(topic._id)} className="p-2.5 text-red-600 hover:bg-red-500/10 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
+                                                        <button onClick={() => openEditForm(topic)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition"><Pencil className="w-5 h-5" /></button>
+                                                        <button onClick={() => handleDelete(topic._id)} className="p-2.5 text-red-600 hover:bg-danger/90/10 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
                                                     </div>
                                                 </div>
 
                                                 {/* Video Management Section */}
-                                                <div className="bg-muted/30 rounded-2xl p-6 border border-border">
+                                                <div className="bg-muted rounded-xl p-6 border border-border">
                                                     <div className="flex items-center justify-between mb-6">
-                                                        <h5 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/40">Lecture Videos</h5>
+                                                        <h5 className="text-xs font-semibold tracking-[0.2em] text-muted-foreground/40">Lecture Videos</h5>
                                                         <div className="flex items-center gap-2">
                                                             <button 
                                                                 onClick={() => setShowUrlInput(isShowingUrlInput ? null : topic._id)}
-                                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isShowingUrlInput ? 'bg-primary text-white' : 'bg-card text-primary border border-primary/20 hover:bg-primary/5'}`}
+                                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wider transition-all ${isShowingUrlInput ? 'bg-primary text-white' : 'bg-card text-primary border border-primary/20 hover:bg-primary/5'}`}
                                                             >
                                                                 <LinkIcon className="w-3 h-3" />
                                                                 External URL
@@ -713,7 +713,7 @@ const TopicManagement = () => {
                                                                 
                                                                 if (isPremium) {
                                                                     return (
-                                                                        <label className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border text-foreground/60 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-muted transition-all">
+                                                                        <label className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border text-foreground/60 rounded-xl text-xs font-semibold tracking-wider cursor-pointer hover:bg-muted transition-all">
                                                                             <Upload className="w-3 h-3 text-primary" />
                                                                             Upload File
                                                                             <FormFieldHelp content="Securely upload video files directly to our cloud storage." />
@@ -729,12 +729,12 @@ const TopicManagement = () => {
                                                                 } else {
                                                                     return (
                                                                         <div 
-                                                                            className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border text-muted-foreground/40 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-not-allowed group relative"
+                                                                            className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border text-muted-foreground/40 rounded-xl text-xs font-semibold tracking-wider cursor-not-allowed group relative"
                                                                             title="File upload is a Premium feature"
                                                                         >
                                                                             <Lock className="w-3 h-3" />
                                                                             Upload File
-                                                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none font-black uppercase tracking-widest">
+                                                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none font-semibold tracking-wide">
                                                                                 Premium Plan Required
                                                                             </div>
                                                                             <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
@@ -747,19 +747,19 @@ const TopicManagement = () => {
 
                                                     {/* URL Input Form */}
                                                     {isShowingUrlInput && (
-                                                        <div className="mb-6 p-4 bg-muted/50 rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
+                                                        <div className="mb-6 p-4 bg-muted rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
                                                             <div className="flex gap-2">
                                                                 <input
                                                                     type="url"
                                                                     placeholder="Paste video URL (YouTube, Drive, etc.)"
                                                                     value={videoUrl}
                                                                     onChange={(e) => setVideoUrl(e.target.value)}
-                                                                    className="flex-1 px-4 py-2 rounded-lg bg-card border border-border text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                                                                    className="flex-1 px-4 py-2 rounded-xl bg-card border border-border text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
                                                                 />
                                                                 <button 
                                                                     onClick={() => handleAddVideoUrl(topic._id)}
                                                                     disabled={!videoUrl || uploadingVideo}
-                                                                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold disabled:opacity-50"
+                                                                    className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-50"
                                                                 >
                                                                     Add
                                                                 </button>
@@ -769,7 +769,7 @@ const TopicManagement = () => {
 
                                                     {isUploadingThis && (
                                                         <div className="mb-6 space-y-2">
-                                                            <div className="flex justify-between text-[10px] font-black uppercase text-primary">
+                                                            <div className="flex justify-between text-xs font-semibold text-primary">
                                                                 <span>Uploading...</span>
                                                                 <span>{uploadProgress}%</span>
                                                             </div>
@@ -785,19 +785,19 @@ const TopicManagement = () => {
                                                                 const isRemoving = removingVideoId === `${topic._id}-${vid._id}`;
                                                                 return (
                                                                     <div key={vid._id} className="flex items-center gap-4 bg-card p-3 rounded-xl border border-border group/vid">
-                                                                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-muted-foreground font-black text-xs">
+                                                                        <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground font-semibold text-xs">
                                                                             {vIdx + 1}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
                                                                             <div className="flex items-center gap-2">
-                                                                                <span className="text-sm font-bold text-foreground truncate">{vid.label}</span>
+                                                                                <span className="text-sm font-semibold text-foreground truncate">{vid.label}</span>
                                                                                 {vid.videoType === 'url' ? (
-                                                                                    <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[8px] font-black uppercase tracking-widest">URL</span>
+                                                                                    <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[8px] font-semibold tracking-wide">URL</span>
                                                                                 ) : (
-                                                                                    <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[8px] font-black uppercase tracking-widest">FILE</span>
+                                                                                    <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[8px] font-semibold tracking-wide">FILE</span>
                                                                                 )}
                                                                             </div>
-                                                                            <p className="text-[10px] text-muted-foreground truncate mt-0.5">{vid.originalName || vid.url}</p>
+                                                                            <p className="text-xs text-muted-foreground truncate mt-0.5">{vid.originalName || vid.url}</p>
                                                                         </div>
                                                                         <div className="flex items-center gap-1 opacity-0 group-hover/vid:opacity-100 transition-opacity">
                                                                             <button 
@@ -807,7 +807,7 @@ const TopicManagement = () => {
                                                                                     [newOrder[vIdx], newOrder[vIdx-1]] = [newOrder[vIdx-1], newOrder[vIdx]];
                                                                                     handleReorderVideos(topic._id, newOrder);
                                                                                 }}
-                                                                                className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
+                                                                                className="p-1.5 hover:bg-muted rounded-xl text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
                                                                             >
                                                                                 <ChevronUp className="w-4 h-4" />
                                                                             </button>
@@ -818,13 +818,13 @@ const TopicManagement = () => {
                                                                                     [newOrder[vIdx], newOrder[vIdx+1]] = [newOrder[vIdx+1], newOrder[vIdx]];
                                                                                     handleReorderVideos(topic._id, newOrder);
                                                                                 }}
-                                                                                className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
+                                                                                className="p-1.5 hover:bg-muted rounded-xl text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
                                                                             >
                                                                                 <ChevronDown className="w-4 h-4" />
                                                                             </button>
                                                                             <button 
                                                                                 onClick={() => handleRemoveVideo(topic._id, vid._id)}
-                                                                                className="p-1.5 hover:bg-red-500/10 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
+                                                                                className="p-1.5 hover:bg-danger/90/10 rounded-xl text-muted-foreground hover:text-red-500 transition-colors"
                                                                             >
                                                                                 {isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                                                             </button>
@@ -834,9 +834,9 @@ const TopicManagement = () => {
                                                             })}
                                                         </div>
                                                     ) : (
-                                                        <div className="py-8 text-center border-2 border-dashed border-border rounded-xl bg-card/50">
+                                                        <div className="py-8 text-center border-2 border-dashed border-border rounded-xl bg-card">
                                                             <Video className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
-                                                            <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">No lectures attached</p>
+                                                            <p className="text-xs font-semibold text-muted-foreground/40 tracking-wider">No lectures attached</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -852,18 +852,18 @@ const TopicManagement = () => {
 
             {/* Progression Modal */}
             {showProgressionModal && (
-                <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
-                    <div className="bg-card rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 animate-slide-up text-center border border-border">
-                        <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <div className="fixed inset-0 bg-background  flex items-center justify-center p-4 z-[110]">
+                    <div className="bg-card rounded-xl shadow-none max-w-md w-full p-10 animate-slide-up text-center border border-border">
+                        <div className="w-20 h-20 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-6">
                             <CheckCircle className="w-10 h-10 text-emerald-500" />
                         </div>
-                        <h3 className="text-2xl font-black text-foreground mb-2">Topic Complete!</h3>
+                        <h3 className="text-2xl font-semibold text-foreground mb-2">Topic Complete!</h3>
                         <p className="text-muted-foreground font-medium mb-8">
-                            Should the next topic <span className="text-primary font-bold">"{nextTopic?.name}"</span> be activated immediately?
+                            Should the next topic <span className="text-primary font-semibold">"{nextTopic?.name}"</span> be activated immediately?
                         </p>
                         <div className="grid grid-cols-2 gap-4">
-                            <button onClick={() => completeTopic(topicToComplete, true)} className="py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition shadow-lg shadow-primary/20">Yes, Activate</button>
-                            <button onClick={() => completeTopic(topicToComplete, false)} className="py-4 bg-muted text-muted-foreground rounded-2xl font-bold hover:bg-muted/80 transition">Not Yet</button>
+                            <button onClick={() => completeTopic(topicToComplete, true)} className="py-4 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition shadow-none shadow-none">Yes, Activate</button>
+                            <button onClick={() => completeTopic(topicToComplete, false)} className="py-4 bg-muted text-muted-foreground rounded-xl font-semibold hover:bg-muted/80 transition">Not Yet</button>
                         </div>
                     </div>
                 </div>

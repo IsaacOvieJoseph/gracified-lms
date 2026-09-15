@@ -322,20 +322,20 @@ const ExamSubmissions = () => {
                     <div className="flex items-center space-x-6">
                         <button
                             onClick={() => navigate('/exams')}
-                            className="p-3 hover:bg-muted rounded-2xl transition-all border border-border/50 shadow-sm"
+                            className="p-3 hover:bg-muted rounded-xl transition-all border border-border/50 shadow-none"
                         >
                             <ArrowLeft className="w-6 h-6 text-foreground" />
                         </button>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tighter uppercase italic leading-tight">Assessment <span className="text-primary not-italic">Report</span></h1>
-                            <p className="text-[10px] md:text-xs font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">Session Intercept: {exam?.title}</p>
+                            <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight leading-tight">Assessment <span className="text-primary not-italic">Report</span></h1>
+                            <p className="text-xs md:text-xs font-semibold text-muted-foreground tracking-wide opacity-60">Session Intercept: {exam?.title}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <button
                             onClick={exportToCSV}
-                            className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-card border border-border rounded-xl font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition-all shadow-sm"
+                            className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-card border border-border rounded-xl font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition-all shadow-none"
                         >
                             <Download className="w-4 h-4" />
                             <span>Export CSV</span>
@@ -352,28 +352,28 @@ const ExamSubmissions = () => {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/20 transition-all group">
-                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Submissions</div>
-                        <div className="text-3xl font-black text-foreground tracking-tighter">{submissions.length}</div>
+                    <div className="bg-card p-6 rounded-xl border border-border shadow-none hover:border-primary/20 transition-all group">
+                        <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-3 opacity-40">Submissions</div>
+                        <div className="text-3xl font-semibold text-foreground tracking-tight">{submissions.length}</div>
                     </div>
-                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/20 transition-all group">
-                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Average Intel Score</div>
-                        <div className="text-3xl font-black text-primary tracking-tighter">{averageScore}</div>
+                    <div className="bg-card p-6 rounded-xl border border-border shadow-none hover:border-primary/20 transition-all group">
+                        <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-3 opacity-40">Average Intel Score</div>
+                        <div className="text-3xl font-semibold text-primary tracking-tight">{averageScore}</div>
                     </div>
-                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-emerald-500/20 transition-all group">
-                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Resolution Rate</div>
-                        <div className="text-3xl font-black text-emerald-500 tracking-tighter">{completionRate}%</div>
+                    <div className="bg-card p-6 rounded-xl border border-border shadow-none hover:border-emerald-500/20 transition-all group">
+                        <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-3 opacity-40">Resolution Rate</div>
+                        <div className="text-3xl font-semibold text-emerald-500 tracking-tight">{completionRate}%</div>
                     </div>
-                    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/20 transition-all group">
-                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 opacity-40">Max Possible</div>
-                        <div className="text-3xl font-black text-foreground tracking-tighter">
+                    <div className="bg-card p-6 rounded-xl border border-border shadow-none hover:border-primary/20 transition-all group">
+                        <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-3 opacity-40">Max Possible</div>
+                        <div className="text-3xl font-semibold text-foreground tracking-tight">
                             {exam?.questions?.reduce((acc, q) => acc + (q.maxScore || 1), 0)}
                         </div>
                     </div>
                 </div>
 
                 {/* Search & List */}
-                <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden">
+                <div className="bg-card rounded-xl border border-border shadow-none overflow-hidden">
                     <div className="p-8 border-b border-border/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="relative flex-1">
                             <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-muted-foreground/30 w-5 h-5" />
@@ -382,14 +382,14 @@ const ExamSubmissions = () => {
                                 placeholder="Filter students by name or email..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-14 pr-6 py-4 bg-muted/20 border-none rounded-[1.5rem] focus:ring-2 focus:ring-primary/20 transition-all font-black text-xs uppercase tracking-widest text-foreground placeholder:text-muted-foreground/30"
+                                className="w-full pl-14 pr-6 py-4 bg-muted border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all font-semibold text-xs tracking-wide text-foreground placeholder:text-muted-foreground/30"
                             />
                         </div>
                         <div className="flex items-center space-x-3">
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="bg-muted border border-border rounded-xl px-5 py-3 font-black text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all text-[10px] uppercase tracking-[0.2em] outline-none"
+                                className="bg-muted border border-border rounded-xl px-5 py-3 font-semibold text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all text-xs tracking-wide outline-none"
                             >
                                 <option value="all">All</option>
                                 <option value="graded">Resolved</option>
@@ -400,7 +400,7 @@ const ExamSubmissions = () => {
                     {selectedShareSubmissionIds.length > 0 && (
                         <div className="p-6 border-b border-border bg-slate-950/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
-                                <p className="text-sm font-black text-slate-200">{selectedShareSubmissionIds.length} submissions selected</p>
+                                <p className="text-sm font-semibold text-slate-200">{selectedShareSubmissionIds.length} submissions selected</p>
                                 <p className="text-xs text-slate-400 mt-1">Use the share button to create a multi-submission group share link.</p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -409,13 +409,13 @@ const ExamSubmissions = () => {
                                         setSelectedShareSubmission(null);
                                         setShowShareModal(true);
                                     }}
-                                    className="px-5 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-primary/90 transition"
+                                    className="px-5 py-3 bg-primary text-white rounded-xl font-semibold text-xs tracking-wide hover:bg-primary/90 transition"
                                 >
                                     Share selected submissions
                                 </button>
                                 <button
                                     onClick={() => setSelectedShareSubmissionIds([])}
-                                    className="px-5 py-3 text-slate-200 border border-slate-700 rounded-2xl text-xs uppercase tracking-[0.2em] hover:bg-slate-900 transition"
+                                    className="px-5 py-3 text-slate-200 border border-slate-700 rounded-xl text-xs tracking-wide hover:bg-slate-900 transition"
                                 >
                                     Clear selection
                                 </button>
@@ -425,9 +425,9 @@ const ExamSubmissions = () => {
 
                     <div className="overflow-x-auto font-inter">
                         <table className="w-full text-left">
-                            <thead className="bg-muted/50 border-b border-border">
+                            <thead className="bg-muted border-b border-border">
                                 <tr>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">
+                                    <th className="px-8 py-5 text-xs font-semibold text-muted-foreground tracking-wide">
                                         <input
                                             type="checkbox"
                                             checked={selectedShareSubmissionIds.length === filteredSubmissions.length && filteredSubmissions.length > 0}
@@ -435,12 +435,12 @@ const ExamSubmissions = () => {
                                             className="w-4 h-4 rounded border border-slate-600 text-primary focus:ring-primary"
                                         />
                                     </th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Student Name</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic">Student Type</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Submitted At</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-nowrap">Time Taken</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-center">Score (%)</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic text-right">Action</th>
+                                    <th className="px-8 py-5 text-xs font-semibold text-muted-foreground tracking-wide">Student Name</th>
+                                    <th className="px-8 py-5 text-xs font-semibold text-muted-foreground tracking-wide">Student Type</th>
+                                    <th className="px-8 py-5 text-xs font-semibold text-muted-foreground tracking-wide text-nowrap">Submitted At</th>
+                                    <th className="px-8 py-5 text-xs font-semibold text-muted-foreground tracking-wide text-nowrap">Time Taken</th>
+                                    <th className="px-8 py-5 text-xs font-semibold text-muted-foreground tracking-wide text-center">Score (%)</th>
+                                    <th className="px-8 py-5 text-xs font-semibold text-muted-foreground tracking-wide text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -448,12 +448,12 @@ const ExamSubmissions = () => {
                                     <tr>
                                         <td colSpan="6" className="px-8 py-24 text-center">
                                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                                            <p className="mt-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Loading submissions...</p>
+                                            <p className="mt-4 text-xs font-semibold text-muted-foreground tracking-wide opacity-40">Loading submissions...</p>
                                         </td>
                                     </tr>
                                 ) : filteredSubmissions.length > 0 ? (
                                     filteredSubmissions.map((s) => (
-                                        <tr key={s._id} className="hover:bg-muted/30 transition-all group">
+                                        <tr key={s._id} className="hover:bg-muted transition-all group">
                                             <td className="px-8 py-6">
                                                 <input
                                                     type="checkbox"
@@ -464,36 +464,36 @@ const ExamSubmissions = () => {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center space-x-5">
-                                                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-lg italic shadow-inner">
+                                                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg shadow-none">
                                                         {(s.studentId?.name || s.candidateName || '?').charAt(0).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <div className="text-[15px] font-black text-foreground flex items-center gap-2 group-hover:text-primary transition-colors tracking-tight italic uppercase">{s.studentId?.name || s.candidateName}</div>
-                                                        <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{s.studentId?.email || s.candidateEmail || 'No secure email'}</div>
+                                                        <div className="text-[15px] font-semibold text-foreground flex items-center gap-2 group-hover:text-primary transition-colors tracking-tight">{s.studentId?.name || s.candidateName}</div>
+                                                        <div className="text-xs font-semibold tracking-wide text-muted-foreground opacity-60">{s.studentId?.email || s.candidateEmail || 'No secure email'}</div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 {s.studentId ? (
-                                                    <span className="flex items-center text-[9px] font-black text-primary bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20 tracking-widest shadow-inner">
+                                                    <span className="flex items-center text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20 tracking-wide shadow-none">
                                                         <UserCheck className="w-3.5 h-3.5 mr-1.5" /> RECOGNIZED
                                                     </span>
                                                 ) : (
-                                                    <span className="flex items-center text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 tracking-widest shadow-inner">
+                                                    <span className="flex items-center text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 tracking-wide shadow-none">
                                                         <Globe className="w-3.5 h-3.5 mr-1.5" /> EXTERNAL
                                                     </span>
                                                 )}
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-foreground tracking-tight">{formatDisplayDate(s.submittedAt)}</span>
-                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40">Intercept Log</span>
+                                                    <span className="text-sm font-semibold text-foreground tracking-tight">{formatDisplayDate(s.submittedAt)}</span>
+                                                    <span className="text-xs font-semibold text-muted-foreground tracking-wide opacity-40">Intercept Log</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-foreground tracking-tight">{formatDuration(s.startedAt, s.submittedAt)}</span>
-                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40 flex items-center mt-1">
+                                                    <span className="text-sm font-semibold text-foreground tracking-tight">{formatDuration(s.startedAt, s.submittedAt)}</span>
+                                                    <span className="text-xs font-semibold text-muted-foreground tracking-wide opacity-40 flex items-center mt-1">
                                                         Started: {new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
@@ -501,31 +501,31 @@ const ExamSubmissions = () => {
                                             <td className="px-8 py-6 text-center">
                                                 <div className="inline-flex flex-col space-y-1.5 items-center">
                                                     <div className="flex items-center space-x-2">
-                                                        <div className="text-2xl font-black text-primary tracking-tighter italic">
+                                                        <div className="text-2xl font-semibold text-primary tracking-tight">
                                                             {scorePercent(s.totalScore)}%
                                                         </div>
                                                         <Award className="w-4 h-4 text-amber-500" />
                                                     </div>
-                                                    <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">
+                                                    <div className="text-xs font-semibold text-muted-foreground tracking-wide opacity-40">
                                                         Overall Percentage
                                                     </div>
                                                     {hasTheory && (() => {
                                                         const { objScore, theoryScore, objMaxScore, theoryMaxScore } = getOBJAndTheoryScores(s);
                                                         return (
-                                                            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-wider opacity-60 flex flex-col items-center gap-0.5 mt-1">
+                                                            <div className="text-xs font-semibold text-muted-foreground tracking-wider opacity-60 flex flex-col items-center gap-0.5 mt-1">
                                                                 <span>OBJ: {scorePercent(objScore, objMaxScore)}%</span>
                                                                 <span>Theory: {scorePercent(theoryScore, theoryMaxScore)}%</span>
                                                             </div>
                                                         );
                                                     })()}
                                                     {s.status === 'graded' ? (
-                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 mt-1">Resolved</span>
+                                                        <span className="text-xs font-semibold text-emerald-500 tracking-wide bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20 mt-1">Resolved</span>
                                                     ) : hasTheory && s.status === 'submitted' ? (
-                                                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20 mt-1">Review Required</span>
+                                                        <span className="text-xs font-semibold text-amber-500 tracking-wide bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 mt-1">Review Required</span>
                                                     ) : s.status === 'submitted' ? (
-                                                        <span className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-lg border border-primary/20 mt-1">Finalized</span>
+                                                        <span className="text-xs font-semibold text-primary tracking-wide bg-primary/10 px-3 py-1 rounded-xl border border-primary/20 mt-1">Finalized</span>
                                                     ) : (
-                                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest bg-muted px-3 py-1 rounded-lg border border-border mt-1">Active</span>
+                                                        <span className="text-xs font-semibold text-muted-foreground tracking-wide bg-muted px-3 py-1 rounded-xl border border-border mt-1">Active</span>
                                                     )}
                                                 </div>
                                             </td>

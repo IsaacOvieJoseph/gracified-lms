@@ -91,18 +91,18 @@ const RegisterStudent = () => {
     }
   };
 
-  const inputClass = "w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none";
+  const inputClass = "w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none";
 
   return (
     <div className="h-screen bg-background text-foreground flex font-inter relative overflow-hidden transition-colors duration-300">
       {/* Ambient Blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-[120px]" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
 
       {/* Left Decoration - Desktop */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
         <div className="max-w-md text-center">
-          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-3xl shadow-xl mb-8" />
+          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-xl shadow-none mb-8" />
           <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
             Elevate Your <span className="text-primary italic">Learning Experience</span>
           </h2>
@@ -110,13 +110,13 @@ const RegisterStudent = () => {
             The most intuitive management system for modern educational environments.
           </p>
           <div className="mt-12 grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">10k+</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Students</div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">10k+</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Students</div>
             </div>
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">99.9%</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uptime</div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">99.9%</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Uptime</div>
             </div>
           </div>
           <br /><br /><br />
@@ -134,8 +134,8 @@ const RegisterStudent = () => {
             <div className="absolute top-0 right-0">
               <ThemeToggle />
             </div>
-            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-2xl shadow-lg mb-4" />
-            <h1 className="text-2xl font-bold text-foreground">Gracified LMS</h1>
+            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-xl shadow-none mb-4" />
+            <h1 className="text-2xl font-semibold text-foreground">Gracified LMS</h1>
           </div>
 
           <div className="card-premium p-8 md:p-10 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto relative">
@@ -145,7 +145,7 @@ const RegisterStudent = () => {
             </div>
 
             <div className="text-center mb-8">
-              <h1 className="font-outfit text-3xl font-bold text-foreground mb-2">Join as Student</h1>
+              <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">Join as Student</h1>
               <p className="text-muted-foreground">Create your learning account</p>
             </div>
 

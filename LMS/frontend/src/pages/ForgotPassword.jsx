@@ -122,8 +122,8 @@ const ForgotPassword = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 md:p-6 font-inter relative overflow-hidden transition-colors duration-300">
       {/* Ambient background shapes */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-400/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full  pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full  pointer-events-none" />
 
       {/* Theme toggle - top right */}
       <div className="absolute top-4 right-4 z-20">
@@ -133,10 +133,10 @@ const ForgotPassword = () => {
       <div className="w-full max-w-md relative z-10 animate-slide-up">
         <div className="card-premium p-8 md:p-10 bg-card">
           <div className="text-center mb-8">
-            <div className="inline-flex p-3 rounded-2xl bg-primary/10 mb-4">
+            <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">
               <Lock className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="font-outfit text-3xl font-bold text-foreground mb-2">Reset Password</h1>
+            <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">Reset Password</h1>
             <p className="text-muted-foreground">
               {step === 1 && 'Enter your email to receive a reset code'}
               {step === 2 && 'Enter the OTP sent to your email'}
@@ -156,7 +156,7 @@ const ForgotPassword = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-11 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    className="w-full pl-11 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                     placeholder="name@example.com"
                     required
                   />
@@ -249,7 +249,7 @@ const ForgotPassword = () => {
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full pl-11 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
+                  className="w-full pl-11 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
                   placeholder="Enter new password"
                   required
                   minLength="6"
@@ -269,7 +269,7 @@ const ForgotPassword = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-11 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
+                  className="w-full pl-11 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10"
                   placeholder="Confirm new password"
                   required
                   minLength="6"

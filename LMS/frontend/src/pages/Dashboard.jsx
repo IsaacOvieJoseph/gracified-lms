@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Book, Users, DollarSign, FileText, Calendar, ChevronDown, ChevronUp, Monitor, AlertCircle, Clock, School, Loader2 } from 'lucide-react';
+import { Book, Users, DollarSign, FileText, Calendar, ChevronDown, ChevronUp, ArrowRight, Monitor, Clock, School, Loader2 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,22 @@ import { formatAmount } from '../utils/currency';
 import { convertUTCToLocal } from '../utils/timezone';
 
 import CreateSchoolModal from './Schools';
+
+const StatCard = ({ label, value, icon: Icon, loading, iconClass, loadingClass }) => (
+  <div className="rounded-xl border border-border bg-card p-5 shadow-none transition-all hover:shadow-none">
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-2 text-3xl font-semibold leading-none text-foreground tabular-nums">
+          {loading ? <Loader2 className={`h-7 w-7 animate-spin ${loadingClass}`} /> : value}
+        </p>
+      </div>
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${iconClass}`}>
+        <Icon className="h-6 w-6" />
+      </div>
+    </div>
+  </div>
+);
 
 
 
@@ -206,171 +222,165 @@ const Dashboard = () => {
     }
   };
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = (user?.name || '').split(' ')[0];
+  const todayLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const roleOverview = () => {
+    switch (user?.role) {
+      case 'student': return 'Learning overview';
+      case 'personal_teacher': return 'Tutor overview';
+      case 'teacher': return 'Teaching overview';
+      case 'school_admin': return 'School overview';
+      case 'root_admin': return 'Platform overview';
+      default: return 'Overview';
+    }
+  };
+
   return (
     <Layout>
-      <div className="space-y-8">
-        <div className="flex items-center gap-4">
-             <div className="p-3 bg-primary/10 rounded-xl text-primary border border-primary/20">
-                <Monitor className="w-8 h-8" />
-             </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-foreground italic uppercase tracking-tighter">My <span className="text-primary not-italic">Dashboard</span></h1>
-                <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] mt-1 opacity-40">Your overview</p>
-              </div>
+      <div className="space-y-6">
+        {/* Page header */}
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-semibold tracking-wide text-muted-foreground">{roleOverview()}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            {greeting}, {firstName || 'there'} &middot; {todayLabel}
+          </p>
         </div>
 
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'student' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
-          <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-primary/30 transition-all group">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Total Classrooms</p>
-                <div className="text-3xl font-black text-foreground tracking-tight">
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin text-primary/30" /> : stats.classrooms}
-                </div>
-              </div>
-              <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 group-hover:scale-110 transition-transform">
-                <Book className="w-7 h-7" />
-              </div>
-            </div>
-          </div>
+        {/* Key metrics */}
+        <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${user?.role === 'student' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+          <StatCard
+            label={user?.role === 'student' ? 'My Classes' : 'Total Classes'}
+            value={stats.classrooms}
+            icon={Book}
+            loading={loading}
+            iconClass="bg-primary/10 text-primary border-primary/10"
+            loadingClass="text-primary/40"
+          />
 
           {user?.role !== 'student' && (
-            <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-emerald-500/30 transition-all group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Active Students</p>
-                  <div className="text-3xl font-black text-foreground tracking-tight">
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-500/30" /> : stats.students}
-                  </div>
-                </div>
-                <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:scale-110 transition-transform">
-                  <Users className="w-7 h-7" />
-                </div>
-              </div>
-            </div>
+            <StatCard
+              label="Students Enrolled"
+              value={stats.students}
+              icon={Users}
+              loading={loading}
+              iconClass="bg-emerald-500/10 text-emerald-600 border-emerald-500/10"
+              loadingClass="text-emerald-500/40"
+            />
           )}
 
           {user?.role === 'student' && (
             <>
-              <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-amber-500/30 transition-all group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Paid Receipts</p>
-                    <div className="text-3xl font-black text-foreground tracking-tight">
-                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-amber-500/30" /> : stats.payments}
-                    </div>
-                  </div>
-                  <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20 group-hover:scale-110 transition-transform">
-                    <DollarSign className="w-7 h-7" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-card p-6 rounded-[2rem] border border-border shadow-xl hover:border-indigo-500/30 transition-all group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-60">Pending Quests</p>
-                    <div className="text-3xl font-black text-foreground tracking-tight">
-                      {loading ? <Loader2 className="w-5 h-5 animate-spin text-indigo-500/30" /> : stats.assignments}
-                    </div>
-                  </div>
-                  <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-500/20 group-hover:scale-110 transition-transform">
-                    <FileText className="w-7 h-7" />
-                  </div>
-                </div>
-              </div>
+              <StatCard
+                label="Payments Made"
+                value={stats.payments}
+                icon={DollarSign}
+                loading={loading}
+                iconClass="bg-amber-500/10 text-amber-600 border-amber-500/10"
+                loadingClass="text-amber-500/40"
+              />
+              <StatCard
+                label="Assignments"
+                value={stats.assignments}
+                icon={FileText}
+                loading={loading}
+                iconClass="bg-primary/10 text-primary border-primary/20"
+                loadingClass="text-primary/40"
+              />
             </>
           )}
         </div>
 
-        {/* Schedule Display */}
-        <div className="bg-card rounded-3xl shadow-sm border border-border overflow-hidden">
-          <div className="p-6 border-b border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Schedule */}
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-none">
+          <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-500/20">
-                <Calendar className="w-5 h-5" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Calendar className="h-4 w-4" />
               </div>
-              <h3 className="text-xl font-black text-foreground tracking-tight">Class Schedule</h3>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Schedule</h2>
+                <p className="text-xs text-muted-foreground">Upcoming class sessions</p>
+              </div>
             </div>
-            <div className="flex bg-muted p-1 rounded-xl">
+            <div className="flex bg-muted p-1 rounded-xl w-fit">
               <button
                 onClick={() => setCurrentScheduleTab('day')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'day' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${currentScheduleTab === 'day' ? 'bg-card text-foreground shadow-none' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Today
               </button>
               <button
                 onClick={() => setCurrentScheduleTab('week')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentScheduleTab === 'week' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${currentScheduleTab === 'week' ? 'bg-card text-foreground shadow-none' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Weekly
               </button>
             </div>
           </div>
 
-          <div className="p-4 bg-background/30">
+          <div className="p-4">
             {currentScheduleTab === 'day' ? (
-              <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible md:max-h-[320px] md:overflow-y-auto snap-x snap-mandatory gap-3 pb-3 md:pb-0 md:space-y-2 scrollbar-hide">
+              <div className="space-y-2">
                 {scheduleData.today.length > 0 ? (
                   scheduleData.today.map((session, idx) => (
-                    <div key={idx} className="bg-card p-3 rounded-xl border border-border shadow-sm flex items-center gap-3 group hover:border-indigo-500 transition-all min-w-[85%] md:min-w-0 snap-center shrink-0">
-                      <div className="hidden sm:flex flex-col items-center justify-center py-1.5 px-2 bg-muted rounded-lg border border-border min-w-[75px]">
-                        <span className="text-[10px] font-black text-foreground uppercase tracking-widest">{session.startTime}</span>
-                        <div className="w-0.5 h-1 bg-muted-foreground/30 my-0.5 rounded-full opacity-50" />
-                        <span className="text-[8px] font-bold text-muted-foreground">{session.timezone.split(' ')[0]}</span>
+                    <div key={idx} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-none">
+                      <div className="hidden min-w-[80px] flex-col items-center justify-center rounded-xl border border-border bg-muted px-3 py-1.5 sm:flex">
+                        <span className="text-sm font-semibold tabular-nums text-foreground">{session.startTime}</span>
+                        <span className="text-xs font-medium text-muted-foreground">{session.timezone.split(' ')[0]}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex sm:hidden items-center gap-1.5 mb-1 text-[8px] font-black text-indigo-400 uppercase tracking-widest">
-                          <Clock className="w-2.5 h-2.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground sm:hidden">
+                          <Clock className="h-3 w-3" />
                           <span>{session.startTime} ({session.timezone.split(' ')[0]})</span>
                         </div>
-                        <Link to={`/classrooms/${session.classId}`} className="block group-hover:text-indigo-400">
-                          <h4 className="font-bold text-foreground truncate text-xs sm:text-sm">{session.className}</h4>
+                        <Link to={`/classrooms/${session.classId}`} className="block truncate font-semibold text-foreground transition-colors hover:text-primary">
+                          {session.className}
                         </Link>
-                        <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium truncate">{session.subject || 'Tutorial Class'}</p>
+                        <p className="truncate text-xs text-muted-foreground">{session.subject || 'Tutorial Class'}</p>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5 text-right">
+                      <div className="flex shrink-0 items-center gap-3">
                         {session.isCurrent ? (
-                          <div className="flex items-center gap-1 bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded-full border border-rose-500/20 animate-pulse">
-                             <div className="w-1 h-1 rounded-full bg-rose-500" />
-                             <span className="text-[8px] font-bold uppercase tracking-wider text-nowrap">Live</span>
-                          </div>
+                          <span className="flex items-center gap-1.5 rounded-full bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-600">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                            Live
+                          </span>
                         ) : null}
-                         <Link to={`/classrooms/${session.classId}`} className="text-[9px] font-black text-primary uppercase tracking-widest hover:text-primary transition">Enter Class</Link>
+                        <Link to={`/classrooms/${session.classId}`} className="whitespace-nowrap text-xs font-semibold text-primary hover:underline">
+                          Open Class
+                        </Link>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="w-full py-8 bg-card rounded-2xl border border-dashed border-border text-center flex flex-col items-center">
-                    <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mb-2">
-                       <Clock className="w-5 h-5 text-muted-foreground/30" />
-                    </div>
-                    <p className="text-muted-foreground font-bold text-xs italic">Cheers, A Quiet Moment</p>
+                  <div className="py-10 text-center">
+                    <Clock className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
+                    <p className="text-sm font-medium text-muted-foreground">No sessions scheduled for today.</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex flex-row overflow-x-auto snap-x snap-mandatory gap-3 pb-2 scrollbar-hide">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                  <div key={day} className="flex flex-col min-w-[42%] sm:min-w-[32%] md:min-w-[24%] lg:min-w-[18%] xl:min-w-[13.5%] snap-center shrink-0">
-                    <h5 className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2 ml-1">{day}</h5>
-                    <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[200px] scrollbar-hide">
+                  <div key={day} className="flex flex-col">
+                    <h5 className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground">{day.slice(0, 3)}</h5>
+                    <div className="flex-1 space-y-1.5">
                       {scheduleData.weekly[day] && scheduleData.weekly[day].length > 0 ? (
                         scheduleData.weekly[day].map((session, idx) => (
                           <Link
                             key={idx}
                             to={`/classrooms/${session.classId}`}
-                            className="block p-2 bg-card rounded-xl border border-border shadow-sm hover:border-indigo-400 hover:-translate-y-0.5 transition-all"
+                            className="block rounded-xl border border-border bg-card p-2.5 transition-all hover:border-primary/40 hover:shadow-none"
                           >
-                            <p className="text-[9px] font-black text-indigo-400 flex items-center justify-between">
-                              <span>{session.startTime}</span>
-                            </p>
-                            <p className="text-[10px] font-bold text-card-foreground truncate">{session.className}</p>
+                            <p className="text-xs font-semibold tabular-nums text-primary">{session.startTime}</p>
+                            <p className="mt-0.5 truncate text-xs font-semibold text-foreground">{session.className}</p>
                           </Link>
                         ))
                       ) : (
-                        <div className="h-10 border border-dashed border-border rounded-lg flex items-center justify-center p-2">
-                           <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest">Quiet</span>
+                        <div className="flex h-10 items-center justify-center rounded-xl border border-dashed border-border">
+                          <span className="text-[11px] text-muted-foreground/60">No sessions</span>
                         </div>
                       )}
                     </div>
@@ -381,46 +391,46 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-card rounded-xl border border-border shadow overflow-hidden">
+        {/* Recent Activity */}
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-none">
           <button
             onClick={() => setIsRecentExpanded(!isRecentExpanded)}
-            className="w-full flex items-center justify-between p-6 hover:bg-muted transition border-b border-border"
+            className="flex w-full items-center justify-between border-b border-border px-5 py-4 transition hover:bg-muted"
           >
-            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Recent Activities</h3>
-            {isRecentExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground/30" /> : <ChevronDown className="w-5 h-5 text-muted-foreground/30" />}
+            <h2 className="text-sm font-semibold tracking-wide text-muted-foreground">Recent Activity</h2>
+            {isRecentExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground/40" /> : <ChevronDown className="h-5 w-5 text-muted-foreground/40" />}
           </button>
 
           {isRecentExpanded && (
-            <div className="p-6 pt-0 divide-y divide-border">
+            <div className="divide-y divide-border">
               {recentClassrooms.length > 0 ? (
                 recentClassrooms.map((classroom) => (
                   <Link
                     key={classroom._id}
                     to={`/classrooms/${classroom._id}`}
-                    className="flex flex-col md:flex-row md:items-center justify-between py-4 hover:bg-muted transition px-2 rounded-md"
+                    className="flex flex-col justify-between px-5 py-4 transition hover:bg-muted/40 md:flex-row md:items-center"
                   >
-                    <div className="flex-1">
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className="font-semibold text-foreground">{classroom.name}</h4>
                         {classroom.activities?.map((act, idx) => (
                           <span
                             key={idx}
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium space-x-1 ${act.type === 'meeting' ? 'bg-rose-500/10 text-rose-500 animate-pulse' :
-                              act.type === 'assignment' ? 'bg-amber-500/10 text-amber-500' :
-                                act.type === 'topic' ? 'bg-primary/10 text-primary' :
-                                  'bg-emerald-500/10 text-emerald-500'
-                                }`}
+                            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${
+                              act.type === 'meeting' ? 'bg-rose-500/10 text-rose-600' :
+                                act.type === 'assignment' ? 'bg-amber-500/10 text-amber-600' :
+                                  act.type === 'topic' ? 'bg-primary/10 text-primary' : 'bg-emerald-500/10 text-emerald-600'
+                            }`}
                           >
-                            {act.type === 'meeting' && <Monitor className="w-3 h-3" />}
-                            {act.type === 'assignment' && <AlertCircle className="w-3 h-3" />}
-                            {act.type === 'topic' && <Clock className="w-3 h-3 animate-pulse" />}
+                            {act.type === 'meeting' && <Monitor className="h-3 w-3" />}
+                            {act.type === 'topic' && <Clock className="h-3 w-3" />}
                             <span>{act.label}</span>
                           </span>
                         ))}
                       </div>
-                      <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1 opacity-40" />
+                          <Calendar className="mr-1 h-4 w-4 opacity-40" />
                           {classroom.schedule && classroom.schedule.length > 0 ? (
                             classroom.schedule.map((session, index) => {
                               const local = convertUTCToLocal(session.dayOfWeek, session.startTime);
@@ -438,21 +448,21 @@ const Dashboard = () => {
                             <span>No schedule available</span>
                           )}
                           {classroom.schedule?.length > 0 && (
-                            <span className="ml-1 text-[10px] font-bold text-indigo-400 uppercase">(Weekly)</span>
+                            <span className="ml-1 text-xs font-semibold text-muted-foreground">(weekly)</span>
                           )}
                         </span>
                         {user?.role !== 'student' && (
                           <span className="flex items-center">
-                            <Users className="w-4 h-4 mr-1 opacity-40" />
-                            {classroom.students?.length || 0} enrolled
+                            <Users className="mr-1 h-4 w-4 opacity-40" />
+                            {classroom.students?.length || 0} students
                           </span>
                         )}
                         <span className="flex items-center">
-                          <Book className="w-4 h-4 mr-1 opacity-40" />
+                          <Book className="mr-1 h-4 w-4 opacity-40" />
                           {classroom.topics?.length || 0} topics
                         </span>
-                        <span className="flex items-center min-w-0 max-w-[200px]">
-                          <School className="w-4 h-4 mr-1 opacity-40 shrink-0" />
+                        <span className="flex min-w-0 items-center max-w-[200px]">
+                          <School className="mr-1 h-4 w-4 shrink-0 opacity-40" />
                           <span className="truncate text-xs" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
                             {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
                             {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
@@ -460,13 +470,13 @@ const Dashboard = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="mt-2 md:mt-0 flex flex-wrap items-center gap-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-2 md:mt-0">
                       {classroom.isPaid && classroom.pricing?.amount > 0 ? (
-                        <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/20">
+                        <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600">
                           {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
                         </span>
                       ) : (
-                        <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20">
+                        <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                           Free
                         </span>
                       )}
@@ -474,49 +484,49 @@ const Dashboard = () => {
                   </Link>
                 ))
               ) : (
-                <div className="text-center py-12">
-                   <p className="text-muted-foreground/30 font-black text-xs uppercase tracking-widest italic">No Recent Activiy</p>
+                <div className="py-12 text-center">
+                  <p className="text-sm font-medium text-muted-foreground">No recent activity yet.</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="bg-card rounded-xl border border-border shadow overflow-hidden">
+        {/* My Classes */}
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-none">
           <button
             onClick={() => setIsMyClassesExpanded(!isMyClassesExpanded)}
-            className="w-full flex items-center justify-between p-6 hover:bg-muted transition border-b border-border"
+            className="flex w-full items-center justify-between border-b border-border px-5 py-4 transition hover:bg-muted"
           >
-            <h3 className="text-lg font-semibold text-foreground">
-              {user?.role === 'student' ? 'My Enrolled Classrooms' :
-                user?.role === 'teacher' || user?.role === 'personal_teacher' ? 'Classrooms I Teach' :
-                  'All Related Classrooms'}
-            </h3>
-            {isMyClassesExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+            <h2 className="text-base font-semibold text-foreground">
+              {user?.role === 'student' ? 'My Classes' :
+                user?.role === 'teacher' || user?.role === 'personal_teacher' ? 'Classes I Teach' : 'All Classes'}
+            </h2>
+            {isMyClassesExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground/40" /> : <ChevronDown className="h-5 w-5 text-muted-foreground/40" />}
           </button>
 
           {isMyClassesExpanded && (
-            <div className="p-6 pt-0 divide-y divide-border">
+            <div className="divide-y divide-border">
               {userClassrooms.length > 0 ? (
                 userClassrooms.map((classroom) => (
                   <Link
                     key={classroom._id}
                     to={`/classrooms/${classroom._id}`}
-                    className="flex flex-col md:items-center md:flex-row justify-between py-4 hover:bg-muted transition px-2 rounded-md"
+                    className="flex flex-col justify-between px-5 py-4 transition hover:bg-muted/40 md:flex-row md:items-center"
                   >
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <h4 className="font-semibold text-foreground">{classroom.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{classroom.description}</p>
-                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span className="flex items-center min-w-0 max-w-[200px]">
-                          <School className="w-3.5 h-3.5 mr-1 opacity-40 shrink-0" />
+                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{classroom.description}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex min-w-0 items-center max-w-[200px]">
+                          <School className="mr-1 h-3.5 w-3.5 shrink-0 opacity-40" />
                           <span className="truncate text-xs" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
                             {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
                             {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
                           </span>
                         </span>
                         <span className="flex items-center">
-                          <Calendar className="w-3.5 h-3.5 mr-1 opacity-40" />
+                          <Calendar className="mr-1 h-3.5 w-3.5 opacity-40" />
                           {(() => {
                             if (!classroom.schedule || classroom.schedule.length === 0) return 'No schedule';
                             if (classroom.schedule.length === 1) {
@@ -528,11 +538,10 @@ const Dashboard = () => {
                               return `${local.dayOfWeek.substring(0, 3)}${i < Math.min(classroom.schedule.length, 3) - 1 ? ',' : ''}`;
                             }).join(' ') + (classroom.schedule.length > 3 ? ` +${classroom.schedule.length - 3}` : '');
                           })()}
-                          <span className="ml-1 text-[10px] font-bold text-indigo-500 uppercase">(Weekly)</span>
                         </span>
                         {user?.role !== 'student' && (
                           <span className="flex items-center">
-                            <Users className="w-3.5 h-3.5 mr-1 text-gray-400" />
+                            <Users className="mr-1 h-3.5 w-3.5 opacity-40" />
                             {classroom.students?.length || 0} students
                           </span>
                         )}
@@ -540,8 +549,8 @@ const Dashboard = () => {
                           const currentTopic = classroom.topics?.find(t => t.status === 'active');
                           if (currentTopic) {
                             return (
-                              <span className="flex items-center bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
-                                <Clock className="w-3 h-3 mr-1 animate-pulse" />
+                              <span className="flex items-center rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-primary">
+                                <Clock className="mr-1 h-3 w-3" />
                                 Current: {currentTopic.name}
                               </span>
                             );
@@ -550,16 +559,16 @@ const Dashboard = () => {
                         })()}
                       </div>
                     </div>
-                    <div className="mt-2 md:mt-0">
-                      <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
-                        View Classroom →
+                    <div className="mt-2 flex shrink-0 items-center md:mt-0 md:ml-4">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                        View Class <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
                   </Link>
                 ))
               ) : (
-                <div className="text-center py-12">
-                   <p className="text-muted-foreground/30 font-black text-xs uppercase tracking-widest italic">Academy protocol empty</p>
+                <div className="py-12 text-center">
+                  <p className="text-sm font-medium text-muted-foreground">No classes available.</p>
                 </div>
               )}
             </div>

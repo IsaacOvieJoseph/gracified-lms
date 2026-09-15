@@ -53,18 +53,18 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] overflow-y-auto">
+    <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-card rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up border border-border">
+        <div className="bg-card rounded-xl shadow-none p-8 w-full max-w-md animate-slide-up border border-border">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">Academy <span className="text-primary not-italic">Establishment</span></h2>
+            <h2 className="text-2xl font-semibold text-foreground tracking-tight italic">Academy <span className="text-primary not-italic">Establishment</span></h2>
             <button onClick={onClose} className="p-2 hover:bg-primary/20 hover:text-primary rounded-xl transition text-muted-foreground/30 active:scale-90">
               <X className="w-6 h-6" />
             </button>
           </div>
           <form onSubmit={handleCreateSchool} className="space-y-6">
             <div>
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">School Name</label>
+              <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">School Name</label>
               <input
                 type="text"
                 placeholder="e.g. Gracified International"
@@ -76,7 +76,7 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
             </div>
             {user?.role === 'root_admin' && (
               <div>
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">Assign Administrator</label>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">Assign Administrator</label>
                 <select
                   value={adminId}
                   onChange={e => setAdminId(e.target.value)}
@@ -96,7 +96,7 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border border-border font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-muted transition"
+                className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold tracking-wide text-xs text-muted-foreground hover:bg-muted transition"
               >
                 Discard
               </button>
@@ -165,11 +165,11 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
   if (!open || !school) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] overflow-y-auto">
+    <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-card rounded-[2rem] shadow-2xl p-8 w-full max-w-md animate-slide-up border border-border">
+        <div className="bg-card rounded-xl shadow-none p-8 w-full max-w-md animate-slide-up border border-border">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">Reconfigure <span className="text-primary not-italic">Academy</span></h2>
+            <h2 className="text-2xl font-semibold text-foreground tracking-tight italic">Reconfigure <span className="text-primary not-italic">Academy</span></h2>
             <button onClick={onClose} className="p-2 hover:bg-primary/20 hover:text-primary rounded-xl transition text-muted-foreground/30 active:scale-90">
               <X className="w-6 h-6" />
             </button>
@@ -177,7 +177,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
 
           <form onSubmit={submit} className="space-y-6">
             <div>
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">School Name</label>
+              <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">School Name</label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -189,7 +189,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
 
             {user?.role === 'root_admin' ? (
               <div>
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">School Admin</label>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">School Admin</label>
                 <select
                   value={form.adminId}
                   onChange={e => setForm({ ...form, adminId: e.target.value })}
@@ -206,7 +206,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
               </div>
             ) : (
               <div>
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">Administrator</label>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">Administrator</label>
                 <input
                   type="text"
                   value={school.admin?.name || 'N/A'}
@@ -218,7 +218,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
 
             {user?.role === 'root_admin' && (
               <div>
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block">AI Tutor Access</label>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">AI Tutor Access</label>
                 <select
                   value={form.aiTutorAccess}
                   onChange={e => setForm({ ...form, aiTutorAccess: e.target.value })}
@@ -236,7 +236,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border border-border font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-muted transition"
+                className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold tracking-wide text-xs text-muted-foreground hover:bg-muted transition"
               >
                 Discard
               </button>
@@ -412,14 +412,14 @@ export default function SchoolsPage() {
     <Layout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter italic uppercase">School <span className="text-primary not-italic">Management</span></h2>
+          <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight italic">School <span className="text-primary not-italic">Management</span></h2>
           {canCreateSchool && (
             <button
               onClick={() => setModalOpen(true)}
-              className="btn-premium px-8 py-3 rounded-2xl flex items-center gap-3 shadow-lg shadow-primary/20"
+              className="btn-premium px-8 py-3 rounded-xl flex items-center gap-3 shadow-none"
             >
               <Plus className="w-5 h-5" />
-              <span className="font-black text-[10px] uppercase tracking-widest">Establish Establishment</span>
+              <span className="font-semibold text-xs tracking-wide">Establish Establishment</span>
             </button>
           )}
         </div>
@@ -428,7 +428,7 @@ export default function SchoolsPage() {
           <input
             type="text"
             placeholder="Search schools or tutorial centers..."
-            className="w-full sm:w-96 px-5 py-4 bg-muted/40 border-2 border-border rounded-2xl font-black italic tracking-tight placeholder:opacity-30 placeholder:italic focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+            className="w-full sm:w-96 px-5 py-4 bg-muted/40 border-2 border-border rounded-xl font-semibold italic tracking-tight placeholder:opacity-30 placeholder:italic focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -444,7 +444,7 @@ export default function SchoolsPage() {
                 <HeaderCell label="Teachers" field="teacherCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
                 <HeaderCell label="Students" field="studentCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
                 {canManage && (
-                  <th className="px-6 py-4 text-left text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.25em] whitespace-nowrap">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground/60 tracking-[0.25em] whitespace-nowrap">Actions</th>
                 )}
               </tr>
             </thead>
@@ -457,34 +457,34 @@ export default function SchoolsPage() {
                 </tr>
               ) : sortedSchools.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-20 text-muted-foreground/30 font-bold italic uppercase tracking-widest">No establishments found</td>
+                  <td colSpan="6" className="text-center py-20 text-muted-foreground/30 font-semibold italic tracking-wide">No establishments found</td>
                 </tr>
               ) : (
                 sortedSchools.map((inst) => (
                   <tr
                     key={inst._id}
-                    className="cursor-pointer hover:bg-muted/30 transition-colors"
+                    className="cursor-pointer hover:bg-muted transition-colors"
                     onClick={() => inst.type === 'school' && navigate(`/schools/${inst._id}`)}
                   >
-                    <td className="px-6 py-5 text-sm font-bold text-foreground italic">
+                    <td className="px-6 py-5 text-sm font-semibold text-foreground italic">
                       {inst.name}
-                      <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-primary/60 bg-primary/5 px-2 py-1 rounded">
+                      <span className="ml-2 text-xs font-semibold tracking-wide text-primary/60 bg-primary/5 px-2 py-1 rounded">
                         {inst.type === 'school' ? 'School' : 'Tutorial'}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-sm text-foreground/70 font-black uppercase tracking-tight">
+                    <td className="px-6 py-5 text-sm text-foreground/70 font-semibold tracking-tight">
                       {inst.type === 'school' ? (inst.admin?.name || "N/A") : (inst.teacherName || "N/A")}
                     </td>
                     <td className="px-6 py-5 text-sm text-muted-foreground font-medium">
                       {inst.type === 'school' ? (inst.admin?.email || "N/A") : (inst.teacherEmail || "N/A")}
                     </td>
-                    <td className="px-6 py-5 text-center text-[10px] font-black text-primary uppercase">
+                    <td className="px-6 py-5 text-center text-xs font-semibold text-primary">
                         <span className="bg-primary/5 px-3 py-1 rounded-full border border-primary/10 tracking-[0.2em]">
                           {inst.type === 'school' ? (inst.teacherCount || 0) : (inst.classCount || 0)}
                         </span>
                     </td>
-                    <td className="px-6 py-5 text-center text-[10px] font-black uppercase">
-                        <span className={`${inst.type === 'school' ? 'text-emerald-500 bg-emerald-500/5 border-emerald-500/10' : 'text-blue-500 bg-blue-500/5 border-blue-500/10'} px-3 py-1 rounded-full border tracking-[0.2em]`}>
+                    <td className="px-6 py-5 text-center text-xs font-semibold">
+                        <span className={`${inst.type === 'school' ? 'text-emerald-500 bg-emerald-500/5 border-emerald-500/10' : 'text-blue-500 bg-primary/5 border-blue-500/10'} px-3 py-1 rounded-full border tracking-[0.2em]`}>
                           {inst.type === 'school' ? (inst.studentCount || 0) : (inst.subscriptionStatus || 'Active')}
                         </span>
                     </td>
@@ -564,7 +564,7 @@ export default function SchoolsPage() {
 const HeaderCell = ({ label, field, sortData, sortField, sortDir, center = false }) => {
   return (
     <th
-      className={`px-6 py-5 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.25em] cursor-pointer select-none transition-colors hover:text-primary ${center ? "text-center" : "text-left"
+      className={`px-6 py-5 text-xs font-semibold text-muted-foreground/30 tracking-[0.25em] cursor-pointer select-none transition-colors hover:text-primary ${center ? "text-center" : "text-left"
         }`}
       onClick={() => sortData(field)}
     >

@@ -82,11 +82,11 @@ const FeedbackManager = () => {
     if (!showModal || !currentRequest) return null;
 
     const isPlatform = currentRequest.type === 'platform';
-    const headerColorClass = isPlatform ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-indigo-600';
+    const headerColorClass = isPlatform ? 'bg-gradient-to-r  ' : 'bg-primary';
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
+        <div className="fixed inset-0 bg-slate-900/60  z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-none max-w-md w-full overflow-hidden animate-slide-up">
                 <div className={`${headerColorClass} p-10 text-center relative overflow-hidden`}>
                     {/* Decorative circles */}
                     <div className="absolute top-0 left-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-x-16 -translate-y-16"></div>
@@ -94,23 +94,23 @@ const FeedbackManager = () => {
 
                     {isPlatform ? (
                         <div className="flex justify-center mb-6">
-                            <div className="bg-white/20 p-4 rounded-3xl backdrop-blur-md shadow-inner">
-                                <img src="/logo.jpg" alt="Logo" className="w-12 h-12 object-contain rounded-2xl" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg class="w-12 h-12 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>' }} />
+                            <div className="bg-white/20 p-4 rounded-xl  shadow-none">
+                                <img src="/logo.jpg" alt="Logo" className="w-12 h-12 object-contain rounded-xl" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg class="w-12 h-12 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>' }} />
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white/20 w-20 h-20 rounded-[2rem] backdrop-blur-md flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <div className="bg-white/20 w-20 h-20 rounded-xl  flex items-center justify-center mx-auto mb-6 shadow-none">
                             <MessageSquare className="w-10 h-10 text-white" />
                         </div>
                     )}
 
-                    <h3 className="text-3xl font-bold text-white mb-2">
+                    <h3 className="text-3xl font-semibold text-white mb-2">
                         {isPlatform ? 'Share Thoughts' : 'Class Ended'}
                     </h3>
                     <p className="text-white/80 text-sm px-6 leading-relaxed">
                         {isPlatform
                             ? (currentRequest.title || 'How is your experience with our platform?')
-                            : <span>The classroom <span className="font-bold text-white whitespace-nowrap">{currentRequest.classroomName || currentRequest.classroomId?.name}</span> has ended.</span>
+                            : <span>The classroom <span className="font-semibold text-white whitespace-nowrap">{currentRequest.classroomName || currentRequest.classroomId?.name}</span> has ended.</span>
                         }
                     </p>
                 </div>
@@ -127,7 +127,7 @@ const FeedbackManager = () => {
                                     key={star}
                                     type="button"
                                     onClick={() => handleRating(star)}
-                                    className={`w-12 h-12 transition-all duration-300 hover:scale-125 active:scale-95 focus:outline-none ${rating >= star ? 'text-amber-400 fill-amber-400 drop-shadow-sm' : 'text-slate-200'
+                                    className={`w-12 h-12 transition-all duration-300 hover:scale-125 active:scale-95 focus:outline-none ${rating >= star ? 'text-amber-400 fill-amber-400 drop-shadow-none' : 'text-slate-200'
                                         }`}
                                 >
                                     <Star className="w-full h-full" />
@@ -136,7 +136,7 @@ const FeedbackManager = () => {
                         </div>
 
                         <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">
+                            <label className="text-xs font-semibold text-slate-400 tracking-wide mb-2 block">
                                 Additional Comments
                             </label>
                             <textarea

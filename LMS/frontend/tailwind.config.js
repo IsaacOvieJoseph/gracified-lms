@@ -31,8 +31,22 @@ export default {
           foreground: "hsl(var(--card-foreground) / <alpha-value>)",
         },
         border: "hsl(var(--border) / <alpha-value>)",
+        ring: "hsl(var(--ring) / <alpha-value>)",
+        success: {
+          DEFAULT: "hsl(var(--success) / <alpha-value>)",
+          foreground: "hsl(var(--success-foreground) / <alpha-value>)",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--danger) / <alpha-value>)",
+          foreground: "hsl(var(--danger-foreground) / <alpha-value>)",
+        },
+        gold: "hsl(var(--gold) / <alpha-value>)",
       },
       borderRadius: {
+        sm: "2px",
+        DEFAULT: "2px",
+        md: "4px",
+        lg: "6px",
         xl: "var(--radius)",
         '2xl': "calc(var(--radius) + 4px)",
         '3xl': "calc(var(--radius) + 8px)",
@@ -40,6 +54,7 @@ export default {
       fontFamily: {
         inter: ['Inter', 'sans-serif'],
         outfit: ['Outfit', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'Georgia', 'serif'],
       },
       animation: {
         'slide-up': 'slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',

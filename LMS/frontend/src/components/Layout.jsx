@@ -146,11 +146,11 @@ const Layout = ({ children }) => {
       {/* Sidebar - Desktop */}
       <aside className={`hidden md:flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="p-6 flex items-center gap-3 border-b border-border/50">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary">
-            <img src={logo} alt="Logo" className="w-8 h-8 rounded-lg" />
+          <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary/10 text-primary">
+            <img src={displayLogo} alt="Logo" className="w-6 h-6 object-contain" />
           </div>
           {!isSidebarCollapsed && (
-            <span className="text-xl font-bold text-foreground font-outfit tracking-tighter">
+            <span className="text-lg font-semibold text-foreground font-serif tracking-tight">
               Gracified
             </span>
           )}
@@ -163,7 +163,7 @@ const Layout = ({ children }) => {
               id={`nav-${item.path.split('/')[1]}`}
               to={item.path}
               className={({ isActive }) => `
-                nav-link ${isActive ? 'active shadow-sm' : ''}
+                nav-link ${isActive ? 'active' : ''}
                 ${isSidebarCollapsed ? 'justify-center px-0' : ''}
               `}
               title={isSidebarCollapsed ? item.label : ''}
@@ -175,24 +175,24 @@ const Layout = ({ children }) => {
         </nav>
 
         <div className="p-4 border-t border-border">
-          <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'p-2 rounded-xl bg-muted'}`}>
-            <div className="w-10 h-10 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'p-2 bg-background'}`}>
+            <div className="w-10 h-10 rounded-sm bg-card border border-border flex items-center justify-center overflow-hidden shrink-0">
               {user?.profilePicture ? (
                 <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="font-bold text-primary">{user?.name?.charAt(0)}</span>
+                <span className="font-semibold text-primary">{user?.name?.charAt(0)}</span>
               )}
             </div>
             {!isSidebarCollapsed && (
               <div className="min-w-0">
-                <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{user?.role?.replace('_', ' ')}</p>
+                <p className="text-sm font-semibold text-foreground truncate">{user?.name}</p>
+                <p className="text-xs tracking-wider font-semibold text-muted-foreground">{user?.role?.replace('_', ' ')}</p>
               </div>
             )}
           </div>
           <button
             onClick={handleLogout}
-            className={`mt-4 w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 rounded-xl transition-colors ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
+            className={`mt-4 w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-danger/10 rounded-xl transition-colors ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
           >
             <LogOut className="w-5 h-5" />
             {!isSidebarCollapsed && <span>Sign Out</span>}
@@ -203,18 +203,18 @@ const Layout = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Navbar */}
-        <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6">
+        <header className="h-16 border-b border-border bg-card  sticky top-0 z-30 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-muted transition text-muted-foreground"
+              className="md:hidden p-2 rounded-xl hover:bg-muted transition text-muted-foreground"
             >
               <Menu className="w-6 h-6" />
             </button>
             <div className="hidden md:flex items-center gap-3 text-muted-foreground">
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/30 hover:shadow-sm transition-all"
+                className="flex items-center justify-center w-8 h-8 rounded-xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/30 hover:shadow-none transition-all"
                 title="Go Back"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -239,20 +239,20 @@ const Layout = ({ children }) => {
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-slide-up">
-                  <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
-                    <h4 className="font-bold text-foreground">Activity</h4>
-                    <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">{unreadCount} New</span>
+                <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-xl shadow-none z-50 overflow-hidden animate-slide-up">
+                  <div className="p-4 border-b border-border flex justify-between items-center bg-muted">
+                    <h4 className="font-semibold text-foreground">Activity</h4>
+                    <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-semibold">{unreadCount} New</span>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length > 0 ? (
                       notifications.map(n => (
-                        <div key={n._id} className={`p-4 border-b border-border last:border-0 hover:bg-muted/50 transition cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}>
+                        <div key={n._id} className={`p-4 border-b border-border last:border-0 hover:bg-muted transition cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}>
                           <p className="text-sm font-medium text-foreground">{n.message}</p>
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-[10px] text-muted-foreground font-medium">{new Date(n.createdAt).toLocaleDateString()}</span>
+                            <span className="text-xs text-muted-foreground font-medium">{new Date(n.createdAt).toLocaleDateString()}</span>
                             {!n.read && (
-                              <button onClick={() => handleMarkAsRead(n._id)} className="text-[10px] font-bold text-primary hover:underline">Mark as read</button>
+                              <button onClick={() => handleMarkAsRead(n._id)} className="text-xs font-semibold text-primary hover:underline">Mark as read</button>
                             )}
                           </div>
                         </div>
@@ -271,25 +271,25 @@ const Layout = ({ children }) => {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-sm hover:scale-105 transition"
+                className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-none hover:scale-105 transition"
               >
                 {user?.profilePicture ? (
                   <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="font-bold text-primary">{user?.name?.charAt(0)}</span>
+                  <span className="font-semibold text-primary">{user?.name?.charAt(0)}</span>
                 )}
               </button>
 
               {showProfileDropdown && (
-                <div className="absolute right-0 mt-3 w-56 bg-card border border-border rounded-2xl shadow-2xl z-50 py-2 animate-slide-up">
+                <div className="absolute right-0 mt-3 w-56 bg-card border border-border rounded-xl shadow-none z-50 py-2 animate-slide-up">
                   <div className="px-4 py-3 border-b border-border/50 mb-1">
-                    <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{user?.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                   </div>
                   <button onClick={() => { setShowProfileDropdown(false); navigate('/profile'); }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-muted text-foreground text-sm font-medium transition-colors">
                     <User className="w-4 h-4" /> Account Settings
                   </button>
-                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-500/10 text-red-500 text-sm font-bold transition-colors">
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-danger/10 text-red-500 text-sm font-semibold transition-colors">
                     <LogOut className="w-4 h-4" /> Sign Out
                   </button>
                 </div>
@@ -299,7 +299,7 @@ const Layout = ({ children }) => {
         </header>
 
         {/* Dynamic Canvas Area */}
-        <main id="dashboard-main" className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <main id="dashboard-main" className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 custom-scrollbar">
           {shouldBlock && !isDashboard && (
             <div className="mb-6">
               <SubscriptionBlockBanner onViewPlans={() => navigate('/subscription-management')} user={user} />
@@ -314,7 +314,7 @@ const Layout = ({ children }) => {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[100] md:hidden">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute inset-0 bg-black/60 " onClick={() => setIsMobileMenuOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-card flex flex-col p-6 animate-slide-in-right">
             <div className="flex items-center justify-between mb-8">
               <img src={logo} alt="Logo" className="w-10 h-10 rounded-xl" />
@@ -330,7 +330,7 @@ const Layout = ({ children }) => {
               ))}
             </nav>
             <div className="mt-auto pt-6 border-t border-border">
-              <button onClick={handleLogout} className="w-full btn-danger shadow-red-200">
+              <button onClick={handleLogout} className="w-full btn-danger shadow-none">
                 <LogOut className="w-5 h-5" /> Sign Out
               </button>
             </div>
@@ -359,7 +359,7 @@ const LandingBreadcrumbs = ({ path }) => {
   };
 
   return (
-    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest overflow-hidden">
+    <div className="flex items-center gap-2 text-xs font-semibold tracking-wide overflow-hidden">
       <Link
         to="/dashboard"
         className="text-primary hover:text-primary/80 transition-colors"

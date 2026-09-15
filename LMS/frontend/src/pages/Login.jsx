@@ -95,13 +95,13 @@ const Login = () => {
       {showSplash && <SplashScreen onFinish={() => navigate(redirectRef.current)} />}
 
       {/* Ambient Background */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-[120px]" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
 
       {/* Left Decoration - Desktop Only */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
         <div className="max-w-md text-center">
-          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-3xl shadow-xl mb-8" />
+          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-xl shadow-none mb-8" />
           <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
             Elevate Your <span className="text-primary italic">Learning Experience</span>
           </h2>
@@ -109,13 +109,13 @@ const Login = () => {
             The most intuitive management system for modern educational environments.
           </p>
           <div className="mt-12 grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">10k+</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Students</div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">10k+</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Students</div>
             </div>
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">99.9%</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uptime</div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">99.9%</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Uptime</div>
             </div>
           </div>
           <br /><br /><br />
@@ -133,11 +133,11 @@ const Login = () => {
             <div className="absolute top-0 right-0">
               <ThemeToggle />
             </div>
-            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-2xl shadow-lg mb-4" />
-            <h1 className="text-2xl font-bold text-foreground">Gracified LMS</h1>
+            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-xl shadow-none mb-4" />
+            <h1 className="text-2xl font-semibold text-foreground">Gracified LMS</h1>
           </div>
 
-          <div className="card-premium p-10 md:p-14 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto shadow-2xl relative">
+          <div className="card-premium p-10 md:p-14 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto shadow-none relative">
             {/* Desktop theme toggle */}
             <div className="hidden lg:flex absolute top-6 right-6">
               <ThemeToggle />
@@ -160,7 +160,7 @@ const Login = () => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-11 bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
+                      className="w-full pl-11 bg-muted dark:bg-muted border-border focus:bg-background dark:focus:bg-background"
                       placeholder="name@example.com"
                       required
                     />
@@ -170,7 +170,7 @@ const Login = () => {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Password</label>
-                    <Link to="/forgot-password" title="Recover password" className="text-xs font-bold text-primary hover:underline">
+                    <Link to="/forgot-password" title="Recover password" className="text-xs font-semibold text-primary hover:underline">
                       Forgot Password?
                     </Link>
                   </div>
@@ -182,7 +182,7 @@ const Login = () => {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-11 bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
+                      className="w-full pl-11 bg-muted dark:bg-muted border-border focus:bg-background dark:focus:bg-background"
                       placeholder="••••••••"
                       required
                     />
@@ -233,7 +233,7 @@ const Login = () => {
                       type="text"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
-                      className="w-full pl-11 text-center tracking-[0.5em] font-mono text-lg bg-muted/50 dark:bg-muted border-border focus:bg-background dark:focus:bg-background/50"
+                      className="w-full pl-11 text-center tracking-[0.5em] font-mono text-lg bg-muted dark:bg-muted border-border focus:bg-background dark:focus:bg-background"
                       placeholder="000000"
                       maxLength={6}
                       required
@@ -282,7 +282,7 @@ const Login = () => {
               Don't have an account?{' '}
               <Link
                 to={`/register?${new URLSearchParams(location.search).toString()}`}
-                className="font-bold text-primary hover:underline"
+                className="font-semibold text-primary hover:underline"
               >
                 Create account
               </Link>

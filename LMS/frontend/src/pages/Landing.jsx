@@ -113,13 +113,13 @@ const Landing = () => {
     <div className="min-h-screen bg-background font-inter overflow-x-hidden transition-colors duration-300 text-foreground">
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px] animate-float-blob" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-float-blob" style={{ animationDelay: '-5s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[180px] animate-float-blob" style={{ animationDelay: '-9s' }} />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full  animate-float-blob" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full  animate-float-blob" style={{ animationDelay: '-5s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full  animate-float-blob" style={{ animationDelay: '-9s' }} />
         {SPARKLES.map((s, i) => (
           <span
             key={i}
-            className="absolute rounded-full bg-primary/50 blur-[1px]"
+            className="absolute rounded-full bg-primary/50 "
             style={{
               top: s.top,
               left: s.left,
@@ -132,12 +132,12 @@ const Landing = () => {
       </div>
 
       {/* Nav */}
-      <nav className="relative z-20 border-b border-border bg-card/80 backdrop-blur-xl">
+      <nav className="relative z-20 border-b border-border bg-card ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20 gap-4">
             <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-shrink">
-              <img src={logo} alt="Gracified" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-lg flex-shrink-0" />
-              <span className="font-outfit text-base sm:text-xl font-bold text-foreground">
+              <img src={logo} alt="Gracified" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-none flex-shrink-0" />
+              <span className="font-serif text-base sm:text-xl font-semibold text-foreground">
                 <span className="hidden sm:inline text-foreground">Gracified Learning Platform</span>
                 <span className="sm:hidden text-foreground">Gracified</span>
               </span>
@@ -153,7 +153,7 @@ const Landing = () => {
               </a>
               <Link
                 to="/catalog"
-                className="px-4 py-2 text-primary font-bold hover:text-primary/80 transition-colors"
+                className="px-4 py-2 text-primary font-semibold hover:text-primary/80 transition-colors"
               >
                 Explore Classes
               </Link>
@@ -175,7 +175,7 @@ const Landing = () => {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
+              className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -198,7 +198,7 @@ const Landing = () => {
               <Link
                 to="/catalog"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-3 text-primary font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                className="px-4 py-3 text-primary font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
               >
                 Explore Classes
               </Link>
@@ -225,11 +225,11 @@ const Landing = () => {
       {/* Hero */}
       <section className="relative z-10 px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-4">
         <div className="max-w-7xl mx-auto">
-          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl min-h-[540px] sm:min-h-[580px] md:min-h-[620px]">
+          <div className="relative overflow-hidden rounded-xl sm:rounded-xl shadow-none min-h-[540px] sm:min-h-[580px] md:min-h-[620px]">
             <AuthCarousel hideText />
 
             {/* Extra left gradient for text legibility */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
+            <div className="absolute inset-0  from-black/70 via-black/35 to-transparent" />
 
             {/* Content overlay */}
             <div className="absolute inset-0 flex items-center">
@@ -238,7 +238,7 @@ const Landing = () => {
                   <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                   The future of education management
                 </div>
-                <h1 className="font-outfit text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[1.05] mb-5 sm:mb-7 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05] mb-5 sm:mb-7 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                   Learn Smarter.
                   <br />
                   <span className="text-sky-300 not-italic">Manage Better.</span>
@@ -250,7 +250,7 @@ const Landing = () => {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 animate-slide-up" style={{ animationDelay: '0.3s' }}>
                   <Link
                     to="/register"
-                    className="px-7 py-3.5 rounded-xl bg-white text-primary font-semibold flex items-center justify-center gap-2 hover:bg-white/90 hover:scale-105 transition-all shadow-lg"
+                    className="px-7 py-3.5 rounded-xl bg-white text-primary font-semibold flex items-center justify-center gap-2 hover:bg-white/90 hover:scale-105 transition-all shadow-none"
                   >
                     Start Free Trial
                     <ArrowRight className="w-4 h-4" />
@@ -273,13 +273,13 @@ const Landing = () => {
       </section>
 
       {/* Stats */}
-      <section className="relative z-10 py-8 sm:py-12 border-y border-border bg-card/50 backdrop-blur-sm">
+      <section className="relative z-10 py-8 sm:py-12 border-y border-border bg-card ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((stat, i) => (
               <Reveal key={i} delay={i * 120}>
                 <div className="text-center px-1">
-                  <div className="font-outfit text-xl sm:text-2xl md:text-3xl font-bold text-primary">{stat.value}</div>
+                  <div className="font-serif text-xl sm:text-2xl md:text-3xl font-semibold text-primary">{stat.value}</div>
                   <div className="text-xs sm:text-sm font-medium text-muted-foreground mt-0.5 sm:mt-1">{stat.label}</div>
                 </div>
               </Reveal>
@@ -293,7 +293,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <Reveal>
             <div className="text-center mb-16">
-              <h2 className="text-2xl md:text-4xl font-black text-foreground mb-4 italic uppercase tracking-tighter">
+              <h2 className="text-2xl md:text-4xl font-semibold text-foreground mb-4 italic tracking-tight">
                 Integrated Digital <span className="text-primary not-italic">Infrastructure</span>
               </h2>
               <p className="max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
@@ -305,13 +305,13 @@ const Landing = () => {
             {features.map((feature, i) => (
               <Reveal key={i} delay={(i % 3) * 120}>
                 <div
-                  className="group relative p-6 rounded-2xl bg-card border border-border shadow-sm hover:border-primary/30 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                  className="group relative p-6 rounded-xl bg-card border border-border shadow-none hover:border-primary/30 hover:shadow-none hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-primary/10 to-transparent group-hover:animate-[shimmer-sweep_0.9s_ease]" />
+                  <div className="absolute inset-0 -translate-x-full  from-transparent via-primary/10 to-transparent group-hover:animate-[shimmer-sweep_0.9s_ease]" />
                   <div className="relative inline-flex p-3 rounded-xl bg-primary/10 text-primary mb-4 animate-float-slow" style={{ animationDelay: `${i * 0.4}s` }}>
                     <feature.icon className="w-6 h-6" />
                   </div>
-                  <h3 className="relative font-outfit text-lg font-bold text-slate-900 dark:text-white mb-2">{feature.title}</h3>
+                  <h3 className="relative font-serif text-lg font-semibold text-slate-900 dark:text-white mb-2">{feature.title}</h3>
                   <p className="relative text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{feature.description}</p>
                 </div>
               </Reveal>
@@ -325,7 +325,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <Reveal>
             <div className="text-center mb-16">
-              <h2 className="text-2xl md:text-4xl font-black text-foreground mb-4 italic uppercase tracking-tighter">
+              <h2 className="text-2xl md:text-4xl font-semibold text-foreground mb-4 italic tracking-tight">
                 Designed for Global <span className="text-primary not-italic">Learners</span>
               </h2>
               <p className="max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
@@ -334,7 +334,7 @@ const Landing = () => {
             </div>
           </Reveal>
           <Reveal>
-            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl min-h-[560px] sm:min-h-[640px]">
+            <div className="relative overflow-hidden rounded-xl sm:rounded-xl shadow-none min-h-[560px] sm:min-h-[640px]">
               <AuthCarousel showDots showRegister />
             </div>
           </Reveal>
@@ -345,10 +345,10 @@ const Landing = () => {
       <section className="relative z-10 py-16 sm:py-20 md:py-28 px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="max-w-4xl mx-auto">
-            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary to-primary/70 p-6 sm:p-8 md:p-12 text-center">
+            <div className="relative overflow-hidden rounded-xl sm:rounded-xl  from-primary to-primary/70 p-6 sm:p-8 md:p-12 text-center">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
               <div className="relative z-10">
-                <h2 className="font-outfit text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4">
+                <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 sm:mb-4">
                   Ready to transform your learning experience?
                 </h2>
                 <p className="text-white/90 mb-8 max-w-xl mx-auto">
@@ -364,7 +364,7 @@ const Landing = () => {
                 </div>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-white text-primary hover:bg-white/95 hover:scale-105 transition-all duration-300 shadow-lg"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-white text-primary hover:bg-white/95 hover:scale-105 transition-all duration-300 shadow-none"
                 >
                   Get Started Free
                   <ArrowRight className="w-5 h-5" />
@@ -376,13 +376,13 @@ const Landing = () => {
       </section>
 
       {/* Contact Us */}
-      <section id="contact" className="relative z-10 py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-card/60 border-t border-border">
+      <section id="contact" className="relative z-10 py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-card border-t border-border">
         <Reveal>
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary mb-6 animate-float-slow">
+            <div className="inline-flex p-3 rounded-xl bg-primary/10 text-primary mb-6 animate-float-slow">
               <MessageCircle className="w-8 h-8" />
             </div>
-            <h2 className="font-outfit text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-foreground mb-4">
               We&apos;d Love to Hear From You
             </h2>
             <p className="text-muted-foreground mb-2">
@@ -403,11 +403,11 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-border bg-card/80 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="relative z-10 border-t border-border bg-card py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 justify-center md:justify-start">
-            <img src={logo} alt="Gracified" className="w-8 h-8 rounded-lg flex-shrink-0" />
-            <span className="font-outfit font-bold text-foreground text-sm sm:text-base text-center md:text-left">Gracified Learning Platform</span>
+            <img src={logo} alt="Gracified" className="w-8 h-8 rounded-xl flex-shrink-0" />
+            <span className="font-serif font-semibold text-foreground text-sm sm:text-base text-center md:text-left">Gracified Learning Platform</span>
           </div>
           <div className="flex items-center gap-4 sm:gap-6 text-sm text-muted-foreground flex-wrap justify-center md:justify-end">
             <a href="#contact" className="hover:text-primary font-medium transition-colors">Contact Us</a>

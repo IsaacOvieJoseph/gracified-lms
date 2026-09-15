@@ -111,16 +111,17 @@ const SchoolAdminReport = () => {
     const { schoolName, totalStudents, totalClassrooms, overallAverage, classPerformance } = reportData;
 
     return (
+        <>
         <div className="space-y-6 sm:space-y-8 animate-slide-up">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 blur-[80px] rounded-full pointer-events-none"></div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-card  border border-border/50 rounded-xl p-8 shadow-none relative overflow-hidden">
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5  rounded-full pointer-events-none"></div>
                 <div className="flex items-center space-x-5 relative z-10">
-                    <div className="bg-primary/10 p-4 rounded-2xl text-primary border border-primary/20 shadow-lg shadow-primary/5">
+                    <div className="bg-primary/10 p-4 rounded-xl text-primary border border-primary/20 shadow-none ">
                         <School className="w-8 h-8" />
                     </div>
                     <div>
-                        <h2 className="text-2xl sm:text-3xl font-black italic text-foreground tracking-tighter uppercase">{schoolName} <span className="text-primary not-italic hidden xs:inline opacity-80">Dashboard</span></h2>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 mt-1">School Overview</p>
+                        <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">{schoolName} <span className="text-primary not-italic hidden xs:inline opacity-80">Dashboard</span></h2>
+                        <p className="text-xs font-semibold tracking-wide text-muted-foreground/80 mt-1">School Overview</p>
                     </div>
                 </div>
 
@@ -129,43 +130,43 @@ const SchoolAdminReport = () => {
 
             {/* Key Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="bg-card/40 backdrop-blur-md p-6 rounded-[2rem] border border-border/50 shadow-xl flex items-center justify-between group hover:border-primary/30 transition-all hover:-translate-y-1">
+                <div className="bg-card  p-6 rounded-xl border border-border/50 shadow-none flex items-center justify-between group hover:border-primary/30 transition-all hover:-translate-y-1">
                     <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60 italic">Total Students</p>
-                        <p className="text-3xl font-black text-foreground">{totalStudents}</p>
+                        <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-1 opacity-60">Total Students</p>
+                        <p className="text-3xl font-semibold text-foreground">{totalStudents}</p>
                     </div>
-                    <div className="bg-primary/10 p-4 rounded-2xl text-primary border border-primary/20 group-hover:scale-110 transition-transform">
+                    <div className="bg-primary/10 p-4 rounded-xl text-primary border border-primary/20 group-hover:scale-110 transition-transform">
                         <Users size={24} />
                     </div>
                 </div>
-                <div className="bg-card/40 backdrop-blur-md p-6 rounded-[2rem] border border-border/50 shadow-xl flex items-center justify-between group hover:border-indigo-500/30 transition-all hover:-translate-y-1">
+                <div className="bg-card  p-6 rounded-xl border border-border/50 shadow-none flex items-center justify-between group hover:border-primary/40 transition-all hover:-translate-y-1">
                     <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60 italic">Total Classes</p>
-                        <p className="text-3xl font-black text-foreground">{totalClassrooms}</p>
+                        <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-1 opacity-60">Total Classes</p>
+                        <p className="text-3xl font-semibold text-foreground">{totalClassrooms}</p>
                     </div>
-                    <div className="bg-indigo-500/10 p-4 rounded-2xl text-indigo-500 border border-indigo-500/20 group-hover:scale-110 transition-transform">
+                    <div className="bg-primary/10 p-4 rounded-xl text-primary border border-primary/30 group-hover:scale-110 transition-transform">
                         <BookOpen size={24} />
                     </div>
                 </div>
-                <div className="bg-card/40 backdrop-blur-md p-6 rounded-[2rem] border border-border/50 shadow-xl flex items-center justify-between group transition-all hover:-translate-y-1">
+                <div className="bg-card  p-6 rounded-xl border border-border/50 shadow-none flex items-center justify-between group transition-all hover:-translate-y-1">
                     <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60 italic">Average Score</p>
-                        <p className={`text-3xl font-black ${overallAverage >= 70 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                        <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-1 opacity-60">Average Score</p>
+                        <p className={`text-3xl font-semibold ${overallAverage >= 70 ? 'text-emerald-500' : 'text-amber-500'}`}>
                             {overallAverage}%
                         </p>
                     </div>
-                    <div className={`${overallAverage >= 70 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'} p-4 rounded-2xl border group-hover:scale-110 transition-transform`}>
+                    <div className={`${overallAverage >= 70 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'} p-4 rounded-xl border group-hover:scale-110 transition-transform`}>
                         <TrendingUp size={24} />
                     </div>
                 </div>
             </div>
 
             {/* Main Chart */}
-            <div className="bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-border/50 shadow-2xl relative overflow-hidden group">
+            <div className="bg-card  p-8 rounded-xl border border-border/50 shadow-none relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
                     <TrendingUp className="w-48 h-48 text-primary" />
                 </div>
-                <h3 className="text-sm font-black italic text-foreground mb-8 uppercase tracking-widest px-2 relative z-10">Class Performance Overview</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-8 tracking-wide px-2 relative z-10">Class Performance Overview</h3>
                 <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-muted relative z-10">
                     <div className="min-w-[800px] sm:min-w-full h-96">
                         <ResponsiveContainer width="100%" height="100%">
@@ -190,20 +191,20 @@ const SchoolAdminReport = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-2 block sm:hidden text-center">← Swipe to see more →</p>
+                <p className="text-xs text-muted-foreground mt-2 block sm:hidden text-center">← Swipe to see more →</p>
             </div>
 
             {/* Detailed Table */}
-            <div className="bg-card/40 backdrop-blur-md rounded-[2.5rem] shadow-2xl border border-border/50 overflow-hidden mt-8">
+            <div className="bg-card  rounded-xl shadow-none border border-border/50 overflow-hidden mt-8">
                 <div className="p-8 border-b border-border/50 flex flex-col md:flex-row md:items-center justify-between bg-muted/10 gap-4">
                     <div>
-                        <h3 className="text-2xl font-black text-foreground italic uppercase tracking-tighter">Class Breakdown</h3>
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mt-1 opacity-60">Detailed Performance Data</p>
+                        <h3 className="text-2xl font-semibold text-foreground tracking-tight">Class Breakdown</h3>
+                        <p className="text-xs font-semibold text-muted-foreground tracking-wide mt-1 opacity-60">Detailed Performance Data</p>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-muted/30 text-muted-foreground uppercase text-[10px] font-black tracking-[0.2em]">
+                        <thead className="bg-muted text-muted-foreground text-xs font-semibold tracking-wide">
                             <tr>
                                 <th className="px-8 py-6">Class Name</th>
                                 <th className="px-8 py-6 text-center">Students</th>
@@ -216,14 +217,14 @@ const SchoolAdminReport = () => {
                         <tbody className="divide-y divide-border/50 text-sm">
                             {classPerformance.map((cls) => (
                                 <tr key={cls.id} className="hover:bg-primary/5 transition-colors group">
-                                    <td className="px-8 py-6 font-black italic text-foreground tracking-tight">{cls.name}</td>
-                                    <td className="px-8 py-6 text-center font-bold text-muted-foreground/80">{cls.studentCount}</td>
-                                    <td className="px-8 py-6 text-center font-bold text-muted-foreground/80">{cls.assignmentCount}</td>
-                                    <td className="px-8 py-6 text-right font-bold text-muted-foreground/80">{cls.attendancePercentage}%</td>
+                                    <td className="px-8 py-6 font-semibold text-foreground tracking-tight">{cls.name}</td>
+                                    <td className="px-8 py-6 text-center font-semibold text-muted-foreground/80">{cls.studentCount}</td>
+                                    <td className="px-8 py-6 text-center font-semibold text-muted-foreground/80">{cls.assignmentCount}</td>
+                                    <td className="px-8 py-6 text-right font-semibold text-muted-foreground/80">{cls.attendancePercentage}%</td>
                                     <td className="px-8 py-6 text-right">
                                         <div className="flex items-center justify-end space-x-4">
-                                            <span className="font-black text-foreground">{cls.averagePercentage}%</span>
-                                            <div className="w-32 h-2.5 bg-muted rounded-full overflow-hidden border border-border/50 shadow-inner">
+                                            <span className="font-semibold text-foreground">{cls.averagePercentage}%</span>
+                                            <div className="w-32 h-2.5 bg-muted rounded-full overflow-hidden border border-border/50 shadow-none">
                                                 <div
                                                     className={`h-full rounded-full transition-all duration-1000 ${cls.averagePercentage >= 75 ? 'bg-emerald-500' :
                                                         cls.averagePercentage >= 50 ? 'bg-amber-500' : 'bg-rose-500'
@@ -236,7 +237,7 @@ const SchoolAdminReport = () => {
                                     <td className="px-8 py-6 text-right">
                                         <button
                                             onClick={() => setViewingClass(cls)}
-                                            className="p-2.5 text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-xl transition-all shadow-sm"
+                                            className="p-2.5 text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-xl transition-all shadow-none"
                                             title="View Report"
                                         >
                                             <Eye size={18} />
@@ -253,41 +254,42 @@ const SchoolAdminReport = () => {
             <div>
                 <AllStudentsReportTable />
             </div>
+        </div>
 
-            {/* Class Details Modal */}
+        {/* Class Details Modal */}
             {viewingClass && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
-                    <div className="bg-card w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-border">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80  p-4">
+                    <div className="bg-card w-full max-w-5xl max-h-[90vh] rounded-xl shadow-none overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-border">
                         <div className="p-8 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
                             <div>
-                                <h3 className="text-2xl font-black text-foreground italic uppercase tracking-tighter leading-tight">Class Report</h3>
-                                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mt-1">Detailed performance metrics for <span className="text-primary italic tracking-tight">{viewingClass.name}</span></p>
+                                <h3 className="text-2xl font-semibold text-foreground tracking-tight leading-tight">Class Report</h3>
+                                <p className="text-xs font-semibold text-muted-foreground tracking-wide mt-1">Detailed performance metrics for <span className="text-primary tracking-tight">{viewingClass.name}</span></p>
                             </div>
                             <button
                                 onClick={() => setViewingClass(null)}
-                                className="w-12 h-12 flex items-center justify-center rounded-2xl bg-muted text-muted-foreground hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm"
+                                className="w-12 h-12 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-primary hover:text-white transition-all active:scale-95 shadow-none"
                             >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-muted/20">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-muted">
                             {loadingDetails ? (
                                 <div className="flex flex-col items-center justify-center py-20">
                                     <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-                                    <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">Loading Data...</p>
+                                    <p className="text-muted-foreground font-semibold tracking-wide text-xs">Loading Data...</p>
                                 </div>
                             ) : classDetails ? (
                                 <div className="animate-slide-up">
                                     <StudentReportTable students={classDetails.studentStats} classroomName={viewingClass.name} />
                                 </div>
                             ) : (
-                                <div className="text-center py-20 text-muted-foreground font-medium italic">Details not available for this classroom at this time.</div>
+                                <div className="text-center py-20 text-muted-foreground font-medium">Details not available for this classroom at this time.</div>
                             )}
                         </div>
                         <div className="p-6 bg-card border-t border-border flex justify-end">
                             <button
                                 onClick={() => setViewingClass(null)}
-                                className="px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+                                className="px-8 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-all active:scale-95 shadow-none "
                             >
                                 Got it
                             </button>
@@ -295,7 +297,7 @@ const SchoolAdminReport = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

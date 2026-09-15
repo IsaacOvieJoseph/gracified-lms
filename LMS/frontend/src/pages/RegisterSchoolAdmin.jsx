@@ -117,13 +117,13 @@ const RegisterSchoolAdmin = () => {
   return (
     <div className="h-screen bg-background text-foreground flex font-inter relative overflow-hidden transition-colors duration-300">
       {/* Ambient Blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-[120px]" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
 
       {/* Left Decoration - Desktop */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
         <div className="max-w-md text-center">
-          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-3xl shadow-xl mb-8" />
+          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-xl shadow-none mb-8" />
           <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
             Elevate Your <span className="text-primary italic">Learning Experience</span>
           </h2>
@@ -131,13 +131,13 @@ const RegisterSchoolAdmin = () => {
             The most intuitive management system for modern educational environments.
           </p>
           <div className="mt-12 grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">10k+</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Students</div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">10k+</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Students</div>
             </div>
-            <div className="p-4 rounded-2xl bg-muted border border-border">
-              <div className="text-2xl font-bold text-foreground">99.9%</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Uptime</div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">99.9%</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Uptime</div>
             </div>
           </div>
           <br /><br /><br />
@@ -152,15 +152,15 @@ const RegisterSchoolAdmin = () => {
         <div className="w-full max-w-lg animate-slide-up">
           <div className="lg:hidden text-center mb-8 relative">
             <div className="absolute top-0 right-0"><ThemeToggle /></div>
-            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-2xl shadow-lg mb-4" />
-            <h1 className="text-2xl font-bold text-foreground">Gracified LMS</h1>
+            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-xl shadow-none mb-4" />
+            <h1 className="text-2xl font-semibold text-foreground">Gracified LMS</h1>
           </div>
 
           <div className="card-premium p-8 md:p-10 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto relative">
             <div className="hidden lg:flex absolute top-6 right-6"><ThemeToggle /></div>
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="font-outfit text-3xl font-bold text-foreground mb-2">School Admin</h1>
+              <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">School Admin</h1>
               <p className="text-muted-foreground">Register your school and start managing</p>
             </div>
 
@@ -169,27 +169,27 @@ const RegisterSchoolAdmin = () => {
                 <label htmlFor="name" className="block text-sm font-semibold text-foreground/80 ml-1">Full Name</label>
                 <input type="text" id="name" name="name" value={formData.name} onChange={handleChange}
                   placeholder="Enter your full name" required
-                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
+                  className="w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
               </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="email" className="block text-sm font-semibold text-foreground/80 ml-1">Email Address</label>
                 <input type="email" id="email" name="email" value={formData.email} onChange={handleChange}
                   placeholder="admin@school.com" required
-                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
+                  className="w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
               </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="schoolName" className="block text-sm font-semibold text-foreground/80 ml-1">School Name</label>
                 <input type="text" id="schoolName" name="schoolName" value={formData.schoolName} onChange={handleChange}
                   placeholder="e.g. Excellence Academy" required
-                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
+                  className="w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
               </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="logo" className="block text-sm font-semibold text-foreground/80 ml-1">School Logo (Optional)</label>
                 <input type="file" id="logo" name="logo" onChange={handleLogoChange} accept="image/*"
-                  className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-semibold file:cursor-pointer" />
+                  className="w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary/10 file:text-primary file:font-semibold file:cursor-pointer" />
                 <p className="text-xs text-muted-foreground ml-1">Recommended: Square image, max 2MB</p>
               </div>
 
@@ -198,7 +198,7 @@ const RegisterSchoolAdmin = () => {
                 <div className="relative">
                   <input type={showPassword ? 'text' : 'password'} id="password" name="password" value={formData.password} onChange={handleChange}
                     placeholder="••••••••" required
-                    className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10" />
+                    className="w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10" />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -210,7 +210,7 @@ const RegisterSchoolAdmin = () => {
                 <div className="relative">
                   <input type={showConfirmPassword ? 'text' : 'password'} id="confirmPassword" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
                     placeholder="••••••••" required
-                    className="w-full px-4 py-2.5 bg-muted/50 dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10" />
+                    className="w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none pr-10" />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

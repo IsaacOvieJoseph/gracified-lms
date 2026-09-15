@@ -105,7 +105,7 @@ const AuthCarousel = ({
       </div>
 
       {/* Dark overlay for text legibility */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/30" />
+      <div className="absolute inset-0  from-black/80 via-black/45 to-black/30" />
 
       {/* Animated text content overlay */}
       {!hideText && (
@@ -113,17 +113,17 @@ const AuthCarousel = ({
           key={`text-${currentIndex}`}
           className="absolute inset-x-0 top-[10%] px-6 sm:px-10 carousel-text-rise"
         >
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-outfit font-black text-white mb-3 leading-tight drop-shadow-lg">
+          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-semibold text-white mb-3 leading-tight drop-shadow-none">
             {current.title}
           </h3>
-          <p className="max-w-md text-sm sm:text-base lg:text-lg text-white/90 leading-relaxed drop-shadow-md">
+          <p className="max-w-md text-sm sm:text-base lg:text-lg text-white/90 leading-relaxed drop-shadow-none">
             {current.subtitle}
           </p>
 
           {showRegister && current.registerTo && (
             <Link
               to={current.registerTo}
-              className="inline-flex items-center gap-2 mt-6 px-5 py-3 rounded-xl bg-white text-primary font-semibold text-sm sm:text-base hover:bg-white/90 hover:scale-105 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 mt-6 px-5 py-3 rounded-xl bg-white text-primary font-semibold text-sm sm:text-base hover:bg-white/90 hover:scale-105 transition-all shadow-none"
             >
               {current.registerLabel || 'Register'}
               <ArrowRight className="w-4 h-4" />

@@ -189,20 +189,20 @@ const TutorRequests = () => {
   };
 
   if (loading) {
-    return <Layout><div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div></Layout>;
+    return <Layout><div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>;
   }
 
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <h2 className="text-2xl font-bold text-gray-800">Tutor Requests</h2>
+          <h2 className="text-2xl font-semibold text-gray-800">Tutor Requests</h2>
           <div className="flex items-center gap-2">
             {FILTERS.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === f.key ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${filter === f.key ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
               >
                 {f.label}
               </button>
@@ -211,19 +211,19 @@ const TutorRequests = () => {
         </div>
 
         {selected ? (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-none overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
               <button onClick={() => { setSelected(null); setShowReferral(false); }} className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-sm font-medium">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${STATUS_META[selected.status].badge}`}>
+                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${STATUS_META[selected.status].badge}`}>
                   {STATUS_META[selected.status].label}
                 </span>
                 {selected.mode === 'admin' && ['open', 'in_progress'].includes(selected.status) && (
                   <button
                     onClick={togglePublish}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${selected.published ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-violet-600 text-white hover:bg-violet-700'}`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${selected.published ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-primary text-white hover:bg-primary/90'}`}
                   >
                     {selected.published ? 'Unpublish' : 'Publish to Tutors'}
                   </button>
@@ -232,7 +232,7 @@ const TutorRequests = () => {
                   <button
                     onClick={() => updateStatus('in_progress')}
                     disabled={changingStatus}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
                   >
                     {changingStatus ? '...' : 'Mark In Progress'}
                   </button>
@@ -241,7 +241,7 @@ const TutorRequests = () => {
                   <button
                     onClick={() => updateStatus('rejected')}
                     disabled={changingStatus}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-danger text-white hover:bg-danger/90 disabled:opacity-50"
                   >
                     {changingStatus ? '...' : 'Reject'}
                   </button>
@@ -249,7 +249,7 @@ const TutorRequests = () => {
                 {selected.status !== 'resolved' && (
                   <button
                     onClick={openReferral}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-success text-white hover:bg-success/90"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 inline mr-1" />Give Referral
                   </button>
@@ -264,18 +264,18 @@ const TutorRequests = () => {
                     {selected.studentId?.profilePicture ? (
                       <img src={selected.studentId.profilePicture} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (
-                      <User className="w-5 h-5 text-indigo-600" />
+                      <User className="w-5 h-5 text-primary" />
                     )}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-800">{selected.studentId?.name || 'Student'}</p>
+                    <p className="font-semibold text-gray-800">{selected.studentId?.name || 'Student'}</p>
                     <p className="text-xs text-gray-500">{selected.studentId?.email}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 mb-2">
-                  <GraduationCap className="w-4 h-4 text-indigo-600" />
-                  <h3 className="font-bold text-gray-800">{selected.subject}</h3>
+                  <GraduationCap className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-gray-800">{selected.subject}</h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">{selected.description}</p>
                 <div className="flex flex-wrap gap-2 mb-4 text-xs text-gray-500">
@@ -286,12 +286,12 @@ const TutorRequests = () => {
                 </div>
 
                 {selected.status === 'resolved' && selected.referral?.givenAt && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
                     <div className="flex items-center gap-2 mb-1">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span className="font-bold text-emerald-700 text-sm">Referral Given</span>
+                      <span className="font-semibold text-emerald-700 text-sm">Referral Given</span>
                     </div>
-                    <p className="font-bold text-gray-800">{selected.referral.tutorName}</p>
+                    <p className="font-semibold text-gray-800">{selected.referral.tutorName}</p>
                     {selected.referral.tutorContact && <p className="text-xs text-gray-600">Contact: {selected.referral.tutorContact}</p>}
                     {selected.referral.notes && <p className="text-xs text-gray-600 mt-1">{selected.referral.notes}</p>}
                   </div>
@@ -300,8 +300,8 @@ const TutorRequests = () => {
                 {selected.mode === 'admin' && selected.applications?.length > 0 && (
                   <div className="mt-4 border-t border-gray-100 pt-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Users className="w-4 h-4 text-indigo-600" />
-                      <h3 className="font-bold text-gray-800 text-sm">Tutor Applicants ({selected.applications.length})</h3>
+                      <Users className="w-4 h-4 text-primary" />
+                      <h3 className="font-semibold text-gray-800 text-sm">Tutor Applicants ({selected.applications.length})</h3>
                     </div>
                     <div className="space-y-3">
                       {selected.applications.map((app) => {
@@ -310,26 +310,26 @@ const TutorRequests = () => {
                         const isOpen = expandedApp === app._id;
                         const unread = (app.messages || []).filter((m) => m.senderRole === 'personal_teacher' && !m.readByAdmin).length;
                         return (
-                          <div key={app._id} className="border border-gray-200 rounded-lg p-3">
+                          <div key={app._id} className="border border-gray-200 rounded-xl p-3">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
                                 {app.tutorId?.profilePicture
                                   ? <img src={app.tutorId.profilePicture} alt="" className="w-full h-full rounded-full object-cover" />
-                                  : <User className="w-4 h-4 text-indigo-600" />}
+                                  : <User className="w-4 h-4 text-primary" />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-bold text-gray-800 text-sm truncate">{app.tutorId?.name || 'Tutor'}</p>
+                                <p className="font-semibold text-gray-800 text-sm truncate">{app.tutorId?.name || 'Tutor'}</p>
                                 {app.message && <p className="text-xs text-gray-500 line-clamp-2">{app.message}</p>}
-                                <p className="text-[10px] text-gray-400">
+                                <p className="text-xs text-gray-400">
                                   Applied {new Date(app.appliedAt).toLocaleDateString()} • {(app.messages || []).length} msgs
                                   {unread > 0 ? ` • ${unread} new` : ''}
                                 </p>
                               </div>
                               {isAccepted && (
-                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Matched</span>
+                                <span className="text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Matched</span>
                               )}
                               {isDeclined && (
-                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Declined</span>
+                                <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Declined</span>
                               )}
                               <button onClick={() => setExpandedApp(isOpen ? null : app._id)} className="text-gray-400">
                                 <ChevronDown className={`w-4 h-4 transition ${isOpen ? 'rotate-180' : ''}`} />
@@ -342,8 +342,8 @@ const TutorRequests = () => {
                                     <p className="text-xs text-gray-400">Chat privately with this tutor about their application.</p>
                                   ) : (
                                     app.messages.map((m, i) => (
-                                      <div key={i} className={`max-w-[90%] rounded-lg p-2 text-xs ${m.senderRole === 'root_admin' ? 'bg-indigo-600 text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
-                                        <p className="text-[9px] font-bold opacity-70 mb-0.5">{m.senderRole === 'root_admin' ? 'You' : app.tutorId?.name || 'Tutor'}</p>
+                                      <div key={i} className={`max-w-[90%] rounded-xl p-2 text-xs ${m.senderRole === 'root_admin' ? 'bg-primary text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
+                                        <p className="text-xs font-semibold opacity-70 mb-0.5">{m.senderRole === 'root_admin' ? 'You' : app.tutorId?.name || 'Tutor'}</p>
                                         <p>{m.message}</p>
                                       </div>
                                     ))
@@ -355,15 +355,15 @@ const TutorRequests = () => {
                                     onChange={(e) => setAppReplies((m) => ({ ...m, [app._id]: e.target.value }))}
                                     onKeyDown={(e) => e.key === 'Enter' && appSend(app._id)}
                                     placeholder="Message this tutor..."
-                                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="flex-1 border border-gray-300 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                   />
-                                  <button onClick={() => appSend(app._id)} disabled={sendingApp} className="bg-indigo-600 text-white p-1.5 rounded-lg disabled:opacity-40">
+                                  <button onClick={() => appSend(app._id)} disabled={sendingApp} className="bg-primary text-white p-1.5 rounded-xl disabled:opacity-40">
                                     {sendingApp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                                   </button>
-                                  <button onClick={() => openClassPicker(app)} disabled={changingApp} className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40">
+                                  <button onClick={() => openClassPicker(app)} disabled={changingApp} className="bg-success text-white text-xs font-semibold px-3 py-1.5 rounded-xl disabled:opacity-40">
                                     Match
                                   </button>
-                                  <button onClick={() => declineApp(app._id)} disabled={changingApp} className="bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40">
+                                  <button onClick={() => declineApp(app._id)} disabled={changingApp} className="bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-xl disabled:opacity-40">
                                     Decline
                                   </button>
                                 </div>
@@ -379,16 +379,16 @@ const TutorRequests = () => {
 
               <div className="p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-4 h-4 text-indigo-600" />
-                  <span className="font-bold text-gray-800 text-sm">Conversation</span>
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-gray-800 text-sm">Conversation</span>
                 </div>
                 <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                   {selected.messages?.length === 0 ? (
                     <p className="text-xs text-gray-400">No messages yet. The student has been notified.</p>
                   ) : (
                     selected.messages.map((m, i) => (
-                      <div key={i} className={`max-w-[85%] rounded-lg p-2.5 text-sm ${m.senderRole === 'root_admin' ? 'bg-indigo-600 text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
-                        <p className="text-[10px] font-bold opacity-70 mb-0.5">{m.senderRole === 'root_admin' ? 'You' : m.senderId?.name || 'Student'}</p>
+                      <div key={i} className={`max-w-[85%] rounded-xl p-2.5 text-sm ${m.senderRole === 'root_admin' ? 'bg-primary text-white ml-auto' : 'bg-gray-100 text-gray-800'}`}>
+                        <p className="text-xs font-semibold opacity-70 mb-0.5">{m.senderRole === 'root_admin' ? 'You' : m.senderId?.name || 'Student'}</p>
                         <p>{m.message}</p>
                       </div>
                     ))
@@ -401,12 +401,12 @@ const TutorRequests = () => {
                       onChange={(e) => setReply(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && sendReply()}
                       placeholder="Reply to student..."
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                     <button
                       onClick={sendReply}
                       disabled={sending || !reply.trim()}
-                      className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40"
+                      className="bg-primary text-white p-2 rounded-xl hover:bg-primary/90 disabled:opacity-40"
                     >
                       {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
@@ -416,7 +416,7 @@ const TutorRequests = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-none overflow-hidden">
             {requests.length > 0 ? (
               <div className="divide-y divide-gray-100">
                 {requests.map((r) => {
@@ -429,18 +429,18 @@ const TutorRequests = () => {
                       className="w-full text-left p-4 hover:bg-gray-50 transition flex items-center gap-4"
                     >
                       <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                        <GraduationCap className="w-5 h-5 text-indigo-600" />
+                        <GraduationCap className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-800 truncate">{r.subject}</span>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${meta.badge}`}>{meta.label}</span>
+                          <span className="font-semibold text-gray-800 truncate">{r.subject}</span>
+                          <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${meta.badge}`}>{meta.label}</span>
                         </div>
                         <p className="text-xs text-gray-500">{r.studentId?.name} • {new Date(r.createdAt).toLocaleDateString()}</p>
                         <p className="text-xs text-gray-500 truncate">{r.description}</p>
                       </div>
                       {unread > 0 && (
-                        <span className="bg-indigo-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0">{unread}</span>
+                        <span className="bg-primary text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center shrink-0">{unread}</span>
                       )}
                     </button>
                   );
@@ -455,21 +455,21 @@ const TutorRequests = () => {
 
       {showClassPicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="bg-white rounded-xl shadow-none w-full max-w-md p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-800">Match with {classPicker.tutorName}</h3>
+              <h3 className="font-semibold text-gray-800">Match with {classPicker.tutorName}</h3>
               <button onClick={() => setShowClassPicker(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <p className="text-xs text-gray-500 mb-3">Pick the tutor&apos;s class to link. The student receives the class link immediately.</p>
             {classPicker.classes.length === 0 ? (
-              <p className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
+              <p className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
                 This tutor has no classes yet. They&apos;ll be matched without a class link and can share one later.
               </p>
             ) : (
               <select
                 value={classPicker.selected}
                 onChange={(e) => setClassPicker((c) => ({ ...c, selected: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
               >
                 {classPicker.classes.map((c) => (
                   <option key={c._id} value={c._id}>
@@ -481,7 +481,7 @@ const TutorRequests = () => {
             <button
               onClick={confirmAccept}
               disabled={accepting}
-              className="w-full bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"
+              className="w-full bg-success text-white font-semibold py-2.5 rounded-xl hover:bg-success/90 disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {accepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Accept & Match Tutor
@@ -492,18 +492,18 @@ const TutorRequests = () => {
 
       {showReferral && selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="bg-white rounded-xl shadow-none w-full max-w-md p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-800">Give Referral — {selected.subject}</h3>
+              <h3 className="font-semibold text-gray-800">Give Referral — {selected.subject}</h3>
               <button onClick={() => setShowReferral(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <form onSubmit={submitReferral} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">Platform Tutor (optional)</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Platform Tutor (optional)</label>
                 <select
                   value={refForm.tutorId}
                   onChange={(e) => setRefForm((f) => ({ ...f, tutorId: e.target.value, tutorName: '' }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Select a personal teacher...</option>
                   {(tutors.length ? tutors : []).map((t) => (
@@ -514,39 +514,39 @@ const TutorRequests = () => {
               {!refForm.tutorId && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">External Tutor Name (optional)</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">External Tutor Name (optional)</label>
                     <input
                       value={refForm.tutorName}
                       onChange={(e) => setRefForm((f) => ({ ...f, tutorName: e.target.value }))}
                       placeholder="e.g. Mr. Adebayo Okafor"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Tutor Contact (optional)</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Tutor Contact (optional)</label>
                     <input
                       value={refForm.tutorContact}
                       onChange={(e) => setRefForm((f) => ({ ...f, tutorContact: e.target.value }))}
                       placeholder="e.g. phone or email"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </>
               )}
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">Notes</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Notes</label>
                 <textarea
                   value={refForm.notes}
                   onChange={(e) => setRefForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={3}
                   placeholder="e.g. Recommended due to their expertise in this subject..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <button
                 type="submit"
                 disabled={referring || (!refForm.tutorId && !refForm.tutorName.trim())}
-                className="w-full bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"
+                className="w-full bg-success text-white font-semibold py-2.5 rounded-xl hover:bg-success/90 disabled:opacity-40 flex items-center justify-center gap-2"
               >
                 {referring ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 Resolve & Send Referral

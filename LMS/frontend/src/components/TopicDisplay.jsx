@@ -345,7 +345,7 @@ const TopicDisplay = ({ classroomId }) => {
             case 'completed':
                 return 'text-emerald-600 bg-emerald-50 border-emerald-200';
             case 'active':
-                return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+                return 'text-primary bg-primary/10 border-primary/20';
             default:
                 return 'text-slate-600 bg-slate-50 border-slate-200';
         }
@@ -386,12 +386,12 @@ const TopicDisplay = ({ classroomId }) => {
                     <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
                         <Video className="w-5 h-5 text-slate-400" />
                     </div>
-                    <p className="text-white text-xs font-bold">External Lecture Video</p>
+                    <p className="text-white text-xs font-semibold">External Lecture Video</p>
                     <a
                         href={vid.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-4 px-6 py-3 bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black border border-slate-700 transition-all flex items-center gap-3 group"
+                        className="mt-4 px-6 py-3 bg-slate-800 text-white rounded-xl text-xs font-semibold tracking-[0.2em] hover:bg-black border border-slate-700 transition-all flex items-center gap-3 group"
                     >
                         <span>Open Resource</span>
                         <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -414,29 +414,29 @@ const TopicDisplay = ({ classroomId }) => {
 
     if (loading) {
         return (
-            <div className="bg-card rounded-lg shadow-sm p-8 animate-pulse border border-border">
+            <div className="bg-card rounded-xl shadow-none p-8 animate-pulse border border-border">
                 <div className="flex items-start gap-5 mb-6">
                     <div className="flex-1">
                         <div className="h-2 bg-muted rounded-full w-24 mb-3"></div>
-                        <div className="h-8 bg-muted/50 rounded-2xl w-2/3"></div>
+                        <div className="h-8 bg-muted rounded-xl w-2/3"></div>
                     </div>
                 </div>
-                <div className="bg-muted/30 rounded-3xl h-[600px] border border-border"></div>
+                <div className="bg-muted rounded-xl h-[600px] border border-border"></div>
             </div>
         );
     }
 
     if (!currentTopic) {
         return (
-            <div className="bg-card rounded-3xl shadow-sm p-12 border-2 border-dashed border-border text-center flex flex-col items-center gap-5">
-                <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center border border-border shadow-sm">
+            <div className="bg-card rounded-xl shadow-none p-12 border-2 border-dashed border-border text-center flex flex-col items-center gap-5">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border border-border shadow-none">
                     <Book className="w-10 h-10 text-muted-foreground/20" />
                 </div>
                 <div>
-                   <p className="font-black text-foreground text-2xl tracking-tight">Focusing on your Future</p>
+                   <p className="font-semibold text-foreground text-2xl tracking-tight">Focusing on your Future</p>
                    <p className="text-muted-foreground text-sm mt-1 max-w-sm mx-auto font-medium">Your instructor is preparing the upcoming lecture topic. Please check back shortly for updates.</p>
                 </div>
-                <button className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-black transition-all">
+                <button className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold hover:bg-black transition-all">
                     View Course Details
                 </button>
             </div>
@@ -444,17 +444,17 @@ const TopicDisplay = ({ classroomId }) => {
     }
 
     return (
-        <div className={`bg-card rounded-2xl shadow-sm p-8 border-t-4 transition-all ${currentTopic.status === 'active' ? 'border-primary' : 'border-border'}`}>
+        <div className={`bg-card rounded-xl shadow-none p-8 border-t-4 transition-all ${currentTopic.status === 'active' ? 'border-primary' : 'border-border'}`}>
             <div className="flex flex-col gap-6">
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center flex-wrap gap-3 mb-3">
-                            <h3 className="text-2xl font-black text-foreground tracking-tight">{currentTopic.name}</h3>
-                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-muted text-muted-foreground border border-border`}>
+                            <h3 className="text-2xl font-semibold text-foreground tracking-tight">{currentTopic.name}</h3>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-muted text-muted-foreground border border-border`}>
                                 {currentTopic.status === 'active' ? 'Current Focus' : currentTopic.status}
                             </span>
                             {hasCurrentVideos && (
-                                <span className="px-3 py-1 bg-muted/50 text-muted-foreground rounded-full text-[9px] font-black uppercase tracking-widest border border-border">
+                                <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-semibold tracking-wide border border-border">
                                     {recordedVideos.length} Chapters
                                 </span>
                             )}
@@ -468,10 +468,10 @@ const TopicDisplay = ({ classroomId }) => {
 
                 {/* THEATER MODE - ALWAYS ON FOR TOPICS WITH VIDEOS */}
                 {hasCurrentVideos && (
-                    <div className="bg-slate-900 rounded-3xl md:rounded-[2rem] overflow-hidden shadow-xl p-2 md:p-5 border border-slate-800 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="bg-slate-900 rounded-xl md:rounded-xl overflow-hidden shadow-none p-2 md:p-5 border border-slate-800 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="flex flex-col lg:flex-row gap-4 md:gap-5">
                             {/* Main Cinematic Player - MAX WIDTH ON MOBILE */}
-                            <div className="flex-1 bg-black rounded-2xl md:rounded-3xl overflow-hidden shadow-inner relative min-h-[250px] md:min-h-[500px] lg:min-h-[580px] flex items-center justify-center border border-slate-800/50">
+                            <div className="flex-1 bg-black rounded-xl md:rounded-xl overflow-hidden shadow-none relative min-h-[250px] md:min-h-[500px] lg:min-h-[580px] flex items-center justify-center border border-slate-800/50">
                                 {activeVideoId !== null ? (
                                     (() => {
                                         const v = sortedVideos.find((vid, i) => (vid._id || i) === activeVideoId);
@@ -491,7 +491,7 @@ const TopicDisplay = ({ classroomId }) => {
                             {/* Playlist - CAROUSEL ON MOBILE, SIDEBAR ON DESKTOP */}
                             <div className="lg:w-72 shrink-0 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto pb-4 lg:pb-0 pr-1 snap-x scrollbar-hide lg:custom-scrollbar">
                                 <div className="hidden lg:block px-2 mb-2 border-b border-slate-800/50 pb-2">
-                                    <h5 className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500">Course Materials</h5>
+                                    <h5 className="text-xs font-semibold tracking-[0.25em] text-slate-500">Course Materials</h5>
                                 </div>
                                 
                                 {sortedVideos.map((vid, idx) => {
@@ -502,29 +502,29 @@ const TopicDisplay = ({ classroomId }) => {
                                         <div 
                                             key={vId} 
                                             onClick={() => handleVideoSelect(vId)}
-                                            className={`group flex items-center gap-3 p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border-2 snap-start shrink-0 w-[240px] lg:w-full ${
+                                            className={`group flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition-all duration-200 border-2 snap-start shrink-0 w-[240px] lg:w-full ${
                                                 isActive 
-                                                    ? 'bg-slate-800 border-slate-700 shadow-lg translate-x-0 lg:translate-x-1' 
+                                                    ? 'bg-slate-800 border-slate-700 shadow-none translate-x-0 lg:translate-x-1' 
                                                     : 'bg-transparent border-transparent hover:bg-slate-800/40 hover:border-slate-800'
                                             }`}
                                         >
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
                                                 isActive ? 'bg-white text-slate-900 border-white' : isWatched ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-800 text-slate-500 border-slate-700'
                                             }`}>
-                                                {isActive ? <Pause className="w-3 h-3 fill-current" /> : isWatched ? <CheckCircle className="w-4 h-4" /> : <div className="text-[10px] font-bold">{idx + 1}</div>}
+                                                {isActive ? <Pause className="w-3 h-3 fill-current" /> : isWatched ? <CheckCircle className="w-4 h-4" /> : <div className="text-xs font-semibold">{idx + 1}</div>}
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className={`text-[11px] font-bold truncate leading-tight ${isActive ? 'text-white' : isWatched ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                                <p className={`text-[11px] font-semibold truncate leading-tight ${isActive ? 'text-white' : isWatched ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-200'}`}>
                                                     {vid.label || `Lecture ${idx + 1}`}
                                                 </p>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <span className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-slate-400' : isWatched ? 'text-emerald-500' : 'text-slate-600'}`}>{isWatched ? 'Watched' : `Part ${idx + 1}`}</span>
+                                                    <span className={`text-[8px] font-semibold tracking-wide ${isActive ? 'text-slate-400' : isWatched ? 'text-emerald-500' : 'text-slate-600'}`}>{isWatched ? 'Watched' : `Part ${idx + 1}`}</span>
                                                     <div className={`w-0.5 h-0.5 rounded-full ${isActive ? 'bg-slate-600' : isWatched ? 'bg-emerald-500/30' : 'bg-slate-800'}`} />
-                                                    <span className={`text-[8px] font-bold truncate ${isActive ? 'text-slate-500' : 'text-slate-700'}`}>{vid.videoType === 'url' ? 'Link' : 'File'}</span>
+                                                    <span className={`text-[8px] font-semibold truncate ${isActive ? 'text-slate-500' : 'text-slate-700'}`}>{vid.videoType === 'url' ? 'Link' : 'File'}</span>
                                                 </div>
                                             </div>
                                             {isActive && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse mr-1" />
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse mr-1" />
                                             )}
                                         </div>
                                     );
@@ -536,12 +536,12 @@ const TopicDisplay = ({ classroomId }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     {currentTopic.lessonsOutline && (
-                        <div className="bg-muted/50 p-6 rounded-2xl border border-border">
+                        <div className="bg-muted p-6 rounded-xl border border-border">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-2 bg-card rounded-xl border border-border">
                                     <Book className="w-4 h-4 text-muted-foreground/40" />
                                 </div>
-                                <h5 className="font-bold text-foreground/80 uppercase tracking-widest text-[9px]">Module Outline</h5>
+                                <h5 className="font-semibold text-foreground/80 tracking-wide text-xs">Module Outline</h5>
                             </div>
                             <p className="text-muted-foreground text-sm whitespace-pre-wrap leading-relaxed px-1">{currentTopic.lessonsOutline}</p>
                         </div>
@@ -553,9 +553,9 @@ const TopicDisplay = ({ classroomId }) => {
                                 <div className="p-4 bg-card border border-border rounded-xl">
                                     <div className="flex items-center gap-2 mb-1.5 px-1">
                                         <Clock className="w-3.5 h-3.5 text-muted-foreground/30" />
-                                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Duration</span>
+                                        <span className="text-xs font-semibold tracking-wide text-muted-foreground">Total Duration</span>
                                     </div>
-                                    <p className="text-sm font-bold text-foreground px-1">{getDurationText(currentTopic.duration)}</p>
+                                    <p className="text-sm font-semibold text-foreground px-1">{getDurationText(currentTopic.duration)}</p>
                                 </div>
                             )}
 
@@ -563,20 +563,20 @@ const TopicDisplay = ({ classroomId }) => {
                                 <div className="p-4 bg-card border border-border rounded-xl">
                                     <div className="flex items-center gap-2 mb-1.5 px-1">
                                         <Calendar className="w-3.5 h-3.5 text-muted-foreground/30" />
-                                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Launch Date</span>
+                                        <span className="text-xs font-semibold tracking-wide text-muted-foreground">Launch Date</span>
                                     </div>
-                                    <p className="text-sm font-bold text-foreground px-1">{formatDisplayDate(currentTopic.startedAt)}</p>
+                                    <p className="text-sm font-semibold text-foreground px-1">{formatDisplayDate(currentTopic.startedAt)}</p>
                                 </div>
                             )}
                         </div>
 
                         {currentTopic.expectedEndDate && currentTopic.status === 'active' && (
-                            <div className="p-5 bg-muted/50 rounded-xl border border-border">
+                            <div className="p-5 bg-muted rounded-xl border border-border">
                                 <div className="flex items-center gap-3 text-muted-foreground mb-2">
                                     <Calendar className="w-4 h-4" />
-                                    <span className="text-[9px] font-bold uppercase tracking-widest">Completion Target</span>
+                                    <span className="text-xs font-semibold tracking-wide">Completion Target</span>
                                 </div>
-                                <p className="text-foreground text-lg font-black">{formatDisplayDate(currentTopic.expectedEndDate)}</p>
+                                <p className="text-foreground text-lg font-semibold">{formatDisplayDate(currentTopic.expectedEndDate)}</p>
                             </div>
                         )}
                     </div>
@@ -585,19 +585,19 @@ const TopicDisplay = ({ classroomId }) => {
 
             {user && !['root_admin', 'school_admin', 'personal_teacher', 'teacher'].includes(user.role) && showPaidTopics && topicStatus && (
                 <div className="mt-12 pt-8 border-t border-border">
-                    <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-6 flex items-center gap-2">
+                    <h4 className="text-[8px] font-semibold tracking-[0.2em] text-muted-foreground/40 mb-6 flex items-center gap-2">
                         <CheckCircle className="w-3 h-3" /> Progress Markers
                     </h4>
                     <div className="flex flex-wrap gap-2.5">
                         {topicStatus.allTopics.map(topic => (
-                            <div key={topic._id} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${topic.isPaid ? 'bg-muted border-border text-foreground' : 'bg-muted/50 border-border text-muted-foreground'}`}>
+                            <div key={topic._id} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${topic.isPaid ? 'bg-muted border-border text-foreground' : 'bg-muted border-border text-muted-foreground'}`}>
                                 <div className={`p-1 rounded-md ${topic.isPaid ? 'bg-background text-foreground' : 'bg-background text-muted-foreground'}`}>
                                     {topic.isPaid ? <CheckCircle className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                                 </div>
-                                <span className="text-[10px] font-bold">{topic.name}</span>
+                                <span className="text-xs font-semibold">{topic.name}</span>
                                 {!topic.isPaid && topic.price > 0 && (
                                     <button
-                                        className="ml-2 px-3 py-1 bg-slate-800 text-white rounded-lg text-[9px] font-bold hover:bg-black transition"
+                                        className="ml-2 px-3 py-1 bg-slate-800 text-white rounded-xl text-xs font-semibold hover:bg-black transition"
                                         disabled={paying}
                                         onClick={() => handlePayForTopic(topic._id)}
                                     >
@@ -609,7 +609,7 @@ const TopicDisplay = ({ classroomId }) => {
                     </div>
                     {topicStatus.unpaidTopics.length > 1 && topicStatus.totalUnpaidAmount > 0 && (
                         <button
-                            className="mt-4 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-black disabled:opacity-50"
+                            className="mt-4 px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold hover:bg-black disabled:opacity-50"
                             disabled={paying}
                             onClick={handlePayForAllTopics}
                         >

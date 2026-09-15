@@ -41,7 +41,7 @@ const GracyGrowth = ({ access }) => {
         <p className="text-sm text-slate-500">{error}</p>
         <button 
           onClick={load}
-          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium transition-colors"
         >
           Try Again
         </button>
@@ -64,9 +64,9 @@ const GracyGrowth = ({ access }) => {
     <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-slate-50 dark:bg-slate-900/50 custom-scrollbar">
       {/* Quota Banner */}
       {access && (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex justify-between items-center shadow-sm">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Daily Quota</span>
-          <span className="text-sm font-bold text-sky-600 dark:text-sky-400">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex justify-between items-center shadow-none">
+          <span className="text-xs font-semibold text-slate-500 tracking-wider">Daily Quota</span>
+          <span className="text-sm font-semibold text-primary dark:text-primary">
             {access.remaining} <span className="text-slate-400">/ {access.dailyLimit} remaining</span>
           </span>
         </div>
@@ -75,8 +75,8 @@ const GracyGrowth = ({ access }) => {
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-3">
         {metricCards.map((card, idx) => (
-          <div key={idx} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <span className="text-2xl font-black text-slate-800 dark:text-slate-100">
+          <div key={idx} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-none flex flex-col justify-center">
+            <span className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
               {card.value}{card.suffix || ''}
             </span>
             <span className="text-xs font-medium text-slate-500 mt-1 line-clamp-1" title={card.label}>
@@ -88,8 +88,8 @@ const GracyGrowth = ({ access }) => {
 
       {/* Growth Summary */}
       {growth?.summary && (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
-          <h4 className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-none">
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
             <TrendingUp className="w-4 h-4 text-sky-500" />
             Your Growth
           </h4>
@@ -101,8 +101,8 @@ const GracyGrowth = ({ access }) => {
 
       {/* Next Step */}
       {growth?.nextStep && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 shadow-sm">
-          <h4 className="flex items-center gap-2 text-sm font-bold text-emerald-800 dark:text-emerald-400 mb-2">
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 shadow-none">
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-400 mb-2">
             <Sparkles className="w-4 h-4 text-emerald-500" />
             Recommended Next Step
           </h4>

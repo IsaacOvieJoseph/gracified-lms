@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Edit, Plus, Calendar, Users, User, Book, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, ChevronRight, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Pause, Circle, FastForward, Eye, EyeOff, Megaphone, Flag, CreditCard, School, GraduationCap, Layers, Sparkles, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { Video, Edit, Plus, Calendar, Users, User, Book, BookOpen, DollarSign, X, UserPlus, FileText, CheckCircle, Send, ChevronDown, ChevronUp, ChevronRight, GripVertical, Trash2, Loader2, Clock, ExternalLink, Globe, Share2, Facebook, Twitter, Linkedin, Copy, Play, Pause, Circle, FastForward, Eye, EyeOff, Megaphone, Flag, CreditCard, School, GraduationCap, Layers, Sparkles, MessageSquare, MoreHorizontal, Building2, LogOut, Pencil, PenSquare } from 'lucide-react';
 import { convertLocalToUTC, convertUTCToLocal, formatDisplayDate } from '../utils/timezone';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
@@ -241,18 +241,18 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
       }
       return (
         <div className="p-12 text-center bg-slate-950 h-full w-full flex flex-col items-center justify-center gap-4">
-          <div className="w-20 h-20 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-2xl">
+          <div className="w-20 h-20 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-none">
              <Video className="w-8 h-8 text-slate-500" />
           </div>
           <div className="space-y-1">
-              <p className="text-white text-lg font-black tracking-tight">External Stream</p>
+              <p className="text-white text-lg font-semibold tracking-tight">External Stream</p>
               <p className="text-slate-500 text-sm max-w-xs mx-auto">This content is hosted on a secure 3rd-party platform.</p>
           </div>
           <a
               href={vid.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 px-6 py-3 bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black border border-slate-700 transition-all flex items-center gap-3 group shadow-lg"
+              className="mt-4 px-6 py-3 bg-slate-800 text-white rounded-xl text-xs font-semibold tracking-wide hover:bg-black border border-slate-700 transition-all flex items-center gap-3 group shadow-none"
           >
               <span>Open Resource</span>
               <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -275,10 +275,10 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
 
   return (
     <div
-      className={`border-2 rounded-lg p-4 transition ${
-        isCurrent ? 'border-primary/40 bg-primary/10 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]' :
+      className={`border-2 rounded-xl p-4 transition ${
+        isCurrent ? 'border-primary/40 bg-primary/10 shadow-none' :
         isDone ? 'border-emerald-500/20 bg-emerald-500/5 opacity-80' :
-        isNext ? 'border-indigo-500/30 bg-indigo-500/10 shadow-sm' :
+        isNext ? 'border-primary/40 bg-primary/10 shadow-none' :
         'border-border bg-card hover:border-border/80'
       }`}
     >
@@ -289,28 +289,28 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
           ) : isCurrent ? (
             <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
           ) : isNext ? (
-            <Play className="w-5 h-5 text-indigo-600" />
+            <Play className="w-5 h-5 text-primary" />
           ) : (
             <Circle className="w-5 h-5 text-gray-400" />
           )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-2 mb-1">
-            <h4 className="font-bold text-foreground">{topic.name}</h4>
+            <h4 className="font-semibold text-foreground">{topic.name}</h4>
             {isCurrent && (
-              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-wider border border-primary/20">Current</span>
+              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-semibold tracking-wider border border-primary/20">Current</span>
             )}
             {isDone && (
-              <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">Done</span>
+              <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-full text-xs font-semibold tracking-wider border border-emerald-500/20">Done</span>
             )}
             {isNext && (
-              <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-500/20">Next</span>
+              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-semibold tracking-wider border border-primary/30">Next</span>
             )}
             {isPending && (
-              <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded-full text-[10px] font-black uppercase tracking-wider border border-border">Pending</span>
+              <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded-full text-xs font-semibold tracking-wider border border-border">Pending</span>
             )}
             {hasVideos && (
-              <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-purple-500/20 flex items-center gap-1">
+              <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full text-xs font-semibold tracking-wider border border-purple-500/20 flex items-center gap-1">
                 <Video className="w-3 h-3" /> {recordedVideos.length} Lecture{recordedVideos.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -319,8 +319,8 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
             <p className="text-sm text-muted-foreground line-clamp-2">{topic.description}</p>
           )}
           {topic.lessonsOutline && (
-            <div className="mt-2 p-2 bg-muted/30 rounded text-[11px] text-muted-foreground border border-border/50">
-              <p className="font-bold text-foreground/70 mb-1 uppercase tracking-widest text-[9px]">Lesson Outline:</p>
+            <div className="mt-2 p-2 bg-muted rounded text-[11px] text-muted-foreground border border-border/50">
+              <p className="font-semibold text-foreground/70 mb-1 tracking-wide text-xs">Lesson Outline:</p>
               <p className="line-clamp-3 whitespace-pre-wrap">{topic.lessonsOutline}</p>
             </div>
           )}
@@ -328,9 +328,9 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
           {/* Persistent Theater Mode - ALWAYS ON FOR TOPICS WITH VIDEOS */}
           {hasVideos && (
             <div className="mt-4">
-              <div className="mt-4 flex flex-col lg:flex-row gap-4 md:gap-5 bg-slate-900 rounded-3xl md:rounded-[2rem] overflow-hidden shadow-xl p-2 md:p-5 border border-slate-800 animate-in fade-in zoom-in duration-300">
+              <div className="mt-4 flex flex-col lg:flex-row gap-4 md:gap-5 bg-slate-900 rounded-xl md:rounded-xl overflow-hidden shadow-none p-2 md:p-5 border border-slate-800 animate-in fade-in zoom-in duration-300">
                 {/* Main Player Section - MAX WIDTH ON MOBILE */}
-                <div className="flex-1 bg-black rounded-2xl md:rounded-3xl overflow-hidden flex items-center justify-center min-h-[250px] md:min-h-[500px] lg:min-h-[600px] shadow-inner relative border border-slate-800/50">
+                <div className="flex-1 bg-black rounded-xl md:rounded-xl overflow-hidden flex items-center justify-center min-h-[250px] md:min-h-[500px] lg:min-h-[600px] shadow-none relative border border-slate-800/50">
                   {activeVideoId !== null ? (
                     (() => {
                       const sorted = [...recordedVideos].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -345,7 +345,7 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
                       <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
                         <Play className="w-6 h-6 opacity-20" />
                       </div>
-                      <p className="font-bold text-sm">Select a chapter from the list</p>
+                      <p className="font-semibold text-sm">Select a chapter from the list</p>
                     </div>
                   )}
                 </div>
@@ -353,8 +353,8 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
                 {/* Vertical Video List Sidebar - CAROUSEL ON MOBILE */}
                 <div className="w-full lg:w-72 shrink-0 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto pb-4 lg:pb-0 pr-1 snap-x scrollbar-hide lg:custom-scrollbar">
                   <div className="hidden lg:flex items-center justify-between mb-3 px-1 border-b border-slate-800 pb-2">
-                      <h5 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Course Materials</h5>
-                      <span className="text-[9px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">{recordedVideos.length} Parts</span>
+                      <h5 className="text-xs font-semibold tracking-wide text-slate-500">Course Materials</h5>
+                      <span className="text-xs font-semibold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">{recordedVideos.length} Parts</span>
                   </div>
                   
                   {[...recordedVideos].sort((a, b) => (a.order || 0) - (b.order || 0)).map((vid, idx) => {
@@ -365,31 +365,31 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
                       <div 
                         key={vId} 
                         onClick={() => handleVideoSelect(vId)}
-                        className={`group flex items-center gap-3 p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border-2 snap-start shrink-0 w-[240px] lg:w-full ${
+                        className={`group flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition-all duration-200 border-2 snap-start shrink-0 w-[240px] lg:w-full ${
                           isActive 
-                            ? 'bg-slate-800 border-slate-700 shadow-md translate-x-0 lg:translate-x-1' 
+                            ? 'bg-slate-800 border-slate-700 shadow-none translate-x-0 lg:translate-x-1' 
                             : 'bg-transparent border-transparent hover:bg-slate-800/40 hover:border-slate-800'
                         }`}
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
                           isActive ? 'bg-white text-slate-900 border-white' : isWatched ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-800 text-slate-500 border-slate-700'
                         }`}>
-                          {isActive ? <Pause className="w-3 h-3 fill-current" /> : isWatched ? <CheckCircle className="w-4 h-4" /> : <div className="text-[10px] font-bold">{idx + 1}</div>}
+                          {isActive ? <Pause className="w-3 h-3 fill-current" /> : isWatched ? <CheckCircle className="w-4 h-4" /> : <div className="text-xs font-semibold">{idx + 1}</div>}
                         </div>
                         
                         <div className="min-w-0 flex-1">
-                          <p className={`text-[11px] font-bold truncate leading-tight ${isActive ? 'text-white' : isWatched ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                          <p className={`text-[11px] font-semibold truncate leading-tight ${isActive ? 'text-white' : isWatched ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-200'}`}>
                             {vid.label || `Lecture ${idx + 1}`}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
-                              <span className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-slate-400' : isWatched ? 'text-emerald-500' : 'text-slate-600'}`}>{isWatched ? 'Watched' : `Part ${idx + 1}`}</span>
+                              <span className={`text-[11px] font-semibold tracking-wide ${isActive ? 'text-slate-400' : isWatched ? 'text-emerald-500' : 'text-slate-600'}`}>{isWatched ? 'Watched' : `Part ${idx + 1}`}</span>
                               <div className={`w-0.5 h-0.5 rounded-full ${isActive ? 'bg-slate-500' : isWatched ? 'bg-emerald-500/30' : 'bg-slate-700'}`} />
-                              <span className={`text-[8px] font-bold ${isActive ? 'text-slate-500' : 'text-slate-700'}`}>{vid.videoType === 'url' ? 'Link' : 'File'}</span>
+                              <span className={`text-[11px] font-semibold ${isActive ? 'text-slate-500' : 'text-slate-700'}`}>{vid.videoType === 'url' ? 'Link' : 'File'}</span>
                           </div>
                         </div>
 
                         {isActive && (
-                          <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse mr-1" />
+                          <div className="w-1 h-1 rounded-full bg-primary animate-pulse mr-1" />
                         )}
                       </div>
                     );
@@ -405,6 +405,119 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
 };
 
 
+
+// ─── Flat record card primitives (ClassRecord design language) ──────────────
+const INK = '#14202E';
+const NAVY = '#1D3557';
+const SLATE = '#5B6B7C';
+const HAIRLINE = '#DDE3E9';
+const PAPER = '#FFFFFF';
+const PANEL = '#F7F8FA';
+const GOLD = '#A9791F';
+const FOREST = '#2F6E4E';
+const ROSE = '#A23B2E';
+
+const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: '2px' };
+const outlineActionStyle = { backgroundColor: PAPER, color: INK, border: `1px solid ${HAIRLINE}`, borderRadius: '2px' };
+
+function ActionButton({ icon: Icon, label, tone = 'default', onClick, disabled, loading }) {
+  const tones = {
+    default: { color: INK, border: HAIRLINE, bg: PAPER },
+    danger: { color: ROSE, border: '#EBD3CE', bg: '#FCF5F3' },
+    solid: { color: PAPER, border: INK, bg: INK },
+  };
+  const t = tones[tone];
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
+      style={{
+        color: t.color,
+        backgroundColor: t.bg,
+        border: `1px solid ${t.border}`,
+        borderRadius: '2px',
+      }}
+    >
+      {loading ? <Loader2 size={15} className="animate-spin" /> : <Icon size={15} strokeWidth={2} />}
+      {label}
+    </button>
+  );
+}
+
+function OverflowMenu({ onEdit, onEnd, onDelete, showDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const items = [
+    { icon: Pencil, label: 'Edit', color: INK, action: onEdit },
+    { icon: Flag, label: 'End class', color: INK, action: onEnd },
+    ...(showDelete ? [{ icon: Trash2, label: 'Delete', color: ROSE, action: onDelete }] : []),
+  ];
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-center w-9 h-9"
+        style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: '2px' }}
+        aria-label="More actions"
+      >
+        <MoreHorizontal size={16} style={{ color: INK }} />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 mt-1 z-[60]"
+          style={{
+            backgroundColor: PAPER,
+            border: `1px solid ${HAIRLINE}`,
+            borderRadius: '2px',
+            minWidth: '160px',
+            boxShadow: '0 2px 6px rgba(20,32,46,0.08)',
+          }}
+        >
+          {items.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.label}
+                onClick={() => { setOpen(false); item.action && item.action(); }}
+                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-left"
+                style={{
+                  color: item.color,
+                  borderBottom: i < items.length - 1 ? `1px solid ${HAIRLINE}` : 'none',
+                }}
+              >
+                <Icon size={15} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecordField({ icon: Icon, label, children, borderRight }) {
+  return (
+    <div className={`flex items-start gap-3 px-5 py-4 min-w-0 ${borderRight ? 'sm:border-r sm:border-border' : ''}`}>
+      <Icon size={17} strokeWidth={1.75} style={{ color: SLATE, marginTop: 2 }} />
+      <div className="min-w-0">
+        <div className="text-xs" style={{ color: SLATE }}>{label}</div>
+        <div className="text-sm font-semibold mt-0.5 break-words" style={{ color: INK }}>{children}</div>
+      </div>
+    </div>
+  );
+}
 
 const ClassroomDetail = () => {
   const { id } = useParams();
@@ -1328,7 +1441,7 @@ const ClassroomDetail = () => {
   const canGradeAssignment = canEdit;
 
   if (loading || userLoading) {
-    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Loading...</p></div></Layout>;
+    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-xs font-semibold tracking-wide text-muted-foreground opacity-50">Loading...</p></div></Layout>;
   }
   if (!user || !user._id) {
     return <Layout><div className="text-center py-8 text-red-600">User session invalid. Please log in again.</div></Layout>;
@@ -1360,232 +1473,103 @@ const ClassroomDetail = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="bg-card border border-border rounded-2xl shadow-xl p-6">
-          {/* Header Row: Title, Tags, Edit Button */}
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center justify-between lg:justify-start gap-3 mb-2">
-              <div className="flex items-center gap-3 min-w-0">
-                  <h2 className="text-2xl md:text-3xl font-black italic text-foreground tracking-tight truncate pr-2 pb-1">{classroom.name}</h2>
-                  
-                  {/* Mobile-only Action Menu aligned with title */}
-                  {canEdit && (
-                    <div className="relative md:hidden group shrink-0">
-                      <button className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-all active:scale-90">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                      
-                      <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 py-3 z-[100] opacity-0 translate-y-2 pointer-events-none group-focus-within:opacity-100 group-focus-within:translate-y-0 group-focus-within:pointer-events-auto transition-all duration-300 transform origin-top-right">
-                        <div className="px-5 py-2 mb-2">
-                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Class Actions</p>
-                        </div>
-
-                        <button
-                          onClick={handlePublishToggle}
-                          disabled={publishing}
-                          className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
-                        >
-                          {classroom.published ? <EyeOff className="w-4 h-4 text-slate-400" /> : <Eye className="w-4 h-4 text-emerald-500" />}
-                          <span>{classroom.published ? 'Unpublish Class' : 'Publish Class'}</span>
-                        </button>
-
-                        {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
-                          <button
-                            onClick={() => {
-                              const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
-                              navigator.clipboard.writeText(shareLink);
-                              toast.success('Link copied!');
-                            }}
-                            className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
-                          >
-                            <Share2 className="w-4 h-4 text-indigo-500" />
-                            <span>Share Class</span>
-                          </button>
-                        )}
-
-                        <button
-                          onClick={handleOpenEdit}
-                          className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
-                        >
-                          <Edit className="w-4 h-4 text-amber-500" />
-                          <span>Edit Details</span>
-                        </button>
-
-                        <button
-                          onClick={() => setShowEndClassModal(true)}
-                          className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors text-left"
-                        >
-                          <Flag className="w-4 h-4 text-indigo-600" />
-                          <span>End Class</span>
-                        </button>
-
-                        {(user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
-                          <div className="mt-2 pt-2 border-t border-slate-50">
-                            <button
-                              onClick={handleDeleteClassroomClick}
-                              className="w-full flex items-center gap-3 px-5 py-3 hover:bg-rose-50 text-rose-500 font-black text-sm transition-colors text-left"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              <span>Delete Classroom</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {classroom.isPaid && classroom.pricing?.amount > 0 ? (
-                  <div className="flex flex-col">
-                    <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-                      {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
-                    </span>
-                    {classroom.pricing?.type && classroom.pricing.type !== 'free' && (
-                      <span className="text-[9px] text-muted-foreground font-black uppercase mt-1 text-center tracking-widest">
-                        {classroom.pricing.type.replace('_', ' ')}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
-                    Free
-                  </span>
-                )}
+      <div className="space-y-6 min-w-0 w-full">
+        <div className="bg-card border border-border rounded-sm shadow-none min-w-0">
+          {/* Header Row: Title, Actions, Price */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: classroom.published ? FOREST : SLATE }} />
+                <span className="text-xs font-semibold" style={{ color: classroom.published ? FOREST : SLATE, letterSpacing: '0.02em' }}>
+                  {classroom.published ? 'Published' : 'Draft'}
+                </span>
               </div>
+              <h1 className="font-serif text-[28px] font-semibold leading-snug truncate">{classroom.name}</h1>
+              <p className="text-sm mt-1" style={{ color: SLATE }}>
+                {classroom.subject || 'Subject'} &middot; {classroom.level ? `${classroom.level} level` : 'Level'}
+              </p>
             </div>
 
-            {canEdit && (
-              <div className="flex items-center gap-2 mt-2 lg:mt-0">
-                {/* Desktop Buttons: Refined Professional Palette */}
-                <div className="hidden md:flex items-center gap-2.5">
-                  <button
+            <div className="flex items-center gap-5 shrink-0 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                {canEdit && (
+                  <ActionButton
+                    icon={classroom.published ? EyeOff : Eye}
+                    label={classroom.published ? 'Unpublish' : 'Publish'}
                     onClick={handlePublishToggle}
-                    disabled={publishing}
-                    className={`h-11 flex items-center gap-2.5 px-5 rounded-xl font-bold text-xs transition-all transform hover:-translate-y-0.5 active:scale-95 border ${
-                      classroom.published
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/80 shadow-sm shadow-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-700 shadow-sm shadow-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700 dark:shadow-none'
-                    }`}
-                  >
-                    {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : classroom.published ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 opacity-50" />}
-                    <span>{classroom.published ? 'Published' : 'Draft'}</span>
-                  </button>
+                    loading={publishing}
+                  />
+                )}
+                {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
+                  <ActionButton
+                    icon={Share2}
+                    label="Share"
+                    onClick={() => {
+                      const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
+                      navigator.clipboard.writeText(shareLink);
+                      toast.success('Link copied!');
+                    }}
+                  />
+                )}
+                <OverflowMenu
+                  onEdit={handleOpenEdit}
+                  onEnd={() => setShowEndClassModal(true)}
+                  onDelete={handleDeleteClassroomClick}
+                  showDelete={user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)}
+                />
+              </div>
 
-                  {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
-                    <button
-                      onClick={() => {
-                        const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
-                        navigator.clipboard.writeText(shareLink);
-                        toast.success('Link copied!');
-                      }}
-                      className="h-11 flex items-center gap-2.5 px-5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm shadow-indigo-100 dark:shadow-none dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 dark:hover:bg-indigo-600 dark:hover:text-white group"
-                    >
-                      <Share2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                      <span>Share</span>
-                    </button>
-                  )}
+              <div style={{ width: '1px', alignSelf: 'stretch' }} className="bg-border" />
 
-                  <button
-                    onClick={handleOpenEdit}
-                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm dark:shadow-none dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700"
-                  >
-                    <Edit className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Edit</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowEndClassModal(true)}
-                    className="h-11 flex items-center gap-2.5 px-5 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-slate-900/10 dark:shadow-none dark:bg-slate-800 dark:hover:bg-slate-700 border dark:border-slate-700 hover:text-rose-500 hover:border-rose-500/30 dark:hover:text-rose-400"
-                  >
-                    <Flag className="w-3.5 h-3.5 text-slate-400" />
-                    <span>End Class</span>
-                  </button>
-
-                  {(user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)) && (
-                    <button
-                      onClick={handleDeleteClassroomClick}
-                      className="h-11 flex items-center justify-center w-11 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all transform hover:-translate-y-0.5 active:scale-95 border border-rose-100 hover:border-rose-500 shadow-sm dark:bg-rose-500/10 dark:border-rose-500/20 dark:hover:bg-rose-500 dark:hover:text-white"
-                      title="Delete Classroom"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+              <div className="text-right">
+                <div className="font-serif text-2xl font-semibold" style={{ color: classroom.isPaid && classroom.pricing?.amount > 0 ? GOLD : FOREST }}>
+                  {classroom.isPaid && classroom.pricing?.amount > 0
+                    ? formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')
+                    : 'Free'}
+                </div>
+                <div className="text-xs mt-1" style={{ color: SLATE }}>
+                  {classroom.isPaid && classroom.pricing?.amount > 0
+                    ? (classroom.pricing?.type === 'per_lecture' ? 'per lecture' : (classroom.pricing?.type || 'paid').replace('_', ' '))
+                    : 'no charge'}
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Full Width Content: Description & Outcomes */}
-          <div className="space-y-6 mb-8">
-            {classroom.description && (
-              <p className="text-muted-foreground text-sm md:text-base font-medium leading-relaxed max-w-4xl">{classroom.description}</p>
-            )}
-            
-            {classroom.learningOutcomes && (
-              <div className="p-6 bg-primary/5 border border-primary/10 rounded-[2rem]">
-                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Expected Learning Outcomes</h4>
-                <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-8">
-                  {classroom.learningOutcomes.split(',').map((outcome, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-muted-foreground text-sm font-medium">
-                      <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                      <span>{outcome.trim()}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-6">
-              {classroom.subject && (
-                <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-xl border border-border/50">
-                  <Book className="w-3.5 h-3.5 mr-2 text-primary" />
-                  <span>Subject:</span> <span className="ml-2 text-foreground">{classroom.subject}</span>
-                </div>
-              )}
-              {classroom.level && (
-                <div className="flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-xl border border-border/50">
-                  <GraduationCap className="w-3.5 h-3.5 mr-2 text-primary" />
-                  <span>Level:</span> <span className="ml-2 text-foreground">{classroom.level}</span>
-                </div>
-              )}
             </div>
           </div>
           {/* Edit Classroom Modal */}
           {showEditModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+            <div className="fixed inset-0 bg-slate-900/60  z-[100] overflow-y-auto">
               <div className="flex min-h-full items-center justify-center p-4">
-                <div className="bg-card border border-border rounded-[3rem] w-full max-w-2xl p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
+                <div className="bg-card border border-border rounded-xl w-full max-w-2xl p-10 shadow-none animate-in zoom-in-95 duration-300">
                   <div className="flex justify-between items-center mb-10">
-                    <h2 className="text-3xl font-black italic tracking-tighter text-foreground uppercase">Edit <span className="text-primary not-italic">Classroom</span></h2>
+                    <h2 className="text-3xl font-semibold tracking-tight text-foreground">Edit <span className="text-primary not-italic">Classroom</span></h2>
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => setShowAIPanel(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold tracking-wider hover:opacity-90 transition-all shadow-none  dark:shadow-none active:scale-95"
                       >
                         <Sparkles className="w-4 h-4" />
                         Magic Generate
                       </button>
-                      <button onClick={() => setShowEditModal(false)} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
+                      <button onClick={() => setShowEditModal(false)} className="p-3 hover:bg-muted rounded-xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
                     </div>
                   </div>
                   <form onSubmit={handleEditClassroom} className="space-y-8 pb-4">
                     {/* Basic Info */}
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Class Title</label>
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Class Title</label>
                         <input
                           value={editForm.name}
                           onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                           placeholder="e.g. Advanced Mathematics Masterclass"
-                          className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
+                          className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                           required
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                           Academic Level
                           <FormFieldHelp content="The grade or education level this class is designed for." />
                         </label>
@@ -1639,7 +1623,7 @@ const ClassroomDetail = () => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                           Subject
                           <FormFieldHelp content="Helps students find your class in the search results." />
                         </label>
@@ -1693,17 +1677,17 @@ const ClassroomDetail = () => {
                       </div>
 
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Description</label>
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Description</label>
                         <textarea
                           value={editForm.description}
                           onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                           placeholder="Tell students what this class is about..."
-                          className="w-full min-h-[100px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
+                          className="w-full min-h-[100px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary transition-all outline-none"
                         />
                       </div>
 
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                           Intro Video URL
                           <FormFieldHelp content="Paste a YouTube or Vimeo link to show a preview on the public page. (e.g. https://www.youtube.com/watch?v=...)" />
                         </label>
@@ -1712,26 +1696,26 @@ const ClassroomDetail = () => {
                           value={editForm.introVideo}
                           onChange={e => setEditForm({ ...editForm, introVideo: e.target.value })}
                           placeholder="https://www.youtube.com/watch?v=..."
-                          className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary transition-all outline-none"
+                          className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                         />
                       </div>
 
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Learning Outcomes</label>
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Learning Outcomes</label>
                         <textarea
                           value={editForm.learningOutcomes}
                           onChange={e => setEditForm({ ...editForm, learningOutcomes: e.target.value })}
                           placeholder="List what students will achieve (comma separated)..."
-                          className="w-full min-h-[80px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary transition-all outline-none italic"
+                          className="w-full min-h-[80px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary transition-all outline-none"
                         />
                       </div>
                     </div>
 
                     {/* Roles & Visibility */}
-                    <div className="grid md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-[2rem] border border-border">
+                    <div className="grid md:grid-cols-2 gap-6 bg-muted p-6 rounded-xl border border-border">
                       {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign Teacher</label>
+                          <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Assign Teacher</label>
                           <Select
                             options={availableTeachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
                             value={availableTeachers.find(t => t._id === editForm.teacherId) ? { value: editForm.teacherId, label: availableTeachers.find(t => t._id === editForm.teacherId).name } : null}
@@ -1758,7 +1742,7 @@ const ClassroomDetail = () => {
 
                       {user?.role === 'school_admin' && (
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Assign to Schools</label>
+                          <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Assign to Schools</label>
                           <Select
                             isMulti
                             options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
@@ -1790,7 +1774,7 @@ const ClassroomDetail = () => {
                         {/* Max Capacity */}
                         <div className="space-y-2">
                            <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Enrollment Limit</span>
+                            <span className="text-xs font-semibold text-slate-400 tracking-wide">Enrollment Limit</span>
                             <FormFieldHelp content="The maximum number of students allowed to enroll in this class." />
                           </div>
                           <div className="relative">
@@ -1799,7 +1783,7 @@ const ClassroomDetail = () => {
                               value={editForm.capacity}
                               onChange={e => setEditForm({ ...editForm, capacity: parseInt(e.target.value) || 30 })}
                               onWheel={(e) => e.target.blur()}
-                              className="w-full pl-4 pr-4 py-3 bg-muted/50 border-2 border-border rounded-2xl focus:border-primary focus:bg-muted transition-all outline-none font-bold text-foreground"
+                              className="w-full pl-4 pr-4 py-3 bg-muted border-2 border-border rounded-xl focus:border-primary focus:bg-muted transition-all outline-none font-semibold text-foreground"
                               min="1"
                               placeholder="30"
                             />
@@ -1809,14 +1793,14 @@ const ClassroomDetail = () => {
                         {/* Private Toggle */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Visibility</span>
+                            <span className="text-xs font-semibold text-slate-400 tracking-wide leading-none">Visibility</span>
                             <FormFieldHelp content="Private classes are not visible to the public. You must share direct links with students." />
                           </div>
                           <label 
                             onClick={() => setEditForm({ ...editForm, isPrivate: !editForm.isPrivate })}
-                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPrivate ? 'border-primary bg-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
+                            className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPrivate ? 'border-primary bg-primary/10' : 'border-border bg-muted hover:border-border/80'}`}
                           >
-                            <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${editForm.isPrivate ? 'text-primary' : 'text-muted-foreground'}`}>Private Class</span>
+                            <span className={`text-xs font-semibold tracking-wide transition-colors ${editForm.isPrivate ? 'text-primary' : 'text-muted-foreground'}`}>Private Class</span>
                             <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPrivate ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPrivate ? 'translate-x-4' : ''}`} />
                             </div>
@@ -1826,14 +1810,14 @@ const ClassroomDetail = () => {
                         {/* Paid Toggle */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Monetization</span>
+                            <span className="text-xs font-semibold text-slate-400 tracking-wide leading-none">Monetization</span>
                             <FormFieldHelp content="When enabled, you can set a price and billing cycle for this classroom." />
                           </div>
                           <label 
                             onClick={() => setEditForm({ ...editForm, isPaid: !editForm.isPaid })}
-                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPaid ? 'border-primary bg-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
+                            className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.isPaid ? 'border-primary bg-primary/10' : 'border-border bg-muted hover:border-border/80'}`}
                           >
-                            <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${editForm.isPaid ? 'text-primary' : 'text-muted-foreground'}`}>Paid Class</span>
+                            <span className={`text-xs font-semibold tracking-wide transition-colors ${editForm.isPaid ? 'text-primary' : 'text-muted-foreground'}`}>Paid Class</span>
                             <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.isPaid ? 'translate-x-4' : ''}`} />
                             </div>
@@ -1844,10 +1828,10 @@ const ClassroomDetail = () => {
 
                     {/* Pricing details if paid */}
                     {editForm.isPaid && (
-                      <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 animate-slide-up">
+                      <div className="p-6 rounded-xl bg-primary/5 border border-primary/10 animate-slide-up">
                         <div className="grid md:grid-cols-2 gap-6">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
+                            <label className="text-xs font-semibold text-primary tracking-wide px-1 flex items-center">
                               Billing Cycle
                               <FormFieldHelp content="Determines payment intervals: Monthly/Weekly (subscription), Per Topic/Lecture (gated), or One Time (access forever)." />
                             </label>
@@ -1881,7 +1865,7 @@ const ClassroomDetail = () => {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-primary tracking-widest px-1 flex items-center">
+                            <label className="text-xs font-semibold text-primary tracking-wide px-1 flex items-center">
                               Amount ({import.meta.env.VITE_CURRENCY || 'NGN'})
                               <FormFieldHelp content="The price students will pay based on the selected billing cycle." />
                             </label>
@@ -1890,7 +1874,7 @@ const ClassroomDetail = () => {
                               value={editForm.pricingAmount}
                               onChange={e => setEditForm({ ...editForm, pricingAmount: parseFloat(e.target.value) || 0 })}
                               onWheel={(e) => e.target.blur()}
-                              className="w-full h-[60px] bg-muted/50 border-2 border-border rounded-2xl focus:border-primary focus:bg-muted transition-all outline-none px-4 font-bold text-foreground"
+                              className="w-full h-[60px] bg-muted border-2 border-border rounded-xl focus:border-primary focus:bg-muted transition-all outline-none px-4 font-semibold text-foreground"
                               placeholder="0.00"
                               required={editForm.isPaid}
                             />
@@ -1900,10 +1884,10 @@ const ClassroomDetail = () => {
                     )}
 
                     {/* Class Format & Public Access */}
-                    <div className="p-6 rounded-[2rem] bg-muted/30 border border-border">
+                    <div className="p-6 rounded-xl bg-muted border border-border">
                       <div className="flex items-center gap-2 mb-4 px-1">
                         <Globe className="w-4 h-4 text-primary" />
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Delivery Format</label>
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide">Delivery Format</label>
                         <FormFieldHelp content="Classroom is a private course. Public Lecture / Public Seminar are open to guests who can join live or watch the recording — no account needed." />
                       </div>
 
@@ -1921,11 +1905,11 @@ const ClassroomDetail = () => {
                               classFormat: opt.value,
                               publicAccess: { ...prev.publicAccess, allowGuestAccess: opt.value !== 'classroom' }
                             }))}
-                            className={`p-4 rounded-2xl border-2 text-left transition-all ${editForm.classFormat === opt.value ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
+                            className={`p-4 rounded-xl border-2 text-left transition-all ${editForm.classFormat === opt.value ? 'border-primary bg-primary/10 shadow-none ' : 'border-border bg-muted hover:border-border/80'}`}
                           >
                             <opt.icon className={`w-5 h-5 mb-3 ${editForm.classFormat === opt.value ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <p className={`text-[10px] font-black uppercase tracking-widest ${editForm.classFormat === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</p>
-                            <p className="text-[9px] text-muted-foreground font-medium mt-1 leading-relaxed">{opt.desc}</p>
+                            <p className={`text-xs font-semibold tracking-wide ${editForm.classFormat === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</p>
+                            <p className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">{opt.desc}</p>
                           </button>
                         ))}
                       </div>
@@ -1934,17 +1918,17 @@ const ClassroomDetail = () => {
                         <div className="mt-6 pt-6 border-t border-border space-y-5 animate-slide-up">
                           <div className="flex items-center gap-2">
                             <Globe className="w-4 h-4 text-primary" />
-                            <label className="text-[10px] font-black uppercase text-primary tracking-widest">Public Access</label>
+                            <label className="text-xs font-semibold text-primary tracking-wide">Public Access</label>
                             <FormFieldHelp content="Controls how guests access this public lecture or seminar. Guests use the public page link." />
                           </div>
 
                           <label
                             onClick={() => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, allowGuestAccess: !prev.publicAccess.allowGuestAccess } }))}
-                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.publicAccess.allowGuestAccess ? 'border-primary bg-primary/10' : 'border-border bg-muted/50 hover:border-border/80'}`}
+                            className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all cursor-pointer group min-h-[64px] ${editForm.publicAccess.allowGuestAccess ? 'border-primary bg-primary/10' : 'border-border bg-muted hover:border-border/80'}`}
                           >
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            <span className="text-xs font-semibold tracking-wide text-muted-foreground">
                               Allow Guest Access
-                              <span className="block text-[8px] font-medium normal-case tracking-normal opacity-60 mt-0.5">People can join live or watch the recording without an account</span>
+                              <span className="block text-[11px] font-medium normal-case tracking-normal opacity-60 mt-0.5">People can join live or watch the recording without an account</span>
                             </span>
                             <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${editForm.publicAccess.allowGuestAccess ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editForm.publicAccess.allowGuestAccess ? 'translate-x-4' : ''}`} />
@@ -1953,7 +1937,7 @@ const ClassroomDetail = () => {
 
                           <div className="grid md:grid-cols-2 gap-5">
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                              <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                                 Starts At
                                 <FormFieldHelp content="When the public access window opens. Guests can join live sessions from this time onward." />
                               </label>
@@ -1961,12 +1945,12 @@ const ClassroomDetail = () => {
                                 type="datetime-local"
                                 value={editForm.publicAccess.startsAt}
                                 onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, startsAt: e.target.value } }))}
-                                className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                                className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
                               />
                             </div>
 
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                              <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                                 Access Duration
                                 <FormFieldHelp content="How long the public access window stays open (days or weeks). The end date is computed automatically." />
                               </label>
@@ -1976,12 +1960,12 @@ const ClassroomDetail = () => {
                                   min="1"
                                   value={editForm.publicAccess.durationValue}
                                   onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, durationValue: parseInt(e.target.value) || 1 } }))}
-                                  className="w-24 bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                                  className="w-24 bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
                                 />
                                 <select
                                   value={editForm.publicAccess.durationUnit}
                                   onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, durationUnit: e.target.value } }))}
-                                  className="flex-1 bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                                  className="flex-1 bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
                                 >
                                   <option value="days">Days</option>
                                   <option value="weeks">Weeks</option>
@@ -1991,7 +1975,7 @@ const ClassroomDetail = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 flex items-center">
+                            <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
                               Recording URL (Optional)
                               <FormFieldHelp content="Paste a YouTube/Vimeo link to the recorded session so guests can watch it after the live event." />
                             </label>
@@ -2000,17 +1984,17 @@ const ClassroomDetail = () => {
                               value={editForm.publicAccess.recordingUrl}
                               onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, recordingUrl: e.target.value } }))}
                               placeholder="https://www.youtube.com/watch?v=..."
-                              className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
+                              className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
                             />
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Join Instructions (Optional)</label>
+                            <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Join Instructions (Optional)</label>
                             <textarea
                               value={editForm.publicAccess.joinInstructions}
                               onChange={e => setEditForm(prev => ({ ...prev, publicAccess: { ...prev.publicAccess, joinInstructions: e.target.value } }))}
                               placeholder="e.g. Have your laptop ready and join 5 minutes early."
-                              className="w-full min-h-[80px] bg-muted/50 border-2 border-border p-4 rounded-2xl font-medium text-foreground focus:border-primary focus:bg-muted transition-all outline-none italic"
+                              className="w-full min-h-[80px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary focus:bg-muted transition-all outline-none"
                             />
                           </div>
                         </div>
@@ -2020,11 +2004,11 @@ const ClassroomDetail = () => {
                     {/* Schedule Builder */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Weekly Schedule</label>
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Weekly Schedule</label>
                         <button
                           type="button"
                           onClick={() => setEditForm({ ...editForm, schedule: [...editForm.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
-                          className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+                          className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline"
                         >
                           <Plus className="w-3.5 h-3.5" /> Add Session
                         </button>
@@ -2032,7 +2016,7 @@ const ClassroomDetail = () => {
 
                       <div className="space-y-3">
                         {editForm.schedule.map((s, idx) => (
-                          <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted/30 rounded-[1.5rem] border border-border animate-slide-up">
+                          <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted rounded-xl border border-border animate-slide-up">
                             <select
                               value={s.dayOfWeek}
                               onChange={e => {
@@ -2040,7 +2024,7 @@ const ClassroomDetail = () => {
                                 newSched[idx].dayOfWeek = e.target.value;
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="flex-1 min-w-[120px] bg-muted/50 border-none rounded-xl text-xs font-black uppercase tracking-widest p-3 text-foreground outline-none"
+                              className="flex-1 min-w-[120px] bg-muted border-none rounded-xl text-xs font-semibold tracking-wide p-3 text-foreground outline-none"
                             >
                               {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d}>{d}</option>)}
                             </select>
@@ -2052,9 +2036,9 @@ const ClassroomDetail = () => {
                                 newSched[idx].startTime = e.target.value;
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="w-32 bg-muted/50 border-none rounded-xl text-xs font-black p-3 text-foreground outline-none"
+                              className="w-32 bg-muted border-none rounded-xl text-xs font-semibold p-3 text-foreground outline-none"
                             />
-                            <span className="text-muted-foreground/60 font-black italic text-[10px] uppercase">to</span>
+                            <span className="text-muted-foreground/60 font-semibold text-xs">to</span>
                             <input
                               type="time"
                               value={s.endTime}
@@ -2063,7 +2047,7 @@ const ClassroomDetail = () => {
                                 newSched[idx].endTime = e.target.value;
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="w-32 bg-muted/50 border-none rounded-xl text-xs font-black p-3 text-foreground outline-none"
+                              className="w-32 bg-muted border-none rounded-xl text-xs font-semibold p-3 text-foreground outline-none"
                             />
                             <button
                               type="button"
@@ -2071,20 +2055,20 @@ const ClassroomDetail = () => {
                                 const newSched = editForm.schedule.filter((_, i) => i !== idx);
                                 setEditForm({ ...editForm, schedule: newSched });
                               }}
-                              className="p-3 text-rose-500 hover:bg-rose-500/10 rounded-xl transition"
+                              className="p-3 text-rose-500 hover:bg-danger/10 rounded-xl transition"
                             >
                               <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         ))}
                         {editForm.schedule.length === 0 && (
-                          <p className="text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest text-center py-4">No sessions scheduled yet.</p>
+                          <p className="text-xs text-muted-foreground/60 font-semibold tracking-wide text-center py-4">No sessions scheduled yet.</p>
                         )}
                       </div>
                     </div>
 
                     <div className="pt-8 flex gap-4 sticky bottom-0 bg-card pb-2 border-t border-border mt-8">
-                      <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition">Discard</button>
+                      <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition">Discard</button>
                       <button type="submit" disabled={isEditing} className="btn-premium flex-1">
                         {isEditing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Save Changes'}
                       </button>
@@ -2095,49 +2079,32 @@ const ClassroomDetail = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 border-y border-border/50 mb-6 font-bold">
-            <div className="flex items-center space-x-3 text-muted-foreground">
-              <User className="w-5 h-5 text-primary shrink-0" />
-              <div className="text-[10px] uppercase tracking-widest">
-                <span className="block text-foreground/50 mb-0.5">Teacher</span>
-                <span className="text-foreground">{classroom.teacherId?.name || 'Unknown Teacher'}</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 text-muted-foreground">
-              <School className="w-5 h-5 text-primary shrink-0" />
-              <div className="text-[10px] uppercase tracking-widest">
-                <span className="block text-foreground/50 mb-0.5">Academic Host</span>
-                <span className="truncate max-w-[200px] block text-foreground" title={(Array.isArray(classroom.schoolId) ? classroom.schoolId.map(s => s?.name || s).join(', ') : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}>
-                  {(Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial'}
-                  {Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 && ` +${classroom.schoolId.length - 1}`}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3 text-muted-foreground">
-              <Calendar className="w-5 h-5 mt-0.5 text-primary shrink-0" />
-              <div className="text-[10px] uppercase tracking-widest">
-                {classroom.schedule && classroom.schedule.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {classroom.schedule.map((session, index) => {
-                      const local = convertUTCToLocal(session.dayOfWeek, session.startTime);
-                      const localEnd = convertUTCToLocal(session.dayOfWeek, session.endTime);
-                      return (
-                        <span key={index} className="bg-muted px-2 py-0.5 rounded text-[9px] border border-border">
-                          {local.dayOfWeek ? local.dayOfWeek.substring(0, 3) : 'N/A'} {local.hhmm}-{localEnd.hhmm}
-                        </span>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground/30">No schedule set</span>
-                )}
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-border">
+            <RecordField icon={User} label="Teacher" borderRight>
+              {classroom.teacherId?.name || 'Unknown Teacher'}
+            </RecordField>
+            <RecordField icon={Building2} label="Academic host" borderRight>
+              {(() => {
+                const schoolName = (Array.isArray(classroom.schoolId) ? (classroom.schoolId[0]?.name || classroom.schoolId[0]) : classroom.schoolId?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial';
+                const extra = Array.isArray(classroom.schoolId) && classroom.schoolId.length > 1 ? ` +${classroom.schoolId.length - 1}` : '';
+                return `${schoolName}${extra}`;
+              })()}
+            </RecordField>
+            <RecordField icon={Calendar} label="Schedule">
+              {(() => {
+                if (!classroom.schedule || classroom.schedule.length === 0) return 'No schedule set';
+                return classroom.schedule.map((session, index) => {
+                  const local = convertUTCToLocal(session.dayOfWeek, session.startTime);
+                  const localEnd = convertUTCToLocal(session.dayOfWeek, session.endTime);
+                  return `${local.dayOfWeek ? local.dayOfWeek.substring(0, 3) : 'N/A'} ${local.hhmm}\u2013${localEnd.hhmm}`;
+                }).join(' \u00b7 ');
+              })()}
+            </RecordField>
           </div>
 
           {showIntroVideo && embedUrl && (
-            <div className="bg-slate-900 rounded-[2.5rem] p-2 shadow-xl border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
-              <div className="relative aspect-video rounded-[2rem] overflow-hidden bg-black">
+            <div className="bg-slate-900 rounded-xl p-2 shadow-none border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
+              <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
                 <iframe
                   src={embedUrl}
                   title="Course Preview"
@@ -2148,12 +2115,12 @@ const ClassroomDetail = () => {
               </div>
               <div className="p-4 px-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center">
-                      <Video className="w-5 h-5 text-indigo-400" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Video className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-white font-bold text-sm">Course Preview</p>
-                      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Watch before you join</p>
+                      <p className="text-white font-semibold text-sm">Course Preview</p>
+                      <p className="text-slate-500 text-xs font-semibold tracking-wide">Watch before you join</p>
                     </div>
                 </div>
                 <button 
@@ -2161,7 +2128,7 @@ const ClassroomDetail = () => {
                     if (classroom.isPaid) setShowEnrollmentPaymentModal(true);
                     else handleEnroll();
                   }}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition"
+                  className="px-6 py-2 bg-primary text-white rounded-xl font-semibold text-xs tracking-wide hover:bg-primary/90 transition"
                 >
                   Join Now
                 </button>
@@ -2169,27 +2136,23 @@ const ClassroomDetail = () => {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-3 px-6 py-5">
             {!isEnrolled && user?.role === 'student' && classroom.published && (
               <button
                 onClick={handleEnroll}
-                className="btn-premium"
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
+                style={primaryActionStyle}
               >
-                {classroom.isPaid && classroom.pricing?.amount > 0 ? `Enroll - ${formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}` : 'Enroll (Free)'}
+                {classroom.isPaid && classroom.pricing?.amount > 0 ? `Enroll \u00b7 ${formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}` : 'Enroll (Free)'}
               </button>
             )}
             {!isEnrolled && user?.role === 'student' && !classroom.published && (
-              <span className="px-6 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold">
+              <span className="px-5 py-2.5 text-sm font-semibold" style={{ backgroundColor: PANEL, color: SLATE, border: `1px solid ${HAIRLINE}`, borderRadius: '2px' }}>
                 Not Available for Enrollment
               </span>
             )}
             {isEnrolled && user?.role === 'student' && (
-              <button
-                onClick={() => setShowLeaveClassModal(true)}
-                className="btn-danger"
-              >
-                Leave Class
-              </button>
+              <ActionButton tone="danger" icon={LogOut} label="Leave Class" onClick={() => setShowLeaveClassModal(true)} />
             )}
             {(isEnrolled || canEdit) && (
               <>
@@ -2211,9 +2174,10 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleStartZoom}
-                        className="btn-premium flex-1 sm:flex-none shadow-sm shadow-indigo-200 dark:shadow-none"
+                        className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
+                        style={primaryActionStyle}
                       >
-                        <Video className="w-5 h-5" />
+                        <Video size={16} />
                         <span>{label}</span>
                       </button>
                     );
@@ -2224,9 +2188,10 @@ const ClassroomDetail = () => {
                     return (
                       <button
                         onClick={handleJoinCall}
-                        className="btn-premium flex-1 sm:flex-none shadow-sm shadow-indigo-200 dark:shadow-none"
+                        className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
+                        style={primaryActionStyle}
                       >
-                        <Video className="w-5 h-5" />
+                        <Video size={16} />
                         <span>Attend Lecture</span>
                       </button>
                     );
@@ -2246,10 +2211,11 @@ const ClassroomDetail = () => {
                         onClick={handleOpenWhiteboard}
                         disabled={!enabled}
                         title={!enabled ? 'Whiteboard not launched yet by the teacher' : 'Open whiteboard'}
-                        className={`flex-1 sm:flex-none ${enabled ? 'btn-success' : 'btn-secondary opacity-50 cursor-not-allowed'}`}
+                        className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={outlineActionStyle}
                       >
-                        <Edit className="w-5 h-5" />
-                        <span>Whiteboard</span>
+                        <PenSquare size={16} />
+                        <span>Open whiteboard</span>
                       </button>
                     );
                   })()
@@ -2257,21 +2223,61 @@ const ClassroomDetail = () => {
               </>
             )}
           </div>
+
+          {/* Description & outcomes */}
+          {(classroom.description || classroom.learningOutcomes || classroom.subject || classroom.level) && (
+            <div className="px-6 py-5 border-t border-border space-y-5">
+              {classroom.description && (
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-4xl">{classroom.description}</p>
+              )}
+              {classroom.learningOutcomes && (
+                <div>
+                  <div className="text-xs font-semibold tracking-wide mb-3" style={{ color: SLATE, letterSpacing: '0.04em' }}>Expected Learning Outcomes</div>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-2.5 gap-x-8">
+                    {classroom.learningOutcomes.split(',').map((outcome, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-muted-foreground text-sm">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: GOLD }} />
+                        <span>{outcome.trim()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-6">
+                {classroom.subject && (
+                  <div className="flex items-center">
+                    <Book size={15} style={{ color: SLATE, marginRight: 8 }} />
+                    <span className="text-xs font-semibold tracking-wide" style={{ color: SLATE }}>
+                      Subject: <span style={{ color: INK }}>{classroom.subject}</span>
+                    </span>
+                  </div>
+                )}
+                {classroom.level && (
+                  <div className="flex items-center">
+                    <GraduationCap size={15} style={{ color: SLATE, marginRight: 8 }} />
+                    <span className="text-xs font-semibold tracking-wide" style={{ color: SLATE }}>
+                      Level: <span style={{ color: INK }}>{classroom.level}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {weeklyPaymentRequired && user?.role === 'student' && (
-          <div className="mt-8 p-10 bg-indigo-50 border-2 border-indigo-100 rounded-[2.5rem] text-center animate-in fade-in zoom-in slide-in-from-bottom-4 duration-500">
-            <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <CreditCard className="w-10 h-10 text-indigo-600" />
+          <div className="mt-8 p-10 bg-primary/10 border-2 border-primary/20 rounded-xl text-center animate-in fade-in zoom-in slide-in-from-bottom-4 duration-500">
+            <div className="w-20 h-20 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-6">
+              <CreditCard className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Weekly Subscription Expired</h3>
+            <h3 className="text-3xl font-semibold text-slate-900 mb-4 tracking-tight">Weekly Subscription Expired</h3>
             <p className="text-slate-600 mb-8 max-w-md mx-auto font-medium">
-              This classroom requires a sustaining fee of <span className="text-indigo-600 font-bold">{formatAmount(classroom?.pricing?.amount || 0)}</span> every 7 days. Please pay to continue accessing your course materials.
+              This classroom requires a sustaining fee of <span className="text-primary font-semibold">{formatAmount(classroom?.pricing?.amount || 0)}</span> every 7 days. Please pay to continue accessing your course materials.
             </p>
             <button
               onClick={handleEnrollmentPayment}
               disabled={isProcessingPayment}
-              className="btn-premium px-12 py-4 rounded-2xl shadow-xl shadow-indigo-200"
+              className="btn-premium px-12 py-4 rounded-xl shadow-none "
             >
               {isProcessingPayment ? <Loader2 className="w-6 h-6 animate-spin" /> : `Pay Weekly Fee - ${formatAmount(classroom?.pricing?.amount || 0)}`}
             </button>
@@ -2281,7 +2287,7 @@ const ClassroomDetail = () => {
         {!weeklyPaymentRequired && (
           <>
             {/* Tab Navigation */}
-            <div className="flex border-b border-border bg-card rounded-t-2xl overflow-x-auto mt-6 no-scrollbar">
+            <div className="flex flex-wrap border-b border-border bg-card rounded-sm overflow-x-auto mt-6 no-scrollbar">
               {[
                 { id: 'topics', label: 'Topics', icon: Book },
                 ...((isEnrolled || canEdit) ? [
@@ -2294,15 +2300,15 @@ const ClassroomDetail = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${activeTab === tab.id
+                  className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === tab.id
                     ? 'border-primary text-primary bg-primary/5'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted'
                     }`}
                 >
-                  <tab.icon className="w-4 h-4" />
+                  <tab.icon size={15} strokeWidth={2} />
                   <span>{tab.label}</span>
                   {tab.id === 'exams' && exams.length > 0 && (
-                    <span className="ml-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-bold">{exams.length}</span>
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-border text-muted-foreground'}`}>{exams.length}</span>
                   )}
                 </button>
               ))}
@@ -2321,12 +2327,12 @@ const ClassroomDetail = () => {
                 {/* Topic Management Section */}
                 {
                   (isEnrolled || canEdit || (!isEnrolled && user?.role === 'student')) && (
-                    <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
-                      <div className="flex justify-between items-center mb-6">
+                    <div className="bg-card border border-border border-t-0 rounded-sm shadow-none p-6">
+                      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
                         <div>
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-1">Topics</h3>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                            {classroom.topics?.length || 0} MODULE{classroom.topics?.length !== 1 ? 'S' : ''} IN SYLLABUS
+                          <div className="font-serif text-sm font-semibold" style={{ color: NAVY }}>Topics</div>
+                          <p className="text-xs font-semibold mt-1" style={{ color: SLATE }}>
+                            {classroom.topics?.length || 0} module{classroom.topics?.length !== 1 ? 's' : ''} in syllabus
                           </p>
                         </div>
                         {canEdit && (
@@ -2336,18 +2342,20 @@ const ClassroomDetail = () => {
                                 setAiMode('syllabus');
                                 setShowAIPanel(true);
                               }}
-                              className="flex items-center justify-center space-x-2 px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition shadow-lg shadow-violet-200 dark:shadow-none font-bold"
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold"
+                              style={primaryActionStyle}
                             >
-                              <Sparkles className="w-4 h-4" />
-                              <span className="hidden sm:inline">Magic Generate</span>
+                              <Sparkles size={15} />
+                              <span className="hidden sm:inline">Generate topics</span>
                               <span className="sm:hidden">AI</span>
                             </button>
                             <button
                               onClick={() => navigate(`/classrooms/${id}/manage-topics`)}
-                              className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition shadow-sm shadow-green-200 dark:shadow-none font-bold"
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold"
+                              style={outlineActionStyle}
                             >
-                              <Book className="w-4 h-4" />
-                              <span>Manage Topics</span>
+                              <BookOpen size={15} />
+                              <span>Manage topics</span>
                             </button>
                           </div>
                         )}
@@ -2418,13 +2426,13 @@ const ClassroomDetail = () => {
             {/* Assignment Management Section */}
             {
               (isEnrolled || canEdit) && (
-                <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Assignments</h3>
+                <div className="bg-card border border-border border-t-0 rounded-sm shadow-none p-6">
+                  <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+                    <h3 className="font-serif text-[15px] font-semibold" style={{ color: NAVY }}>Assignments</h3>
                     {canCreateAssignment && (
                       <button
                         onClick={() => setShowCreateAssignmentModal(true)}
-                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-sm shadow-blue-200 dark:shadow-none font-bold"
+                        className="flex items-center gap-2 px-3.5 h-9 bg-primary text-white rounded-sm hover:opacity-90 transition font-semibold text-xs tracking-wide shadow-none dark:shadow-none"
                       >
                         <Plus className="w-4 h-4" />
                         <span className="hidden md:inline">Create Assignment</span>
@@ -2455,9 +2463,9 @@ const ClassroomDetail = () => {
                         };
 
                         return (
-                          <div key={assignment._id} className="bg-card border border-border rounded-2xl shadow-lg overflow-hidden group">
+                          <div key={assignment._id} className="bg-card border border-border rounded-xl shadow-none overflow-hidden group">
                             <div
-                              className="flex flex-col md:flex-row justify-between items-start p-6 cursor-pointer hover:bg-muted/50 transition border-b border-transparent hover:border-border"
+                              className="flex flex-col md:flex-row justify-between items-start p-6 cursor-pointer hover:bg-muted transition border-b border-transparent hover:border-border"
                               onClick={toggleAssignmentExpanded}
                             >
                               <div className="flex items-start space-x-3 flex-1 mb-4 md:mb-0">
@@ -2467,10 +2475,10 @@ const ClassroomDetail = () => {
                                   <ChevronDown className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
                                 )}
                                 <div className="flex-1">
-                                  <h4 className="font-black text-foreground italic tracking-tight">
+                                  <h4 className="font-semibold text-foreground tracking-tight">
                                     {assignment.title}
                                     {assignment.topicId?.name && (
-                                      <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-primary/60">
+                                      <span className="ml-2 text-xs font-semibold tracking-wide text-primary/60">
                                         [{assignment.topicId.name}]
                                       </span>
                                     )}
@@ -2480,24 +2488,24 @@ const ClassroomDetail = () => {
                                   )}
                                 </div>
                               </div>
-                              <div className="flex flex-wrap gap-2 items-center md:justify-end flex-shrink-0 w-full md:w-auto ml-8 md:ml-0 font-black">
+                              <div className="flex flex-wrap gap-2 items-center md:justify-end flex-shrink-0 w-full md:w-auto ml-8 md:ml-0 font-semibold">
                                 {assignment.dueDate ? (
-                                  <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-border">
+                                  <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs tracking-wide border border-border">
                                     DUE: {formatDisplayDate(assignment.dueDate)}
                                   </span>
                                 ) : (
-                                  <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-border">
+                                  <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs tracking-wide border border-border">
                                     OPEN ENDED
                                   </span>
                                 )}
                                 
                                 {isGraded && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                                  <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-emerald-500/20">
+                                  <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-xs tracking-wide border border-emerald-500/20">
                                     GRADED
                                   </span>
                                 )}
                                 {isSubmitted && !isGraded && (
-                                  <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest border border-amber-500/20">
+                                  <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-xs tracking-wide border border-amber-500/20">
                                     SUBMITTED
                                   </span>
                                 )}
@@ -2568,7 +2576,7 @@ const ClassroomDetail = () => {
                                 </div>
 
                                 {user?.role === 'student' && isGraded && submission && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
                                     <div className="flex items-center space-x-2 mb-2">
                                       <CheckCircle className="w-5 h-5 text-green-600" />
                                       <span className="font-semibold">
@@ -2620,7 +2628,7 @@ const ClassroomDetail = () => {
 
                                 {/* Student View: Submitted but not graded, or MCQ graded but results not published yet */}
                                 {user?.role === 'student' && isSubmitted && (!isGraded || (assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt))) && (
-                                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
                                     <p className="font-semibold text-blue-600">
                                       {isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt)
                                         ? `Results for this MCQ assignment will be published on ${new Date(assignment.publishResultsAt).toLocaleString()}.`
@@ -2674,9 +2682,9 @@ const ClassroomDetail = () => {
                                           setShowSubmitAssignmentModal(true);
                                         }}
                                         disabled={isPastDue}
-                                        className={`px-4 py-2 rounded-lg transition ${isPastDue
+                                        className={`px-4 py-2 rounded-xl transition ${isPastDue
                                           ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                                          : 'bg-primary text-white hover:bg-primary/90'
                                           }`}
                                       >
                                         {isPastDue ? 'Deadline Passed' : 'Submit Assignment'}
@@ -2688,7 +2696,7 @@ const ClassroomDetail = () => {
                                 {/* Teacher/Admin: View and Grade Submissions */}
                                 {canGradeAssignment && (user?.role === 'teacher' || user?.role === 'personal_teacher' ? classroom.teacherId?._id === user?._id : true) && (
                                   <div className="mt-4 border-t border-border pt-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Submissions ({assignment.submissions?.length || 0})</h4>
+                                    <h4 className="text-xs font-semibold tracking-wide text-muted-foreground mb-3">Submissions ({assignment.submissions?.length || 0})</h4>
                                     {assignment.submissions && assignment.submissions.length > 0 ? (
                                       assignment.submissions.map(sub => {
                                         const isExpanded = expandedSubmissions.has(sub._id);
@@ -2705,9 +2713,9 @@ const ClassroomDetail = () => {
                                         };
 
                                         return (
-                                          <div key={sub._id} className="border border-border rounded-xl mb-2 bg-muted/30 overflow-hidden">
+                                          <div key={sub._id} className="border border-border rounded-xl mb-2 bg-muted overflow-hidden">
                                             <div
-                                              className="flex justify-between items-center p-3 cursor-pointer hover:bg-muted/50 transition"
+                                              className="flex justify-between items-center p-3 cursor-pointer hover:bg-muted transition"
                                               onClick={toggleExpanded}
                                             >
                                               <div className="flex items-center space-x-2 flex-1">
@@ -2717,10 +2725,10 @@ const ClassroomDetail = () => {
                                                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                                                 )}
                                                 <div className="flex-1">
-                                                  <p className="text-xs font-black uppercase tracking-widest text-foreground">{sub.studentId?.name || 'Unknown Student'}</p>
-                                                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Status: <span className="text-primary">{sub.status}</span></p>
+                                                  <p className="text-xs font-semibold tracking-wide text-foreground">{sub.studentId?.name || 'Unknown Student'}</p>
+                                                  <p className="text-xs font-semibold text-muted-foreground tracking-wide mt-0.5">Status: <span className="text-primary">{sub.status}</span></p>
                                                   {sub.status === 'graded' && (
-                                                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Score: {sub.score}/{assignment.maxScore}</p>
+                                                    <p className="text-xs font-semibold text-emerald-500 tracking-wide">Score: {sub.score}/{assignment.maxScore}</p>
                                                   )}
                                                 </div>
                                               </div>
@@ -2732,7 +2740,7 @@ const ClassroomDetail = () => {
                                                     setSubmissionToGrade(sub);
                                                     setShowGradeModal(true);
                                                   }}
-                                                  className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-[10px] font-black uppercase tracking-widest"
+                                                  className="px-4 py-1.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition text-xs font-semibold tracking-wide"
                                                 >
                                                   Grade
                                                 </button>
@@ -2744,7 +2752,7 @@ const ClassroomDetail = () => {
                                                     setSubmissionToGrade(sub);
                                                     setShowGradeModal(true);
                                                   }}
-                                                  className="px-4 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition text-[10px] font-black uppercase tracking-widest"
+                                                  className="px-4 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition text-xs font-semibold tracking-wide"
                                                 >
                                                   Edit Grade
                                                 </button>
@@ -2754,21 +2762,21 @@ const ClassroomDetail = () => {
                                               <div className="px-3 pb-3 pt-3 border-t border-border bg-card">
                                                 {/* Display answers based on type */}
                                                 {assignment.assignmentType === 'theory' && sub.answers && (
-                                                  <div className="p-3 bg-muted/50 rounded-xl border border-border/50">
-                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">Student Response:</p>
+                                                  <div className="p-3 bg-muted rounded-xl border border-border/50">
+                                                    <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">Student Response:</p>
                                                     <p className="text-sm text-foreground whitespace-pre-wrap font-medium">{Array.isArray(sub.answers) ? sub.answers.join('\n') : sub.answers}</p>
                                                   </div>
                                                 )}
                                                 {assignment.assignmentType === 'mcq' && sub.answers && Array.isArray(sub.answers) && (
-                                                  <div className="p-3 bg-muted/50 rounded-xl border border-border/50">
-                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">Selected Options:</p>
+                                                  <div className="p-3 bg-muted rounded-xl border border-border/50">
+                                                    <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">Selected Options:</p>
                                                     <ul className="space-y-1">
                                                       {sub.answers.map((ans, ansIdx) => (
-                                                        <li key={ansIdx} className="text-xs font-bold flex items-center gap-2">
+                                                        <li key={ansIdx} className="text-xs font-semibold flex items-center gap-2">
                                                           <span className="text-muted-foreground">Q{ansIdx+1}:</span>
                                                           <span className="text-foreground">{ans}</span>
                                                           {assignment.questions[ansIdx]?.correctOption && (
-                                                            <span className={`px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest ${ans === assignment.questions[ansIdx].correctOption ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                            <span className={`px-2 py-0.5 rounded-full text-xs tracking-wide ${ans === assignment.questions[ansIdx].correctOption ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                                                               {ans === assignment.questions[ansIdx].correctOption ? 'Correct' : `Wrong (Key: ${assignment.questions[ansIdx].correctOption})`}
                                                             </span>
                                                           )}
@@ -2783,7 +2791,7 @@ const ClassroomDetail = () => {
                                         );
                                       })
                                     ) : (
-                                      <p className="text-muted-foreground text-center py-4 font-bold text-[10px] uppercase tracking-widest">No intellectual payloads delivered yet.</p>
+                                      <p className="text-muted-foreground text-center py-4 font-semibold text-xs tracking-wide">No intellectual payloads delivered yet.</p>
                                     )}
                                   </div>
                                 )}
@@ -2803,11 +2811,11 @@ const ClassroomDetail = () => {
 
         {activeTab === 'exams' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
+            <div className="bg-card border border-border border-t-0 rounded-sm shadow-none p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-1">Class Examinations</h3>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Access scheduled assessments and final exams.</p>
+                  <h3 className="font-serif text-[15px] font-semibold" style={{ color: NAVY }}>Class Examinations</h3>
+                  <p className="text-xs font-semibold text-muted-foreground tracking-wide">Access scheduled assessments and final exams.</p>
                 </div>
                 {canEdit && (
                   <button
@@ -2815,7 +2823,7 @@ const ClassroomDetail = () => {
                       setExamToEdit(null);
                       setShowCreateExamModal(true);
                     }}
-                    className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-sm shadow-indigo-200 dark:shadow-none font-bold"
+                    className="flex items-center justify-center gap-2 px-3.5 h-9 bg-primary text-white rounded-sm hover:bg-primary/90 transition font-semibold text-xs tracking-wide shadow-none dark:shadow-none"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Create Exam</span>
@@ -2828,23 +2836,23 @@ const ClassroomDetail = () => {
                   exams.map(exam => {
                     const isPastDue = exam.dueDate && new Date() > new Date(exam.dueDate);
                     return (
-                      <div key={exam._id} className="group bg-muted/30 hover:bg-muted/50 rounded-2xl p-6 border border-border hover:border-primary/30 hover:shadow-2xl transition-all duration-300">
+                      <div key={exam._id} className="group bg-muted hover:bg-muted rounded-xl p-6 border border-border hover:border-primary/30 hover:shadow-none transition-all duration-300">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                           <div className="flex items-start space-x-4">
-                            <div className={`p-4 rounded-xl shadow-lg ${isPastDue ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+                            <div className={`p-4 rounded-xl shadow-none ${isPastDue ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary border border-primary/20'}`}>
                               <GraduationCap className="w-6 h-6" />
                             </div>
                             <div>
-                              <h4 className="text-lg font-black italic text-foreground leading-tight mb-1 group-hover:text-primary transition-colors tracking-tight">{exam.title}</h4>
-                              <p className="text-xs text-muted-foreground font-medium line-clamp-1 italic">{exam.description || 'No detailed briefing provided.'}</p>
+                              <h4 className="text-lg font-semibold text-foreground leading-tight mb-1 group-hover:text-primary transition-colors tracking-tight">{exam.title}</h4>
+                              <p className="text-xs text-muted-foreground font-medium line-clamp-1">{exam.description || 'No detailed briefing provided.'}</p>
 
                               <div className="flex flex-wrap gap-4 mt-3">
-                                <div className="flex items-center text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                                <div className="flex items-center text-xs font-semibold tracking-wide text-muted-foreground">
                                   <Clock className="w-3.5 h-3.5 mr-1.5 text-primary" />
                                   {exam.duration} Minutes
                                 </div>
                                 {exam.dueDate && (
-                                  <div className={`flex items-center text-[9px] font-black uppercase tracking-[0.2em] ${isPastDue ? 'text-rose-500' : 'text-muted-foreground'}`}>
+                                  <div className={`flex items-center text-xs font-semibold tracking-wide ${isPastDue ? 'text-rose-500' : 'text-muted-foreground'}`}>
                                     <Calendar className="w-3.5 h-3.5 mr-1.5" />
                                     DEADLINE: {new Date(exam.dueDate).toLocaleString()}
                                   </div>
@@ -2858,7 +2866,7 @@ const ClassroomDetail = () => {
                               <>
                                 <button
                                   onClick={() => navigate(`/exams/${exam._id}/submissions`)}
-                                  className="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-50 transition"
+                                  className="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 transition"
                                 >
                                   Submissions
                                 </button>
@@ -2879,9 +2887,9 @@ const ClassroomDetail = () => {
                               <button
                                 onClick={() => navigate(`/exam-center/${exam.linkToken}`)}
                                 disabled={isPastDue || !exam.isPublished}
-                                className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${isPastDue || !exam.isPublished
+                                className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${isPastDue || !exam.isPublished
                                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none'
+                                  : 'bg-primary text-white hover:bg-primary/90 shadow-none  dark:shadow-none'
                                   }`}
                               >
                                 {isPastDue ? 'Expired' : !exam.isPublished ? 'Unpublished' : (
@@ -2898,10 +2906,10 @@ const ClassroomDetail = () => {
                     );
                   })
                 ) : (
-                  <div className="text-center py-16 bg-muted/10 rounded-[2rem] border-2 border-dashed border-border/50">
+                  <div className="text-center py-16 bg-muted/10 rounded-xl border-2 border-dashed border-border/50">
                     <GraduationCap className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
-                    <h5 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">No Exams Scheduled</h5>
-                    <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest">There are currently no examinations assigned to this class.</p>
+                    <h5 className="text-xs font-semibold text-muted-foreground tracking-wide mb-1">No Exams Scheduled</h5>
+                    <p className="text-xs font-semibold text-muted-foreground/60 tracking-wide">There are currently no examinations assigned to this class.</p>
                   </div>
                 )}
               </div>
@@ -2911,11 +2919,11 @@ const ClassroomDetail = () => {
 
         {activeTab === 'students' && canViewStudents && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="bg-card border border-border border-t-0 rounded-b-2xl shadow-lg p-6">
-              <div className="flex justify-between items-center mb-6">
+            <div className="bg-card border border-border border-t-0 rounded-sm shadow-none p-6">
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
                 <div>
-                   <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-1">Enrolled Students</h3>
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{classroom.students?.length || 0} / {classroom.capacity} SEATS FILLED</p>
+                   <h3 className="font-serif text-[15px] font-semibold" style={{ color: NAVY }}>Enrolled Students</h3>
+                   <p className="text-xs font-semibold text-muted-foreground tracking-wide">{classroom.students?.length || 0} / {classroom.capacity} SEATS FILLED</p>
                 </div>
                 {canManageStudents && (
                   <button
@@ -2924,7 +2932,7 @@ const ClassroomDetail = () => {
                       fetchAvailableStudents();
                       setShowAddStudentModal(true);
                     }}
-                    className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl hover:opacity-90 transition font-black text-[10px] uppercase tracking-widest shadow-sm shadow-primary/20 dark:shadow-none"
+                    className="flex items-center gap-2 px-3.5 h-9 bg-primary text-primary-foreground rounded-sm hover:opacity-90 transition font-semibold text-xs tracking-wide shadow-none dark:shadow-none"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span className="hidden md:inline">Add Student</span>
@@ -2934,20 +2942,20 @@ const ClassroomDetail = () => {
               <div className="space-y-2">
                 {classroom.students && classroom.students.length > 0 ? (
                   classroom.students.map((student) => (
-                    <div key={student._id || student} className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-2xl hover:bg-muted/40 transition-colors group">
+                    <div key={student._id || student} className="flex items-center justify-between p-4 bg-muted border border-border rounded-xl hover:bg-muted/40 transition-colors group">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs uppercase">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-semibold text-xs">
                           {typeof student === 'object' ? student.name?.charAt(0) : '?'}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-foreground italic uppercase tracking-tight">{typeof student === 'object' ? student.name : 'Securing Data...'}</p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{typeof student === 'object' ? student.email : ''}</p>
+                          <p className="text-sm font-semibold text-foreground tracking-tight">{typeof student === 'object' ? student.name : 'Securing Data...'}</p>
+                          <p className="text-xs font-semibold text-muted-foreground tracking-wide">{typeof student === 'object' ? student.email : ''}</p>
                         </div>
                       </div>
                       {canManageStudents && (
                         <button
                           onClick={() => handleRemoveStudent(student._id || student)}
-                          className="w-10 h-10 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          className="w-10 h-10 flex items-center justify-center bg-rose-500/10 text-rose-500 rounded-xl hover:bg-danger/90 hover:text-white transition-all opacity-0 group-hover:opacity-100"
                           title="Revoke Access"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -2956,9 +2964,9 @@ const ClassroomDetail = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-12 bg-muted/10 rounded-3xl border-2 border-dashed border-border/50">
+                  <div className="text-center py-12 bg-muted/10 rounded-xl border-2 border-dashed border-border/50">
                     <Users className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">No students found in this class.</p>
+                    <p className="text-xs font-semibold text-muted-foreground tracking-wide">No students found in this class.</p>
                   </div>
                 )}
               </div>
@@ -2967,20 +2975,20 @@ const ClassroomDetail = () => {
         )}
 
         {user?.role === 'root_admin' && classroom?.schoolId && (
-          <div className="bg-card border border-border rounded-2xl shadow-xl p-6 mt-6">
+          <div className="bg-card border border-border rounded-sm shadow-none p-6 mt-6">
             {/* Teacher Management (Root Admin only - Always visible regardless of tab) */}
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
               <div>
-                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mb-4">Administrative Console</h3>
+                <h3 className="font-serif text-[15px] font-semibold" style={{ color: NAVY }}>Administrative Console</h3>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-muted/20 border border-border rounded-2xl font-bold">
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">COMMANDING TEACHER</p>
-                    <p className="text-sm text-foreground italic">{classroom.teacherId?.name} ({classroom.teacherId?.email})</p>
+                  <div className="p-4 bg-muted border border-border rounded-xl font-semibold">
+                    <p className="text-xs text-muted-foreground tracking-wide mb-1">COMMANDING TEACHER</p>
+                    <p className="text-sm text-foreground">{classroom.teacherId?.name} ({classroom.teacherId?.email})</p>
                   </div>
                   {classroom.schoolId?.adminId && (
-                    <div className="p-4 bg-muted/20 border border-border rounded-2xl font-bold">
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">SCHOOL ADJUTANT</p>
-                      <p className="text-sm text-foreground italic">{classroom.schoolId.adminId.name} ({classroom.schoolId.adminId.email})</p>
+                    <div className="p-4 bg-muted border border-border rounded-xl font-semibold">
+                      <p className="text-xs text-muted-foreground tracking-wide mb-1">SCHOOL ADJUTANT</p>
+                      <p className="text-sm text-foreground">{classroom.schoolId.adminId.name} ({classroom.schoolId.adminId.email})</p>
                     </div>
                   )}
                 </div>
@@ -2991,7 +2999,7 @@ const ClassroomDetail = () => {
                     fetchAvailableTeachers();
                     setShowChangeTeacherModal(true);
                   }}
-                  className="px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl hover:opacity-90 transition font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 shrink-0 self-start"
+                  className="px-3.5 h-9 bg-primary text-primary-foreground rounded-sm hover:opacity-90 transition font-semibold text-xs tracking-wide shadow-none shrink-0 self-start"
                 >
                   Change Teacher
                 </button>
@@ -3059,20 +3067,20 @@ const ClassroomDetail = () => {
 
         {/* Add Student Modal */}
         {showAddStudentModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-950/80  z-[100] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-card border border-border rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="bg-card border border-border rounded-xl w-full max-w-md p-8 shadow-none animate-in zoom-in-95 duration-300">
                 <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-xl font-black italic tracking-tight text-foreground uppercase">Deploy Candidates</h3>
+                  <h3 className="text-xl font-semibold tracking-tight text-foreground">Deploy Candidates</h3>
                   <button onClick={() => setShowAddStudentModal(false)} className="p-2 hover:bg-muted rounded-xl transition text-muted-foreground"><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={handleAddStudent} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-1">Select Candidate Profile</label>
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Select Candidate Profile</label>
                     <select
                       value={selectedStudentId}
                       onChange={(e) => setSelectedStudentId(e.target.value)}
-                      className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground outline-none focus:border-primary transition-all appearance-none"
+                      className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground outline-none focus:border-primary transition-all appearance-none"
                     >
                       <option value="" disabled className="bg-card">Awaiting Selection...</option>
                       {availableStudents.map(student => (
@@ -3080,8 +3088,8 @@ const ClassroomDetail = () => {
                       ))}
                     </select>
                     {availableStudents.length === 0 && (
-                      <div className="mt-4 p-4 bg-muted/20 rounded-2xl border border-dashed border-border text-center">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No unassigned candidates found.</p>
+                      <div className="mt-4 p-4 bg-muted rounded-xl border border-dashed border-border text-center">
+                        <p className="text-xs font-semibold text-muted-foreground tracking-wide">No unassigned candidates found.</p>
                       </div>
                     )}
                   </div>
@@ -3089,9 +3097,9 @@ const ClassroomDetail = () => {
                     <button
                       type="button"
                       onClick={() => setShowAddStudentModal(false)}
-                      className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
+                      className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition"
                     >
-                      ABORT
+                      Cancel
                     </button>
                     <button
                       type="submit"
@@ -3110,22 +3118,22 @@ const ClassroomDetail = () => {
         {/* Assign Teacher Modal */}
         {
           showChangeTeacherModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] overflow-y-auto">
+            <div className="fixed inset-0 bg-slate-950/80  z-[100] overflow-y-auto">
               <div className="flex min-h-full items-center justify-center p-4">
-                <div className="bg-card border border-border rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="bg-card border border-border rounded-xl w-full max-w-md p-8 shadow-none animate-in zoom-in-95 duration-300">
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-xl font-black italic tracking-tight text-foreground uppercase">Assign Command</h3>
+                    <h3 className="text-xl font-semibold tracking-tight text-foreground">Assign Command</h3>
                     <button onClick={() => setShowChangeTeacherModal(false)} className="p-2 hover:bg-muted rounded-xl transition text-muted-foreground">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-1">Select New Commander</label>
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Select New Commander</label>
                       <select
                         value={selectedTeacherId}
                         onChange={(e) => setSelectedTeacherId(e.target.value)}
-                        className="w-full bg-muted/50 border-2 border-border p-4 rounded-2xl font-bold text-foreground outline-none focus:border-primary transition-all appearance-none"
+                        className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground outline-none focus:border-primary transition-all appearance-none"
                       >
                         <option value="" disabled className="bg-card">Awaiting Signal...</option>
                         {availableTeachers.map(teacher => (
@@ -3137,7 +3145,7 @@ const ClassroomDetail = () => {
                       <button
                         type="button"
                         onClick={() => setShowChangeTeacherModal(false)}
-                        className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
+                        className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition"
                       >
                         CANCEL
                       </button>
@@ -3167,11 +3175,11 @@ const ClassroomDetail = () => {
 
         {/* Enrollment Payment Modal */}
         {showEnrollmentPaymentModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-950/80  z-[100] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-card border border-border rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="bg-card border border-border rounded-xl shadow-none max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-300">
                 <div className="p-8 pb-0 flex justify-between items-center">
-                  <div className="bg-primary/10 p-3 rounded-2xl border border-primary/20">
+                  <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
                     <CreditCard className="w-6 h-6 text-primary" />
                   </div>
                   <button
@@ -3183,12 +3191,12 @@ const ClassroomDetail = () => {
                   </button>
                 </div>
                 <div className="p-8 pt-6 text-center">
-                  <h3 className="text-xl font-black italic tracking-tight text-foreground uppercase mb-2">Initialize Enrollment</h3>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-8 px-4 leading-relaxed">System authorization required to grant access to <span className="text-primary font-black italic">"{classroom.name}"</span>.</p>
+                  <h3 className="text-xl font-semibold tracking-tight text-foreground mb-2">Initialize Enrollment</h3>
+                  <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-8 px-4 leading-relaxed">System authorization required to grant access to <span className="text-primary font-semibold">"{classroom.name}"</span>.</p>
 
-                  <div className="bg-muted/50 rounded-[2.5rem] p-8 mb-8 border border-border shadow-inner">
-                    <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">ACCESS FEE</div>
-                    <div className="text-4xl font-black italic text-foreground tracking-tight">
+                  <div className="bg-muted rounded-xl p-8 mb-8 border border-border shadow-none">
+                    <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">ACCESS FEE</div>
+                    <div className="text-4xl font-semibold text-foreground tracking-tight">
                       {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
                     </div>
                   </div>
@@ -3197,9 +3205,9 @@ const ClassroomDetail = () => {
                     <button
                       onClick={() => setShowEnrollmentPaymentModal(false)}
                       disabled={isProcessingPayment}
-                      className="flex-1 px-6 py-3 rounded-2xl border border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition"
+                      className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition"
                     >
-                      ABORT
+                      Cancel
                     </button>
                     <button
                       onClick={handleEnrollmentPayment}
@@ -3284,10 +3292,10 @@ const ClassroomDetail = () => {
             </div>
           }
           confirmText="End Class"
-          confirmButtonColor="bg-indigo-600 hover:bg-indigo-700"
+          confirmButtonColor="bg-primary hover:bg-primary/90"
           icon={Flag}
           iconBg="bg-indigo-100"
-          iconColor="text-indigo-600"
+          iconColor="text-primary"
           isLoading={isEndingClass}
         />
 

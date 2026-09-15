@@ -428,7 +428,7 @@ const ScriptSharePage = () => {
             <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
                 <div className="text-center space-y-4">
                     <RefreshCw className="w-12 h-12 text-primary animate-spin mx-auto" />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resolving share link authority...</p>
+                    <p className="text-xs font-semibold tracking-wide text-slate-400">Resolving share link authority...</p>
                 </div>
             </div>
         );
@@ -438,30 +438,30 @@ const ScriptSharePage = () => {
     if (pageState === 'REQUEST_ACCESS') {
         return (
             <div className={`min-h-screen ${rootColors} flex items-center justify-center p-4 relative overflow-hidden`}>
-                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
-                <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-400/5 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full  pointer-events-none" />
+                <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full  pointer-events-none" />
 
-                <div className={`w-full max-w-md ${cardBg} border ${border} rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative z-10 animate-slide-up`}>
+                <div className={`w-full max-w-md ${cardBg} border ${border} rounded-xl p-8 md:p-10 shadow-none relative z-10 animate-slide-up`}>
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-primary/10 text-primary border border-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
                             <Shield className="w-8 h-8" />
                         </div>
-                        <h2 className="text-2xl font-black uppercase tracking-tight italic">Secure <span className="text-primary not-italic">Script Access</span></h2>
+                        <h2 className="text-2xl font-semibold tracking-tight italic">Secure <span className="text-primary not-italic">Script Access</span></h2>
                         <p className={`text-xs ${textSecondary} mt-2 font-medium`}>Request authorization to view or grade this student script</p>
                     </div>
 
-                    <div className={`${panelBg} border ${panelBorder} p-4 rounded-2xl mb-6`}>
-                        <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block`}>TARGET DOCUMENT</span>
-                        <h4 className={`font-bold text-sm ${cardText} mt-1`}>{meta?.title || 'Script Submission'}</h4>
-                        <div className={`flex justify-between items-center mt-3 text-[10px] ${cardSubText} uppercase font-bold tracking-wider pt-2 border-t ${panelBorder}`}>
+                    <div className={`${panelBg} border ${panelBorder} p-4 rounded-xl mb-6`}>
+                        <span className={`text-xs font-semibold ${cardSubText} tracking-wide block`}>TARGET DOCUMENT</span>
+                        <h4 className={`font-semibold text-sm ${cardText} mt-1`}>{meta?.title || 'Script Submission'}</h4>
+                        <div className={`flex justify-between items-center mt-3 text-xs ${cardSubText} font-semibold tracking-wider pt-2 border-t ${panelBorder}`}>
                             <span>Candidate: {meta?.candidateName || 'Anonymous'}</span>
-                            <span className="text-primary font-black">{meta?.accessType === 'grade' ? 'Evaluator' : 'Viewer'} Mode</span>
+                            <span className="text-primary font-semibold">{meta?.accessType === 'grade' ? 'Evaluator' : 'Viewer'} Mode</span>
                         </div>
                     </div>
 
                     <form onSubmit={handleRequestAccess} className="space-y-4">
                         <div>
-                            <label className={`text-[10px] font-black uppercase tracking-widest ${cardSubText} mb-1.5 ml-1`}>Your Full Name</label>
+                            <label className={`text-xs font-semibold tracking-wide ${cardSubText} mb-1.5 ml-1`}>Your Full Name</label>
                             <input
                                 type="text"
                                 placeholder="e.g. John Doe"
@@ -472,7 +472,7 @@ const ScriptSharePage = () => {
                             />
                         </div>
                         <div>
-                            <label className={`text-[10px] font-black uppercase tracking-widest ${cardSubText} mb-1.5 ml-1`}>Your Email Address</label>
+                            <label className={`text-xs font-semibold tracking-wide ${cardSubText} mb-1.5 ml-1`}>Your Email Address</label>
                             <input
                                 type="email"
                                 placeholder="e.g. john@school.com"
@@ -486,7 +486,7 @@ const ScriptSharePage = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`w-full btn-premium py-4 mt-6 text-sm font-black uppercase tracking-widest transition disabled:cursor-not-allowed disabled:opacity-60 ${loading ? 'opacity-70' : ''}`}
+                            className={`w-full btn-premium py-4 mt-6 text-sm font-semibold tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${loading ? 'opacity-70' : ''}`}
                         >
                             {loading ? 'Requesting...' : 'Request OTP Code'}
                         </button>
@@ -500,19 +500,19 @@ const ScriptSharePage = () => {
     if (pageState === 'VERIFY_OTP') {
         return (
             <div className={`min-h-screen ${rootColors} flex items-center justify-center p-4 relative overflow-hidden`}>
-                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
-                <div className={`w-full max-w-md ${cardBg} border ${border} rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative z-10 animate-slide-up`}>
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full  pointer-events-none" />
+                <div className={`w-full max-w-md ${cardBg} border ${border} rounded-xl p-8 md:p-10 shadow-none relative z-10 animate-slide-up`}>
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-primary/10 text-primary border border-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
                             <Clock className="w-8 h-8" />
                         </div>
-                        <h2 className="text-2xl font-black uppercase tracking-tight italic">Verify <span className="text-primary not-italic">Identity</span></h2>
+                        <h2 className="text-2xl font-semibold tracking-tight italic">Verify <span className="text-primary not-italic">Identity</span></h2>
                         <p className={`text-xs ${textSecondary} mt-2 font-medium`}>An OTP code has been dispatched to the exam owner / root admin. Enter the code below to proceed.</p>
                     </div>
 
                     <form onSubmit={handleVerifyOtp} className="space-y-6">
-                        <div className={`${panelBg} rounded-2xl border ${panelBorder} text-center py-4`}>
-                            <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block mb-3`}>ENTER ONE-TIME PASSWORD</span>
+                        <div className={`${panelBg} rounded-xl border ${panelBorder} text-center py-4`}>
+                            <span className={`text-xs font-semibold ${cardSubText} tracking-wide block mb-3`}>ENTER ONE-TIME PASSWORD</span>
                             <OTPInput length={6} value={otpValue} onChange={setOtpValue} />
                         </div>
 
@@ -520,14 +520,14 @@ const ScriptSharePage = () => {
                             <button
                                 type="button"
                                 onClick={() => setPageState('REQUEST_ACCESS')}
-                                className={`flex-1 px-4 py-4 rounded-xl border ${border} ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-900' : 'text-slate-700 hover:bg-slate-100'} transition-all font-black uppercase tracking-widest text-[10px]`}
+                                className={`flex-1 px-4 py-4 rounded-xl border ${border} ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-900' : 'text-slate-700 hover:bg-slate-100'} transition-all font-semibold tracking-wide text-xs`}
                             >
                                 Back
                             </button>
                             <button
                                 type="submit"
                                 disabled={otpVerifying || otpValue.length !== 6}
-                                className="flex-[2] btn-premium py-4 font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+                                className="flex-[2] btn-premium py-4 font-semibold tracking-wide text-xs shadow-none"
                             >
                                 {otpVerifying ? 'Verifying...' : 'Verify & Open'}
                             </button>
@@ -542,17 +542,17 @@ const ScriptSharePage = () => {
     if (pageState === 'EXPIRED') {
         return (
             <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-[2.5rem] p-10 text-center animate-slide-up">
-                    <div className="w-20 h-20 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-xl p-10 text-center animate-slide-up">
+                    <div className="w-20 h-20 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl flex items-center justify-center mx-auto mb-6">
                         <AlertTriangle className="w-10 h-10" />
                     </div>
-                    <h2 className="text-2xl font-black uppercase tracking-tight text-rose-500 mb-2">Access Expired</h2>
+                    <h2 className="text-2xl font-semibold tracking-tight text-rose-500 mb-2">Access Expired</h2>
                     <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">
                         Your secure sharing session has expired. To maintain security, grades must be saved and finalized before the timer runs out.
                     </p>
                     <button
                         onClick={() => setPageState('REQUEST_ACCESS')}
-                        className="w-full btn-premium py-4 font-black uppercase tracking-widest text-xs"
+                        className="w-full btn-premium py-4 font-semibold tracking-wide text-xs"
                     >
                         Request New Access
                     </button>
@@ -565,11 +565,11 @@ const ScriptSharePage = () => {
     if (pageState === 'SAVED') {
         return (
             <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-[2.5rem] p-10 text-center animate-slide-up">
-                    <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-xl p-10 text-center animate-slide-up">
+                    <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-6">
                         <CheckCircle2 className="w-10 h-10" />
                     </div>
-                    <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-500 mb-2">Grading Completed</h2>
+                    <h2 className="text-2xl font-semibold tracking-tight text-emerald-500 mb-2">Grading Completed</h2>
                     <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">
                         The grading session was finalized successfully and scores have been submitted directly to the student record.
                     </p>
@@ -619,16 +619,16 @@ const ScriptSharePage = () => {
     return (
         <div className={`min-h-screen ${rootColors} flex flex-col font-inter`}>
             {/* Top Bar Banner */}
-                <div className={`sticky top-0 ${topBarBg} backdrop-blur-md border-b ${topBorder} px-6 py-4 z-50`}> 
+                <div className={`sticky top-0 ${topBarBg}  border-b ${topBorder} px-6 py-4 z-50`}> 
                     <div className="flex items-center justify-between sm:hidden">
-                        <div className={`text-sm font-black uppercase tracking-tight ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
+                        <div className={`text-sm font-semibold tracking-tight ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
                             {script?.examTitle || script?.assignmentTitle || 'Shared Script'}
                         </div>
                         {(script?.submissions?.length > 1 || isGrader) && (
                             <button
                                 type="button"
                                 onClick={() => setIsCandidatePanelOpen(prev => !prev)}
-                                className={`inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-black uppercase tracking-widest transition ${theme === 'dark' ? 'border-slate-700 text-slate-200 bg-slate-900/80 hover:bg-slate-800' : 'border-slate-200 text-slate-700 bg-white/90 hover:bg-slate-100'}`}>
+                                className={`inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold tracking-wide transition ${theme === 'dark' ? 'border-slate-700 text-slate-200 bg-slate-900/80 hover:bg-slate-800' : 'border-slate-200 text-slate-700 bg-white/90 hover:bg-slate-100'}`}>
                                 {isCandidatePanelOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                             </button>
                         )}
@@ -636,17 +636,17 @@ const ScriptSharePage = () => {
 
                     <div className="hidden sm:flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-primary/15 rounded-xl border border-primary/20 flex items-center justify-center text-primary font-black text-sm italic shadow-inner">
+                            <div className="w-10 h-10 bg-primary/15 rounded-xl border border-primary/20 flex items-center justify-center text-primary font-semibold text-sm italic shadow-none">
                                 {candidateInitial}
                             </div>
                             <div>
-                                <h1 className="text-lg font-black tracking-tight flex items-center gap-2 uppercase italic">
+                                <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2 italic">
                                     <span>{candidateDisplayName}</span>
-                                    <span className={`text-[9px] font-black not-italic px-2 py-0.5 rounded border ${isGrader ? 'bg-primary/20 text-primary border-primary/30' : `${theme === 'dark' ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-200 text-slate-700 border-slate-300'}`}`}>
+                                    <span className={`text-xs font-semibold not-italic px-2 py-0.5 rounded border ${isGrader ? 'bg-primary/20 text-primary border-primary/30' : `${theme === 'dark' ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-200 text-slate-700 border-slate-300'}`}`}>
                                         {isGrader ? 'EVALUATOR' : 'VIEWER'}
                                     </span>
                                 </h1>
-                                <p className={`text-[9px] font-black ${textSecondary} uppercase tracking-widest mt-0.5`}>
+                                <p className={`text-xs font-semibold ${textSecondary} tracking-wide mt-0.5`}>
                                     Target: {script?.examTitle || script?.assignmentTitle} ({script?.type})
                                 </p>
                             </div>
@@ -655,7 +655,7 @@ const ScriptSharePage = () => {
                         <div className="flex items-center gap-4">
                             <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border ${timeRemainingMs < 300000 ? 'bg-rose-500/10 border-rose-500/30 text-rose-500 animate-pulse' : theme === 'dark' ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
                                 <Clock className="w-4 h-4" />
-                                <span className="font-mono text-sm font-black tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
+                                <span className="font-mono text-sm font-semibold tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
                             </div>
 
                             <ThemeToggle />
@@ -665,7 +665,7 @@ const ScriptSharePage = () => {
                                 <button
                                     onClick={handleSaveDraft}
                                     disabled={savingDraft || finalizing}
-                                    className="hidden sm:inline-flex px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all disabled:opacity-50 items-center justify-center gap-2"
+                                    className="hidden sm:inline-flex px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 rounded-xl text-[11px] font-semibold tracking-wider transition-all disabled:opacity-50 items-center justify-center gap-2"
                                 >
                                     <Save className="w-4 h-4" />
                                     <span>Save Draft</span>
@@ -673,7 +673,7 @@ const ScriptSharePage = () => {
                                 <button
                                     onClick={handleFinalizeGrading}
                                     disabled={savingDraft || finalizing}
-                                    className="w-full sm:w-auto btn-premium px-3 py-2 text-[11px] uppercase tracking-wider font-black flex items-center justify-center gap-2"
+                                    className="w-full sm:w-auto btn-premium px-3 py-2 text-[11px] tracking-wider font-semibold flex items-center justify-center gap-2"
                                 >
                                     <Send className="w-4 h-4" />
                                     <span>Finalize</span>
@@ -686,11 +686,11 @@ const ScriptSharePage = () => {
 
             {isCandidatePanelOpen && script?.submissions?.length > 1 && (
                 <div className="fixed inset-0 z-50 flex justify-start bg-slate-950/90 sm:hidden">
-                    <div className={`${cardBg} border ${border} rounded-r-[2rem] w-full max-w-xs h-full p-4 overflow-y-auto shadow-2xl`}> 
+                    <div className={`${cardBg} border ${border} rounded-r-[2rem] w-full max-w-xs h-full p-4 overflow-y-auto shadow-none`}> 
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <p className={`text-[10px] font-black uppercase tracking-widest ${cardSubText}`}>Shared Candidates</p>
-                                <h2 className={`text-sm font-black ${cardText} mt-2`}>{script.submissions.length} candidates</h2>
+                                <p className={`text-xs font-semibold tracking-wide ${cardSubText}`}>Shared Candidates</p>
+                                <h2 className={`text-sm font-semibold ${cardText} mt-2`}>{script.submissions.length} candidates</h2>
                             </div>
                             <button
                                 type="button"
@@ -700,16 +700,16 @@ const ScriptSharePage = () => {
                             </button>
                         </div>
                         <div className="grid grid-cols-1 gap-3 mb-4">
-                            <div className={`rounded-2xl border ${border} p-3 ${panelBg}`}>
+                            <div className={`rounded-xl border ${border} p-3 ${panelBg}`}>
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${cardSubText}`}>Actions</span>
+                                    <span className={`text-xs font-semibold tracking-wide ${cardSubText}`}>Actions</span>
                                 </div>
                                 <div className="space-y-3">
-                                    <div className={`rounded-2xl border ${border} p-3 ${panelBg}`}>
-                                        <div className="text-[10px] font-black uppercase tracking-widest ${cardSubText} mb-2">Timer</div>
+                                    <div className={`rounded-xl border ${border} p-3 ${panelBg}`}>
+                                        <div className="text-xs font-semibold tracking-wide ${cardSubText} mb-2">Timer</div>
                                         <div className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 ${theme === 'dark' ? 'bg-slate-900/90 text-slate-200 border-slate-800' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
                                             <Clock className="w-4 h-4" />
-                                            <span className="font-mono text-sm font-black tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
+                                            <span className="font-mono text-sm font-semibold tracking-wider">{formatTimeRemaining(timeRemainingMs)}</span>
                                         </div>
                                     </div>
                                     {isGrader && (
@@ -717,34 +717,34 @@ const ScriptSharePage = () => {
                                             <button
                                                 onClick={handleSaveDraft}
                                                 disabled={savingDraft || finalizing}
-                                                className="w-full px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 rounded-xl text-sm font-black uppercase tracking-wider transition-all disabled:opacity-50"
+                                                className="w-full px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 rounded-xl text-sm font-semibold tracking-wider transition-all disabled:opacity-50"
                                             >
                                                 Save Draft
                                             </button>
                                             <button
                                                 onClick={handleFinalizeGrading}
                                                 disabled={savingDraft || finalizing}
-                                                className="w-full btn-premium px-3 py-2 text-sm uppercase tracking-wider font-black"
+                                                className="w-full btn-premium px-3 py-2 text-sm tracking-wider font-semibold"
                                             >
                                                 Finalize
                                             </button>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center">
-                                        <span className={`text-[10px] font-black uppercase tracking-widest ${cardSubText}`}>Theme</span>
+                                        <span className={`text-xs font-semibold tracking-wide ${cardSubText}`}>Theme</span>
                                         <ThemeToggle />
                                     </div>
                                 </div>
                             </div>
-                            <div className={`rounded-2xl border ${border} p-3 ${panelBg}`}>
-                                <p className={`text-[10px] font-black uppercase tracking-widest ${cardSubText} mb-3`}>Filter Questions</p>
+                            <div className={`rounded-xl border ${border} p-3 ${panelBg}`}>
+                                <p className={`text-xs font-semibold tracking-wide ${cardSubText} mb-3`}>Filter Questions</p>
                                 <div className="flex flex-wrap gap-2">
                                     {['all', 'mcq', 'theory'].map((type) => (
                                         <button
                                             key={type}
                                             type="button"
                                             onClick={() => setQuestionFilter(type)}
-                                            className={`rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-widest transition ${questionFilter === type ? 'bg-primary text-white' : theme === 'dark' ? 'bg-slate-900 text-slate-200 border border-slate-700' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}
+                                            className={`rounded-full px-3 py-2 text-[11px] font-semibold tracking-wide transition ${questionFilter === type ? 'bg-primary text-white' : theme === 'dark' ? 'bg-slate-900 text-slate-200 border border-slate-700' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}
                                         >
                                             {type.toUpperCase()}
                                         </button>
@@ -765,13 +765,13 @@ const ScriptSharePage = () => {
                                             handleCandidateSwitch(submission.submissionRef);
                                             setIsCandidatePanelOpen(false);
                                         }}
-                                        className={`w-full rounded-3xl border px-4 py-4 text-left transition-all ${isActive ? 'border-primary bg-primary/10 shadow-inner' : `${theme === 'dark' ? 'border-slate-800 bg-slate-950/70 hover:bg-slate-900' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'}`}`}
+                                        className={`w-full rounded-xl border px-4 py-4 text-left transition-all ${isActive ? 'border-primary bg-primary/10 shadow-none' : `${theme === 'dark' ? 'border-slate-800 bg-slate-950/70 hover:bg-slate-900' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'}`}`}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-11 h-11 rounded-2xl ${theme === 'dark' ? 'bg-slate-800 text-slate-200' : 'bg-slate-200 text-slate-700'} flex items-center justify-center text-sm font-black`}>{initial}</div>
+                                            <div className={`w-11 h-11 rounded-xl ${theme === 'dark' ? 'bg-slate-800 text-slate-200' : 'bg-slate-200 text-slate-700'} flex items-center justify-center text-sm font-semibold`}>{initial}</div>
                                             <div className="min-w-0">
-                                                <p className={`text-sm font-bold ${cardText} truncate`}>{displayName}</p>
-                                                <p className={`text-[10px] ${cardSubText} truncate`}>{formatDisplayDate(submission.submittedAt)}</p>
+                                                <p className={`text-sm font-semibold ${cardText} truncate`}>{displayName}</p>
+                                                <p className={`text-xs ${cardSubText} truncate`}>{formatDisplayDate(submission.submittedAt)}</p>
                                             </div>
                                         </div>
                                     </button>
@@ -786,13 +786,13 @@ const ScriptSharePage = () => {
                 <div className={`grid gap-6 ${pageLayoutCols}`}>
                     {script?.submissions?.length > 1 && (
                         <aside className="hidden lg:block space-y-4">
-                            <div className={`${cardBg} border ${border} rounded-[2rem] p-5 shadow-xl sticky top-24 max-h-[calc(100vh-200px)] overflow-y-auto`}>
+                            <div className={`${cardBg} border ${border} rounded-xl p-5 shadow-none sticky top-24 max-h-[calc(100vh-200px)] overflow-y-auto`}>
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <p className={`text-[10px] font-black uppercase tracking-widest ${cardSubText}`}>Shared Candidates</p>
-                                        <h2 className={`text-sm font-black ${cardText} mt-2`}>{script.submissions.length} candidates</h2>
+                                        <p className={`text-xs font-semibold tracking-wide ${cardSubText}`}>Shared Candidates</p>
+                                        <h2 className={`text-sm font-semibold ${cardText} mt-2`}>{script.submissions.length} candidates</h2>
                                     </div>
-                                    <span className={`text-[10px] uppercase tracking-widest ${cardSubText}`}>Group</span>
+                                    <span className={`text-xs tracking-wide ${cardSubText}`}>Group</span>
                                 </div>
                                 <div className="space-y-3">
                                     {script.submissions.map((submission) => {
@@ -805,13 +805,13 @@ const ScriptSharePage = () => {
                                                 key={submission.submissionRef}
                                                 type="button"
                                                 onClick={() => handleCandidateSwitch(submission.submissionRef)}
-                                                className={`w-full rounded-3xl border px-4 py-4 text-left transition-all ${isActive ? 'border-primary bg-primary/10 shadow-inner' : `${theme === 'dark' ? 'border-slate-800 bg-slate-950/70 hover:bg-slate-900' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'}`}`}
+                                                className={`w-full rounded-xl border px-4 py-4 text-left transition-all ${isActive ? 'border-primary bg-primary/10 shadow-none' : `${theme === 'dark' ? 'border-slate-800 bg-slate-950/70 hover:bg-slate-900' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'}`}`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-11 h-11 rounded-2xl ${theme === 'dark' ? 'bg-slate-800 text-slate-200' : 'bg-slate-200 text-slate-700'} flex items-center justify-center text-sm font-black`}>{initial}</div>
+                                                    <div className={`w-11 h-11 rounded-xl ${theme === 'dark' ? 'bg-slate-800 text-slate-200' : 'bg-slate-200 text-slate-700'} flex items-center justify-center text-sm font-semibold`}>{initial}</div>
                                                     <div className="min-w-0">
-                                                        <p className={`text-sm font-bold ${cardText} truncate`}>{displayName}</p>
-                                                        <p className={`text-[10px] ${cardSubText} truncate`}>{formatDisplayDate(submission.submittedAt)}</p>
+                                                        <p className={`text-sm font-semibold ${cardText} truncate`}>{displayName}</p>
+                                                        <p className={`text-xs ${cardSubText} truncate`}>{formatDisplayDate(submission.submittedAt)}</p>
                                                     </div>
                                                 </div>
                                             </button>
@@ -824,10 +824,10 @@ const ScriptSharePage = () => {
                     <div className="space-y-6">
                 {/* Warning header when session is ending */}
                 {timeRemainingMs < 300000 && isGrader && (
-                    <div className="bg-rose-500/15 border-2 border-rose-500/30 rounded-2xl p-4 flex gap-3 text-rose-400 items-start">
+                    <div className="bg-rose-500/15 border-2 border-rose-500/30 rounded-xl p-4 flex gap-3 text-rose-400 items-start">
                         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                         <div>
-                            <h4 className="font-black text-xs uppercase tracking-wide">Critical Warning: Session Expiring Soon</h4>
+                            <h4 className="font-semibold text-xs tracking-wide">Critical Warning: Session Expiring Soon</h4>
                             <p className="text-xs font-medium leading-relaxed mt-1">
                                 Your secure grading session will terminate in less than 5 minutes. You must click **Finalize** or **Save Draft** before the timer reaches zero, otherwise all your current grading work will be discarded.
                             </p>
@@ -836,26 +836,26 @@ const ScriptSharePage = () => {
                 )}
 
                 {/* Submissions Details Overview */}
-                <div className={`${cardBg} border ${border} rounded-[2rem] p-6 shadow-xl grid grid-cols-2 sm:grid-cols-4 gap-4`}>
+                <div className={`${cardBg} border ${border} rounded-xl p-6 shadow-none grid grid-cols-2 sm:grid-cols-4 gap-4`}>
                     <div>
-                        <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block`}>Submitted At</span>
-                        <span className={`font-bold text-xs ${cardText} mt-1 block`}>{formatDisplayDate(submittedAt)}</span>
+                        <span className={`text-xs font-semibold ${cardSubText} tracking-wide block`}>Submitted At</span>
+                        <span className={`font-semibold text-xs ${cardText} mt-1 block`}>{formatDisplayDate(submittedAt)}</span>
                     </div>
                     <div>
-                        <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block`}>Original Score</span>
-                        <span className={`font-bold text-xs ${cardText} mt-1 block`}>
+                        <span className={`text-xs font-semibold ${cardSubText} tracking-wide block`}>Original Score</span>
+                        <span className={`font-semibold text-xs ${cardText} mt-1 block`}>
                             {script?.type === 'exam' ? `${currentScore || 0} pts` : `${currentScore || 0}/${script.maxScore} pts`}
                         </span>
                     </div>
                     <div>
-                        <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block`}>Status</span>
-                        <span className={`inline-block text-[9px] font-black uppercase tracking-wider border rounded px-2.5 py-0.5 mt-1.5 ${currentStatus === 'graded' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}>
+                        <span className={`text-xs font-semibold ${cardSubText} tracking-wide block`}>Status</span>
+                        <span className={`inline-block text-xs font-semibold tracking-wider border rounded px-2.5 py-0.5 mt-1.5 ${currentStatus === 'graded' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}>
                             {currentStatus}
                         </span>
                     </div>
                     <div>
-                        <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block`}>Candidate Email</span>
-                        <span className={`font-bold text-xs ${cardText} mt-1 block truncate`} title={candidateEmail}>{candidateEmail || 'N/A'}</span>
+                        <span className={`text-xs font-semibold ${cardSubText} tracking-wide block`}>Candidate Email</span>
+                        <span className={`font-semibold text-xs ${cardText} mt-1 block truncate`} title={candidateEmail}>{candidateEmail || 'N/A'}</span>
                     </div>
                 </div>
 
@@ -867,7 +867,7 @@ const ScriptSharePage = () => {
                                 key={type}
                                 type="button"
                                 onClick={() => setQuestionFilter(type)}
-                                className={`rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-widest transition ${questionFilter === type ? 'bg-primary text-white' : theme === 'dark' ? 'bg-slate-900 text-slate-200 border border-slate-700' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}
+                                className={`rounded-full px-3 py-2 text-[11px] font-semibold tracking-wide transition ${questionFilter === type ? 'bg-primary text-white' : theme === 'dark' ? 'bg-slate-900 text-slate-200 border border-slate-700' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}
                             >
                                 {type.toUpperCase()}
                             </button>
@@ -894,15 +894,15 @@ const ScriptSharePage = () => {
                         ) || { score: 0, feedback: '' };
 
                         return (
-                            <div key={index} className={`${cardBg} border ${border} rounded-[2rem] p-6 shadow-lg space-y-6`}>
+                            <div key={index} className={`${cardBg} border ${border} rounded-xl p-6 shadow-none space-y-6`}>
                                 {/* Question Title */}
                                 <div className="flex items-start gap-3">
-                                    <span className="w-8 h-8 rounded-lg bg-primary/20 text-primary border border-primary/20 flex items-center justify-center font-black text-xs">
+                                    <span className="w-8 h-8 rounded-xl bg-primary/20 text-primary border border-primary/20 flex items-center justify-center font-semibold text-xs">
                                         {index + 1}
                                     </span>
                                     <div>
-                                        <p className={`font-bold ${cardText} text-sm leading-relaxed`}>{question.questionText}</p>
-                                        <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest mt-1 block`}>Maximum Points: {question.maxScore || 10}</span>
+                                        <p className={`font-semibold ${cardText} text-sm leading-relaxed`}>{question.questionText}</p>
+                                        <span className={`text-xs font-semibold ${cardSubText} tracking-wide mt-1 block`}>Maximum Points: {question.maxScore || 10}</span>
                                     </div>
                                 </div>
 
@@ -924,16 +924,16 @@ const ScriptSharePage = () => {
                                                             ? 'border-slate-800/80 bg-slate-950/40 text-slate-400'
                                                             : 'border-slate-200/80 bg-slate-100 text-slate-700';
                                             const labelStateClass = isSelected && isCorrect
-                                                ? 'bg-emerald-500 text-white'
+                                                ? 'bg-success text-white'
                                                 : isSelected
-                                                    ? 'bg-rose-500 text-white'
+                                                    ? 'bg-danger text-white'
                                                     : 'bg-slate-850 text-slate-500';
                                             return (
                                                 <div 
                                                     key={oIdx} 
                                                     className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold ${optionStateClass}`}
                                                 >
-                                                    <span className={`w-6 h-6 rounded flex items-center justify-center font-black text-[10px] ${labelStateClass}`}>
+                                                    <span className={`w-6 h-6 rounded flex items-center justify-center font-semibold text-xs ${labelStateClass}`}>
                                                         {labels[oIdx]}
                                                     </span>
                                                     <span>{opt}</span>
@@ -944,11 +944,11 @@ const ScriptSharePage = () => {
                                 )}
 
                                 {/* Student Answer Box */}
-                                <div className={`${isObjCorrect ? 'bg-emerald-500/5 border-emerald-500/30' : isObjWrongOrMissed ? 'bg-rose-500/5 border-rose-500/30' : `${panelBg} ${panelBorder}`} border rounded-2xl p-5 relative overflow-hidden pl-11`}>
+                                <div className={`${isObjCorrect ? 'bg-emerald-500/5 border-emerald-500/30' : isObjWrongOrMissed ? 'bg-rose-500/5 border-rose-500/30' : `${panelBg} ${panelBorder}`} border rounded-xl p-5 relative overflow-hidden pl-11`}>
                                     <div className="absolute top-0 right-0 p-3 opacity-[0.02]">
                                         <FileText className="w-12 h-12 text-white" />
                                     </div>
-                                    <span className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest block mb-2`}>Student Response</span>
+                                    <span className={`text-xs font-semibold ${cardSubText} tracking-wide block mb-2`}>Student Response</span>
                                     <p className={`${isObjCorrect ? 'text-emerald-500' : isObjWrongOrMissed ? 'text-rose-500' : cardText} text-xs font-medium whitespace-pre-wrap leading-relaxed`}>
                                         {studentAnswer || 'No answer submitted.'}
                                     </p>
@@ -958,22 +958,22 @@ const ScriptSharePage = () => {
                                 {isGrader ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-850 pt-5 pl-11">
                                         <div>
-                                            <label className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest mb-1.5 block`}>Assign Score</label>
+                                            <label className={`text-xs font-semibold ${cardSubText} tracking-wide mb-1.5 block`}>Assign Score</label>
                                             <div className="relative">
                                                 <input
                                                     type="number"
                                                     value={currentGradeItem.score}
                                                     onChange={(e) => handleGradeFieldChange(index, 'score', Math.min(question.maxScore || 10, Math.max(0, parseInt(e.target.value) || 0)))}
-                                                    className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-xl text-sm font-bold pr-12 ${placeholder}`}
+                                                    className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-xl text-sm font-semibold pr-12 ${placeholder}`}
                                                     min="0"
                                                     max={question.maxScore || 10}
                                                     required
                                                 />
-                                                <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black ${cardSubText} uppercase`}>pts</span>
+                                                <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold ${cardSubText}`}>pts</span>
                                             </div>
                                         </div>
                                         <div>
-                                            <label className={`text-[9px] font-black ${cardSubText} uppercase tracking-widest mb-1.5 block`}>Question Feedback</label>
+                                            <label className={`text-xs font-semibold ${cardSubText} tracking-wide mb-1.5 block`}>Question Feedback</label>
                                             <input
                                                 type="text"
                                                 placeholder="Feedback comments..."
@@ -987,7 +987,7 @@ const ScriptSharePage = () => {
                                     /* Read only score display */
                                     (script.status === 'graded' || answerObj?.score !== undefined) && (
                                         <div className="flex items-center gap-3 pl-11 pt-2">
-                                            <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
+                                            <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20 tracking-wide">
                                                 Score: {currentGradeItem.score} / {question.maxScore || 10} pts
                                             </span>
                                             {script.type === 'assignment' && currentGradeItem.feedback && (
@@ -1002,20 +1002,20 @@ const ScriptSharePage = () => {
 
                     {/* Overall Grading Feedback Card */}
                     {isGrader ? (
-                        <div className={`${cardBg} border ${border} rounded-[2rem] p-6 shadow-lg space-y-4`}>
-                            <h3 className={`text-sm font-black uppercase tracking-widest ${cardSubText}`}>Overall Evaluator Summary</h3>
+                        <div className={`${cardBg} border ${border} rounded-xl p-6 shadow-none space-y-4`}>
+                            <h3 className={`text-sm font-semibold tracking-wide ${cardSubText}`}>Overall Evaluator Summary</h3>
                             <textarea
                                     placeholder="Write overall grading summary and notes..."
                                     value={overallFeedback}
                                     onChange={(e) => setOverallFeedback(e.target.value)}
-                                    className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-[1.5rem] p-4 text-xs font-semibold ${placeholder}`}
+                                    className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-xl p-4 text-xs font-semibold ${placeholder}`}
                                     rows="3"
                                 />
                         </div>
                     ) : (
                         overallFeedback && (
-                            <div className={`${cardBg} border ${border} rounded-[2rem] p-6 shadow-lg space-y-2`}>
-                                <h3 className={`text-[10px] font-black uppercase tracking-widest ${cardSubText}`}>Overall Evaluator Summary</h3>
+                            <div className={`${cardBg} border ${border} rounded-xl p-6 shadow-none space-y-2`}>
+                                <h3 className={`text-xs font-semibold tracking-wide ${cardSubText}`}>Overall Evaluator Summary</h3>
                                 <p className={`${cardText} text-xs font-medium leading-relaxed italic`}>&quot;{overallFeedback}&quot;</p>
                             </div>
                         )

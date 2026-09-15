@@ -196,8 +196,8 @@ const AdminSubscriptionPlans = () => {
       <div className="space-y-8 py-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+            <h2 className="text-3xl font-semibold text-slate-900 flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                 <CreditCard className="w-6 h-6" />
               </div>
               Subscription Plans
@@ -208,7 +208,7 @@ const AdminSubscriptionPlans = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFreeAccessModal(true)}
-              className="px-5 py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-100 transition-all flex items-center gap-2"
+              className="px-5 py-3 bg-primary/10 text-primary font-semibold rounded-xl hover:bg-primary/20 transition-all flex items-center gap-2"
             >
               <UserPlus className="w-5 h-5" />
               Issue Free Access
@@ -229,12 +229,12 @@ const AdminSubscriptionPlans = () => {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-100">
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Plan Name</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Type</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Price</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Duration</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 tracking-wide">Plan Name</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 tracking-wide">Type</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 tracking-wide">Price</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 tracking-wide">Duration</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 tracking-wide">Status</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -242,18 +242,18 @@ const AdminSubscriptionPlans = () => {
                     <tr key={plan._id} className="hover:bg-slate-50/30 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-900">{plan.name}</span>
+                          <span className="font-semibold text-slate-900">{plan.name}</span>
                           <span className="text-xs text-slate-500 line-clamp-1">{plan.description}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm font-bold text-slate-600 capitalize">{plan.planType.replace(/_/g, ' ')}</span>
+                        <span className="text-sm font-semibold text-slate-600 capitalize">{plan.planType.replace(/_/g, ' ')}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm font-black text-slate-900">{formatAmount(plan.price)}</span>
+                        <span className="text-sm font-semibold text-slate-900">{formatAmount(plan.price)}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                           <Clock className="w-4 h-4 opacity-40" />
                           {plan.durationDays} Days
                         </div>
@@ -261,7 +261,7 @@ const AdminSubscriptionPlans = () => {
                       <td className="px-6 py-4">
                         <button 
                           onClick={() => handleToggleActive(plan)}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider transition-all ${
                             plan.isActive 
                               ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' 
                               : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
@@ -278,7 +278,7 @@ const AdminSubscriptionPlans = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleOpenPlanModal(plan)}
-                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
                             title="Edit Plan"
                           >
                             <Edit className="w-4 h-4" />
@@ -288,7 +288,7 @@ const AdminSubscriptionPlans = () => {
                               setPlanToDelete(plan);
                               setShowDeleteModal(true);
                             }}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                             title="Delete Plan"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -312,15 +312,15 @@ const AdminSubscriptionPlans = () => {
 
         {/* Plan Modal */}
         {showPlanModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto p-4 flex items-center justify-center">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full animate-slide-up overflow-hidden">
+          <div className="fixed inset-0 bg-slate-900/60  z-[100] overflow-y-auto p-4 flex items-center justify-center">
+            <div className="bg-white rounded-xl shadow-none max-w-2xl w-full animate-slide-up overflow-hidden">
               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                     {editingPlan ? <Edit className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900">{editingPlan ? 'Edit Plan' : 'Create New Plan'}</h3>
+                    <h3 className="text-2xl font-semibold text-slate-900">{editingPlan ? 'Edit Plan' : 'Create New Plan'}</h3>
                     <p className="text-sm text-slate-500 font-medium">Configure plan details and pricing</p>
                   </div>
                 </div>
@@ -332,22 +332,22 @@ const AdminSubscriptionPlans = () => {
               <form onSubmit={handleSavePlan} className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Plan Name</label>
+                    <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Plan Name</label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
+                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
                       placeholder="e.g. Professional Monthly"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Plan Type</label>
+                    <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Plan Type</label>
                     <select
                       value={formData.planType}
                       onChange={(e) => setFormData({ ...formData, planType: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none appearance-none"
+                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none appearance-none"
                       required
                     >
                       <option value="trial">Free Trial</option>
@@ -358,24 +358,24 @@ const AdminSubscriptionPlans = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Price (₦)</label>
+                    <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Price (₦)</label>
                     <input
                       type="number"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
+                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
                       placeholder="0"
                       min="0"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Duration (Days)</label>
+                    <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Duration (Days)</label>
                     <input
                       type="number"
                       value={formData.durationDays}
                       onChange={(e) => setFormData({ ...formData, durationDays: parseInt(e.target.value) })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
+                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
                       placeholder="30"
                       min="1"
                       required
@@ -383,12 +383,12 @@ const AdminSubscriptionPlans = () => {
                   </div>
                   {formData.planType === 'pay_as_you_go' && (
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Revenue Share (%)</label>
+                      <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Revenue Share (%)</label>
                       <input
                         type="number"
                         value={formData.revenueSharePercentage}
                         onChange={(e) => setFormData({ ...formData, revenueSharePercentage: parseFloat(e.target.value) })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
+                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none"
                         placeholder="0"
                         min="0"
                         max="100"
@@ -397,20 +397,20 @@ const AdminSubscriptionPlans = () => {
                     </div>
                   )}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
+                    <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Description</label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none min-h-[100px]"
+                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none min-h-[100px]"
                       placeholder="Write a short description of this plan..."
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Features (Comma separated)</label>
+                    <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Features (Comma separated)</label>
                     <textarea
                       value={formData.features}
                       onChange={(e) => setFormData({ ...formData, features: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none min-h-[80px]"
+                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all outline-none min-h-[80px]"
                       placeholder="e.g. Unlimited Students, Advanced Reports, 24/7 Support"
                       required
                     />
@@ -421,7 +421,7 @@ const AdminSubscriptionPlans = () => {
                   <button
                     type="button"
                     onClick={() => setShowPlanModal(false)}
-                    className="px-8 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all active:scale-95"
+                    className="px-8 py-4 bg-slate-100 text-slate-600 font-semibold rounded-xl hover:bg-slate-200 transition-all active:scale-95"
                   >
                     Cancel
                   </button>
@@ -440,15 +440,15 @@ const AdminSubscriptionPlans = () => {
 
         {/* Free Access Modal */}
         {showFreeAccessModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto p-4 flex items-center justify-center">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full animate-slide-up overflow-hidden">
+          <div className="fixed inset-0 bg-slate-900/60  z-[100] overflow-y-auto p-4 flex items-center justify-center">
+            <div className="bg-white rounded-xl shadow-none max-w-md w-full animate-slide-up overflow-hidden">
               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                     <UserPlus className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900">Issue Free Access</h3>
+                    <h3 className="text-2xl font-semibold text-slate-900">Issue Free Access</h3>
                     <p className="text-sm text-slate-500 font-medium">Grant free access to selected users</p>
                   </div>
                 </div>
@@ -459,22 +459,22 @@ const AdminSubscriptionPlans = () => {
 
               <div className="p-8 space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Search Users</label>
+                  <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Search Users</label>
                   <div className="relative">
                     <input
                       type="text"
                       value={userSearchText}
                       onChange={(e) => setUserSearchText(e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-indigo-500 transition-all outline-none"
+                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary/50 transition-all outline-none"
                       placeholder="Type name or email..."
                     />
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    {searchingUsers && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-indigo-500" />}
+                    {searchingUsers && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-primary" />}
                   </div>
                   
                   {/* Search Results */}
                   {users.length > 0 && userSearchText.length > 2 && (
-                    <div className="mt-2 max-h-48 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-lg divide-y divide-slate-50">
+                    <div className="mt-2 max-h-48 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-none divide-y divide-slate-50">
                       {users.map(u => (
                         <button
                           key={u._id}
@@ -488,10 +488,10 @@ const AdminSubscriptionPlans = () => {
                           className="w-full p-3 text-left hover:bg-slate-50 flex items-center justify-between group"
                         >
                           <div>
-                            <p className="font-bold text-slate-900 group-hover:text-indigo-600">{u.name}</p>
+                            <p className="font-semibold text-slate-900 group-hover:text-primary">{u.name}</p>
                             <p className="text-xs text-slate-500">{u.email} • {u.role.replace(/_/g, ' ')}</p>
                           </div>
-                          <Plus className="w-4 h-4 text-slate-300 group-hover:text-indigo-500" />
+                          <Plus className="w-4 h-4 text-slate-300 group-hover:text-primary" />
                         </button>
                       ))}
                     </div>
@@ -502,7 +502,7 @@ const AdminSubscriptionPlans = () => {
                 {selectedUsers.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {selectedUsers.map(u => (
-                      <div key={u._id} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100">
+                      <div key={u._id} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
                         {u.name}
                         <button onClick={() => setSelectedUsers(selectedUsers.filter(su => su._id !== u._id))}>
                           <XCircle className="w-4 h-4" />
@@ -513,12 +513,12 @@ const AdminSubscriptionPlans = () => {
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Duration (Days)</label>
+                  <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Duration (Days)</label>
                   <input
                     type="number"
                     value={durationDays}
                     onChange={(e) => setDurationDays(parseInt(e.target.value))}
-                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-indigo-500 transition-all outline-none"
+                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary/50 transition-all outline-none"
                     placeholder="30"
                     min="1"
                     required

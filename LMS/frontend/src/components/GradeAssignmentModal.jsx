@@ -64,20 +64,20 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/60  z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh] border dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-none max-w-2xl w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh] border dark:border-slate-800">
           {/* Header */}
           <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 sticky top-0 z-10">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Grade Submission</h3>
+                <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-tight">Grade Submission</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <User className="w-3.5 h-3.5 text-slate-400" />
-                  <p className="text-sm text-slate-500 font-medium">Student: <span className="text-indigo-600 font-bold">{submissionToGrade.studentId?.name || 'N/A'}</span></p>
+                  <p className="text-sm text-slate-500 font-medium">Student: <span className="text-primary font-semibold">{submissionToGrade.studentId?.name || 'N/A'}</span></p>
                 </div>
               </div>
             </div>
@@ -92,21 +92,21 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-slate-200">
             {selectedAssignment.assignmentType === 'mcq' && submissionToGrade.answers && Array.isArray(submissionToGrade.answers) && (
-              <div className="p-8 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2rem] border border-slate-100/50 dark:border-slate-800/50">
-                <div className="flex items-center gap-2 mb-6 text-slate-400 font-black text-xs uppercase tracking-[0.2em]">
+              <div className="p-8 bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-slate-100/50 dark:border-slate-800/50">
+                <div className="flex items-center gap-2 mb-6 text-slate-400 font-semibold text-xs tracking-[0.2em]">
                   <FileText className="w-4 h-4" />
                   <span>Submission Review</span>
                 </div>
                 <div className="space-y-4">
                   {selectedAssignment.questions.map((q, qIndex) => (
-                    <div key={qIndex} className="bg-white dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:border-indigo-100 dark:hover:border-indigo-900/50">
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-200 mb-3 leading-relaxed">
+                    <div key={qIndex} className="bg-white dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-none transition-all hover:border-primary/20 dark:hover:border-indigo-900/50">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-3 leading-relaxed">
                         <span className="text-indigo-200 mr-2">#{qIndex + 1}</span>
                         {q.questionText}
                       </p>
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50/50 rounded-lg border border-indigo-100 w-fit">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Response:</span>
-                        <span className="text-sm font-black text-indigo-600">{submissionToGrade.answers[qIndex]}</span>
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-xl border border-primary/20 w-fit">
+                        <span className="text-xs font-semibold tracking-wide text-primary">Response:</span>
+                        <span className="text-sm font-semibold text-primary">{submissionToGrade.answers[qIndex]}</span>
                       </div>
                     </div>
                   ))}
@@ -116,13 +116,13 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
 
             {/* Display marking preference for theory assignments */}
             {selectedAssignment.assignmentType === 'theory' && selectedAssignment.questions[0]?.markingPreference && (
-              <div className="flex items-center gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center">
+              <div className="flex items-center gap-3 p-4 bg-emerald-50/50 rounded-xl border border-emerald-100/50">
+                <div className="w-8 h-8 rounded-xl bg-success text-white flex items-center justify-center">
                   <CheckCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-0.5">Assessment Method</p>
-                  <p className="text-sm font-bold text-slate-700">
+                  <p className="text-xs font-semibold text-emerald-600 tracking-[0.2em] mb-0.5">Assessment Method</p>
+                  <p className="text-sm font-semibold text-slate-700">
                     {selectedAssignment.questions[0].markingPreference === 'ai' ? 'Advanced AI Optimized Grading' : 'Standard Manual Grading'}
                   </p>
                 </div>
@@ -137,45 +137,45 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
                     const currentQuestionGrade = questionGrades.find(qg => qg.questionIndex === qIndex) || { score: 0, feedback: '' };
 
                     return (
-                      <div key={qIndex} className="p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border-2 border-slate-50 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+                      <div key={qIndex} className="p-8 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-50 dark:border-slate-800 shadow-none transition-all hover:shadow-none">
                         <div className="flex items-start gap-4 mb-8">
-                          <span className="w-10 h-10 shrink-0 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-lg shadow-indigo-100">
+                          <span className="w-10 h-10 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center font-semibold text-sm shadow-none">
                             {qIndex + 1}
                           </span>
-                          <p className="font-bold text-slate-900 dark:text-white text-lg leading-tight mt-1.5">{question.questionText}</p>
+                          <p className="font-semibold text-slate-900 dark:text-white text-lg leading-tight mt-1.5">{question.questionText}</p>
                         </div>
 
-                        <div className="mb-8 p-6 bg-slate-900 dark:bg-black rounded-[2rem] border border-slate-800 relative group overflow-hidden">
+                        <div className="mb-8 p-6 bg-slate-900 dark:bg-black rounded-xl border border-slate-800 relative group overflow-hidden">
                           <div className="absolute top-0 right-0 p-4 opacity-10">
                             <FileText className="w-12 h-12 text-white" />
                           </div>
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Student Response</p>
+                          <p className="text-xs font-semibold text-slate-500 tracking-[0.3em] mb-4">Student Response</p>
                           <p className="text-slate-200 whitespace-pre-wrap leading-relaxed font-medium">{studentAnswer || 'No response provided'}</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Score (Max: {question.maxScore})</label>
+                            <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Score (Max: {question.maxScore})</label>
                             <div className="relative">
                               <input
                                 type="number"
                                 value={currentQuestionGrade.score}
                                 onChange={(e) => handleQuestionGradeChange(qIndex, 'score', parseInt(e.target.value) || 0)}
-                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-black text-xl text-primary focus:bg-white focus:border-primary transition-all pr-12"
+                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-xl text-primary focus:bg-white focus:border-primary transition-all pr-12"
                                 min="0"
                                 max={question.maxScore}
                                 required
                               />
-                              <span className="absolute right-5 top-1/2 -translate-y-1/2 font-black text-slate-300">pts</span>
+                              <span className="absolute right-5 top-1/2 -translate-y-1/2 font-semibold text-slate-300">pts</span>
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Feedback (Optional)</label>
+                            <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Feedback (Optional)</label>
                             <textarea
                               placeholder="Great work! Consider explaining..."
                               value={currentQuestionGrade.feedback}
                               onChange={(e) => handleQuestionGradeChange(qIndex, 'feedback', e.target.value)}
-                              className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-slate-600 focus:bg-white focus:border-primary transition-all"
+                              className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:border-primary transition-all"
                               rows="2"
                             />
                           </div>
@@ -188,13 +188,13 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
 
               {selectedAssignment.assignmentType === 'mcq' && (
                 <div className="space-y-8">
-                  <div className="p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100 flex items-start gap-4">
-                    <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0">
+                  <div className="p-6 bg-primary/10 rounded-xl border border-primary/20 flex items-start gap-4">
+                    <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shrink-0">
                       <CheckCircle className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-indigo-900 text-lg">Auto-Graded System</h4>
-                      <p className="text-sm text-indigo-600 font-medium leading-relaxed mt-1">
+                      <h4 className="font-semibold text-primary text-lg">Auto-Graded System</h4>
+                      <p className="text-sm text-primary font-medium leading-relaxed mt-1">
                         MCQ assignments are automatically evaluated based on perfect answers. Scores shown below are locked for review purposes.
                       </p>
                     </div>
@@ -202,16 +202,16 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Final Score</label>
-                      <div className="px-5 py-6 bg-slate-50 rounded-[2rem] border-2 border-slate-100 flex items-center justify-between">
-                        <span className="text-4xl font-black text-primary">{submissionToGrade.score}</span>
-                        <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px] bg-white px-3 py-1 rounded-full shadow-sm">Verified</span>
+                      <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Final Score</label>
+                      <div className="px-5 py-6 bg-slate-50 rounded-xl border-2 border-slate-100 flex items-center justify-between">
+                        <span className="text-4xl font-semibold text-primary">{submissionToGrade.score}</span>
+                        <span className="font-semibold text-slate-400 tracking-wide text-xs bg-white px-3 py-1 rounded-full shadow-none">Verified</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Overall Feedback</label>
-                      <div className="px-5 py-6 bg-slate-50 rounded-[2rem] border-2 border-slate-100 min-h-[100px]">
-                        <p className="text-slate-600 font-bold leading-relaxed">{submissionToGrade.feedback || 'No automated feedback generated'}</p>
+                      <label className="text-xs font-semibold text-slate-400 tracking-wide ml-1">Overall Feedback</label>
+                      <div className="px-5 py-6 bg-slate-50 rounded-xl border-2 border-slate-100 min-h-[100px]">
+                        <p className="text-slate-600 font-semibold leading-relaxed">{submissionToGrade.feedback || 'No automated feedback generated'}</p>
                       </div>
                     </div>
                   </div>
@@ -225,14 +225,14 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 font-black text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-200 dark:hover:border-slate-700 transition-all uppercase tracking-widest text-xs"
+              className="flex-1 px-6 py-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 font-semibold text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-200 dark:hover:border-slate-700 transition-all tracking-wide text-xs"
             >
               Discard Changes
             </button>
             {selectedAssignment.assignmentType === 'theory' && (
               <button
                 onClick={handleGradeSubmission}
-                className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 group shadow-xl shadow-primary/20"
+                className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 group shadow-none"
               >
                 <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                 <span className="text-lg">Publish Final Grades</span>

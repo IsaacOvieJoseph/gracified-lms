@@ -97,11 +97,11 @@ export default function Legal() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <nav className="border-b border-border bg-card/80 backdrop-blur-xl">
+      <nav className="border-b border-border bg-card ">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3 min-w-0">
-            <img src={logo} alt="Gracified" className="w-9 h-9 rounded-xl shadow-lg" />
-            <span className="font-outfit font-bold text-foreground text-base sm:text-xl truncate">Gracified Learning Platform</span>
+            <img src={logo} alt="Gracified" className="w-9 h-9 rounded-xl shadow-none" />
+            <span className="font-serif font-semibold text-foreground text-base sm:text-xl truncate">Gracified Learning Platform</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <ThemeToggle />
@@ -113,16 +113,16 @@ export default function Legal() {
       </nav>
 
       <main>
-        <section className="relative overflow-hidden border-b border-border bg-card/50 px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        <section className="relative overflow-hidden border-b border-border bg-card px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -top-24 left-1/4 w-80 h-80 bg-primary/10 rounded-full blur-[110px]" />
-            <div className="absolute -bottom-32 right-1/4 w-72 h-72 bg-blue-400/10 rounded-full blur-[100px]" />
+            <div className="absolute -top-24 left-1/4 w-80 h-80 bg-primary/10 rounded-full " />
+            <div className="absolute -bottom-32 right-1/4 w-72 h-72 bg-primary/10 rounded-full " />
           </div>
           <div className="relative max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-4 py-2 text-sm font-semibold mb-6">
               <Icon className="w-4 h-4" /> Gracified legal
             </div>
-            <h1 className="font-outfit text-4xl sm:text-5xl font-black tracking-tight text-foreground mb-4">{title}</h1>
+            <h1 className="font-serif text-4xl sm:text-5xl font-semibold tracking-tight text-foreground mb-4">{title}</h1>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">{description}</p>
             <p className="mt-6 text-sm font-medium text-muted-foreground">Last updated: {LAST_UPDATED}</p>
           </div>
@@ -130,7 +130,7 @@ export default function Legal() {
 
         <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <article className="max-w-3xl mx-auto">
-            <div className="rounded-2xl border border-primary/15 bg-primary/5 p-5 sm:p-6 mb-8 flex gap-4">
+            <div className="rounded-xl border border-primary/15 bg-primary/5 p-5 sm:p-6 mb-8 flex gap-4">
               <ShieldCheck className="w-6 h-6 text-primary shrink-0 mt-0.5" />
               <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">
                 Please read this page carefully. It explains important information about your use of Gracified Learning Platform.
@@ -139,14 +139,14 @@ export default function Legal() {
             <div className="space-y-8 sm:space-y-10">
               {sections.map((section) => (
                 <section key={section.title}>
-                  <h2 className="font-outfit text-xl sm:text-2xl font-bold text-foreground mb-3">{section.title}</h2>
+                  <h2 className="font-serif text-xl sm:text-2xl font-semibold text-foreground mb-3">{section.title}</h2>
                   <p className="text-muted-foreground leading-7 sm:leading-8">{section.content}</p>
                 </section>
               ))}
             </div>
-            <div className="mt-12 rounded-2xl border border-border bg-card p-6 sm:p-8 text-center">
+            <div className="mt-12 rounded-xl border border-border bg-card p-6 sm:p-8 text-center">
               <Mail className="w-6 h-6 text-primary mx-auto mb-3" />
-              <h2 className="text-xl font-bold mb-2">Questions?</h2>
+              <h2 className="text-xl font-semibold mb-2">Questions?</h2>
               <p className="text-muted-foreground text-sm mb-4">We&apos;re happy to help clarify this {isPrivacy ? 'privacy policy' : 'agreement'}.</p>
               <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary font-semibold hover:underline">{SUPPORT_EMAIL}</a>
             </div>
@@ -154,7 +154,7 @@ export default function Legal() {
         </section>
       </main>
 
-      <footer className="border-t border-border bg-card/80 px-4 sm:px-6 lg:px-8 py-8">
+      <footer className="border-t border-border bg-card px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>&copy; {new Date().getFullYear()} Gracified Learning Platform.</span>
           <div className="flex items-center gap-5">

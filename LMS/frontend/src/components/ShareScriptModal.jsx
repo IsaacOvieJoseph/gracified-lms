@@ -137,13 +137,13 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl max-w-md w-full p-8 relative animate-slide-up overflow-hidden text-slate-800 dark:text-slate-200">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary/0 via-primary to-primary/0 opacity-20" />
+        <div className="fixed inset-0 bg-slate-900/60  z-[100] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-none max-w-md w-full p-8 relative animate-slide-up overflow-hidden text-slate-800 dark:text-slate-200">
+                <div className="absolute top-0 left-0 w-full h-1.5  from-primary/0 via-primary to-primary/0 opacity-20" />
                 
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
+                        <h3 className="text-xl font-semibold tracking-tight flex items-center gap-2">
                             <Settings className="w-5 h-5 text-primary" />
                             <span>Script Sharing</span>
                         </h3>
@@ -159,15 +159,15 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
                         <RefreshCw className="w-10 h-10 text-primary animate-spin" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fetching share configuration...</p>
+                        <p className="text-xs font-semibold tracking-wide text-muted-foreground">Fetching share configuration...</p>
                     </div>
                 ) : (
                     <div className="space-y-6">
                         {/* Enable/Disable Toggle */}
-                        <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
+                        <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
                             <div>
-                                <span className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Public Access Portal</span>
-                                <h4 className="text-sm font-bold text-foreground mt-0.5">Enable Sharing</h4>
+                                <span className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500">Public Access Portal</span>
+                                <h4 className="text-sm font-semibold text-foreground mt-0.5">Enable Sharing</h4>
                             </div>
                             <button
                                 onClick={handleToggleShareable}
@@ -182,7 +182,7 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                             <>
                                 {/* Shareable Link Display */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">Share Link</label>
+                                    <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 ml-1">Share Link</label>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
@@ -193,13 +193,13 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                         <button
                                             onClick={copyToClipboard}
                                             disabled={!shareUrl}
-                                            className="p-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-sm"
+                                            className="p-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-none"
                                             title="Copy Link"
                                         >
                                             {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                                         </button>
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed ml-1 flex items-start gap-1.5 mt-1">
+                                    <p className="text-xs text-muted-foreground leading-relaxed ml-1 flex items-start gap-1.5 mt-1">
                                         <AlertCircle className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
                                         <span>Anyone with this link can request access. An OTP will be emailed to your authorized school/exam owner.</span>
                                     </p>
@@ -208,19 +208,19 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                 {/* Configure settings form */}
                                 <form onSubmit={handleSaveSettings} className="space-y-4 border-t border-slate-100 dark:border-slate-800/50 pt-4">
                                     <div>
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 ml-1">Access Mode Granted</label>
+                                        <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 ml-1">Access Mode Granted</label>
                                         <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-950 border dark:border-slate-800 rounded-xl">
                                             <button
                                                 type="button"
                                                 onClick={() => setConfig({ ...config, defaultAccessType: 'view' })}
-                                                className={`py-2 rounded-lg font-bold text-xs transition-all ${config.defaultAccessType === 'view' ? 'bg-white dark:bg-slate-800 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                                className={`py-2 rounded-xl font-semibold text-xs transition-all ${config.defaultAccessType === 'view' ? 'bg-white dark:bg-slate-800 text-primary shadow-none' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                             >
                                                 Read Only (View)
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setConfig({ ...config, defaultAccessType: 'grade' })}
-                                                className={`py-2 rounded-lg font-bold text-xs transition-all ${config.defaultAccessType === 'grade' ? 'bg-white dark:bg-slate-800 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                                className={`py-2 rounded-xl font-semibold text-xs transition-all ${config.defaultAccessType === 'grade' ? 'bg-white dark:bg-slate-800 text-primary shadow-none' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                             >
                                                 Evaluate (Grade)
                                             </button>
@@ -229,7 +229,7 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 ml-1 flex items-center gap-1">
+                                            <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 ml-1 flex items-center gap-1">
                                                 <Shield className="w-3.5 h-3.5" />
                                                 <span>OTP Lifespan</span>
                                             </label>
@@ -238,17 +238,17 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                                     type="number"
                                                     value={config.otpLifespanMinutes}
                                                     onChange={(e) => setConfig({ ...config, otpLifespanMinutes: Math.max(5, Number(e.target.value)) })}
-                                                    className="w-full pr-12 text-xs font-bold"
+                                                    className="w-full pr-12 text-xs font-semibold"
                                                     min="5"
                                                     max="1440"
                                                     required
                                                 />
-                                                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[9px] font-bold text-muted-foreground">MINS</span>
+                                                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-semibold text-muted-foreground">MINS</span>
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 ml-1 flex items-center gap-1">
+                                            <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 ml-1 flex items-center gap-1">
                                                 <Clock className="w-3.5 h-3.5" />
                                                 <span>Session Length</span>
                                             </label>
@@ -257,12 +257,12 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                                     type="number"
                                                     value={config.accessDurationMinutes}
                                                     onChange={(e) => setConfig({ ...config, accessDurationMinutes: Math.max(5, Number(e.target.value)) })}
-                                                    className="w-full pr-12 text-xs font-bold"
+                                                    className="w-full pr-12 text-xs font-semibold"
                                                     min="5"
                                                     max="2880"
                                                     required
                                                 />
-                                                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[9px] font-bold text-muted-foreground">MINS</span>
+                                                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-semibold text-muted-foreground">MINS</span>
                                             </div>
                                         </div>
                                     </div>
@@ -270,7 +270,7 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                     <button
                                         type="submit"
                                         disabled={saving}
-                                        className="w-full btn-premium py-3 mt-2 font-bold text-xs"
+                                        className="w-full btn-premium py-3 mt-2 font-semibold text-xs"
                                     >
                                         <Save className="w-4 h-4" />
                                         <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
@@ -278,7 +278,7 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                 </form>
                             </>
                         ) : (
-                            <div className="text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                            <div className="text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
                                 <AlertCircle className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
                                 <p className="text-xs text-muted-foreground font-medium px-4">
                                     Script sharing is currently disabled. Toggle the switch above to enable sharing and generate a secure link.

@@ -57,7 +57,7 @@ const SplashScreen = ({ onFinish }) => {
       {PARTICLES.map((p, i) => (
         <span
           key={i}
-          className="absolute rounded-[2px] splash-particle"
+          className="absolute rounded-xl splash-particle"
           style={{
             top: `${p.top}%`,
             left: `${p.left}%`,

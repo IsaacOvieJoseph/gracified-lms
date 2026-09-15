@@ -18,10 +18,10 @@ const inputClass =
   'w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30';
 
 const btnClass =
-  'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest border border-border bg-card hover:bg-muted transition';
+  'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs tracking-wide border border-border bg-card hover:bg-muted transition';
 
 const primaryBtnClass =
-  'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition';
+  'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs tracking-wide bg-primary text-primary-foreground hover:opacity-90 transition';
 
 const selectStyles = {
   control: (base, state) => ({
@@ -718,13 +718,13 @@ export default function Marketing() {
     if (!open) return null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/60 " />
         <div
-          className="relative z-10 bg-card border border-border rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="relative z-10 bg-card border border-border rounded-xl shadow-none w-full max-w-2xl max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between rounded-t-3xl z-10">
-            <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">{title}</h3>
+            <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">{title}</h3>
             <button className="p-2 hover:bg-muted rounded-full transition" onClick={onClose}>
               <X className="w-4 h-4" />
             </button>
@@ -740,8 +740,8 @@ export default function Marketing() {
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Marketing</h1>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-60 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Marketing</h1>
+            <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground opacity-60 mt-1">
               Cold emails, follow-ups, and automated greetings
             </p>
           </div>
@@ -755,7 +755,7 @@ export default function Marketing() {
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition ${
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-semibold tracking-wide transition ${
                 activeTab === t.key ? 'bg-primary text-primary-foreground border-primary/30' : 'bg-card border-border hover:bg-muted'
               }`}
             >
@@ -766,13 +766,13 @@ export default function Marketing() {
         </div>
 
         {activeTab === 'contacts' && (
-          <div className="bg-card border border-border rounded-3xl p-6">
+          <div className="bg-card border border-border rounded-xl p-6">
             {/* Toolbar */}
             <div className="flex flex-col gap-3 mb-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Contacts</h3>
-                  <span className="text-xs font-black text-muted-foreground">{filteredContacts.length}</span>
+                  <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">Contacts</h3>
+                  <span className="text-xs font-semibold text-muted-foreground">{filteredContacts.length}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <label className={btnClass}>
@@ -805,7 +805,7 @@ export default function Marketing() {
                 </select>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground">
+                <label className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground">
                   <input type="checkbox" checked={showUnsubscribed} onChange={(e) => setShowUnsubscribed(e.target.checked)} />
                   Show unsubscribed
                 </label>
@@ -817,7 +817,7 @@ export default function Marketing() {
               </div>
             </div>
             {/* Table */}
-            <div className="overflow-x-auto border border-border rounded-2xl">
+            <div className="overflow-x-auto border border-border rounded-xl">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr className="text-left">
@@ -832,9 +832,9 @@ export default function Marketing() {
                 </thead>
                 <tbody>
                   {filteredContacts.map((c) => (
-                    <tr key={c._id} className="border-t border-border hover:bg-muted/20">
+                    <tr key={c._id} className="border-t border-border hover:bg-muted">
                       <td className="p-3"><input type="checkbox" checked={selectedIds.has(c._id)} onChange={() => toggleRow(c._id)} /></td>
-                      <td className="p-3 font-bold">{c.email}</td>
+                      <td className="p-3 font-semibold">{c.email}</td>
                       <td className="p-3">
                         <div className="font-semibold">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.user?.name || '—'}</div>
                         <div className="text-[11px] text-muted-foreground">{c.source || '—'}</div>
@@ -843,8 +843,8 @@ export default function Marketing() {
                       <td className="p-3">{c.user?.school || c.user?.tutorial || c.company || '—'}</td>
                       <td className="p-3">
                         {c.unsubscribed
-                          ? <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">Unsubscribed</span>
-                          : <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Active</span>}
+                          ? <span className="text-xs font-semibold tracking-wide px-2 py-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">Unsubscribed</span>
+                          : <span className="text-xs font-semibold tracking-wide px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Active</span>}
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -856,7 +856,7 @@ export default function Marketing() {
                   ))}
                   {filteredContacts.length === 0 && (
                     <tr><td colSpan={7} className="p-10 text-center text-muted-foreground">
-                      <Users className="w-10 h-10 mx-auto opacity-20 mb-2" /><p className="font-bold">No contacts match your filters</p>
+                      <Users className="w-10 h-10 mx-auto opacity-20 mb-2" /><p className="font-semibold">No contacts match your filters</p>
                     </td></tr>
                   )}
                 </tbody>
@@ -868,9 +868,9 @@ export default function Marketing() {
         {activeTab === 'lists' && (
           <div className="space-y-6">
             {(isCreatingList || editingListId) ? (
-              <div className="bg-card border border-border rounded-3xl p-6 space-y-4 max-w-3xl mx-auto">
+              <div className="bg-card border border-border rounded-xl p-6 space-y-4 max-w-3xl mx-auto">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+                  <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">
                     {editingListId ? 'Edit list' : 'Create list'}
                   </h3>
                   <button className="p-2 hover:bg-muted rounded-full" onClick={cancelListEdit}>
@@ -880,7 +880,7 @@ export default function Marketing() {
                 <input className={inputClass} placeholder="List name *" value={newList.name} onChange={(e) => setNewList((s) => ({ ...s, name: e.target.value }))} />
                 <input className={inputClass} placeholder="Description" value={newList.description} onChange={(e) => setNewList((s) => ({ ...s, description: e.target.value }))} />
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Contacts</p>
+                  <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-2">Contacts</p>
                   <Select
                     isMulti
                     value={newList.contactIds}
@@ -902,15 +902,15 @@ export default function Marketing() {
                 </div>
               </div>
             ) : (
-              <div className="bg-card border border-border rounded-3xl p-6">
+              <div className="bg-card border border-border rounded-xl p-6">
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Lists</h3>
+                  <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">Lists</h3>
                   <button className={primaryBtnClass} onClick={() => setIsCreatingList(true)}>
                     <Plus className="w-4 h-4" /> Create list
                   </button>
                 </div>
                 
-                <div className="overflow-x-auto border border-border rounded-2xl">
+                <div className="overflow-x-auto border border-border rounded-xl">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr className="text-left">
@@ -922,11 +922,11 @@ export default function Marketing() {
                     </thead>
                     <tbody>
                       {lists.map((l) => (
-                        <tr key={l._id} className="border-t border-border hover:bg-muted/20">
-                          <td className="p-3 font-bold">{l.name}</td>
+                        <tr key={l._id} className="border-t border-border hover:bg-muted">
+                          <td className="p-3 font-semibold">{l.name}</td>
                           <td className="p-3 text-muted-foreground">{l.description || '—'}</td>
                           <td className="p-3">
-                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            <span className="text-xs font-semibold tracking-wide px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                               {l.contactIds?.length || 0} contacts
                             </span>
                           </td>
@@ -941,7 +941,7 @@ export default function Marketing() {
                         <tr>
                           <td colSpan={4} className="p-10 text-center text-muted-foreground">
                             <ListIcon className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                            <p className="font-bold">No lists yet</p>
+                            <p className="font-semibold">No lists yet</p>
                           </td>
                         </tr>
                       )}
@@ -956,9 +956,9 @@ export default function Marketing() {
         {activeTab === 'templates' && (
           <div className="space-y-6">
             {(isCreatingTemplate || editingTemplateId) ? (
-              <div className="bg-card border border-border rounded-3xl p-6 space-y-4 max-w-3xl mx-auto">
+              <div className="bg-card border border-border rounded-xl p-6 space-y-4 max-w-3xl mx-auto">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+                  <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">
                     {editingTemplateId ? 'Edit template' : 'Create template'}
                   </h3>
                   <button className="p-2 hover:bg-muted rounded-full" onClick={cancelTemplateEdit}>
@@ -966,8 +966,8 @@ export default function Marketing() {
                   </button>
                 </div>
                 
-                <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-4 space-y-3">
-                  <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4 space-y-3">
+                  <div className="flex items-center gap-2 text-primary font-semibold tracking-wide text-xs">
                     <Sparkles className="w-4 h-4" /> AI Generator
                   </div>
                   <textarea
@@ -1013,15 +1013,15 @@ export default function Marketing() {
                 </div>
               </div>
             ) : (
-              <div className="bg-card border border-border rounded-3xl p-6">
+              <div className="bg-card border border-border rounded-xl p-6">
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Templates</h3>
+                  <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">Templates</h3>
                   <button className={primaryBtnClass} onClick={() => setIsCreatingTemplate(true)}>
                     <Plus className="w-4 h-4" /> Create template
                   </button>
                 </div>
                 
-                <div className="overflow-x-auto border border-border rounded-2xl">
+                <div className="overflow-x-auto border border-border rounded-xl">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr className="text-left">
@@ -1033,10 +1033,10 @@ export default function Marketing() {
                     </thead>
                     <tbody>
                       {templates.map((t) => (
-                        <tr key={t._id} className="border-t border-border hover:bg-muted/20">
-                          <td className="p-3 font-bold">{t.name}</td>
+                        <tr key={t._id} className="border-t border-border hover:bg-muted">
+                          <td className="p-3 font-semibold">{t.name}</td>
                           <td className="p-3">
-                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            <span className="text-xs font-semibold tracking-wide px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                               {t.kind}
                             </span>
                           </td>
@@ -1052,7 +1052,7 @@ export default function Marketing() {
                         <tr>
                           <td colSpan={4} className="p-10 text-center text-muted-foreground">
                             <FileText className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                            <p className="font-bold">No templates yet</p>
+                            <p className="font-semibold">No templates yet</p>
                           </td>
                         </tr>
                       )}
@@ -1067,9 +1067,9 @@ export default function Marketing() {
         {activeTab === 'campaigns' && (
           <div className="space-y-6">
             {(isCreatingCampaign || editingCampaignId) ? (
-              <div className="bg-card border border-border rounded-3xl p-6 space-y-4 max-w-3xl mx-auto">
+              <div className="bg-card border border-border rounded-xl p-6 space-y-4 max-w-3xl mx-auto">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+                  <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">
                     {editingCampaignId ? 'Edit campaign' : 'Create campaign'}
                   </h3>
                   <button className="p-2 hover:bg-muted rounded-full" onClick={cancelCampaignEdit}>
@@ -1077,13 +1077,13 @@ export default function Marketing() {
                   </button>
                 </div>
                 
-                <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-4 space-y-3">
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                    <div className="flex items-center gap-2 text-primary font-semibold tracking-wide text-xs">
                       <Sparkles className="w-4 h-4" /> AI Campaign Generator
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase text-primary">Steps:</span>
+                      <span className="text-xs font-semibold text-primary">Steps:</span>
                       <input 
                         type="number" 
                         min={1} 
@@ -1112,13 +1112,13 @@ export default function Marketing() {
                 <input className={inputClass} placeholder="Campaign name *" value={newCampaign.name} onChange={(e) => setNewCampaign((s) => ({ ...s, name: e.target.value }))} />
                 <input className={inputClass} placeholder="Description" value={newCampaign.description} onChange={(e) => setNewCampaign((s) => ({ ...s, description: e.target.value }))} />
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">List *</p>
+                  <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-2">List *</p>
                   <Select value={newCampaign.listId} onChange={(v) => setNewCampaign((s) => ({ ...s, listId: v }))} options={listOptions} styles={selectStyles} />
                 </div>
                 <div className="space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Steps</p>
+                  <p className="text-xs font-semibold tracking-wide text-muted-foreground">Steps</p>
                   {newCampaign.steps.map((s, idx) => (
-                    <div key={idx} className="p-4 rounded-2xl border border-border bg-background/40 space-y-2">
+                    <div key={idx} className="p-4 rounded-xl border border-border bg-background space-y-2">
                       <Select
                         value={s.templateId}
                         onChange={(v) =>
@@ -1184,15 +1184,15 @@ export default function Marketing() {
                 </div>
               </div>
             ) : (
-              <div className="bg-card border border-border rounded-3xl p-6">
+              <div className="bg-card border border-border rounded-xl p-6">
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Campaigns</h3>
+                  <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">Campaigns</h3>
                   <button className={primaryBtnClass} onClick={() => setIsCreatingCampaign(true)}>
                     <Plus className="w-4 h-4" /> Create campaign
                   </button>
                 </div>
                 
-                <div className="overflow-x-auto border border-border rounded-2xl">
+                <div className="overflow-x-auto border border-border rounded-xl">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr className="text-left">
@@ -1205,11 +1205,11 @@ export default function Marketing() {
                     </thead>
                     <tbody>
                       {campaigns.map((c) => (
-                        <tr key={c._id} className="border-t border-border hover:bg-muted/20">
-                          <td className="p-3 font-bold">{c.name}</td>
+                        <tr key={c._id} className="border-t border-border hover:bg-muted">
+                          <td className="p-3 font-semibold">{c.name}</td>
                           <td className="p-3 text-muted-foreground">{c.listId?.name || '—'}</td>
                           <td className="p-3">
-                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-muted text-muted-foreground border border-border">
+                            <span className="text-xs font-semibold tracking-wide px-2 py-1 rounded-full bg-muted text-muted-foreground border border-border">
                               {c.status}
                             </span>
                           </td>
@@ -1234,7 +1234,7 @@ export default function Marketing() {
                         <tr>
                           <td colSpan={5} className="p-10 text-center text-muted-foreground">
                             <Mail className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                            <p className="font-bold">No campaigns yet</p>
+                            <p className="font-semibold">No campaigns yet</p>
                           </td>
                         </tr>
                       )}
@@ -1248,8 +1248,8 @@ export default function Marketing() {
 
         {activeTab === 'holidays' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground">
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <h3 className="font-semibold tracking-wide text-xs text-muted-foreground">
                 {editingHolidayId ? 'Edit festive day' : 'Add festive day'}
               </h3>
               <input className={inputClass} placeholder="Name * (e.g., Christmas)" value={newHoliday.name} onChange={(e) => setNewHoliday((s) => ({ ...s, name: e.target.value }))} />
@@ -1258,10 +1258,10 @@ export default function Marketing() {
                 <input className={inputClass} type="number" min={1} max={31} value={newHoliday.day} onChange={(e) => setNewHoliday((s) => ({ ...s, day: e.target.value }))} />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Template *</p>
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-2">Template *</p>
                 <Select value={newHoliday.templateId} onChange={(v) => setNewHoliday((s) => ({ ...s, templateId: v }))} options={templateOptions} styles={selectStyles} />
               </div>
-              <label className="flex items-center gap-2 text-sm font-bold">
+              <label className="flex items-center gap-2 text-sm font-semibold">
                 <input type="checkbox" checked={!!newHoliday.enabled} onChange={(e) => setNewHoliday((s) => ({ ...s, enabled: e.target.checked }))} />
                 Enabled
               </label>
@@ -1283,14 +1283,14 @@ export default function Marketing() {
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-3xl p-6">
-              <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground mb-4">Festive days</h3>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="font-semibold tracking-wide text-xs text-muted-foreground mb-4">Festive days</h3>
               <div className="space-y-2 max-h-[520px] overflow-y-auto custom-scrollbar pr-2">
                 {holidays.map((h) => (
-                  <div key={h._id} className="p-4 rounded-2xl border border-border bg-background/40 cursor-pointer hover:border-primary/50 transition" onClick={() => editHoliday(h)}>
+                  <div key={h._id} className="p-4 rounded-xl border border-border bg-background cursor-pointer hover:border-primary/50 transition" onClick={() => editHoliday(h)}>
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-bold truncate">{h.name}</p>
-                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      <p className="font-semibold truncate">{h.name}</p>
+                      <span className="text-xs font-semibold tracking-wide px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                         {String(h.month).padStart(2, '0')}/{String(h.day).padStart(2, '0')}
                       </span>
                     </div>
@@ -1300,7 +1300,7 @@ export default function Marketing() {
                 {holidays.length === 0 && (
                   <div className="p-8 text-center text-muted-foreground">
                     <Calendar className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                    <p className="font-bold">No festive days yet</p>
+                    <p className="font-semibold">No festive days yet</p>
                   </div>
                 )}
               </div>
@@ -1309,23 +1309,23 @@ export default function Marketing() {
         )}
 
         {activeTab === 'logs' && (
-          <div className="bg-card border border-border rounded-3xl p-6">
-            <h3 className="font-black uppercase tracking-widest text-xs text-muted-foreground mb-4">Latest logs</h3>
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="font-semibold tracking-wide text-xs text-muted-foreground mb-4">Latest logs</h3>
             <div className="space-y-2 max-h-[650px] overflow-y-auto custom-scrollbar pr-2">
               {logs.map((l) => (
-                <div key={l._id} className="p-4 rounded-2xl border border-border bg-background/40">
+                <div key={l._id} className="p-4 rounded-xl border border-border bg-background">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-bold truncate">
+                      <p className="font-semibold truncate">
                         {l.contactId?.email || '—'}{' '}
-                        <span className="text-xs text-muted-foreground font-black uppercase tracking-widest">({l.type})</span>
+                        <span className="text-xs text-muted-foreground font-semibold tracking-wide">({l.type})</span>
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {l.templateId?.name ? `Template: ${l.templateId.name}` : '—'} {l.campaignId?.name ? `• Campaign: ${l.campaignId.name}` : ''}
                       </p>
                     </div>
                     <span
-                      className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border ${
+                      className={`text-xs font-semibold tracking-wide px-2 py-1 rounded-full border ${
                         l.status === 'sent'
                           ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                           : l.status === 'failed'
@@ -1344,7 +1344,7 @@ export default function Marketing() {
               {logs.length === 0 && (
                 <div className="p-10 text-center text-muted-foreground">
                   <RefreshCw className="w-10 h-10 mx-auto opacity-20 mb-2" />
-                  <p className="font-bold">No logs yet</p>
+                  <p className="font-semibold">No logs yet</p>
                 </div>
               )}
             </div>
@@ -1354,12 +1354,12 @@ export default function Marketing() {
 
       {sendModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSendModalOpen(false)} />
-          <div className="relative w-full max-w-xl bg-card border border-border rounded-3xl p-6 shadow-2xl">
+          <div className="absolute inset-0 bg-black/50 " onClick={() => setSendModalOpen(false)} />
+          <div className="relative w-full max-w-xl bg-card border border-border rounded-xl p-6 shadow-none">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-lg font-black">Send email</h3>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-70 mt-1">
+                <h3 className="text-lg font-semibold">Send email</h3>
+                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground opacity-70 mt-1">
                   {sendToSingleId ? 'Single recipient' : `Bulk: ${selectedCount} recipients`}
                 </p>
               </div>
@@ -1369,7 +1369,7 @@ export default function Marketing() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Template</p>
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground">Template</p>
               <Select value={sendTemplate} onChange={setSendTemplate} options={templateOptions} placeholder="Choose a template" styles={selectStyles} />
               <div className="flex justify-end gap-2 pt-3">
                 <button className={btnClass} onClick={() => setSendModalOpen(false)}>
@@ -1386,12 +1386,12 @@ export default function Marketing() {
 
       {addToListModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setAddToListModalOpen(false)} />
-          <div className="relative w-full max-w-xl bg-card border border-border rounded-3xl p-6 shadow-2xl">
+          <div className="absolute inset-0 bg-black/50 " onClick={() => setAddToListModalOpen(false)} />
+          <div className="relative w-full max-w-xl bg-card border border-border rounded-xl p-6 shadow-none">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-lg font-black">Add to list</h3>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-70 mt-1">
+                <h3 className="text-lg font-semibold">Add to list</h3>
+                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground opacity-70 mt-1">
                   {selectedCount} contacts selected
                 </p>
               </div>
@@ -1401,7 +1401,7 @@ export default function Marketing() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Choose list</p>
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground">Choose list</p>
               <Select value={selectedListForAdd} onChange={setSelectedListForAdd} options={listOptions} placeholder="Select a list" styles={selectStyles} />
               <div className="flex justify-end gap-2 pt-3">
                 <button className={btnClass} onClick={() => setAddToListModalOpen(false)}>

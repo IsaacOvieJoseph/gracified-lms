@@ -221,16 +221,16 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
   const [showAIPanel, setShowAIPanel] = useState(false);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/60  z-[100] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-4xl w-full p-8 animate-slide-up border dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-none max-w-4xl w-full p-8 animate-slide-up border dark:border-slate-800">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{editAssignment ? 'Edit Assignment' : 'New Assignment'}</h3>
+            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white">{editAssignment ? 'Edit Assignment' : 'New Assignment'}</h3>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setShowAIPanel(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold tracking-wider hover:opacity-90 transition-all shadow-none dark:shadow-none active:scale-95"
               >
                 <Sparkles className="w-4 h-4" />
                 AI Generate
@@ -244,7 +244,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
           <form onSubmit={(e) => { setIsSubmitting(true); handleSubmit(e); }} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Assignment Title</label>
+                <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Assignment Title</label>
                 <input
                   type="text"
                   placeholder="e.g. Mid-term Assessment"
@@ -256,7 +256,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Description</label>
+                <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Description</label>
                 <textarea
                   placeholder="Instructions for students..."
                   value={createForm.description}
@@ -268,7 +268,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
               {!classroomId && (
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Classroom</label>
+                  <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Classroom</label>
                   <select
                     value={createForm.classroomId}
                     onChange={(e) => {
@@ -289,7 +289,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
               {availableTopics && availableTopics.length > 0 && (
                 <div className={classroomId ? "md:col-span-2" : ""}>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Topic (Optional)</label>
+                  <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Topic (Optional)</label>
                   <select
                     value={createForm.topicId}
                     onChange={(e) => setCreateForm({ ...createForm, topicId: e.target.value })}
@@ -304,7 +304,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               )}
 
               <div className="md:col-span-2">
-                <label className="flex items-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5">
+                <label className="flex items-center text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
                   Assignment Type
                   <FormFieldHelp content="Theory for essay-style answers. MCQ for auto-graded multiple choice questions." />
                 </label>
@@ -312,14 +312,14 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                   <button
                     type="button"
                     onClick={() => setCreateForm({ ...createForm, assignmentType: 'theory', questions: [{ questionText: '', markingPreference: 'manual', maxScore: 0 }], publishResultsAt: '' })}
-                    className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'theory' ? 'bg-white dark:bg-slate-800 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                    className={`px-6 py-2 rounded-xl font-semibold transition-all ${createForm.assignmentType === 'theory' ? 'bg-white dark:bg-slate-800 text-primary shadow-none' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                   >
                     Theory
                   </button>
                   <button
                     type="button"
                     onClick={() => setCreateForm({ ...createForm, assignmentType: 'mcq', questions: [{ questionText: '', options: ['', ''], correctOption: '' }] })}
-                    className={`px-6 py-2 rounded-lg font-bold transition-all ${createForm.assignmentType === 'mcq' ? 'bg-white dark:bg-slate-800 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                    className={`px-6 py-2 rounded-xl font-semibold transition-all ${createForm.assignmentType === 'mcq' ? 'bg-white dark:bg-slate-800 text-primary shadow-none' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                   >
                     MCQ
                   </button>
@@ -328,19 +328,19 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
             </div>
 
             {/* Questions Section */}
-            <div className="space-y-4 border-2 border-gray-200 dark:border-slate-800 p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-white dark:from-slate-900/50 dark:to-slate-950/50">
+            <div className="space-y-4 border-2 border-gray-200 dark:border-slate-800 p-5 rounded-xl  to-white dark:from-slate-900/50 dark:to-slate-950/50">
               <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-bold text-gray-800 dark:text-white flex items-center">
-                  <span className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-lg mr-3 text-sm font-extrabold">
+                <h4 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+                  <span className="bg-indigo-100 dark:bg-indigo-900/40 text-primary dark:text-primary px-3 py-1 rounded-xl mr-3 text-sm font-extrabold">
                     {createForm.questions.length}
                   </span>
                   Questions
                 </h4>
                 {createForm.assignmentType === 'theory' && (
-                  <label className="inline-flex items-center bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-slate-700 hover:border-indigo-300 transition-all cursor-pointer">
+                  <label className="inline-flex items-center bg-white dark:bg-slate-800 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-slate-700 hover:border-primary/30 transition-all cursor-pointer">
                     <input
                       type="checkbox"
-                      className="form-checkbox h-4 w-4 text-indigo-600 rounded bg-transparent border-slate-300"
+                      className="form-checkbox h-4 w-4 text-primary rounded bg-transparent border-slate-300"
                       checked={isEvenlyDistributed}
                       onChange={(e) => setIsEvenlyDistributed(e.target.checked)}
                     />
@@ -352,31 +352,31 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                 )}
               </div>
               {createForm.assignmentType === 'theory' && isEvenlyDistributed && (
-                <div className="mb-4 p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
-                  <label className="block text-sm font-bold text-indigo-700 mb-2">Overall Max Score (for even distribution)</label>
+                <div className="mb-4 p-4 bg-primary/10 border-2 border-primary/20 rounded-xl">
+                  <label className="block text-sm font-semibold text-primary mb-2">Overall Max Score (for even distribution)</label>
                   <input
                     type="number"
                     value={overallMaxScoreInput}
                     onChange={(e) => setOverallMaxScoreInput(parseInt(e.target.value) || 0)}
-                    className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-900"
+                    className="w-full px-4 py-3 border-2 border-primary/20 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-semibold text-primary"
                     min="1"
                   />
                 </div>
               )}
               {createForm.questions.map((question, qIndex) => (
-                <div key={qIndex} className="space-y-4 p-5 border-2 border-gray-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div key={qIndex} className="space-y-4 p-5 border-2 border-gray-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-none hover:shadow-none transition-all">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+                      <span className="w-9 h-9 rounded-xl   text-white flex items-center justify-center font-semibold text-sm shadow-none">
                         {qIndex + 1}
                       </span>
-                      <h5 className="text-sm font-bold text-gray-700 dark:text-slate-300">Question {qIndex + 1}</h5>
+                      <h5 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Question {qIndex + 1}</h5>
                     </div>
                     {createForm.questions.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeQuestion(qIndex)}
-                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
                       >
                         Remove
                       </button>
@@ -384,13 +384,13 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                   </div>
 
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-widest text-gray-500 dark:text-slate-500 mb-2">Question Text</label>
+                    <label className="block text-xs font-semibold tracking-wide text-gray-500 dark:text-slate-500 mb-2">Question Text</label>
                     <input
                       type="text"
                       value={question.questionText}
                       onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
                       placeholder="What is alphabet before any cluster of t"
-                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-900 dark:text-white bg-transparent placeholder:text-gray-300 dark:placeholder:text-slate-700"
+                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-medium text-gray-900 dark:text-white bg-transparent placeholder:text-gray-300 dark:placeholder:text-slate-700"
                       required
                     />
                   </div>
@@ -398,7 +398,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                   {createForm.assignmentType === 'mcq' && (
                     <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-black uppercase tracking-widest text-gray-500 dark:text-slate-500">Answer Options</label>
+                        <label className="block text-xs font-semibold tracking-wide text-gray-500 dark:text-slate-500">Answer Options</label>
                         <span className="text-xs text-gray-400 font-medium italic">Select correct answer</span>
                       </div>
                       <div className="space-y-2">
@@ -411,12 +411,12 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                               key={oIndex}
                               className={`flex items-center gap-3 p-3 rounded-xl transition-all border-2 ${isCorrect
                                 ? 'border-green-400 bg-green-50 dark:bg-green-900/10'
-                                : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-200'
+                                : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/20'
                                 }`}
                             >
                               {/* Option Label */}
-                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-sm transition-all ${isCorrect
-                                ? 'bg-green-500 text-white shadow-md'
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-sm transition-all ${isCorrect
+                                ? 'bg-success text-white shadow-none'
                                 : 'bg-gray-100 text-gray-600'
                                 }`}>
                                 {optionLabels[oIndex]}
@@ -465,7 +465,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                       <button
                         type="button"
                         onClick={() => addOption(qIndex)}
-                        className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2 font-medium text-sm"
+                        className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2 font-medium text-sm"
                       >
                         <Plus className="w-4 h-4" />
                         Add Option
@@ -476,14 +476,14 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                   {createForm.assignmentType === 'theory' && (
                     <div className="space-y-3 pt-2">
                       <div>
-                        <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2 flex items-center">
+                        <label className="block text-xs font-semibold tracking-wide text-gray-500 mb-2 flex items-center">
                           Marking Preference
                           <FormFieldHelp content="Manual: Teacher grades it. AI Marking: AI grades it automatically based on the question context." />
                         </label>
                         <select
                           value={question.markingPreference}
                           onChange={(e) => handleMarkingPreferenceChange(qIndex, e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium appearance-none cursor-pointer"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-medium appearance-none cursor-pointer"
                           required
                         >
                           <option value="manual">Manual</option>
@@ -492,12 +492,12 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                       </div>
                       {!isEvenlyDistributed && (
                         <div>
-                          <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Max Score for Q{qIndex + 1}</label>
+                          <label className="block text-xs font-semibold tracking-wide text-gray-500 mb-2">Max Score for Q{qIndex + 1}</label>
                           <input
                             type="number"
                             value={question.maxScore}
                             onChange={(e) => handleQuestionMaxScoreChange(qIndex, e.target.value)}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-semibold text-primary"
                             min="0"
                             required
                           />
@@ -510,7 +510,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               <button
                 type="button"
                 onClick={addQuestion}
-                className="w-full px-4 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center space-x-2 font-bold shadow-lg hover:shadow-xl"
+                className="w-full px-4 py-4   text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center space-x-2 font-semibold shadow-none hover:shadow-none"
               >
                 <Plus className="w-5 h-5" />
                 <span>Add Another Question</span>
@@ -518,7 +518,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Due Date</label>
+                <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Due Date</label>
                 <input
                   type="date"
                   value={createForm.dueDate}
@@ -543,7 +543,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 block">Max Score</label>
+                    <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Max Score</label>
                     <input
                       type="number"
                       value={createForm.maxScore}
@@ -557,16 +557,16 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
               <div className="md:col-span-2 space-y-2 pt-2">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Visibility Control</span>
+                  <span className="text-xs font-semibold text-slate-400 tracking-wide">Visibility Control</span>
                   <FormFieldHelp content="If off, students will not see this assignment on their dashboard." />
                 </div>
                 <label 
                   onClick={() => setCreateForm({ ...createForm, published: !createForm.published })}
-                  className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${createForm.published ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                  className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer group ${createForm.published ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
                 >
                   <div>
-                    <span className={`text-sm font-bold transition-colors ${createForm.published ? 'text-primary' : 'text-slate-600'}`}>Published</span>
-                    <p className="text-[10px] text-slate-400 font-medium">Assignment will be visible to students immediately</p>
+                    <span className={`text-sm font-semibold transition-colors ${createForm.published ? 'text-primary' : 'text-slate-600'}`}>Published</span>
+                    <p className="text-xs text-slate-400 font-medium">Assignment will be visible to students immediately</p>
                   </div>
                   <div className={`w-10 h-6 rounded-full transition-colors relative ${createForm.published ? 'bg-primary' : 'bg-slate-300'}`}>
                     <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${createForm.published ? 'translate-x-4' : ''}`} />
@@ -579,7 +579,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
               >
                 Discard
               </button>

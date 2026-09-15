@@ -74,13 +74,13 @@ const QnAPresentation = () => {
         }
     };
 
-    if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div></div>;
+    if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary/50"></div></div>;
     if (accessDenied) return (
         <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
             <div className="max-w-md text-center">
-                <h1 className="text-xl font-bold mb-2">Presentation access required</h1>
+                <h1 className="text-xl font-semibold mb-2">Presentation access required</h1>
                 <p className="text-slate-400 mb-6">Only the classroom teacher and authorized administrators can use presentation mode.</p>
-                <button onClick={() => navigate(`/qna/${token}${location.search || ''}`)} className="px-5 py-3 rounded-lg bg-indigo-600 font-semibold hover:bg-indigo-500">Return to Q&A board</button>
+                <button onClick={() => navigate(`/qna/${token}${location.search || ''}`)} className="px-5 py-3 rounded-xl bg-primary font-semibold hover:bg-primary/90">Return to Q&A board</button>
             </div>
         </div>
     );
@@ -110,18 +110,18 @@ const QnAPresentation = () => {
     const isDark = theme === 'dark';
 
     const bgContainer = isDark ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900';
-    const bgSidebar = isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:shadow-none';
+    const bgSidebar = isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-none md:shadow-none';
     const bgSidebarHeader = isDark ? 'bg-slate-900' : 'bg-slate-50';
     const textPrimary = isDark ? 'text-white' : 'text-slate-900';
     const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
-    const itemIdle = isDark ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm';
-    const itemActive = isDark ? 'bg-indigo-600/20 border-indigo-500/50 text-white' : 'bg-indigo-50 border-indigo-300 text-indigo-900 shadow-sm';
-    const bgMain = isDark ? 'from-slate-900 via-slate-900 to-indigo-950' : 'from-slate-50 via-slate-50 to-indigo-50';
-    const cardBg = isDark ? 'bg-slate-800/60 border-slate-700 shadow-xl shadow-black/50' : 'bg-white border-slate-200 shadow-xl shadow-slate-200/50';
-    const answeredCardBg = isDark ? 'border-emerald-500/50 bg-slate-800/60 shadow-emerald-500/10 shadow-2xl' : 'border-emerald-400 bg-white shadow-emerald-500/20 shadow-xl';
-    const navOverlayBg = isDark ? 'bg-slate-800/40 hover:bg-slate-700 text-white border-slate-600/50 shadow-2xl' : 'bg-white/90 hover:bg-white text-slate-700 border-slate-200 shadow-lg';
+    const itemIdle = isDark ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-none';
+    const itemActive = isDark ? 'bg-primary/20 border-primary/50 text-white' : 'bg-primary/10 border-primary/30 text-primary shadow-none';
+    const bgMain = isDark ? 'from-slate-900  ' : 'from-slate-50  ';
+    const cardBg = isDark ? 'bg-slate-800/60 border-slate-700 shadow-none' : 'bg-white border-slate-200 shadow-none';
+    const answeredCardBg = isDark ? 'border-emerald-500/50 bg-slate-800/60 shadow-none' : 'border-emerald-400 bg-white shadow-none';
+    const navOverlayBg = isDark ? 'bg-slate-800/40 hover:bg-slate-700 text-white border-slate-600/50 shadow-none' : 'bg-white/90 hover:bg-white text-slate-700 border-slate-200 shadow-none';
     const emptyIconColor = isDark ? 'text-slate-700' : 'text-slate-300';
-    const questionIndicatorText = isDark ? 'text-indigo-400 bg-indigo-900/30' : 'text-indigo-700 bg-indigo-100';
+    const questionIndicatorText = isDark ? 'text-primary bg-indigo-900/30' : 'text-primary bg-indigo-100';
 
     return (
         <div className={`h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden font-sans ${bgContainer}`}>
@@ -130,10 +130,10 @@ const QnAPresentation = () => {
             {showSidebar && (
                 <div className={`w-full md:w-80 border-t md:border-t-0 md:border-r flex flex-col transition-all duration-300 order-2 md:order-1 h-2/5 md:h-full z-20 shrink-0 ${bgSidebar}`}>
                     <div className={`p-4 border-b flex items-center justify-between shrink-0 ${bgSidebarHeader} ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-                        <h2 className={`font-bold text-lg truncate pr-2 ${textPrimary}`}>{board.title}</h2>
+                        <h2 className={`font-semibold text-lg truncate pr-2 ${textPrimary}`}>{board.title}</h2>
                         <button
                             onClick={() => setShowSidebar(false)}
-                            className={`p-1 rounded-lg transition ${isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'}`}
+                            className={`p-1 rounded-xl transition ${isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'}`}
                             title="Hide Sidebar"
                         >
                             <LayoutGrid className="w-5 h-5" />
@@ -151,10 +151,10 @@ const QnAPresentation = () => {
                                     className={`p-3 rounded-xl cursor-pointer border transition-all ${idx === currentIndex ? itemActive : itemIdle}`}
                                 >
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className={`text-xs font-bold leading-none px-2 py-1 rounded ${isDark ? 'bg-slate-800/50 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>#{idx + 1}</span>
+                                        <span className={`text-xs font-semibold leading-none px-2 py-1 rounded ${isDark ? 'bg-slate-800/50 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>#{idx + 1}</span>
                                         <div className="flex items-center space-x-2">
                                             {q.isAnswered && <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />}
-                                            <span className={`flex items-center text-xs font-bold px-1.5 py-0.5 rounded ${isDark ? 'text-sky-400 bg-sky-900/30' : 'text-sky-600 bg-sky-100'}`}><ThumbsUp className="w-3 h-3 mr-1" /> {q.upvotes.length}</span>
+                                            <span className={`flex items-center text-xs font-semibold px-1.5 py-0.5 rounded ${isDark ? 'text-primary bg-sky-900/30' : 'text-primary bg-sky-100'}`}><ThumbsUp className="w-3 h-3 mr-1" /> {q.upvotes.length}</span>
                                         </div>
                                     </div>
                                     <p className="text-sm line-clamp-2 leading-relaxed">{q.text}</p>
@@ -166,7 +166,7 @@ const QnAPresentation = () => {
                     <div className={`p-4 border-t shrink-0 ${isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                         <button
                             onClick={() => navigate(`/qna/${token}${location.search || ''}`)}
-                            className={`w-full text-sm font-medium transition flex justify-center items-center py-2 rounded-lg ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                            className={`w-full text-sm font-medium transition flex justify-center items-center py-2 rounded-xl ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
                         >
                             <XCircle className="w-4 h-4 mr-2" /> Exit Presentation
                         </button>
@@ -175,7 +175,7 @@ const QnAPresentation = () => {
             )}
 
             {/* Main Presentation Area */}
-            <div className={`flex-1 flex flex-col relative bg-gradient-to-br order-1 md:order-2 overflow-y-auto w-full ${bgMain}`}>
+            <div className={`flex-1 flex flex-col relative  order-1 md:order-2 overflow-y-auto w-full ${bgMain}`}>
 
                 {/* Header Overlay */}
                 <div className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-start z-10 pointer-events-none">
@@ -192,15 +192,15 @@ const QnAPresentation = () => {
                     <div className={`flex flex-row md:flex-row gap-2 pointer-events-auto items-center ml-auto`}>
                         <button
                             onClick={toggleTheme}
-                            className={`p-2 backdrop-blur rounded-xl transition border shadow-sm ${navOverlayBg}`}
+                            className={`p-2 backdrop-blur rounded-xl transition border shadow-none ${navOverlayBg}`}
                             title="Toggle Theme"
                         >
                             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
 
-                        <div className={`backdrop-blur px-3 py-1.5 md:px-4 md:py-2 border rounded-xl flex items-center shadow-md max-w-[200px] sm:max-w-md ${isDark ? 'bg-indigo-600/20 border-indigo-500/30' : 'bg-white/80 border-indigo-200'}`}>
-                            <span className={`hidden sm:inline text-xs sm:text-sm font-medium mr-2 ${isDark ? 'text-indigo-200' : 'text-indigo-600'}`}>Live Q&A: </span>
-                            <span className={`text-[10px] sm:text-base font-bold truncate tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{window.location.host}/qna/{token}</span>
+                        <div className={`backdrop-blur px-3 py-1.5 md:px-4 md:py-2 border rounded-xl flex items-center shadow-none max-w-[200px] sm:max-w-md ${isDark ? 'bg-primary/20 border-primary/40' : 'bg-white/80 border-primary/20'}`}>
+                            <span className={`hidden sm:inline text-xs sm:text-sm font-medium mr-2 ${isDark ? 'text-indigo-200' : 'text-primary'}`}>Live Q&A: </span>
+                            <span className={`text-xs sm:text-base font-semibold truncate tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{window.location.host}/qna/{token}</span>
                         </div>
                     </div>
                 </div>
@@ -210,7 +210,7 @@ const QnAPresentation = () => {
                     {sortedQuestions.length === 0 ? (
                         <div className="text-center animate-in fade-in zoom-in duration-500">
                             <Monitor className={`w-16 h-16 md:w-24 md:h-24 mx-auto mb-6 ${emptyIconColor}`} />
-                            <h1 className={`text-2xl md:text-4xl font-bold mb-2 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Ready for Questions</h1>
+                            <h1 className={`text-2xl md:text-4xl font-semibold mb-2 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Ready for Questions</h1>
                             <p className={`text-lg md:text-xl ${textSecondary}`}>Students can join using the link above</p>
                         </div>
                     ) : (
@@ -218,19 +218,19 @@ const QnAPresentation = () => {
 
                             <div className="w-full">
                                 <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                                    <span className={`text-lg md:text-2xl font-black opacity-90 backdrop-blur-sm px-3 md:px-4 py-1 rounded-xl ${questionIndicatorText}`}>Q{currentIndex + 1}</span>
-                                    <div className={`h-px flex-1 shadow-sm ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></div>
-                                    <div className={`flex items-center px-3 md:px-4 py-1.5 md:py-2 rounded-xl backdrop-blur ${isDark ? 'bg-slate-800/50 text-white' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'}`}>
-                                        <ThumbsUp className={`w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 ${isDark ? 'text-sky-400' : 'text-sky-500'}`} />
-                                        <span className="text-base md:text-xl font-bold">{currentQuestion.upvotes.length} Votes</span>
+                                    <span className={`text-lg md:text-2xl font-semibold opacity-90  px-3 md:px-4 py-1 rounded-xl ${questionIndicatorText}`}>Q{currentIndex + 1}</span>
+                                    <div className={`h-px flex-1 shadow-none ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></div>
+                                    <div className={`flex items-center px-3 md:px-4 py-1.5 md:py-2 rounded-xl backdrop-blur ${isDark ? 'bg-slate-800/50 text-white' : 'bg-white border border-slate-200 text-slate-800 shadow-none'}`}>
+                                        <ThumbsUp className={`w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 ${isDark ? 'text-primary' : 'text-sky-500'}`} />
+                                        <span className="text-base md:text-xl font-semibold">{currentQuestion.upvotes.length} Votes</span>
                                     </div>
                                 </div>
 
-                                <div className={`w-full p-6 md:p-12 rounded-[2.5rem] backdrop-blur-md transition-all duration-500 relative flex flex-col shadow-2xl border ${currentQuestion.isAnswered ? answeredCardBg : cardBg}`} 
+                                <div className={`w-full p-6 md:p-12 rounded-xl  transition-all duration-500 relative flex flex-col shadow-none border ${currentQuestion.isAnswered ? answeredCardBg : cardBg}`} 
                                      style={{ maxHeight: 'min(75vh, 800px)', minHeight: '300px' }}>
                                     
                                     <div className="flex-1 overflow-y-auto pr-2 mb-6 custom-scrollbar scroll-smooth">
-                                        <p className={`${getFontSizeClass(currentQuestion.text)} font-medium leading-tight ${textPrimary} text-center md:text-left selection:bg-indigo-500/30`} 
+                                        <p className={`${getFontSizeClass(currentQuestion.text)} font-medium leading-tight ${textPrimary} text-center md:text-left selection:bg-primary/30`} 
                                            style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                                             "{currentQuestion.text}"
                                         </p>
@@ -242,7 +242,7 @@ const QnAPresentation = () => {
                                                 <User className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-slate-300' : 'text-slate-500'}`} />
                                             </div>
                                             <div>
-                                                <p className={`text-lg md:text-xl font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                                <p className={`text-lg md:text-xl font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                                                     {board.allowAnonymous ? 'Anonymous' : currentQuestion.authorName}
                                                 </p>
                                                 <p className={`text-xs md:text-sm font-medium ${textSecondary}`}>{new Date(currentQuestion.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
@@ -251,7 +251,7 @@ const QnAPresentation = () => {
 
                                         <button
                                             onClick={() => handleToggleAnswered(currentQuestion._id, currentQuestion.isAnswered)}
-                                            className={`flex items-center justify-center space-x-2 md:space-x-3 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg transition shadow-xl transform hover:scale-105 active:scale-95 whitespace-nowrap ${currentQuestion.isAnswered ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100') : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500'}`}
+                                            className={`flex items-center justify-center space-x-2 md:space-x-3 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-xl font-semibold text-sm md:text-lg transition shadow-none transform hover:scale-105 active:scale-95 whitespace-nowrap ${currentQuestion.isAnswered ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/50 hover:bg-success/90/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100') : 'bg-gradient-to-r   text-white hover:from-indigo-400 hover:to-purple-500'}`}
                                         >
                                             {currentQuestion.isAnswered ? (
                                                 <><CheckCircle className="w-5 h-5 md:w-6 md:h-6" /> <span className="hidden sm:inline">Answered</span></>
@@ -269,15 +269,15 @@ const QnAPresentation = () => {
                                     <button
                                         onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                                         disabled={currentIndex === 0}
-                                        className={`p-3.5 rounded-full backdrop-blur border transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition shadow-sm ${navOverlayBg}`}
+                                        className={`p-3.5 rounded-full backdrop-blur border transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition shadow-none ${navOverlayBg}`}
                                     >
                                         <ChevronLeft className="w-6 h-6" />
                                     </button>
-                                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${isDark ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-800'}`}>{currentIndex + 1} / {sortedQuestions.length}</span>
+                                    <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isDark ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-800'}`}>{currentIndex + 1} / {sortedQuestions.length}</span>
                                     <button
                                         onClick={() => setCurrentIndex(prev => Math.min(sortedQuestions.length - 1, prev + 1))}
                                         disabled={currentIndex === sortedQuestions.length - 1}
-                                        className={`p-3.5 rounded-full backdrop-blur border transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition shadow-sm ${navOverlayBg}`}
+                                        className={`p-3.5 rounded-full backdrop-blur border transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition shadow-none ${navOverlayBg}`}
                                     >
                                         <ChevronRight className="w-6 h-6" />
                                     </button>

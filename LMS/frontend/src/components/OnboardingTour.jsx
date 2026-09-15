@@ -43,7 +43,7 @@ const ROLE_STEPS = {
     {
       title: "School Overview",
       content: "Review key statistics on total students, active teachers, and enrollment trends.",
-      icon: <Layout className="w-8 h-8 text-indigo-500" />,
+      icon: <Layout className="w-8 h-8 text-primary" />,
       target: "dashboard-main",
       position: "bottom"
     },
@@ -87,7 +87,7 @@ const ROLE_STEPS = {
     {
       title: "Earnings & Analytics",
       content: "Watch your growth with detailed reports on student performance and your revenue.",
-      icon: <Layout className="w-8 h-8 text-indigo-500" />,
+      icon: <Layout className="w-8 h-8 text-primary" />,
       target: "nav-reports",
       position: "right"
     }
@@ -176,7 +176,7 @@ const OnboardingTour = ({ user }) => {
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none">
       {/* Spotlight Overlay */}
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] transition-all duration-500 pointer-events-auto" style={{
+      <div className="absolute inset-0 bg-slate-900/60  transition-all duration-500 pointer-events-auto" style={{
         maskImage: spotlightRect ? `radial-gradient(circle at ${spotlightRect.left + spotlightRect.width / 2}px ${spotlightRect.top + spotlightRect.height / 2}px, transparent ${Math.max(spotlightRect.width, spotlightRect.height) / 1.1}px, black ${Math.max(spotlightRect.width, spotlightRect.height)}px)` : 'none',
         WebkitMaskImage: spotlightRect ? `radial-gradient(circle at ${spotlightRect.left + spotlightRect.width / 2}px ${spotlightRect.top + spotlightRect.height / 2}px, transparent ${Math.max(spotlightRect.width, spotlightRect.height) / 1.1}px, black ${Math.max(spotlightRect.width, spotlightRect.height)}px)` : 'none',
       }} onClick={handleDismiss} />
@@ -191,7 +191,7 @@ const OnboardingTour = ({ user }) => {
             transform: 'translate(10px, -50%)'
           }}
         >
-          <div className="bg-indigo-600 p-2 rounded-full shadow-lg shadow-indigo-500/50">
+          <div className="bg-primary p-2 rounded-full shadow-none">
             <MousePointer2 className="w-5 h-5 text-white fill-white" />
           </div>
         </div>
@@ -208,13 +208,13 @@ const OnboardingTour = ({ user }) => {
           width: '340px'
         } : {}}
       >
-        <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-none border border-slate-100 overflow-hidden">
            {/* Progress Bar */}
            <div className="h-1.5 w-full bg-slate-100 flex">
             {tourSteps.map((_, idx) => (
               <div 
                 key={idx}
-                className={`h-full transition-all duration-700 ${idx <= currentStep ? 'bg-indigo-600' : 'bg-transparent'}`}
+                className={`h-full transition-all duration-700 ${idx <= currentStep ? 'bg-primary' : 'bg-transparent'}`}
                 style={{ width: `${100 / tourSteps.length}%` }}
               />
             ))}
@@ -230,14 +230,14 @@ const OnboardingTour = ({ user }) => {
 
             <div className="flex flex-col">
               <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 shadow-none">
                   {step.icon}
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight leading-tight">
+                  <h3 className="text-lg font-semibold text-slate-900 tracking-tight leading-tight">
                     {step.title}
                   </h3>
-                   <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">
+                   <div className="text-xs font-semibold tracking-wide text-slate-400 mt-1">
                     Step {currentStep + 1} of {tourSteps.length}
                   </div>
                 </div>
@@ -262,13 +262,13 @@ const OnboardingTour = ({ user }) => {
                 <div className="flex gap-2 flex-1">
                   <button
                     onClick={handleDismiss}
-                    className="flex-1 px-4 py-2.5 text-slate-400 font-bold hover:text-slate-600 transition-all text-xs"
+                    className="flex-1 px-4 py-2.5 text-slate-400 font-semibold hover:text-slate-600 transition-all text-xs"
                   >
                     Skip
                   </button>
                   <button
                     onClick={handleNext}
-                    className="flex-3 flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
+                    className="flex-3 flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-semibold shadow-none hover:bg-primary/90 transition-all text-sm"
                   >
                     {currentStep === tourSteps.length - 1 ? 'Finish' : 'Next'}
                     {currentStep < tourSteps.length - 1 && <ChevronRight size={16} />}

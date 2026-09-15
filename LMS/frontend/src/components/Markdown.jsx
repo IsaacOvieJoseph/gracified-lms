@@ -3,12 +3,12 @@ import MathText from './MathText';
 
 const cls = {
   p: 'mb-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300',
-  h1: 'mb-2 mt-4 text-lg font-black text-slate-900 dark:text-white',
-  h2: 'mb-2 mt-4 text-base font-black text-slate-900 dark:text-white',
-  h3: 'mb-2 mt-3 text-sm font-black text-slate-900 dark:text-white',
-  h4: 'mb-2 mt-3 text-sm font-bold text-slate-900 dark:text-white',
-  h5: 'mb-1 mt-3 text-sm font-bold text-slate-800 dark:text-slate-200',
-  h6: 'mb-1 mt-3 text-xs font-black uppercase tracking-wide text-slate-600 dark:text-slate-400',
+  h1: 'mb-2 mt-4 text-lg font-semibold text-slate-900 dark:text-white',
+  h2: 'mb-2 mt-4 text-base font-semibold text-slate-900 dark:text-white',
+  h3: 'mb-2 mt-3 text-sm font-semibold text-slate-900 dark:text-white',
+  h4: 'mb-2 mt-3 text-sm font-semibold text-slate-900 dark:text-white',
+  h5: 'mb-1 mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200',
+  h6: 'mb-1 mt-3 text-xs font-semibold tracking-wide text-slate-600 dark:text-slate-400',
   ul: 'mb-3 space-y-1 pl-5 list-disc marker:text-slate-400',
   ol: 'mb-3 space-y-1 pl-5 list-decimal marker:text-slate-400',
   li: 'text-sm leading-relaxed text-slate-700 dark:text-slate-300',
@@ -17,12 +17,12 @@ const cls = {
   pre: 'mb-3 overflow-x-auto rounded-xl bg-slate-900 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-[12px] font-mono text-slate-100 leading-relaxed',
   hr: 'my-4 border-t-2 border-dashed border-slate-200 dark:border-slate-800',
   table: 'mb-3 w-full border-collapse overflow-hidden rounded-xl text-sm',
-  th: 'border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/60 px-3 py-2 text-left text-xs font-black uppercase tracking-wide text-slate-700 dark:text-slate-200',
+  th: 'border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/60 px-3 py-2 text-left text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-200',
   td: 'border border-slate-200 dark:border-slate-800 px-3 py-2 align-top text-slate-700 dark:text-slate-300',
-  strong: 'font-bold text-slate-900 dark:text-white',
+  strong: 'font-semibold text-slate-900 dark:text-white',
   em: 'italic',
   del: 'line-through text-slate-400',
-  a: 'text-violet-600 dark:text-violet-400 underline underline-offset-2 decoration-violet-300 dark:decoration-violet-700 hover:text-violet-800 dark:hover:text-violet-300 transition-colors',
+  a: 'text-primary dark:text-violet-400 underline underline-offset-2 decoration-violet-300 dark:decoration-violet-700 hover:text-violet-800 dark:hover:text-violet-300 transition-colors',
 };
 
 const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -71,7 +71,7 @@ const Text = ({ children, inline }) => {
       case 'em': return <em key={i} className={cls.em}><Text>{t.value}</Text></em>;
       case 'del': return <del key={i} className={cls.del}><Text>{t.value}</Text></del>;
       case 'code': return <code key={i} className={cls.code}>{escapeHtml(t.value)}</code>;
-      case 'link': return <a key={i} href={t.extra?.[0]} target="_blank" rel="noreferrer" className={cls.a}><Text>{t.value}</Text>{t.extra?.[0] && <span className="ml-0.5 text-[10px]">↗</span>}</a>;
+      case 'link': return <a key={i} href={t.extra?.[0]} target="_blank" rel="noreferrer" className={cls.a}><Text>{t.value}</Text>{t.extra?.[0] && <span className="ml-0.5 text-xs">↗</span>}</a>;
       case 'img': return <img key={i} src={t.extra?.[0]} alt={t.value} className="my-2 max-w-full rounded-xl" />;
       default: return null;
     }

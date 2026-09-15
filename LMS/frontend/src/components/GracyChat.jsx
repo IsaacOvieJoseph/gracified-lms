@@ -49,7 +49,7 @@ const MultiSelect = ({ options, value, onChange, placeholder, disabled }) => {
         <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && options.length > 0 && (
-        <div className="absolute z-50 top-full left-0 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+        <div className="absolute z-50 top-full left-0 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-none max-h-48 overflow-y-auto custom-scrollbar">
           {options.map((opt) => (
             <label
               key={opt}
@@ -116,7 +116,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
       <div className="space-y-4">
         {/* Mode Toggle */}
         <div>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quiz Mode</p>
+          <p className="text-xs font-semibold text-slate-500 tracking-wider mb-2">Quiz Mode</p>
           <div className="flex gap-2">
             {[
               { key: 'custom', label: '🎯 Custom' },
@@ -125,10 +125,10 @@ const PracticeSetup = ({ onStartQuiz }) => {
               <button
                 key={m.key}
                 onClick={() => setMode(m.key)}
-                className={`flex-1 py-2 px-3 text-sm font-bold rounded-xl border transition-all ${
+                className={`flex-1 py-2 px-3 text-sm font-semibold rounded-xl border transition-all ${
                   mode === m.key
-                    ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-500/20'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-sky-300'
+                    ? 'bg-primary text-white border-sky-500 shadow-none'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary/40'
                 }`}
               >
                 {m.label}
@@ -146,7 +146,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
         {mode === 'custom' && (
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+              <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-1.5">
                 Subjects
               </label>
               {loadingOptions ? (
@@ -162,7 +162,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+              <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-1.5">
                 Difficulty / Level
               </label>
               {loadingOptions ? (
@@ -178,7 +178,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+              <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-1.5">
                 Topics
               </label>
               {loadingOptions ? (
@@ -197,7 +197,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
 
         {/* Question Count */}
         <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+          <label className="text-xs font-semibold text-slate-500 tracking-wider block mb-2">
             Number of Questions
           </label>
           <div className="flex items-center gap-3">
@@ -208,7 +208,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
               <Minus className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </button>
             <div className="flex-1 text-center">
-              <span className="text-2xl font-black text-slate-800 dark:text-slate-200">{questionCount}</span>
+              <span className="text-2xl font-semibold text-slate-800 dark:text-slate-200">{questionCount}</span>
               <span className="text-xs text-slate-400 ml-1">questions</span>
             </div>
             <button
@@ -223,7 +223,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
         {/* Start Button */}
         <button
           onClick={handleStart}
-          className="w-full py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-bold shadow-lg shadow-sky-500/20 hover:from-sky-600 hover:to-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+          className="w-full py-3   text-white rounded-xl font-semibold shadow-none hover:from-sky-600 hover:to-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
         >
           <ClipboardList className="w-5 h-5" />
           Start Practice Quiz
@@ -240,12 +240,12 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
       {messages.map((msg, idx) => (
         <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
           <div
-            className={`max-w-[85%] rounded-2xl p-3 ${
+            className={`max-w-[85%] rounded-xl p-3 ${
               msg.role === 'user'
-                ? 'bg-blue-500 text-white rounded-br-none'
+                ? 'bg-primary text-white rounded-br-none'
                 : msg.isError
                 ? 'bg-red-50 dark:bg-red-950/30 text-red-600 border border-red-200 dark:border-red-800 rounded-bl-none'
-                : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-sm'
+                : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-none'
             }`}
           >
             <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
@@ -258,7 +258,7 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
                   <button
                     key={i}
                     onClick={() => onSend(null, followUp)}
-                    className="text-xs bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 px-2 py-1.5 rounded-lg hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors text-left"
+                    className="text-xs bg-primary/10 dark:bg-sky-900/30 text-primary dark:text-primary border border-primary/20 dark:border-primary/30 px-2 py-1.5 rounded-xl hover:bg-primary/20 dark:hover:bg-sky-900/50 transition-colors text-left"
                   >
                     {followUp}
                   </button>
@@ -271,7 +271,7 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
 
       {isLoading && (
         <div className="flex justify-start">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-bl-none p-4 shadow-sm flex items-center gap-2 text-sky-500">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl rounded-bl-none p-4 shadow-none flex items-center gap-2 text-sky-500">
             <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-xs font-medium">Gracy is typing...</span>
           </div>
@@ -283,7 +283,7 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
     <div className="p-3 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
       <form
         onSubmit={onSend}
-        className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 pr-2 focus-within:ring-2 ring-sky-400 transition-shadow"
+        className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 pr-2 focus-within:ring-2 ring-sky-400 transition-shadow-none"
       >
         <input
           type="text"
@@ -296,7 +296,7 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
         <button
           type="submit"
           disabled={!inputValue.trim() || isLoading}
-          className="w-8 h-8 flex items-center justify-center bg-sky-500 text-white rounded-lg disabled:opacity-50 disabled:bg-slate-300 hover:bg-sky-600 transition-colors"
+          className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-xl disabled:opacity-50 disabled:bg-slate-300 hover:bg-primary/90 transition-colors"
         >
           <Send className="w-4 h-4 ml-0.5" />
         </button>
@@ -511,16 +511,16 @@ const GracyChatInner = ({ user }) => {
       >
         {/* Chat Window */}
         {isOpen && (
-          <div className="absolute bottom-20 right-0 w-[360px] sm:w-[400px] h-[540px] max-h-[82vh] bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto">
+          <div className="absolute bottom-20 right-0 w-[360px] sm:w-[400px] h-[540px] max-h-[82vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto">
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-sky-400 to-blue-500 p-4 flex items-center justify-between text-white flex-shrink-0">
+            <div className="bg-gradient-to-r   p-4 flex items-center justify-between text-white flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                   <Bot className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg leading-tight">Gracy</h3>
+                  <h3 className="font-semibold text-lg leading-tight">Gracy</h3>
                   <p className="text-xs text-sky-100 font-medium">
                     AI Study Partner
                     {access.remaining !== undefined && (
@@ -531,7 +531,7 @@ const GracyChatInner = ({ user }) => {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -543,9 +543,9 @@ const GracyChatInner = ({ user }) => {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold transition-colors border-b-2 ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors border-b-2 ${
                     activeTab === tab.key
-                      ? 'border-sky-500 text-sky-600 dark:text-sky-400 bg-white dark:bg-slate-950'
+                      ? 'border-sky-500 text-primary dark:text-primary bg-white dark:bg-slate-950'
                       : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                   }`}
                 >
@@ -589,7 +589,7 @@ const GracyChatInner = ({ user }) => {
           onClick={() => {
             if (!dragStartPos.current.hasMoved) setIsOpen((o) => !o);
           }}
-          className={`absolute bottom-0 right-0 w-14 h-14 rounded-full bg-gradient-to-tr from-sky-500 to-blue-500 text-white shadow-xl shadow-sky-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform pointer-events-auto cursor-grab active:cursor-grabbing z-50 ${
+          className={`absolute bottom-0 right-0 w-14 h-14 rounded-full   text-white shadow-none flex items-center justify-center hover:scale-105 active:scale-95 transition-transform pointer-events-auto cursor-grab active:cursor-grabbing z-50 ${
             isOpen ? 'ring-4 ring-sky-300/40' : ''
           }`}
           title="Chat with Gracy"

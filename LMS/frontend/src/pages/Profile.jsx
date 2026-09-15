@@ -218,19 +218,19 @@ const Profile = () => {
                         <User className="w-8 h-8" />
                     </div>
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-black text-foreground italic">Profile <span className="text-primary not-italic">Settings</span></h1>
-                        <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] mt-1 opacity-60">Identity & Protocol Management</p>
+                        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground italic">Profile <span className="text-primary not-italic">Settings</span></h1>
+                        <p className="text-muted-foreground font-semibold text-xs tracking-[0.2em] mt-1 opacity-60">Identity & Protocol Management</p>
                     </div>
                 </div>
 
-                <div className="bg-card rounded-[2.5rem] shadow-2xl border border-border overflow-hidden">
+                <div className="bg-card rounded-xl shadow-none border border-border overflow-hidden">
                     <form onSubmit={handleSubmit} className="p-8 space-y-10">
 
                         {/* Profile Picture Section - Only for Students, Teachers and Root Admins */}
                         {!(user?.role === 'school_admin' || user?.role === 'personal_teacher') && (
                             <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b border-border pb-8">
                                 <div className="relative group">
-                                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-muted shadow-inner bg-muted">
+                                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-muted shadow-none bg-muted">
                                         {profilePicPreview ? (
                                             <img src={profilePicPreview} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
@@ -239,7 +239,7 @@ const Profile = () => {
                                             </div>
                                         )}
                                     </div>
-                                    <label className="absolute bottom-0 right-0 p-2.5 bg-primary text-white rounded-full cursor-pointer hover:bg-primary/90 transition shadow-lg border-2 border-card">
+                                    <label className="absolute bottom-0 right-0 p-2.5 bg-primary text-white rounded-full cursor-pointer hover:bg-primary/90 transition shadow-none border-2 border-card">
                                         <Camera className="w-4 h-4" />
                                         <input
                                             type="file"
@@ -250,7 +250,7 @@ const Profile = () => {
                                     </label>
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
-                                    <h3 className="text-lg font-black text-foreground uppercase tracking-tight">Identity Avatar</h3>
+                                    <h3 className="text-lg font-semibold text-foreground tracking-tight">Identity Avatar</h3>
                                     <p className="text-sm text-muted-foreground mt-1 font-medium">
                                         Recommended Size: 400x400px.
                                     </p>
@@ -262,14 +262,14 @@ const Profile = () => {
                         {canEditLogo && (
                             <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b border-border pb-8">
                                 <div className="relative group">
-                                    <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-muted shadow-inner bg-muted flex items-center justify-center">
+                                    <div className="w-24 h-24 rounded-xl overflow-hidden border-4 border-muted shadow-none bg-muted flex items-center justify-center">
                                         {logoPreview || profilePicPreview ? (
                                             <img src={logoPreview || profilePicPreview} alt="Logo" className="max-w-full max-h-full object-contain" />
                                         ) : (
                                             <Building className="w-10 h-10 text-muted-foreground/20" />
                                         )}
                                     </div>
-                                    <label className="absolute -bottom-2 -right-2 p-3 bg-card text-primary border-2 border-border rounded-2xl cursor-pointer hover:bg-muted transition shadow-sm">
+                                    <label className="absolute -bottom-2 -right-2 p-3 bg-card text-primary border-2 border-border rounded-xl cursor-pointer hover:bg-muted transition shadow-none">
                                         <Upload className="w-4 h-4" />
                                         <input
                                             type="file"
@@ -280,7 +280,7 @@ const Profile = () => {
                                     </label>
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
-                                    <h3 className="text-lg font-black text-foreground uppercase tracking-tight">Institution Credentials</h3>
+                                    <h3 className="text-lg font-semibold text-foreground tracking-tight">Institution Credentials</h3>
                                     <p className="text-sm text-muted-foreground mt-1 font-medium">
                                         This asset will be used for official branding & platform identity.
                                     </p>
@@ -290,29 +290,29 @@ const Profile = () => {
 
                         {/* Personal Info Section */}
                         <div className="space-y-6">
-                            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 opacity-40">
+                            <h2 className="text-xs font-semibold text-muted-foreground tracking-[0.2em] flex items-center gap-2 opacity-40">
                                 <User className="w-4 h-4" /> Core Protocol
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Authentication Name</label>
+                                    <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Authentication Name</label>
                                     <input
                                         type="text"
                                         name="name"
                                         value={formData.name}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
+                                        className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold"
                                         placeholder="Your Name"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Secure Email</label>
+                                    <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Secure Email</label>
                                     <input
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         disabled
-                                        className="w-full px-4 py-3.5 bg-muted/40 border border-border/10 rounded-2xl text-muted-foreground/20 cursor-not-allowed font-bold"
+                                        className="w-full px-4 py-3.5 bg-muted/40 border border-border/10 rounded-xl text-muted-foreground/20 cursor-not-allowed font-semibold"
                                     />
                                 </div>
                             </div>
@@ -320,19 +320,19 @@ const Profile = () => {
 
                         {/* Change Password Section */}
                         <div className="space-y-6 border-t border-border pt-8">
-                            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 opacity-40">
+                            <h2 className="text-xs font-semibold text-muted-foreground tracking-[0.2em] flex items-center gap-2 opacity-40">
                                 <Lock className="w-4 h-4" /> Change Password
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
-                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Access Pass</label>
+                                    <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Access Pass</label>
                                     <div className="relative">
                                         <input
                                             type={showCurrentPassword ? "text" : "password"}
                                             name="currentPassword"
                                             value={formData.currentPassword}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold pr-10"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold pr-10"
                                             placeholder="••••••••"
                                             autoComplete="new-password"
                                         />
@@ -346,14 +346,14 @@ const Profile = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">New Access Key</label>
+                                    <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">New Access Key</label>
                                     <div className="relative">
                                         <input
                                             type={showNewPassword ? "text" : "password"}
                                             name="newPassword"
                                             value={formData.newPassword}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold pr-10"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold pr-10"
                                             placeholder="••••••••"
                                             autoComplete="new-password"
                                         />
@@ -365,17 +365,17 @@ const Profile = () => {
                                             {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
-                                    <p className="text-[9px] text-muted-foreground/40 font-bold uppercase tracking-widest mt-1.5 ml-1">Minimum 6 Tokens Required</p>
+                                    <p className="text-xs text-muted-foreground/40 font-semibold tracking-wide mt-1.5 ml-1">Minimum 6 Tokens Required</p>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Confirm Protocol</label>
+                                    <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Confirm Protocol</label>
                                     <div className="relative">
                                         <input
                                             type={showConfirmPassword ? "text" : "password"}
                                             name="confirmNewPassword"
                                             value={formData.confirmNewPassword}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold pr-10"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold pr-10"
                                             placeholder="••••••••"
                                             autoComplete="new-password"
                                         />
@@ -394,12 +394,12 @@ const Profile = () => {
                         {/* Two-Factor Authentication Section - Hidden for Root Admin as it is mandatory */}
                         {user?.role !== 'root_admin' && (
                             <div className="space-y-6 border-t border-border pt-8">
-                                <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 opacity-40">
+                                <h2 className="text-xs font-semibold text-muted-foreground tracking-[0.2em] flex items-center gap-2 opacity-40">
                                     <Shield className="w-4 h-4" /> Two-Factor Authentication
                                 </h2>
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-muted/40 border border-border rounded-2xl gap-4">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-muted/40 border border-border rounded-xl gap-4">
                                     <div>
-                                        <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Enable 2FA Verification</h3>
+                                        <h3 className="text-sm font-semibold text-foreground tracking-wide">Enable 2FA Verification</h3>
                                         <p className="text-xs text-muted-foreground font-medium mt-1">Require an email verification code when logging into your account for enhanced security.</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -410,7 +410,7 @@ const Profile = () => {
                                             onChange={(e) => setFormData({...formData, twoFAEnabled: e.target.checked})}
                                             className="sr-only peer" 
                                         />
-                                        <div className="w-14 h-7 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary shadow-inner"></div>
+                                        <div className="w-14 h-7 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary shadow-none"></div>
                                     </label>
                                 </div>
                             </div>
@@ -421,61 +421,61 @@ const Profile = () => {
                             <div className="space-y-6 border-t border-border pt-8">
                                 <div className="flex items-center gap-2 opacity-40">
                                     <CreditCard className="w-4 h-4 text-muted-foreground" />
-                                    <h2 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Payout Intelligence</h2>
+                                    <h2 className="text-xs font-semibold text-muted-foreground tracking-[0.2em]">Payout Intelligence</h2>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Bank Establishment</label>
+                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Bank Establishment</label>
                                         <input
                                             type="text"
                                             name="bankName"
                                             value={formData.bankName}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold"
                                             placeholder="e.g. First Bank"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Core Identity Number</label>
+                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Core Identity Number</label>
                                         <input
                                             type="text"
                                             name="accountNumber"
                                             value={formData.accountNumber}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold"
                                             placeholder="0123456789"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Legal Register Name</label>
+                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Legal Register Name</label>
                                         <input
                                             type="text"
                                             name="accountName"
                                             value={formData.accountName}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold"
                                             placeholder="As appears on account"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Sort Code (Optional)</label>
+                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Sort Code (Optional)</label>
                                         <input
                                             type="text"
                                             name="bankCode"
                                             value={formData.bankCode}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold"
                                             placeholder="Bank Logic Code"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Disbursement Frequency</label>
+                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Disbursement Frequency</label>
                                         <select
                                             name="payoutFrequency"
                                             value={formData.payoutFrequency}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-2xl focus:border-primary outline-none transition-all text-foreground font-bold appearance-none"
+                                            className="w-full px-4 py-3.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-all text-foreground font-semibold appearance-none"
                                         >
                                             <option value="daily">Daily Cycle</option>
                                             <option value="weekly">Weekly Cycle</option>
@@ -486,11 +486,11 @@ const Profile = () => {
                             </div>
                         )}
 
-                        <div className="pt-4 flex justify-end sticky bottom-0 bg-card/80 backdrop-blur-md p-4 border-t border-border -mx-8 -mb-8 mt-8 shadow-2xl z-20">
+                        <div className="pt-4 flex justify-end sticky bottom-0 bg-card  p-4 border-t border-border -mx-8 -mb-8 mt-8 shadow-none z-20">
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="flex items-center space-x-2 px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:grayscale disabled:opacity-50"
+                                className="flex items-center space-x-2 px-10 py-4 bg-primary text-white rounded-xl font-semibold tracking-[0.2em] text-[11px] hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all shadow-none disabled:grayscale disabled:opacity-50"
                             >
                                 {saving ? (
                                     <Loader2 className="animate-spin h-5 w-5" />

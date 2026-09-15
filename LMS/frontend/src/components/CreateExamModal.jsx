@@ -129,26 +129,26 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/60  z-[110] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-                <div className="bg-card border border-border rounded-[2.5rem] w-full max-w-4xl p-6 md:p-10 shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="bg-card border border-border rounded-xl w-full max-w-4xl p-6 md:p-10 shadow-none animate-in zoom-in-95 duration-300">
                     <div className="flex justify-between items-center mb-8">
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-black italic tracking-tighter text-foreground uppercase">
+                            <h2 className="text-2xl md:text-3xl font-semibold italic tracking-tight text-foreground">
                                 {editExam ? 'Edit' : 'Create'} <span className="text-primary not-italic">Examination</span>
                             </h2>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Configure your assessment parameters</p>
+                            <p className="text-xs font-semibold text-muted-foreground tracking-wide mt-1">Configure your assessment parameters</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => setShowAIPanel(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-violet-500/20 dark:shadow-none active:scale-95"
+                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold tracking-wider hover:opacity-90 transition-all shadow-none dark:shadow-none active:scale-95"
                             >
                                 <Sparkles className="w-4 h-4" />
                                 <span className="hidden sm:inline">AI Generate</span>
                             </button>
-                            <button onClick={onClose} className="p-3 hover:bg-muted rounded-2xl transition text-muted-foreground/60">
+                            <button onClick={onClose} className="p-3 hover:bg-muted rounded-xl transition text-muted-foreground/60">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
@@ -156,9 +156,9 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
 
                     <form onSubmit={handleSubmit} className="space-y-8">
                         {/* Basic Config */}
-                        <div className="grid md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-[2rem] border border-border">
+                        <div className="grid md:grid-cols-2 gap-6 bg-muted p-6 rounded-xl border border-border">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center px-1">
+                                <label className="text-xs font-semibold tracking-wide text-muted-foreground flex items-center px-1">
                                     Exam Title <span className="text-rose-500 ml-1">*</span>
                                 </label>
                                 <input
@@ -167,11 +167,11 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     placeholder="e.g. Final Semester Examination"
-                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all text-foreground font-bold outline-none"
+                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-xl focus:border-primary transition-all text-foreground font-semibold outline-none"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center px-1">
+                                <label className="text-xs font-semibold tracking-wide text-muted-foreground flex items-center px-1">
                                     Duration (Mins) <span className="text-rose-500 ml-1">*</span>
                                 </label>
                                 <div className="relative">
@@ -182,28 +182,28 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                         min="1"
                                         value={formData.duration}
                                         onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 60 })}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all text-foreground font-black outline-none"
+                                        className="w-full pl-12 pr-4 py-3.5 bg-card border-2 border-border rounded-xl focus:border-primary transition-all text-foreground font-semibold outline-none"
                                     />
                                 </div>
                             </div>
 
                             <div className="md:col-span-2 space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Description</label>
+                                <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Description</label>
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     placeholder="Provide candidates with instructions..."
                                     rows="2"
-                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all text-foreground font-medium outline-none"
+                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-xl focus:border-primary transition-all text-foreground font-medium outline-none"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Class Association</label>
+                                <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Class Association</label>
                                 <select
                                     value={formData.classId}
                                     onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all text-foreground font-bold outline-none appearance-none"
+                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-xl focus:border-primary transition-all text-foreground font-semibold outline-none appearance-none"
                                 >
                                     <option value="">Standalone Exam</option>
                                     {classrooms.map(c => (
@@ -213,18 +213,18 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Due Date</label>
+                                <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Due Date</label>
                                 <input
                                     type="datetime-local"
                                     value={formData.dueDate}
                                     onClick={(e) => e.target.showPicker && e.target.showPicker()}
                                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-2xl focus:border-primary transition-all text-foreground font-bold outline-none cursor-pointer"
+                                    className="w-full px-5 py-3.5 bg-card border-2 border-border rounded-xl focus:border-primary transition-all text-foreground font-semibold outline-none cursor-pointer"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Access Mode</label>
+                                <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Access Mode</label>
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
@@ -232,7 +232,7 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                         className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${formData.accessMode === 'registered' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground'}`}
                                     >
                                         <Lock className="w-4 h-4" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Auth Only</span>
+                                        <span className="text-xs font-semibold tracking-wide">Auth Only</span>
                                     </button>
                                     <button
                                         type="button"
@@ -240,19 +240,19 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                         className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${formData.accessMode === 'open' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground'}`}
                                     >
                                         <Globe className="w-4 h-4" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Public</span>
+                                        <span className="text-xs font-semibold tracking-wide">Public</span>
                                     </button>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Status</label>
+                                <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Status</label>
                                 <button
                                     type="button"
                                     onClick={() => setFormData({ ...formData, isPublished: !formData.isPublished })}
                                     className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${formData.isPublished ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600' : 'border-border bg-card text-muted-foreground'}`}
                                 >
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{formData.isPublished ? 'Published' : 'Draft'}</span>
+                                    <span className="text-xs font-semibold tracking-wide">{formData.isPublished ? 'Published' : 'Draft'}</span>
                                     <div className={`w-8 h-4 rounded-full relative transition-colors ${formData.isPublished ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`}>
                                         <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${formData.isPublished ? 'translate-x-4' : ''}`} />
                                     </div>
@@ -263,7 +263,7 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                         {/* Questions */}
                         <div className="space-y-6">
                             <div className="flex items-center justify-between px-2">
-                                <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                                     <HelpCircle className="w-5 h-5 text-primary" />
                                     Questions ({formData.questions.length})
                                 </h3>
@@ -271,44 +271,44 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
 
                             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                                 {formData.questions.map((q, qIndex) => (
-                                    <div key={qIndex} className="bg-card border-2 border-border rounded-3xl overflow-hidden">
-                                        <div className="bg-muted/30 px-6 py-3 border-b border-border flex justify-between items-center">
-                                            <span className="bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">{qIndex + 1}</span>
-                                            <button type="button" onClick={() => removeQuestion(qIndex)} className="text-rose-500 hover:bg-rose-500/10 p-1.5 rounded-lg transition">
+                                    <div key={qIndex} className="bg-card border-2 border-border rounded-xl overflow-hidden">
+                                        <div className="bg-muted px-6 py-3 border-b border-border flex justify-between items-center">
+                                            <span className="bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold">{qIndex + 1}</span>
+                                            <button type="button" onClick={() => removeQuestion(qIndex)} className="text-rose-500 hover:bg-danger/10 p-1.5 rounded-xl transition">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                         <div className="p-6 space-y-4">
                                             <div className="grid md:grid-cols-4 gap-4">
                                                 <div className="md:col-span-2 space-y-1">
-                                                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground px-1">Question Statement</label>
+                                                    <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Question Statement</label>
                                                     <input
                                                         type="text"
                                                         required
                                                         value={q.questionText}
                                                         onChange={(e) => handleQuestionChange(qIndex, 'questionText', e.target.value)}
                                                         placeholder="Type question..."
-                                                        className="w-full bg-muted/50 border-none rounded-xl p-3 font-bold text-sm outline-none focus:ring-1 ring-primary"
+                                                        className="w-full bg-muted border-none rounded-xl p-3 font-semibold text-sm outline-none focus:ring-1 ring-primary"
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground px-1">Type</label>
+                                                    <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Type</label>
                                                     <select
                                                         value={q.questionType}
                                                         onChange={(e) => handleQuestionChange(qIndex, 'questionType', e.target.value)}
-                                                        className="w-full bg-muted/50 border-none rounded-xl p-3 font-bold text-xs outline-none focus:ring-1 ring-primary"
+                                                        className="w-full bg-muted border-none rounded-xl p-3 font-semibold text-xs outline-none focus:ring-1 ring-primary"
                                                     >
                                                         <option value="mcq">MCQ</option>
                                                         <option value="theory">Theory</option>
                                                     </select>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground px-1">Points</label>
+                                                    <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Points</label>
                                                     <input
                                                         type="number"
                                                         value={q.maxScore}
                                                         onChange={(e) => handleQuestionChange(qIndex, 'maxScore', parseInt(e.target.value) || 1)}
-                                                        className="w-full bg-muted/50 border-none rounded-xl p-3 font-bold text-center text-sm outline-none focus:ring-1 ring-primary"
+                                                        className="w-full bg-muted border-none rounded-xl p-3 font-semibold text-center text-sm outline-none focus:ring-1 ring-primary"
                                                     />
                                                 </div>
                                             </div>
@@ -320,7 +320,7 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleQuestionChange(qIndex, 'correctOptionIndex', oIndex)}
-                                                                className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${q.correctOptionIndex === oIndex ? 'bg-emerald-500 text-white' : 'bg-muted border border-border'}`}
+                                                                className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${q.correctOptionIndex === oIndex ? 'bg-success text-white' : 'bg-muted border border-border'}`}
                                                             >
                                                                 {q.correctOptionIndex === oIndex && <CheckCircle2 className="w-3 h-3" />}
                                                             </button>
@@ -330,14 +330,14 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                                                 value={opt}
                                                                 onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
                                                                 placeholder={`Option ${oIndex + 1}`}
-                                                                className="bg-transparent border-none outline-none font-bold text-xs flex-1"
+                                                                className="bg-transparent border-none outline-none font-semibold text-xs flex-1"
                                                             />
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
                                                 <div className="p-4 bg-primary/5 rounded-xl border border-dashed border-primary/20">
-                                                    <p className="text-[10px] font-bold text-primary flex items-center gap-2">
+                                                    <p className="text-xs font-semibold text-primary flex items-center gap-2">
                                                         <AlertCircle className="w-3.5 h-3.5" />
                                                         Manual grading required for theory responses.
                                                     </p>
@@ -351,15 +351,15 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                             <button
                                 type="button"
                                 onClick={addQuestion}
-                                className="w-full py-6 border-2 border-dashed border-border rounded-3xl text-muted-foreground/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 group"
+                                className="w-full py-6 border-2 border-dashed border-border rounded-xl text-muted-foreground/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 group"
                             >
                                 <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Append New Question</span>
+                                <span className="text-xs font-semibold tracking-wide">Append New Question</span>
                             </button>
                         </div>
 
                         <div className="flex gap-4 pt-4 border-t border-border sticky bottom-0 bg-card pb-2">
-                            <button type="button" onClick={onClose} className="flex-1 py-4 rounded-2xl border-2 border-border font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-muted transition">Cancel</button>
+                            <button type="button" onClick={onClose} className="flex-1 py-4 rounded-xl border-2 border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition">Cancel</button>
                             <button type="submit" disabled={loading} className="btn-premium flex-1 py-4 flex items-center justify-center gap-2">
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                                 <span>{editExam ? 'Update' : 'Launch'} Exam</span>
