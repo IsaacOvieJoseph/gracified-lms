@@ -1139,6 +1139,8 @@ router.post('/tutor/quiz', auth, requireStudentAI, async (req, res) => {
         const { topicId, className, subject, level, questionCount, area, general } = req.body;
         let topicContext = '';
         let classroomName = className || '';
+        let quizSubject = subject || '';
+        let quizLevel = level || '';
         let pickedTopics = [];
 
         const Topic = require('../models/Topic');
@@ -1156,25 +1158,65 @@ router.post('/tutor/quiz', auth, requireStudentAI, async (req, res) => {
                 }
             }
         } else if (general) {
-            // General mode: pick from completed topics of the classes the student is enrolled in.
+            // General mode: build a MIXED quiz whose topics come from the student's
+            // ENROLLED classes (covering all subjects), not just math/English.
+            // Only when the student has no enrolled classes (or no topics at all)
+            // do we fall through to the generic math/English default.
             const User = require('../models/User');
+            const Classroom = require('../models/Classroom');
+            const TopicProgress = require('../models/TopicProgress');
             const student = await User.findById(req.user._id).select('enrolledClasses');
             const enrolledClassIds = (student?.enrolledClasses || []).map((c) => c?._id || c).filter(Boolean);
-            const TopicProgress = require('../models/TopicProgress');
-            const completedProgress = await TopicProgress.find({ userId: req.user._id, completionPercentage: { $gte: 100 } });
-            const completedTopicIds = completedProgress.map((p) => p.topicId).filter(Boolean);
 
             const classFilter = enrolledClassIds.length ? { classroomId: { $in: enrolledClassIds } } : {};
-            let candidates = [];
-            if (completedTopicIds.length) {
-                candidates = await Topic.find({ _id: { $in: completedTopicIds }, ...classFilter }).select('name description lessonsOutline classroomId');
+
+            if (enrolledClassIds.length) {
+                const classrooms = await Classroom.find({ _id: { $in: enrolledClassIds } }).select('name subject level');
+                const classById = new Map(classrooms.map((c) => [String(c._id), c]));
+
+                const completedProgress = await TopicProgress.find({ userId: req.user._id, completionPercentage: { $gte: 100 } });
+                const completedTopicIds = completedProgress.map((p) => p.topicId).filter(Boolean);
+                let candidates = [];
+                if (completedTopicIds.length) {
+                    candidates = await Topic.find({ _id: { $in: completedTopicIds }, ...classFilter }).select('name description lessonsOutline classroomId');
+                }
+                if (!candidates.length) {
+                    // No completed topics -> still use ALL topics from enrolled classes
+                    // (no LIMIT 10, which previously biased candidates toward a single class).
+                    candidates = await Topic.find(classFilter).select('name description lessonsOutline classroomId');
+                }
+
+                // Shuffle, then sample to COVER AS MANY CLASSES/SUBJECTS AS POSSIBLE —
+                // one topic per class first, then fill any remaining slots.
+                const shuffled = candidates.sort(() => Math.random() - 0.5);
+                const sampled = [];
+                const seenClasses = new Set();
+                for (const t of shuffled) {
+                    if (sampled.length >= 4) break;
+                    const cid = String(t.classroomId);
+                    if (seenClasses.has(cid)) continue;
+                    sampled.push(t);
+                    seenClasses.add(cid);
+                }
+                for (const t of shuffled) {
+                    if (sampled.length >= 4) break;
+                    if (!sampled.includes(t)) sampled.push(t);
+                }
+
+                pickedTopics = sampled.map((t) => t.name).filter(Boolean);
+                topicContext = sampled.map((t) => {
+                    const c = classById.get(String(t.classroomId));
+                    const label = [c?.name, c?.subject].filter(Boolean).join(' — ');
+                    return [label ? `${label}: ${t.name}` : t.name, t.description, t.lessonsOutline].filter(Boolean).join(' — ');
+                }).join('\n').slice(0, 2000);
+
+                if (!classroomName) {
+                    classroomName = [...new Set(classrooms.map((c) => c?.name).filter(Boolean))].slice(0, 3).join(', ');
+                }
+                if (!quizSubject) {
+                    quizSubject = [...new Set(classrooms.map((c) => c?.subject).filter(Boolean))].join(', ');
+                }
             }
-            if (!candidates.length && enrolledClassIds.length) {
-                candidates = await Topic.find(classFilter).select('name description lessonsOutline classroomId').limit(10);
-            }
-            const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, 3);
-            pickedTopics = shuffled.map((t) => t.name).filter(Boolean);
-            topicContext = shuffled.map((t) => [t.name, t.description, t.lessonsOutline].filter(Boolean).join(' — ')).join('\n').slice(0, 2000);
         } else if (area && String(area).trim()) {
             topicContext = String(area).trim();
         }
@@ -1182,11 +1224,11 @@ router.post('/tutor/quiz', auth, requireStudentAI, async (req, res) => {
 
         const count = Math.min(parseInt(questionCount) || 5, 10);
 
-        const prompt = `Generate a short multiple-choice practice quiz to help a student self-assess and learn. IMPORTANT: Do NOT reference or reproduce any teacher's assignment or examination. Base every question only on the study context provided.
+        const prompt = `Generate a short multiple-choice practice quiz to help a student self-assess and learn. When multiple study contexts are provided, draw questions across ALL of them so the quiz is a true mix. IMPORTANT: Do NOT reference or reproduce any teacher's assignment or examination. Base every question only on the study context provided.
 Study context: "${topicContext || 'General'}"
 Class: "${classroomName || 'General'}"
-Subject: "${subject || 'General'}"
-Level: "${level || 'General'}"
+Subject: "${quizSubject || 'General'}"
+Level: "${quizLevel || 'General'}"
 Number of questions: ${count}
 
 Return ONLY this JSON structure:
