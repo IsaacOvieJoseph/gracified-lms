@@ -97,7 +97,7 @@ exports.getStudentPerformance = async (req, res) => {
                 title: assignment.title,
                 className,
                 dueDate: assignment.dueDate,
-                score,
+                score: score === undefined || score === null ? score : Math.round(score * 10) / 10,
                 maxScore: assignment.maxScore,
                 status
             };

@@ -213,7 +213,7 @@ const StudentReport = () => {
                                     </td>
                                     <td className="px-8 py-6 text-right font-semibold text-foreground">
                                         {assign.status === 'graded' || assign.status === 'returned' ? (
-                                            <span className="text-primary bg-primary/5 px-4 py-2 rounded-xl border border-primary/10 text-lg">{assign.score} / {assign.maxScore}</span>
+                                            <span className="text-primary bg-primary/5 px-4 py-2 rounded-xl border border-primary/10 text-lg">{Math.round(assign.score * 10) / 10} / {assign.maxScore}</span>
                                         ) : (
                                             <span className="text-muted-foreground/30 text-lg">-</span>
                                         )}

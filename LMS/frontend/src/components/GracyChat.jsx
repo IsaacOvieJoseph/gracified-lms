@@ -10,7 +10,10 @@ import Markdown from './Markdown';
 import { useLocation } from 'react-router-dom';
 import GracyQuizModal from './GracyQuizModal';
 import GracyGrowth from './GracyGrowth';
-import GracyAssistTab from './GracyAssistTab';
+import GracyAssistTab, {
+  MODES, ResultViewer, TaskCards,
+  ASSIST_FEED, flowStepFilled, flowQuestion, parseAssistInfo, buildAssistPayload, advanceFlowStep, applyStepAnswer,
+} from './GracyAssistTab';
 import {
   isPracticeRequest,
   extractPracticeArea,
@@ -236,7 +239,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
 };
 
 // ── Chat Panel ──────────────────────────────────────────────────────────────
-const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef }) => {
+const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef, isStudent, onPickTask }) => {
   const inputRef = useRef(null);
 
   // Auto-grow the textarea as long input wraps to multiple lines.
@@ -257,6 +260,11 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
   return (
     <>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50 custom-scrollbar">
+        {!isStudent && (
+          <div className="space-y-4">
+            <TaskCards onPick={onPickTask} />
+          </div>
+        )}
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
@@ -271,6 +279,12 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
               <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
                 {msg.role === 'user' ? msg.content : <Markdown>{msg.content}</Markdown>}
               </div>
+
+              {msg.assistResult && msg.assistResult.result && (
+                <div className="mt-3">
+                  <ResultViewer mode={msg.assistResult.type} result={msg.assistResult.result} />
+                </div>
+              )}
 
               {msg.suggestedFollowUp && msg.suggestedFollowUp.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -336,7 +350,7 @@ const getIntroMessage = (user) => {
   if (isStudent(user)) {
     return "Hi! I'm **Gracy**, your AI study partner. 👋\n\nI can:\n- **Answer questions** about any topic\n- **Quiz you** — just say *\"quiz me on photosynthesis\"*\n- **Track your progress** in the Growth tab\n\nWhat shall we work on today?";
   }
-  return "Hi! I'm **Gracy**, your AI assistant. 👋\n\nI can help you:\n- **Create classes, topics, syllabuses, assignments, and exams**\n- **Make presentation slides** you can download as .pptx\n- **Answer academic questions** and draft content\n\nUse the **Assist** tab to generate, or just ask me in chat. What can I help you with today?";
+  return "Hi! I'm **Gracy**, your AI assistant. 👋\n\nPick a **task card** above, or just ask me in chat — for example:\n- *\"Create an assignment on fractions for SS1\"*\n- *\"Write an exam on cell division\"*\n- *\"Make slides for the water cycle\"*\n\nI'll ask you a couple of quick questions and generate it right here. What can I help you with today?";
 };
 
 // ── Main GracyChat Component ─────────────────────────────────────────────────
@@ -352,9 +366,9 @@ const GracyChatInner = ({ user }) => {
   // Quiz Modal state
   const [quizModal, setQuizModal] = useState(null); // { quizConfig } | null
 
-  // Assist tab handoff (non-student chat → Assist)
-  const [assistPrefill, setAssistPrefill] = useState(null);
-  const pendingAssist = useRef(null);
+  // Conversational Assist flow (non-student chat → in-chat info gathering)
+  // { type, collected: {}, stepIndex } | null
+  const assistFlow = useRef(null);
 
   // Pending practice (NLP: waiting for question count)
   const pendingPractice = useRef(null);
@@ -409,28 +423,100 @@ const GracyChatInner = ({ user }) => {
     }
   };
 
-  // ── Assist handoff: prefill the Assist tab and auto-generate from chat ──
-  const runAssist = useCallback(({ type, label, area, count }) => {
-    const defaultCount = { assignment: 5, exam: 10, slides: 8 }[type] || null;
-    const qty = count || defaultCount;
-    setAssistPrefill({
-      mode: type,
-      subject: area || '',
-      topicName: area || '',
-      questionCount: qty || 5,
-      slideCount: qty || 8,
-      autoGenerate: true,
-    });
-    setActiveTab('assist');
-    setIsOpen(true);
+  // ── Conversational Assist flow (in-chat info gathering) ──
+  const startAssistFlow = (type, initialArea = null) => {
+    const flow = { type, collected: {}, stepIndex: 0 };
+    if (initialArea) {
+      // A request typed in chat may already carry most details ("10 mcq on
+      // photosynthesis for SS2") — seed them so Gracy only asks what's missing.
+      const parsed = parseAssistInfo(initialArea);
+      if (parsed.questionCount) flow.collected.questionCount = parsed.questionCount;
+      if (parsed.slideCount) flow.collected.slideCount = parsed.slideCount;
+      if (parsed.duration) flow.collected.duration = parsed.duration;
+      if (parsed.type) {
+        flow.collected.assignmentType = parsed.type;
+        flow.collected.examType = parsed.type;
+      }
+      if (parsed.className) flow.collected.className = parsed.className;
+      if (parsed.topicPhrase) {
+        flow.collected.topicName = parsed.topicPhrase;
+      } else {
+        flow.collected.subject = String(initialArea).replace(/[?!.,]+$/g, '').trim().slice(0, 60);
+      }
+    }
+    assistFlow.current = flow;
+
+    const meta = MODES.find((m) => m.key === type);
+    const q = flowQuestion(type, flow.stepIndex, flow.collected);
+    setIsLoading(false);
     setMessages((prev) => [...prev, {
       role: 'assistant',
-      content: `I've opened the **${label}** generator in the **Assist** tab${area ? ` for **${area}**` : ''}${qty ? ` (${qty} ${type === 'slides' ? 'slides' : 'questions'})` : ''} and started generating it for you. ✨`,
+      content: `Happy to help! Let's craft a **${meta?.label || type}** ✨\n\nYou can answer question by question, or **paste in everything at once** — like \`10 MCQ questions on quadratic equations for SS2\` — and I'll take it from there.\n\n${q.text}`,
+      suggestedFollowUp: q.chips,
     }]);
-  }, []);
+  };
 
-  // ── Message sending with NLP quiz + assist detection ──
-  const handleSendMessage = useCallback(async (e, text = null) => {
+  const generateFromFlow = async (flow) => {
+    setIsLoading(true);
+    try {
+      const meta = MODES.find((m) => m.key === flow.type);
+      const payload = buildAssistPayload(flow);
+      const res = await api.post(meta.endpoint, payload);
+      const result = res.data?.[meta.resultKey] || res.data;
+      const { subject, topicName, question } = flow.collected;
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: flow.type === 'qna'
+          ? `Here's your answer to **"${question || 'that'}"**:`
+          : `Done — here's your **${meta.label}**${subject ? ` for **${subject}**` : ''}${topicName ? ` · *${topicName}*` : ''}:`,
+        assistResult: { type: flow.type, result },
+      }]);
+    } catch (err) {
+      const errMsg = err.response?.data?.message || 'Sorry, the AI could not generate that. Please try again.';
+      setMessages((prev) => [...prev, { role: 'assistant', content: errMsg, isError: true }]);
+      toast.error(errMsg);
+    } finally {
+      assistFlow.current = null;
+      setIsLoading(false);
+    }
+  };
+
+  const processAssistReply = async (flow, text) => {
+    const feed = ASSIST_FEED[flow.type] || [];
+    const idx = flow.stepIndex;
+    if (idx >= feed.length) {
+      await generateFromFlow(flow);
+      return;
+    }
+    const step = feed[idx];
+    const parsed = parseAssistInfo(text);
+
+    // Merge anything concrete we can auto-detect from the whole reply.
+    if (parsed.questionCount) flow.collected.questionCount = parsed.questionCount;
+    if (parsed.slideCount) flow.collected.slideCount = parsed.slideCount;
+    if (parsed.duration) flow.collected.duration = parsed.duration;
+    if (parsed.type) {
+      flow.collected.assignmentType = parsed.type;
+      flow.collected.examType = parsed.type;
+    }
+    if (parsed.className) flow.collected.className = parsed.className;
+
+    applyStepAnswer(flow, step, text, parsed);
+    flow.stepIndex += 1;
+
+    const next = advanceFlowStep(flow);
+    if (next === -1) {
+      await generateFromFlow(flow);
+      return;
+    }
+    flow.stepIndex = next;
+    const q = flowQuestion(flow.type, feed[next], flow.collected);
+    setIsLoading(false);
+    setMessages((prev) => [...prev, { role: 'assistant', content: q.text, suggestedFollowUp: q.chips }]);
+  };
+
+  // ── Message sending with NLP quiz + conversational assist detection ──
+  const handleSendMessage = async (e, text = null) => {
     if (e) e.preventDefault();
     const messageText = text || inputValue;
     if (!messageText.trim() || isLoading) return;
@@ -453,12 +539,16 @@ const GracyChatInner = ({ user }) => {
       pendingPractice.current = null;
     }
 
-    // Check for pending assist (awaiting a focus area)
-    if (pendingAssist.current) {
-      const assist = pendingAssist.current;
-      pendingAssist.current = null;
-      setIsLoading(false);
-      runAssist({ type: assist.type, label: assist.label, count: assist.count, area: messageText.replace(/[?!.,]+$/g, '').trim().slice(0, 80) });
+    // Conversational Assist reply (Gracy asked a question; this is the answer).
+    if (assistFlow.current) {
+      const flow = assistFlow.current;
+      if (/^(cancel|stop|never mind|start over)\b/i.test(messageText)) {
+        assistFlow.current = null;
+        setIsLoading(false);
+        setMessages((prev) => [...prev, { role: 'assistant', content: 'No problem — what else can I help you with?' }]);
+        return;
+      }
+      await processAssistReply(flow, messageText);
       return;
     }
 
@@ -484,21 +574,11 @@ const GracyChatInner = ({ user }) => {
       return;
     }
 
-    // Assist generation request (staff): route into the Assist tab.
+    // Conversational assist request (staff): gather missing info in chat.
     if (!isStudent(user)) {
       const assist = extractAssistIntent(messageText);
       if (assist) {
-        setIsLoading(false);
-        if (assist.area) {
-          runAssist(assist);
-        } else {
-          pendingAssist.current = { type: assist.type, label: assist.label, count: assist.count };
-          setMessages((prev) => [...prev, {
-            role: 'assistant',
-            content: `What should the **${assist.label}** cover? Just tell me the focus — e.g. \`a ${assist.label.toLowerCase()} on quadratic equations\`.`,
-            suggestedFollowUp: ['quadratic equations', 'cell division', 'the water cycle'],
-          }]);
-        }
+        startAssistFlow(assist.type, assist.area || null);
         return;
       }
     }
@@ -525,7 +605,7 @@ const GracyChatInner = ({ user }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, sessionId, location.pathname, runAssist]);
+  };
 
   // ── Drag handlers ──
   const handlePointerMove = useCallback((e) => {
@@ -662,6 +742,8 @@ const GracyChatInner = ({ user }) => {
                 inputValue={inputValue}
                 setInputValue={setInputValue}
                 messagesEndRef={messagesEndRef}
+                isStudent={isStudent(user)}
+                onPickTask={(type) => startAssistFlow(type)}
               />
             )}
 
@@ -675,7 +757,7 @@ const GracyChatInner = ({ user }) => {
             )}
 
             {effectiveTab === 'assist' && (
-              <GracyAssistTab prefill={assistPrefill} />
+              <GracyAssistTab />
             )}
 
             {effectiveTab === 'growth' && (

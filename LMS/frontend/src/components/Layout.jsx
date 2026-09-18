@@ -146,8 +146,13 @@ const Layout = ({ children }) => {
       {/* Sidebar - Desktop */}
       <aside className={`hidden md:flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="p-6 flex items-center gap-3 border-b border-border/50">
-          <div className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary/10 text-primary">
-            <img src={displayLogo} alt="Logo" className="w-6 h-6 object-contain" />
+          <div className="w-8 h-8 rounded-sm bg-primary/10 text-primary">
+            <img
+              src={displayLogo}
+              alt="Logo"
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = logo; }}
+              className="w-6 h-6 object-contain"
+            />
           </div>
           {!isSidebarCollapsed && (
             <span className="text-lg font-semibold text-foreground font-serif tracking-tight">
