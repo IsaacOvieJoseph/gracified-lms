@@ -1493,7 +1493,7 @@ const ClassroomDetail = () => {
       <div className="space-y-6 min-w-0 w-full">
         <div className="bg-card border border-border rounded-sm shadow-none min-w-0">
           {/* Header Row: Title, Actions, Price */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div className="p-6 flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: classroom.published ? FOREST : SLATE }} />
@@ -2096,7 +2096,7 @@ const ClassroomDetail = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-border">
+          <div className="grid grid-cols-1 sm:grid-cols-3 border-t border-b border-border">
             <RecordField icon={User} label="Teacher" borderRight>
               {classroom.teacherId?.name || 'Unknown Teacher'}
             </RecordField>
@@ -2120,7 +2120,7 @@ const ClassroomDetail = () => {
           </div>
 
           {showIntroVideo && embedUrl && (
-            <div className="bg-slate-900 rounded-xl p-2 shadow-none border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
+            <div className="bg-slate-900 rounded-xl p-2 shadow-none border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 m-6">
               <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
                 <iframe
                   src={embedUrl}
