@@ -606,7 +606,7 @@ const Assignments = () => {
                                        <span className="text-xs font-semibold text-primary tracking-wide bg-primary/10 px-3 py-1 rounded-xl border border-primary/20">Input: {submission.answers[qIndex]}</span>
                                        {q.correctOption && (
                                          <span className={`text-xs font-semibold tracking-wide px-3 py-1 rounded-xl border ${submission.answers[qIndex] === q.correctOption ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
-                                            {submission.answers[qIndex] === q.correctOption ? 'Valid' : `Invalid - Protocol: ${q.correctOption}`}
+                                            {submission.answers[qIndex] === q.correctOption ? 'Correct' : `Incorrect: ${q.correctOption}`}
                                          </span>
                                        )}
                                     </div>

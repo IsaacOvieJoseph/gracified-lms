@@ -8,6 +8,7 @@ const subscriptionCheck = require('../middleware/subscriptionCheck');
 const { notifyNewAssignment } = require('../utils/assignmentNotificationHelper'); // Import subscriptionCheck middleware
 const { filterAssignmentsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
 const Settings = require('../models/Settings');
+const { sanitizeAssignment } = require('../utils/answerKey');
 const router = express.Router();
 
 // Helper to check school access
@@ -62,7 +63,11 @@ router.get('/', auth, async (req, res) => {
       .populate('topicId', 'name isPaid price')
       .sort({ createdAt: -1 });
 
-    res.json({ assignments });
+    const payload = req.user.role === 'student'
+      ? assignments.map(a => sanitizeAssignment(a, req.user))
+      : assignments;
+
+    res.json({ assignments: payload });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -175,7 +180,11 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
     // Filter assignments to ensure classroom owner subscription is still valid (except for teachers and students)
     assignments = await filterAssignmentsBySubscription(assignments, req.user);
 
-    res.json({ assignments });
+    const payload = req.user.role === 'student'
+      ? assignments.map(a => sanitizeAssignment(a, req.user))
+      : assignments;
+
+    res.json({ assignments: payload });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -274,7 +283,7 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       }
     }
 
-    res.json({ assignment });
+    res.json({ assignment: sanitizeAssignment(assignment, req.user) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -690,7 +699,7 @@ router.post('/:id/submit', auth, async (req, res) => {
       console.error('Error creating notifications after submission:', notificationError.message);
     }
 
-    res.json({ message: 'Assignment submitted successfully', assignment });
+    res.json({ message: 'Assignment submitted successfully', assignment: sanitizeAssignment(assignment, req.user) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1052,7 +1061,10 @@ router.get('/:id/results', auth, subscriptionCheck, async (req, res) => {
       }
     }
 
-    res.json({ assignment: { ...assignment.toObject(), submissions: submissionsToReturn } });
+    let payload = sanitizeAssignment(assignment, req.user);
+    payload.submissions = submissionsToReturn;
+
+    res.json({ assignment: payload });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

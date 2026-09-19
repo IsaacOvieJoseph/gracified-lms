@@ -14,6 +14,7 @@ const Topic = require('../models/Topic');
 const FeedbackRequest = require('../models/FeedbackRequest');
 const { sendEmail } = require('../utils/email');
 const PublicAttendee = require('../models/PublicAttendee');
+const { sanitizeAssignment } = require('../utils/answerKey');
 const axios = require('axios');
 const router = express.Router();
 
@@ -1020,9 +1021,11 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       }
     }
 
-    // Filter out unpublished assignments for students
+    // Filter out unpublished assignments for students; never leak answer keys
     if (req.user.role === 'student' && classroom.assignments) {
-      classroom.assignments = classroom.assignments.filter(a => a.published !== false);
+      classroom.assignments = classroom.assignments
+        .filter(a => a.published !== false)
+        .map(a => sanitizeAssignment(a, req.user));
     }
 
     res.json({ classroom, dynamicTopicPrice, showPaidTopics });

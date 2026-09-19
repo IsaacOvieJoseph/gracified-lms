@@ -418,8 +418,8 @@ const GOLD = '#A9791F';
 const FOREST = '#2F6E4E';
 const ROSE = '#A23B2E';
 
-const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: '2px' };
-const outlineActionStyle = { backgroundColor: PAPER, color: INK, border: `1px solid ${HAIRLINE}`, borderRadius: '2px' };
+const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: 'var(--radius)' };
+const outlineActionStyle = { backgroundColor: PAPER, color: INK, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' };
 
 function ActionButton({ icon: Icon, label, tone = 'default', onClick, disabled, loading }) {
   const tones = {
@@ -437,7 +437,7 @@ function ActionButton({ icon: Icon, label, tone = 'default', onClick, disabled, 
         color: t.color,
         backgroundColor: t.bg,
         border: `1px solid ${t.border}`,
-        borderRadius: '2px',
+        borderRadius: 'var(--radius)',
       }}
     >
       {loading ? <Loader2 size={15} className="animate-spin" /> : <Icon size={15} strokeWidth={2} />}
@@ -469,7 +469,7 @@ function OverflowMenu({ onEdit, onEnd, onDelete, showDelete }) {
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center justify-center w-9 h-9"
-        style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: '2px' }}
+        style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: 'var(--radius)' }}
         aria-label="More actions"
       >
         <MoreHorizontal size={16} style={{ color: INK }} />
@@ -480,7 +480,7 @@ function OverflowMenu({ onEdit, onEnd, onDelete, showDelete }) {
           style={{
             backgroundColor: PAPER,
             border: `1px solid ${HAIRLINE}`,
-            borderRadius: '2px',
+            borderRadius: 'var(--radius)',
             minWidth: '160px',
             boxShadow: '0 2px 6px rgba(20,32,46,0.08)',
           }}
@@ -2164,7 +2164,7 @@ const ClassroomDetail = () => {
               </button>
             )}
             {!isEnrolled && user?.role === 'student' && !classroom.published && (
-              <span className="px-5 py-2.5 text-sm font-semibold" style={{ backgroundColor: PANEL, color: SLATE, border: `1px solid ${HAIRLINE}`, borderRadius: '2px' }}>
+              <span className="px-5 py-2.5 text-sm font-semibold" style={{ backgroundColor: PANEL, color: SLATE, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
                 Not Available for Enrollment
               </span>
             )}

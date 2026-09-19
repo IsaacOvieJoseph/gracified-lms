@@ -45,7 +45,7 @@ const GOLD = '#A9791F';
 const FOREST = '#2F6E4E';
 const ROSE = '#A23B2E';
 
-const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: '2px' };
+const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: 'var(--radius)' };
 
 function DetailRow({ icon: Icon, label, value }) {
   return (
@@ -71,7 +71,7 @@ const SectionHeader = ({ title, count, icon: Icon }) => (
     <div className="flex items-center gap-3">
       <Icon className="w-5 h-5" style={{ color: NAVY }} />
       <h2 className="font-serif text-[22px] font-semibold" style={{ color: INK }}>{title}</h2>
-      <span className="text-xs font-semibold px-2.5 py-1 tracking-wide" style={{ color: SLATE, border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: '2px' }}>
+      <span className="text-xs font-semibold px-2.5 py-1 tracking-wide" style={{ color: SLATE, border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: 'var(--radius)' }}>
         {count} total
       </span>
     </div>
@@ -206,7 +206,7 @@ const Classrooms = () => {
       ...customSelectStyles.control(base),
       minHeight: '48px',
       height: '48px',
-      borderRadius: '2px',
+      borderRadius: 'var(--radius)',
       borderWidth: '1px',
       borderColor: 'hsl(var(--border))',
       fontWeight: '500',
@@ -431,10 +431,10 @@ const Classrooms = () => {
           <div className="flex items-start justify-between gap-3">
             <h3 className="flex-1 font-serif text-[19px] font-semibold leading-snug min-w-0" style={{ color: INK }}>
               {classroom.name}
-              {isNew && <span className="ml-2 text-[10px] font-sans align-middle px-1.5 py-0.5 tracking-wide" style={{ color: '#B7791F', border: '1px solid #EAD8BC', backgroundColor: '#FBF4E8', borderRadius: '2px' }}>New</span>}
+              {isNew && <span className="ml-2 text-[10px] font-sans align-middle px-1.5 py-0.5 tracking-wide" style={{ color: '#B7791F', border: '1px solid #EAD8BC', backgroundColor: '#FBF4E8', borderRadius: 'var(--radius)' }}>New</span>}
             </h3>
             {isFree ? (
-              <span className="text-xs font-semibold px-2 py-1 shrink-0 whitespace-nowrap" style={{ color: FOREST, border: `1px solid #CFE3D6`, backgroundColor: '#F2F8F4', borderRadius: '2px' }}>
+              <span className="text-xs font-semibold px-2 py-1 shrink-0 whitespace-nowrap" style={{ color: FOREST, border: `1px solid #CFE3D6`, backgroundColor: '#F2F8F4', borderRadius: 'var(--radius)' }}>
                 Free
               </span>
             ) : (
@@ -470,7 +470,7 @@ const Classrooms = () => {
                 onClick={() => handlePublishToggle(classroom._id, classroom.published)}
                 title={classroom.published ? 'Unpublish' : 'Publish'}
                 className="flex items-center justify-center w-8 h-8"
-                style={{ border: `1px solid ${classroom.published ? '#CFE3D6' : HAIRLINE}`, borderRadius: '2px' }}
+                style={{ border: `1px solid ${classroom.published ? '#CFE3D6' : HAIRLINE}`, borderRadius: 'var(--radius)' }}
                 aria-label={classroom.published ? 'Unpublish class' : 'Publish class'}
               >
                 {publishingClassId === classroom._id
@@ -482,7 +482,7 @@ const Classrooms = () => {
               <button
                 onClick={(e) => handleDeleteClick(classroom._id, e)}
                 className="flex items-center justify-center w-8 h-8"
-                style={{ border: '1px solid #EBD3CE', borderRadius: '2px' }}
+                style={{ border: '1px solid #EBD3CE', borderRadius: 'var(--radius)' }}
                 aria-label="Delete class"
               >
                 <Trash2 size={14} style={{ color: ROSE }} />
@@ -527,7 +527,7 @@ const Classrooms = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-3 px-4 h-[48px] flex-[2] min-w-[220px]" style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: '2px' }}>
+          <div className="flex items-center gap-3 px-4 h-[48px] flex-[2] min-w-[220px]" style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: 'var(--radius)' }}>
             <Search size={15} style={{ color: SLATE }} />
             <input
               type="text"
@@ -610,7 +610,7 @@ const Classrooms = () => {
 
           {filteredClassrooms.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center px-6" style={{ backgroundColor: PAPER, border: `1px dashed ${HAIRLINE}` }}>
-              <div className="w-16 h-16 flex items-center justify-center mb-6" style={{ backgroundColor: PANEL, borderRadius: '2px' }}>
+              <div className="w-16 h-16 flex items-center justify-center mb-6" style={{ backgroundColor: PANEL, borderRadius: 'var(--radius)' }}>
                 <Search className="w-8 h-8" style={{ color: SLATE, opacity: 0.5 }} />
               </div>
               <h3 className="font-serif text-[20px] font-semibold" style={{ color: INK }}>No classes match</h3>

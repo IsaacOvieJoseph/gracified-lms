@@ -9,6 +9,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const School = require('../models/School');
 const Tutorial = require('../models/Tutorial');
+const { isNonStudent, stripCorrectOption, sanitizeExam } = require('../utils/answerKey');
 const router = express.Router();
 
 // Helper to check school access
@@ -180,7 +181,7 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'person
                 };
             }));
 
-            return res.json(enhancedExams);
+            return res.json(enhancedExams.map(e => sanitizeExam(e)));
         }
 
         // Teacher/Admin Logic (Unchanged but cleaned)
@@ -404,6 +405,7 @@ router.get('/public/:token', async (req, res) => {
         let isEnrolled = false;
         let submissionStatus = null;
         let existingSubmissionId = null;
+        let viewerUser = null;
 
         const authHeader = req.headers.authorization;
         if (authHeader) {
@@ -413,6 +415,7 @@ router.get('/public/:token', async (req, res) => {
                 const user = await User.findById(decoded.userId);
 
                 if (user) {
+                    viewerUser = user;
                     const userId = user._id.toString();
 
                     // Enrollment check
@@ -471,15 +474,12 @@ router.get('/public/:token', async (req, res) => {
             resultData
         };
 
-        // If results are public, include correct options in questions for the breakdown view
-        if (resultsArePublic && resultData) {
-            responseData.questions = exam.questions; // Send full questions including correctOption
+        // Never send answer keys to students unless scored AND results are public
+        // (so the UI can show the correct answers in the review/breakdown view).
+        if (isNonStudent(viewerUser) || (submissionStatus === 'graded' && resultsArePublic && resultData)) {
+            responseData.questions = exam.questions;
         } else {
-            // strip correct options for safety even if it's the public info route
-            responseData.questions = exam.questions.map(q => {
-                const { correctOption, ...rest } = q.toObject();
-                return rest;
-            });
+            responseData.questions = stripCorrectOption(exam.questions);
         }
 
         res.json(responseData);
@@ -533,6 +533,7 @@ router.post('/public/:token/start', async (req, res) => {
         if (!exam || !exam.isPublished) return res.status(404).json({ message: 'Exam not available' });
 
         let studentId = null;
+        let viewerUser = null;
         let candidateName = req.body.candidateName;
         let candidateEmail = req.body.candidateEmail;
 
@@ -543,6 +544,7 @@ router.post('/public/:token/start', async (req, res) => {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 const user = await User.findById(decoded.userId);
                 if (user) {
+                    viewerUser = user;
                     studentId = user._id;
                     candidateName = user.name; // Use user's name if logged in
                     candidateEmail = user.email; // Use user's email if logged in
@@ -575,6 +577,9 @@ router.post('/public/:token/start', async (req, res) => {
             return res.status(400).json({ message: 'Name is required' });
         }
 
+        // Answer keys go to non-students only; students never get them while taking.
+        const safeQuestions = isNonStudent(viewerUser) ? exam.questions : stripCorrectOption(exam.questions);
+
         // Check for existing attempt to allow RESUME
         if (studentId) {
             const activeSubmission = await ExamSubmission.findOne({
@@ -586,10 +591,7 @@ router.post('/public/:token/start', async (req, res) => {
             if (activeSubmission) {
                 return res.json({
                     submissionId: activeSubmission._id,
-                    questions: exam.questions.map(q => {
-                        const { correctOption, ...rest } = q.toObject();
-                        return rest;
-                    }),
+                    questions: safeQuestions,
                     duration: exam.duration,
                     isResume: true
                 });
@@ -619,13 +621,10 @@ router.post('/public/:token/start', async (req, res) => {
 
         await submission.save();
 
-        // Return submission AND questions
+        // Return submission AND questions (answer keys stripped for students)
         res.json({
             submissionId: submission._id,
-            questions: exam.questions.map(q => {
-                const { correctOption, ...rest } = q.toObject();
-                return rest; // Hide correct option
-            }),
+            questions: safeQuestions,
             duration: exam.duration
         });
     } catch (error) {
@@ -1008,7 +1007,9 @@ router.get('/class/:classId', auth, async (req, res) => {
         // Staff need drafts in the classroom workspace; students only see published exams.
         if (req.user.role === 'student') query.isPublished = true;
         const exams = await Exam.find(query).sort({ createdAt: -1 });
-        res.json(exams);
+        // Students must never receive answer keys from list endpoints.
+        const payload = req.user.role === 'student' ? exams.map(e => sanitizeExam(e)) : exams;
+        res.json(payload);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
