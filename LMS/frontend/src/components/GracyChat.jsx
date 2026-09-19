@@ -648,11 +648,13 @@ const GracyChatInner = ({ user }) => {
 
     setPosition((prev) => {
       const fabSize = 64;
-      let newX = prev.x - deltaX;
-      let newY = prev.y - deltaY;
-      if (newX < -(window.innerWidth - fabSize)) newX = -(window.innerWidth - fabSize);
+      let newX = prev.x + deltaX;
+      let newY = prev.y + deltaY;
+      const minX = -(window.innerWidth - fabSize - 24);
+      const minY = -(window.innerHeight - fabSize - 24);
+      if (newX < minX) newX = minX;
       if (newX > 0) newX = 0;
-      if (newY < -(window.innerHeight - fabSize)) newY = -(window.innerHeight - fabSize);
+      if (newY < minY) newY = minY;
       if (newY > 0) newY = 0;
       return { x: newX, y: newY };
     });
@@ -691,6 +693,12 @@ const GracyChatInner = ({ user }) => {
   // Non-students have no Growth tab; fall back to Chat if state references it.
   const effectiveTab = tabs.some((t) => t.key === activeTab) ? activeTab : 'chat';
 
+  // Smart window positioning relative to anchor position
+  const isTopHalf = position.y < -(window.innerHeight / 2 - 60);
+  const isLeftHalf = position.x < -(window.innerWidth / 2 - 60);
+  const verticalClass = isTopHalf ? 'top-0' : 'bottom-0';
+  const horizontalClass = isLeftHalf ? 'left-0' : 'right-0';
+
   return (
     <>
       {/* Quiz Modal (rendered outside the chat bubble) */}
@@ -716,7 +724,7 @@ const GracyChatInner = ({ user }) => {
       >
         {/* Chat Window */}
         {isOpen && (
-          <div className="absolute bottom-0 right-0 w-[360px] sm:w-[400px] h-[580px] max-h-[85vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto">
+          <div className={`absolute ${verticalClass} ${horizontalClass} w-[360px] sm:w-[400px] h-[580px] max-h-[85vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto`}>
 
             {/* Header */}
             <div
@@ -728,7 +736,7 @@ const GracyChatInner = ({ user }) => {
                   <Bot className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg leading-tight">Gracy</h3>
+                  <h3 className="font-semibold text-lg leading-tight" style={{ color: '#eeee94' }}>Gracy</h3>
                   <p className="text-xs text-sky-100 font-medium">
                     {gracyLabel(user)}
                     {access.remaining !== undefined && (
