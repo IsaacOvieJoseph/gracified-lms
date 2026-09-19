@@ -60,7 +60,7 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
           </button>
         </div>
         {expanded && (
-          <div className="bg-gradient-to-br   dark:from-violet-950/30 dark:to-purple-950/30 border border-violet-200 dark:border-violet-800/50 rounded-xl p-5 space-y-3">
+          <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/50 rounded-xl p-5 space-y-3">
             <p className="font-semibold text-slate-900 dark:text-white text-base">{result.name}</p>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{result.description}</p>
             {result.lessonsOutline && (
@@ -125,19 +125,31 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
 
   if (mode === 'assignment' || mode === 'exam') {
     const questions = result.questions || [];
-    const color = mode === 'exam' ? 'rose' : 'blue';
+    const st = mode === 'exam'
+      ? {
+          text: 'text-rose-600 dark:text-rose-400',
+          card: 'bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800/50',
+          chip: 'text-rose-600 bg-rose-100 dark:text-rose-400 dark:bg-rose-900/40',
+          btn: 'bg-rose-600 hover:bg-rose-700'
+        }
+      : {
+          text: 'text-blue-600 dark:text-blue-400',
+          card: 'bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/50',
+          chip: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/40',
+          btn: 'bg-blue-600 hover:bg-blue-700'
+        };
     return (
       <div className="space-y-3 animate-in slide-in-from-bottom-4">
-        <h4 className={`text-xs font-semibold text-${color}-600 tracking-wide`}>✨ AI Generated {mode === 'exam' ? 'Exam' : 'Assignment'}</h4>
-        <div className={`bg-${color}-50 dark:bg-${color}-950/20 border border-${color}-200 dark:border-${color}-800/50 rounded-xl p-4 space-y-3`}>
+        <h4 className={`text-xs font-semibold ${st.text} tracking-wide`}>✨ AI Generated {mode === 'exam' ? 'Exam' : 'Assignment'}</h4>
+        <div className={`${st.card} rounded-xl p-4 space-y-3`}>
           <p className="font-semibold text-slate-900 dark:text-white">{result.title}</p>
           <p className="text-sm text-slate-600 dark:text-slate-400">{result.description}</p>
           <div className="flex gap-2">
-            <div className={`text-xs font-semibold text-${color}-600 bg-${color}-100 px-3 py-1 rounded-full w-fit`}>
+            <div className={`text-xs font-semibold ${st.chip} px-3 py-1 rounded-full w-fit`}>
               {questions.length} Questions
             </div>
             {result.duration && (
-              <div className={`text-xs font-semibold text-${color}-600 bg-${color}-100 px-3 py-1 rounded-full w-fit flex items-center gap-1`}>
+              <div className={`text-xs font-semibold ${st.chip} px-3 py-1 rounded-full w-fit flex items-center gap-1`}>
                 <Clock className="w-3 h-3" />
                 {result.duration} Mins
               </div>
@@ -155,7 +167,7 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
         </div>
         <button
           onClick={() => onApply(result)}
-          className={`w-full py-3  from-${color}-600 to-${color}-700 text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none`}
+          className={`w-full py-3 ${st.btn} text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none`}
         >
           <Check className="w-4 h-4" /> Apply to Form
         </button>
@@ -219,7 +231,7 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
           <button
             onClick={() => onDownloadPptx(result)}
             disabled={downloadingPptx}
-            className="py-3   text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none disabled:opacity-60"
+            className="py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none disabled:opacity-60"
           >
             {downloadingPptx ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             Download <span className="hidden sm:inline">.pptx</span>
@@ -255,8 +267,8 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
           </div>
         </div>
         <button
-          onClick={() => onApply(result)}
-          className="w-full py-3   text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none"
+            onClick={() => onApply(result)}
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none"
         >
           <Check className="w-4 h-4" /> Apply to Form
         </button>
@@ -288,7 +300,7 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
             await copyToClipboard(result.answer);
             toast.success('Answer copied to clipboard!');
           }}
-          className="w-full py-3   text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none"
+          className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold text-xs tracking-wide hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-none"
         >
           <Copy className="w-4 h-4" /> Copy Answer
         </button>
@@ -461,6 +473,8 @@ const AIAssistantPanel = ({
       if (mode === 'exam' && onApplyExam) onApplyExam(finalData);
       if (mode === 'classroom' && onApplyTopic) onApplyTopic(finalData);
     }
+    // Always collapse the drawer so the pre-filled create/edit modal is visible.
+    if (onClose) onClose();
     toast.success('Applied successfully!');
   };
 

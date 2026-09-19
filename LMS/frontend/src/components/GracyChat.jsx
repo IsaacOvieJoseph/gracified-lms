@@ -650,8 +650,8 @@ const GracyChatInner = ({ user }) => {
       const fabSize = 64;
       let newX = prev.x + deltaX;
       let newY = prev.y + deltaY;
-      const minX = -(window.innerWidth - fabSize - 24);
-      const minY = -(window.innerHeight - fabSize - 24);
+      const minX = -(window.innerWidth - fabSize - 16);
+      const minY = -(window.innerHeight - fabSize - 16);
       if (newX < minX) newX = minX;
       if (newX > 0) newX = 0;
       if (newY < minY) newY = minY;
@@ -717,14 +717,14 @@ const GracyChatInner = ({ user }) => {
       <div
         className="fixed z-50 pointer-events-none"
         style={{
-          bottom: '24px',
-          right: '24px',
+          bottom: '16px',
+          right: '16px',
           transform: `translate(${position.x}px, ${position.y}px)`,
         }}
       >
         {/* Chat Window */}
         {isOpen && (
-          <div className={`absolute ${verticalClass} ${horizontalClass} w-[360px] sm:w-[400px] h-[580px] max-h-[85vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto`}>
+          <div className={`absolute ${verticalClass} ${horizontalClass} w-[calc(100vw-32px)] sm:w-[400px] max-w-[400px] h-[520px] sm:h-[580px] max-h-[78vh] sm:max-h-[85vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto`}>
 
             {/* Header */}
             <div

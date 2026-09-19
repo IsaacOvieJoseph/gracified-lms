@@ -146,14 +146,11 @@ const Layout = ({ children }) => {
       {/* Sidebar - Desktop */}
       <aside className={`hidden md:flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="p-6 flex items-center gap-3 border-b border-border/50">
-          <div className="w-8 h-8 rounded-sm bg-primary/10 text-primary">
-            <img
-              src={displayLogo}
-              alt="Logo"
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = logo; }}
-              className="w-6 h-6 object-contain"
-            />
-          </div>
+          <img
+            src={logo}
+            alt="Logo"
+            className="w-8 h-8 rounded-full object-cover shrink-0"
+          />
           {!isSidebarCollapsed && (
             <span className="text-lg font-semibold text-foreground font-serif tracking-tight">
               Gracified
@@ -181,11 +178,11 @@ const Layout = ({ children }) => {
 
         <div className="p-4 border-t border-border">
           <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'p-2 bg-background'}`}>
-            <div className="w-10 h-10 rounded-sm bg-card border border-border flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
               {user?.profilePicture ? (
                 <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="font-semibold text-primary">{user?.name?.charAt(0)}</span>
+                <span className="font-semibold text-sm text-primary">{user?.name?.charAt(0)}</span>
               )}
             </div>
             {!isSidebarCollapsed && (
@@ -228,18 +225,19 @@ const Layout = ({ children }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* <ThemeToggle /> */}
             <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
 
-            <div className="relative" ref={notificationsRef}>
+            <div className="relative flex items-center" ref={notificationsRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-xl border border-border hover:bg-muted transition relative"
+                className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition relative shrink-0"
+                title="Notifications"
               >
                 <Bell className="w-5 h-5 text-muted-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-background"></span>
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 )}
               </button>
 
@@ -273,15 +271,16 @@ const Layout = ({ children }) => {
               )}
             </div>
 
-            <div className="relative" ref={profileRef}>
+            <div className="relative flex items-center" ref={profileRef}>
               <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shadow-none hover:scale-105 transition"
+                className="w-9 h-9 rounded-full bg-slate-100 overflow-hidden shadow-none hover:scale-105 transition shrink-0 flex items-center justify-center"
+                title="User Profile"
               >
                 {user?.profilePicture ? (
                   <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="font-semibold text-primary">{user?.name?.charAt(0)}</span>
+                  <span className="font-semibold text-sm text-primary">{user?.name?.charAt(0)}</span>
                 )}
               </button>
 
