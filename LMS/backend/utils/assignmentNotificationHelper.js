@@ -1,6 +1,6 @@
 const Classroom = require('../models/Classroom');
 const Notification = require('../models/Notification');
-const { sendEmail } = require('./email');
+const { sendEmail, emailHeading, emailText, emailMeta, emailButton, emailNote } = require('./email');
 
 /**
  * Sends notifications to students and teacher when an assignment is created or re-published
@@ -23,20 +23,21 @@ const notifyNewAssignment = async (assignment) => {
 
         const emailSubject = `New Assignment: ${assignment.title}`;
         const emailPromises = recipients.map(recipient => {
+            const dueLabel = assignment.dueDate
+                ? `${new Date(assignment.dueDate).toLocaleDateString()} at ${new Date(assignment.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (GMT)`
+                : 'Open ended';
             const html = `
-                <h2 style="color: #4f46e5;">New Assignment Posted</h2>
-                <p>Hello <strong>${recipient.name}</strong>,</p>
-                <p>A new assignment has been posted in <strong>${classroom.name}</strong>. Please check the details below:</p>
-                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><strong>Title:</strong> ${assignment.title}</p>
-                    <p style="margin: 5px 0;"><strong>Due Date:</strong> ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() + ' ' + new Date(assignment.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (GMT)' : 'N/A'}</p>
-                    <p style="margin: 5px 0;"><strong>Type:</strong> ${assignment.assignmentType.toUpperCase()}</p>
-                </div>
-                <p>Log in to your dashboard to view the full details and start working on it.</p>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                   style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                    View Assignment
-                </a>
+                ${emailHeading('New Assignment Posted')}
+                ${emailText(`Hello <strong>${recipient.name}</strong>,`)}
+                ${emailText(`A new assignment has been posted in <strong>${classroom.name}</strong>. Here are the details:`)}
+                ${emailMeta([
+                    ['Assignment', assignment.title],
+                    ['Due Date', dueLabel],
+                    ['Type', assignment.assignmentType.toUpperCase()]
+                ])}
+                ${emailText('Log in to your dashboard to view the full details and start working on it.')}
+                ${emailButton('View Assignment', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+                ${emailNote('This is an automated notification from Gracified LMS. Please do not reply.')}
             `;
             return sendEmail({
                 to: recipient.email,

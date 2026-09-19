@@ -8,7 +8,7 @@ const Notification = require('../models/Notification'); // Import Notification m
 const axios = require('axios'); // Ensure axios is imported here
 const crypto = require('crypto');
 const { auth } = require('../middleware/auth');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailMeta, emailButton } = require('../utils/email');
 const Settings = require('../models/Settings');
 const router = express.Router();
 
@@ -157,21 +157,18 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
             classroomId: classroom ? classroom._id : null,
             isSystemEmail: isSubscription,
             html: `
-              <h2 style="color: #4f46e5;">Payment Confirmation</h2>
-              <p>Hello <strong>${user.name}</strong>,</p>
-              <p>${message}</p>
-              <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${(payment.amount || 0).toLocaleString()}</p>
-                <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()} (GMT)</p>
-                <p style="margin: 5px 0;"><strong>Type:</strong> ${payment.type.replace('_', ' ').toUpperCase()}</p>
-                ${classroom ? `<p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>` : ''}
-                <p style="margin: 5px 0;"><strong>Reference:</strong> ${payment.paystackReference || payment.stripePaymentId || 'N/A'}</p>
-              </div>
-              <p>Thank you for choosing Gracified LMS. You can view your invoice in your dashboard.</p>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
-                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                Go to Dashboard
-              </a>
+              ${emailHeading('Payment Confirmation')}
+              ${emailText(`Hello <strong>${user.name}</strong>,`)}
+              ${emailText(message)}
+              ${emailMeta([
+                ['Amount', `₦${(payment.amount || 0).toLocaleString()}`],
+                ['Date', `${new Date().toLocaleDateString()} (GMT)`],
+                ['Type', payment.type.replace('_', ' ').toUpperCase()],
+                ...(classroom ? [['Class', classroom.name]] : []),
+                ['Reference', payment.paystackReference || payment.stripePaymentId || 'N/A']
+              ])}
+              ${emailText('Thank you for choosing Gracified LMS. You can view your invoice in your dashboard.')}
+              ${emailButton('Go to Dashboard', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`)}
             `
           });
         }

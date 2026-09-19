@@ -3,7 +3,7 @@ const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck');
 const crypto = require('crypto');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailButton } = require('../utils/email');
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
@@ -419,15 +419,13 @@ router.post('/bulk-invite', auth, authorize('root_admin', 'school_admin'), uploa
                 subject: 'Welcome to Gracified LMS - Set Your Password',
                 userId: newUser._id,
                 html: `
-                  <h2>Welcome to Gracified LMS!</h2>
-                  <p>Hello ${newUser.name},</p>
-                  <p>You have been invited to join Gracified LMS as a ${newUser.role}.</p>
-                  <p>Please click the link below to set your password and activate your account:</p>
-                  <p><a href="${inviteLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Set Your Password</a></p>
-                  <p>Or copy and paste this link in your browser:</p>
-                  <p>${inviteLink}</p>
-                  <p>This link will expire in 7 days.</p>
-                  <p>Best regards,<br>Gracified LMS Team</p>
+                  ${emailHeading('Welcome to Gracified LMS')}
+                  ${emailText(`Hello <strong>${newUser.name}</strong>,`)}
+                  ${emailText(`You have been invited to join Gracified LMS as a <strong>${newUser.role}</strong>.`)}
+                  ${emailText('Please click the button below to set your password and activate your account:')}
+                  ${emailButton('Set Your Password', inviteLink)}
+                  <p style="font-size:13px; color:#5B6B7C; margin-top:12px;">Or copy and paste this link in your browser:<br><span style="color:#1D3557; word-break:break-all;">${inviteLink}</span></p>
+                  ${emailText('This link will expire in 7 days.', { size: '13px', color: '#5B6B7C' })}
                 `
               });
 

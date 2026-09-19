@@ -4,7 +4,7 @@ const { randomUUID } = require('crypto');
 const mongoose = require('mongoose');
 
 const { auth, authorize } = require('../middleware/auth');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailPanel, emailCode, emailNote } = require('../utils/email');
 
 const ScriptShareConfig = require('../models/ScriptShareConfig');
 const ScriptAccessSession = require('../models/ScriptAccessSession');
@@ -664,30 +664,17 @@ router.post('/share/:shareToken/request-access', async (req, res) => {
 
         // Send OTP email to each authority
         const otpEmailHtml = `
-            <h2 style="color: #4f46e5;">Script Access Request</h2>
-            <p>Someone is requesting <strong>${session.accessType}</strong> access to an answer script.</p>
-            
-            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin: 20px 0;">
-                <p style="margin: 0 0 8px 0;"><strong>Requester Name:</strong> ${requesterName}</p>
-                <p style="margin: 0 0 8px 0;"><strong>Requester Email:</strong> ${requesterEmail}</p>
-                <p style="margin: 0 0 8px 0;"><strong>Access Type:</strong> <span style="text-transform: capitalize;">${session.accessType}</span></p>
-            </div>
-            
-            <p>If you authorise this person to access the script, share the OTP below with them:</p>
-            
-            <div style="background: #4f46e5; color: white; border-radius: 16px; padding: 30px; text-align: center; margin: 24px 0;">
-                <p style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.8;">One-Time Password</p>
-                <p style="margin: 0; font-size: 48px; font-weight: 900; letter-spacing: 12px;">${otp}</p>
-                <p style="margin: 12px 0 0 0; font-size: 13px; opacity: 0.7;">Valid for ${config?.otpLifespanMinutes || 30} minutes</p>
-            </div>
-            
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <p style="margin: 0; color: #991b1b; font-size: 14px;">
-                    ⚠️ <strong>Only share this OTP if you authorise this person.</strong> Do not share it if the request is unexpected.
-                </p>
-            </div>
-
-            <p style="font-size: 13px; color: #6b7280;">If you did not expect this request, please ignore this email. The OTP will expire automatically.</p>
+            ${emailHeading('Script Access Request')}
+            ${emailText(`Someone is requesting <strong>${session.accessType}</strong> access to an answer script.`)}
+            ${emailPanel(`
+                <p style="margin:0 0 6px;"><strong>Requester Name:</strong> ${requesterName}</p>
+                <p style="margin:0 0 6px;"><strong>Requester Email:</strong> ${requesterEmail}</p>
+                <p style="margin:0;"><strong>Access Type:</strong> <span style="text-transform:capitalize;">${session.accessType}</span></p>
+            `)}
+            ${emailText('If you authorise this person to access the script, share the OTP below with them:')}
+            ${emailCode(otp, { label: 'One-Time Password', note: `Valid for ${config?.otpLifespanMinutes || 30} minutes` })}
+            ${emailPanel('⚠️ <strong>Only share this OTP if you authorise this person.</strong> Do not share it if the request is unexpected.', { bg: '#FDF3F1', border: '#F2D9D3', accent: '#A23B2E' })}
+            ${emailNote('If you did not expect this request, please ignore this email. The OTP will expire automatically.')}
         `;
 
         for (const authority of authorities) {
@@ -1146,13 +1133,9 @@ router.post('/pending-requests/:sessionId/resend-otp', auth, authorize('root_adm
                 to: authority.email,
                 subject: `[Resent] Script Access OTP — ${session.requesterName}`,
                 html: `
-                    <h2 style="color: #4f46e5;">Script Access OTP (Resent)</h2>
-                    <p>The OTP for <strong>${session.requesterName}</strong>'s script access request has been regenerated.</p>
-                    <div style="background: #4f46e5; color: white; border-radius: 16px; padding: 30px; text-align: center; margin: 24px 0;">
-                        <p style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.8;">New OTP</p>
-                        <p style="margin: 0; font-size: 48px; font-weight: 900; letter-spacing: 12px;">${otp}</p>
-                        <p style="margin: 12px 0 0 0; font-size: 13px; opacity: 0.7;">Valid for ${config?.otpLifespanMinutes || 30} minutes</p>
-                    </div>
+                    ${emailHeading('Script Access OTP (Resent)')}
+                    ${emailText(`The OTP for <strong>${session.requesterName}</strong>\u2019s script access request has been regenerated.`)}
+                    ${emailCode(otp, { label: 'New One-Time Password', note: `Valid for ${config?.otpLifespanMinutes || 30} minutes` })}
                 `,
                 isSystemEmail: true
             }).catch(e => console.error('Resend OTP error:', e.message));

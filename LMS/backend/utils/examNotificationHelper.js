@@ -1,7 +1,7 @@
 const Exam = require('../models/Exam');
 const ExamSubmission = require('../models/ExamSubmission');
 const User = require('../models/User');
-const { sendEmail } = require('./email');
+const { sendEmail, emailHeading, emailText, emailResultHero, emailButton, emailNote, NAVY } = require('./email');
 const mongoose = require('mongoose');
 
 /**
@@ -71,18 +71,12 @@ const processPendingExamResults = async () => {
                             classroomId: exam.classId,
                             schoolId: exam.schoolId,
                             html: `
-                                <h2 style="color: #4f46e5;">Exam Results Released</h2>
-                                <p>Hello <strong>${recipientName}</strong>,</p>
-                                <p>The results for the exam "<strong>${exam.title}</strong>" have been officially released.</p>
-                                
-                                <div style="background: #4f46e5; color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0;">
-                                    <div style="font-size: 14px; text-transform: uppercase; font-weight: bold; opacity: 0.8; margin-bottom: 5px;">Your Final Score</div>
-                                    <div style="font-size: 48px; font-weight: 900;">${percentage}%</div>
-                                    <div style="font-size: 16px; margin-top: 10px;">${totalScore} / ${maxPossible} Points</div>
-                                </div>
-                                
-                                <p>You can now log in to the portal to view your detailed performance breakdown and examiner feedback.</p>
-                                <p style="font-size: 12px; color: #9ca3af; margin-top: 30px;">This is an automated notification from Gracified LMS. Please do not reply.</p>
+                                ${emailHeading('Exam Results Released')}
+                                ${emailText(`Hello <strong>${recipientName}</strong>,`)}
+                                ${emailText(`The results for the exam "<strong>${exam.title}</strong>" have been officially released.`)}
+                                ${emailResultHero({ eyebrow: 'Your Final Score', value: `${percentage}%`, meta: `${totalScore} / ${maxPossible} Points`, tone: NAVY })}
+                                ${emailText('You can now log in to the portal to view your detailed performance breakdown and examiner feedback.')}
+                                ${emailNote('This is an automated notification from Gracified LMS. Please do not reply.')}
                             `
                         });
 

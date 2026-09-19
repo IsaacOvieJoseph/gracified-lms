@@ -2,7 +2,7 @@ const express = require('express');
 const Assignment = require('../models/Assignment');
 const Classroom = require('../models/Classroom');
 const Notification = require('../models/Notification'); // Import Notification model
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailMeta, emailPanel, emailButton, emailResultHero, emailNote, FOREST, NAVY } = require('../utils/email');
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck');
 const { notifyNewAssignment } = require('../utils/assignmentNotificationHelper'); // Import subscriptionCheck middleware
@@ -530,17 +530,12 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
             subject: `Assignment Updated: ${assignment.title}`,
             classroomId: classroom._id,
             html: `
-              <h2 style="color: #4f46e5;">Assignment Updated</h2>
-              <p>Hello <strong>${recipient.name}</strong>,</p>
-              <p>The assignment <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been updated.</p>
-              <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4f46e5;">
-                <p style="margin: 5px 0;"><strong>New Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</p>
-              </div>
-              <p>Please review the updated instructions or deadline.</p>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                 style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                Go to Classroom
-              </a>
+              ${emailHeading('Assignment Updated')}
+              ${emailText(`Hello <strong>${recipient.name}</strong>,`)}
+              ${emailText(`The assignment <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been updated.`)}
+              ${emailPanel(`<p style="margin:0;"><strong>New Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</p>`, { accent: NAVY })}
+              ${emailText('Please review the updated instructions or deadline.')}
+              ${emailButton('Go to Classroom', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
             `
           }).catch(e => console.error('Email error', e.message));
         }
@@ -681,17 +676,11 @@ router.post('/:id/submit', auth, async (req, res) => {
           subject: `Assignment Graded: ${assignment.title}`,
           classroomId: assignment.classroomId._id || assignment.classroomId,
           html: `
-            <h2 style="color: #10b981;">Assignment Graded</h2>
-            <p>Hello <strong>${req.user.name}</strong>,</p>
-            <p>Your MCQ assignment for <strong>${classroomName}</strong> has been auto-graded.</p>
-            <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; border: 1px solid #bbf7d0;">
-              <p style="margin: 0; font-size: 14px; color: #166534;">Your Score</p>
-              <h1 style="margin: 10px 0; color: #166534; font-size: 36px;">${score} / ${assignment.maxScore}</h1>
-            </div>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id || assignment.classroomId}" 
-               style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              View Results
-            </a>
+            ${emailHeading('Assignment Graded')}
+            ${emailText(`Hello <strong>${req.user.name}</strong>,`)}
+            ${emailText(`Your MCQ assignment for <strong>${classroomName}</strong> has been auto-graded.`)}
+            ${emailResultHero({ eyebrow: 'Your Score', value: `${score} / ${assignment.maxScore}`, meta: 'Auto-graded MCQ assessment', tone: FOREST })}
+            ${emailButton('View Results', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id || assignment.classroomId}`)}
           `
         }).catch(e => console.error('Auto-grading email error:', e.message));
       }
@@ -797,18 +786,12 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
           subject: `Assignment Graded: ${assignment.title}`,
           classroomId: classroom._id,
           html: `
-            <h2 style="color: #4f46e5;">Assignment Result Ready</h2>
-            <p>Hello <strong>${student.name}</strong>,</p>
-            <p>Your submission for <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been graded.</p>
-            <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #6b7280;">Your Score</p>
-              <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${score} / ${assignment.maxScore}</h1>
-              ${feedback ? `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: left;"><p style="margin: 0; font-weight: bold;">Feedback:</p><p style="margin: 5px 0; color: #4b5563;">${feedback}</p></div>` : ''}
-            </div>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-               style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              View Full Results
-            </a>
+            ${emailHeading('Assignment Result Ready')}
+            ${emailText(`Hello <strong>${student.name}</strong>,`)}
+            ${emailText(`Your submission for <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been graded.`)}
+            ${emailResultHero({ eyebrow: 'Your Score', value: `${score} / ${assignment.maxScore}`, meta: assignment.assignmentType === 'mcq' ? 'Multiple-choice assessment' : 'Written assessment' })}
+            ${feedback ? emailPanel(`<p style="margin:0 0 4px; font-weight:600;">Feedback:</p><p style="margin:0; color:#5B6B7C;">${feedback}</p>`, { accent: NAVY }) : ''}
+            ${emailButton('View Full Results', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
           `
         }).catch(e => console.error('Email error', e.message));
       }
@@ -956,18 +939,12 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
           subject: `Theory Assignment Graded: ${assignment.title}`,
           classroomId: classroom._id,
           html: `
-            <h2 style="color: #4f46e5;">Theory Grade Released</h2>
-            <p>Hello <strong>${student.name}</strong>,</p>
-            <p>Excellent work! Your theory assignment <strong>"${assignment.title}"</strong> has been graded by your teacher.</p>
-            <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #6b7280;">Overall Score</p>
-              <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${submissionAfter?.score} / ${assignment.maxScore}</h1>
-            </div>
-            <p>You can check individual question feedback and scores on your portal.</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-               style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              View Detailed Feedback
-            </a>
+            ${emailHeading('Theory Grade Released')}
+            ${emailText(`Hello <strong>${student.name}</strong>,`)}
+            ${emailText(`Excellent work! Your theory assignment <strong>"${assignment.title}"</strong> has been graded by your teacher.`)}
+            ${emailResultHero({ eyebrow: 'Overall Score', value: `${submissionAfter?.score} / ${assignment.maxScore}`, meta: 'Written assignment grade' })}
+            ${emailText('You can check individual question feedback and scores on your portal.')}
+            ${emailButton('View Detailed Feedback', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
           `
         }).catch(e => console.error('Email error', e.message));
       }

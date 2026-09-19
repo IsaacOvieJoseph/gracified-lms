@@ -716,10 +716,13 @@ const GracyChatInner = ({ user }) => {
       >
         {/* Chat Window */}
         {isOpen && (
-          <div className="absolute bottom-20 right-0 w-[360px] sm:w-[400px] h-[540px] max-h-[82vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto">
+          <div className="absolute bottom-0 right-0 w-[360px] sm:w-[400px] h-[580px] max-h-[85vh] bg-white dark:bg-slate-950 rounded-xl shadow-none border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto">
 
             {/* Header */}
-            <div className="bg-primary p-4 flex items-center justify-between text-white flex-shrink-0">
+            <div
+              onPointerDown={handlePointerDown}
+              className="bg-primary p-4 flex items-center justify-between text-white flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                   <Bot className="w-6 h-6" />
@@ -735,8 +738,12 @@ const GracyChatInner = ({ user }) => {
                 </div>
               </div>
               <button
-                onClick={() => setIsOpen(false)}
-                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
+                title="Close chat"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -793,20 +800,20 @@ const GracyChatInner = ({ user }) => {
           </div>
         )}
 
-        {/* Floating Action Button */}
-        <button
-          ref={fabRef}
-          onPointerDown={handlePointerDown}
-          onClick={() => {
-            if (!dragStartPos.current.hasMoved) setIsOpen((o) => !o);
-          }}
-          className={`absolute bottom-0 right-0 w-14 h-14 rounded-full bg-primary text-white shadow-none flex items-center justify-center hover:scale-105 hover:bg-primary/90 active:scale-95 transition-transform pointer-events-auto cursor-grab active:cursor-grabbing z-50 ${
-            isOpen ? 'ring-4 ring-sky-300/40' : ''
-          }`}
-          title="Chat with Gracy"
-        >
-          {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
-        </button>
+        {/* Floating Action Button (Only visible when chat window is closed) */}
+        {!isOpen && (
+          <button
+            ref={fabRef}
+            onPointerDown={handlePointerDown}
+            onClick={() => {
+              if (!dragStartPos.current.hasMoved) setIsOpen(true);
+            }}
+            className="absolute bottom-0 right-0 w-14 h-14 rounded-full bg-primary text-white shadow-none flex items-center justify-center hover:scale-105 hover:bg-primary/90 active:scale-95 transition-transform pointer-events-auto cursor-grab active:cursor-grabbing z-50"
+            title="Chat with Gracy"
+          >
+            <MessageSquare className="w-6 h-6" />
+          </button>
+        )}
       </div>
     </>
   );

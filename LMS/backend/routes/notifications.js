@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailMeta, emailPanel, emailButton, emailNote, emailResultHero, NAVY, FOREST, ROSE } = require('../utils/email');
 // ==========================================================
 const Classroom = require('../models/Classroom');
 const Assignment = require('../models/Assignment');
@@ -53,19 +53,17 @@ router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
       subject: `Class Reminder: ${classroom.name}`,
       classroomId: classroom._id,
       html: `
-        <h2 style="color: #4f46e5;">Class Session Reminder</h2>
-        <p>Hello <strong>${recipient.name}</strong>,</p>
-        <p>This is a reminder for your upcoming class session:</p>
-        <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>
-          <p style="margin: 5px 0;"><strong>Schedule:</strong> ${classroom.schedule}</p>
-          <p style="margin: 5px 0;"><strong>Time:</strong> ${new Date().toLocaleString()} (GMT)</p>
-        </div>
-        <p>Please be prepared and join the session on time.</p>
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-           style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-          Join Classroom
-        </a>
+        ${emailHeading('Class Session Reminder')}
+        ${emailText(`Hello <strong>${recipient.name}</strong>,`)}
+        ${emailText('This is a reminder for your upcoming class session:')}
+        ${emailMeta([
+          ['Class', classroom.name],
+          ['Schedule', classroom.schedule],
+          ['Time', `${new Date().toLocaleString()} (GMT)`]
+        ])}
+        ${emailText('Please be prepared and join the session on time.')}
+        ${emailButton('Join Classroom', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+        ${emailNote('This is an automated reminder from Gracified LMS. Please do not reply.')}
       `
     })));
 
@@ -131,19 +129,17 @@ router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res)
       subject: `Assignment Reminder: ${assignment.title}`,
       classroomId: classroom._id,
       html: `
-        <h2 style="color: #f59e0b;">Assignment Reminder</h2>
-        <p>Hello <strong>${recipient.name}</strong>,</p>
-        <p>This is a reminder about an upcoming assignment deadline:</p>
-        <div style="background-color: #fffbeb; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-          <p style="margin: 5px 0;"><strong>Assignment:</strong> ${assignment.title}</p>
-          <p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>
-          <p style="margin: 5px 0;"><strong>Due Date:</strong> ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() + ' (GMT)' : 'N/A'}</p>
-        </div>
-        <p>Don't forget to submit your work before the deadline!</p>
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-           style="display: inline-block; padding: 10px 20px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-          Open Assignment
-        </a>
+        ${emailHeading('Assignment Reminder')}
+        ${emailText(`Hello <strong>${recipient.name}</strong>,`)}
+        ${emailText('This is a reminder about an upcoming assignment deadline:')}
+        ${emailMeta([
+          ['Assignment', assignment.title],
+          ['Class', classroom.name],
+          ['Due Date', assignment.dueDate ? `${new Date(assignment.dueDate).toLocaleDateString()} (GMT)` : 'N/A']
+        ])}
+        ${emailText('Don\u2019t forget to submit your work before the deadline!')}
+        ${emailButton('Open Assignment', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+        ${emailNote('This is an automated reminder from Gracified LMS. Please do not reply.')}
       `
     })));
 
@@ -216,18 +212,16 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
       subject: `Assignment Result: ${assignment.title}`,
       classroomId: assignment.classroomId._id,
       html: `
-        <h2 style="color: #4f46e5;">Assignment Result Ready</h2>
-        <p>Hello <strong>${student.name}</strong>,</p>
-        <p>Your assignment for <strong>"${assignment.title}"</strong> has been graded.</p>
-        <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-          <p style="margin: 0; font-size: 14px; color: #6b7280;">Your Score</p>
-          <h1 style="margin: 10px 0; color: #1e1b4b; font-size: 36px;">${submission.score} / ${assignment.maxScore}</h1>
-          <p style="margin: 5px 0; color: #4b5563;"><strong>Feedback:</strong> ${submission.feedback || 'Good job!'}</p>
-        </div>
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}" 
-           style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-          View Detailed Results
-        </a>
+        ${emailHeading('Assignment Result Ready')}
+        ${emailText(`Hello <strong>${student.name}</strong>,`)}
+        ${emailText(`Your assignment for <strong>"${assignment.title}"</strong> has been graded.`)}
+        ${emailResultHero({
+          eyebrow: 'Your Score',
+          value: `${submission.score} / ${assignment.maxScore}`,
+          meta: submission.feedback ? `Feedback: ${submission.feedback}` : 'Feedback: Good job!',
+          tone: NAVY
+        })}
+        ${emailButton('View Detailed Results', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}`)}
       `
     });
 
@@ -237,18 +231,15 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
       subject: `Assignment Graded: ${assignment.title}`,
       classroomId: assignment.classroomId._id,
       html: `
-        <h2 style="color: #4f46e5;">Assignment Graded</h2>
-        <p>Hello <strong>${teacher.name}</strong>,</p>
-        <p>You have successfully graded an assignment for <strong>${student.name}</strong>.</p>
-        <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Assignment:</strong> ${assignment.title}</p>
-          <p style="margin: 5px 0;"><strong>Student:</strong> ${student.name}</p>
-          <p style="margin: 5px 0;"><strong>Final Score:</strong> ${submission.score} / ${assignment.maxScore}</p>
-        </div>
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}" 
-           style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-          Go to Classroom
-        </a>
+        ${emailHeading('Assignment Graded')}
+        ${emailText(`Hello <strong>${teacher.name}</strong>,`)}
+        ${emailText(`You have successfully graded an assignment for <strong>${student.name}</strong>.`)}
+        ${emailMeta([
+          ['Assignment', assignment.title],
+          ['Student', student.name],
+          ['Final Score', `${submission.score} / ${assignment.maxScore}`]
+        ])}
+        ${emailButton('Go to Classroom', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}`)}
       `
     });
 
@@ -299,19 +290,18 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
       subject: `Payment ${status}: ${type}`,
       userId: user._id,
       html: `
-        <h2 style="color: ${status === 'success' ? '#10b981' : '#ef4444'}; text-transform: capitalize;">Payment ${status}</h2>
-        <p>Hello <strong>${user.name}</strong>,</p>
-        <p>Your payment for <strong>${type}</strong> has been processed.</p>
-        <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${amount}</p>
-          <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()} (GMT)</p>
-          <p style="margin: 5px 0;"><strong>Status:</strong> <span style="font-weight: bold; color: ${status === 'success' ? '#10b981' : '#ef4444'};">${status.toUpperCase()}</span></p>
-        </div>
-        <p>If you have any questions, please contact our support team.</p>
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
-           style="display: inline-block; padding: 10px 20px; background-color: #1e1b4b; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-          Go to Dashboard
-        </a>
+        ${emailHeading(status === 'success' ? 'Payment Successful' : 'Payment Failed')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText(`Your payment for <strong>${type}</strong> has been ${status === 'success' ? 'processed successfully' : 'not completed'}.`)}
+        ${emailPanel(`
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0;">
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Amount</td><td style="text-align:right; font-weight:600; vertical-align:top;">₦${amount}</td></tr>
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Date</td><td style="text-align:right; font-weight:600; vertical-align:top;">${new Date().toLocaleDateString()} (GMT)</td></tr>
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Status</td><td style="text-align:right; font-weight:600; vertical-align:top; color:${status === 'success' ? FOREST : ROSE};">${status.toUpperCase()}</td></tr>
+          </table>
+        `, { accent: status === 'success' ? FOREST : ROSE })}
+        ${emailText('If you have any questions, please contact our support team.')}
+        ${emailButton('Go to Dashboard', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`)}
       `
     });
 
@@ -356,19 +346,16 @@ router.post('/payout-notification', internalAuth, async (req, res) => {
       subject: `Payout Approved: ${classroomName}`,
       classroomId: classroomId,
       html: `
-        <h2 style="color: #10b981;">Payout Successful</h2>
-        <p>Hello <strong>${user.name}</strong>,</p>
-        <p>Great news! Your disbursement has been approved and paid out to your registered bank account.</p>
-        <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #bbf7d0;">
-          <p style="margin: 5px 0; color: #166534;"><strong>Amount:</strong> ₦${amount}</p>
-          <p style="margin: 5px 0; color: #166534;"><strong>Source:</strong> ${classroomName}</p>
-          <p style="margin: 5px 0; color: #166534;"><strong>Status:</strong> PAID</p>
-        </div>
-        <p>The funds should reflect in your account within 1-3 business days depending on your bank.</p>
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" 
-           style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-          View Transaction History
-        </a>
+        ${emailHeading('Payout Successful')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText('Great news! Your disbursement has been approved and paid out to your registered bank account.')}
+        ${emailMeta([
+          ['Amount', `₦${amount}`],
+          ['Source', classroomName],
+          ['Status', 'PAID']
+        ])}
+        ${emailText('The funds should reflect in your account within 1\u20133 business days depending on your bank.')}
+        ${emailButton('View Transaction History', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`)}
       `
     });
 

@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { sendEmail } = require('./email');
+const { sendEmail, emailHeading, emailText, emailCode, emailNote } = require('./email');
 
 /**
  * Generate a 6-digit OTP
@@ -28,12 +28,12 @@ function generateBackupCodes() {
 async function send2FAOTP(user, otp) {
   try {
     const emailContent = `
-      <h2>Your 2FA Verification Code</h2>
-      <p>Hello ${user.name},</p>
-      <p>Your two-factor authentication code is:</p>
-      <h3 style="color: #007bff; font-size: 24px; letter-spacing: 2px;">${otp}</h3>
-      <p>This code will expire in 5 minutes.</p>
-      <p>If you didn't request this code, please ignore this email.</p>
+      ${emailHeading('Your 2FA Verification Code')}
+      ${emailText(`Hello ${user.name},`)}
+      ${emailText('Two-factor authentication is protecting your account. Enter the code below to finish signing in:')}
+      ${emailCode(otp, { note: 'This code will expire in 5 minutes.' })}
+      ${emailText('If you didn\u2019t request this code, please ignore this email.', { color: '#5B6B7C' })}
+      ${emailNote('For your security, never share this code with anyone.')}
     `;
 
     await sendEmail({

@@ -4,7 +4,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { auth, authorize } = require('../middleware/auth');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailMeta, emailPanel, emailNote, FOREST } = require('../utils/email');
 
 // Get all pending disbursements (Root Admin)
 /**
@@ -125,53 +125,21 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
                         subject: `Payout Approved: ${classroomName}`,
                         classroomId: payment.classroomId?._id || payment.classroomId,
                         html: `
-            <div style="font-family: sans-serif; color: #333;">
-                <h2 style="color: #4f46e5;">Disbursement Notification</h2>
-                <p>Hello ${owner.name},</p>
-                <p style="font-size: 16px; line-height: 1.5;">Great news! Your payout for <strong>${classroomName}</strong> has been approved and successfully processed.</p>
-                
-                <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; margin-top: 20px;">
-                    <div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 12px;">
-                        <p style="margin: 0; display: flex; justify-content: space-between;">
-                            <strong>Total Received:</strong> 
-                            <span>₦${amount}</span>
-                        </p>
-                    </div>
-                    
-                    <div style="color: #6b7280; font-size: 14px; margin-bottom: 12px;">
-                        <p style="margin: 4px 0; display: flex; justify-content: space-between;">
-                            <span>Service Fee:</span>
-                            <span>- ₦${serviceFee}</span>
-                        </p>
-                        <p style="margin: 4px 0; display: flex; justify-content: space-between;">
-                            <span>Tax:</span>
-                            <span>- ₦${tax}</span>
-                        </p>
-                        <p style="margin: 4px 0; display: flex; justify-content: space-between;">
-                            <span>VAT:</span>
-                            <span>- ₦${vat}</span>
-                        </p>
-                    </div>
-                    
-                    <div style="border-top: 2px solid #4f46e5; padding-top: 12px; color: #4f46e5;">
-                        <p style="margin: 0; display: flex; justify-content: space-between; font-size: 18px;">
-                            <strong>Disbursed Amount:</strong> 
-                            <strong>₦${payoutAmount}</strong>
-                        </p>
-                    </div>
-                </div>
-
-                <div style="margin-top: 15px; font-size: 14px; color: #4b5563;">
-                    <p style="margin: 4px 0;"><strong>Payer (Student):</strong> ${payment.userId?.name || 'N/A'}</p>
-                    <p style="margin: 4px 0;"><strong>Payout Reference:</strong> ${payment.payoutReference}</p>
-                </div>
-
-                <div style="margin-top: 25px; padding: 12px; background: #ecfdf5; border-radius: 8px; border: 1px solid #10b981; color: #065f46; text-align: center;">
-                    <strong>Status:</strong> Paid
-                </div>
-
-                <p style="margin-top: 25px; font-size: 14px; color: #6b7280;">The funds should reflect in your registered bank account shortly. Thank you for trusting us.</p>
-            </div>
+            ${emailHeading('Disbursement Notification')}
+            ${emailText(`Hello <strong>${owner.name}</strong>,`)}
+            ${emailText(`Great news! Your payout for <strong>${classroomName}</strong> has been approved and successfully processed.`)}
+            ${emailMeta([
+              ['Total Received', `₦${amount}`],
+              ['Service Fee', `- \u20A6${serviceFee}`],
+              ['Tax', `- \u20A6${tax}`],
+              ['VAT', `- \u20A6${vat}`],
+              ['Disbursed Amount', `₦${payoutAmount}`],
+              ['Payer (Student)', payment.userId?.name || 'N/A'],
+              ['Payout Reference', payment.payoutReference || 'N/A']
+            ])}
+            ${emailPanel('Status: Paid', { accent: FOREST })}
+            ${emailText('The funds should reflect in your registered bank account shortly. Thank you for trusting us.')}
+            ${emailNote('This is an automated notification from Gracified LMS.')}
             `
                     });
                 }
@@ -192,20 +160,18 @@ router.post('/approve/:paymentId', auth, authorize('root_admin'), async (req, re
                         subject: `Disbursement Processed: ${classroomName}`,
                         classroomId: payment.classroomId?._id || payment.classroomId,
                         html: `
-            <div style="font-family: sans-serif; color: #333;">
-                <h2 style="color: #4f46e5;">Disbursement Report (Admin)</h2>
-                <p>A disbursement has been processed successfully.</p>
-                
-                <div style="background: #f3f4f6; padding: 20px; border-radius: 12px; margin-top: 20px;">
-                    <p style="margin: 4px 0;"><strong>Class:</strong> ${classroomName}</p>
-                    <p style="margin: 4px 0;"><strong>Recipient (Owner):</strong> ${ownerName}</p>
-                    <p style="margin: 4px 0;"><strong>Payer (Student):</strong> ${studentName}</p>
-                    <p style="margin: 4px 0;"><strong>Total Payment:</strong> ₦${amount}</p>
-                    <p style="margin: 4px 0;"><strong>Disbursed Amount:</strong> ₦${payoutAmount}</p>
-                    <p style="margin: 4px 0;"><strong>Reference:</strong> ${payment.payoutReference}</p>
-                    <p style="margin: 4px 0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
-                </div>
-            </div>
+            ${emailHeading('Disbursement Report (Admin)')}
+            ${emailText('A disbursement has been processed successfully.')}
+            ${emailMeta([
+              ['Class', classroomName],
+              ['Recipient (Owner)', ownerName],
+              ['Payer (Student)', studentName],
+              ['Total Payment', `₦${amount}`],
+              ['Disbursed Amount', `₦${payoutAmount}`],
+              ['Reference', payment.payoutReference || 'N/A'],
+              ['Date', new Date().toLocaleString()]
+            ])}
+            ${emailNote('This is an automated notification from Gracified LMS.')}
             `
                     });
                 }

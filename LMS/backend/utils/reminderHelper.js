@@ -1,6 +1,6 @@
 const Classroom = require('../models/Classroom');
 const Notification = require('../models/Notification');
-const { sendEmail } = require('./email');
+const { sendEmail, emailHeading, emailText, emailMeta, emailButton, emailNote, NAVY } = require('./email');
 
 /**
  * Core logic to check for upcoming classes and send reminders.
@@ -77,31 +77,24 @@ const checkAndSendReminders = async (forcedTime = null) => {
 
                 // 2. Send Email
                 try {
-                    let emailHtml = `
-                      <h2 style="color: #4f46e5;">Class Session Reminder</h2>
-                      <p>Hello <strong>${user.name}</strong>,</p>
-                      <p>This is a reminder that your class session is starting soon:</p>
-                      <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                        <p style="margin: 5px 0;"><strong>Class:</strong> ${classroom.name}</p>
-                        <p style="margin: 5px 0;"><strong>Starts At:</strong> ${timeStr} (GMT)</p>
-                        <p style="margin: 5px 0;"><strong>Day:</strong> ${currentDay}</p>`;
-
+                    const rows = [
+                        ['Class', classroom.name],
+                        ['Starts At', `${timeStr} (GMT)`],
+                        ['Day', currentDay]
+                    ];
                     if (topicInfo) {
-                        emailHtml += `
-                        <p style="margin: 5px 0;"><strong>Current Topic:</strong> ${topicInfo.name}</p>`;
-                        if (topicInfo.description) {
-                            emailHtml += `
-                        <p style="margin: 5px 0; color: #6b7280;"><em>${topicInfo.description}</em></p>`;
-                        }
+                        rows.push(['Current Topic', topicInfo.name]);
+                        if (topicInfo.description) rows.push(['Description', topicInfo.description]);
                     }
 
-                    emailHtml += `
-                      </div>
-                      <p>Please log in and be ready to join the session.</p>
-                      <a href="${(process.env.FRONTEND_URL || 'http://localhost:3000')}/classrooms/${classroom._id}" 
-                         style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
-                        Go to Classroom
-                      </a>
+                    let emailHtml = `
+                      ${emailHeading('Class Session Reminder')}
+                      ${emailText(`Hello <strong>${user.name}</strong>,`)}
+                      ${emailText('This is a reminder that your class session is starting soon:')}
+                      ${emailMeta(rows)}
+                      ${emailText('Please log in and be ready to join the session.')}
+                      ${emailButton('Go to Classroom', `${(process.env.FRONTEND_URL || 'http://localhost:3000')}/classrooms/${classroom._id}`)}
+                      ${emailNote('This is an automated reminder from Gracified LMS. Please do not reply.')}
                     `;
 
                     await sendEmail({

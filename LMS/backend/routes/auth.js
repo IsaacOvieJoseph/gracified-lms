@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailCode, emailNote, FOREST } = require('../utils/email');
 const { logoStorage } = require('../config/cloudinary');
 
 const router = express.Router();
@@ -147,16 +147,12 @@ const generateAndSendOTP = async (user) => {
       userId: user._id,
       isSystemEmail: true,
       html: `
-        <h2 style="color: #4f46e5;">Email Verification</h2>
-        <p>Hello <strong>${user.name}</strong>,</p>
-        <p>Thank you for joining Gracified LMS. To complete your registration, please use the following One-Time Password (OTP):</p>
-        <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px; margin: 25px 0;">
-          <h1 style="letter-spacing: 5px; color: #4f46e5; margin: 0; font-size: 32px;">${user.otp}</h1>
-        </div>
-        <p>This code is valid for 1 hour. If you did not request this, please ignore this email.</p>
-        <div style="margin-top: 30px; text-align: center; color: #6b7280; font-size: 14px;">
-          <p>Need help? Contact our support team.</p>
-        </div>
+        ${emailHeading('Email Verification')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText('Thank you for joining Gracified LMS. To complete your registration, please enter the following One-Time Password (OTP):')}
+        ${emailCode(user.otp, { note: 'This code is valid for 1 hour.' })}
+        ${emailText('If you did not request this, you can safely ignore this email.', { color: '#5B6B7C' })}
+        ${emailNote('Need help? Contact our support team.')}
       `
     });
 
@@ -819,19 +815,11 @@ const generateAndSendPasswordResetOTP = async (user) => {
       userId: user._id,
       isSystemEmail: true,
       html: `
-        <h2 style="color: #4f46e5;">Password Reset Request</h2>
-        <p>Hello <strong>${user.name}</strong>,</p>
-        <p>We received a request to reset your password. Use the code below to proceed:</p>
-        <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px; margin: 25px 0;">
-          <h1 style="letter-spacing: 5px; color: #4f46e5; margin: 0; font-size: 32px;">${user.passwordResetOTP}</h1>
-        </div>
-        <p>This code is valid for 1 hour. If you did not request this, you can safely ignore this email.</p>
-        <!--
-        <a href="${process.env.FRONTEND_URL}/reset-password?email=${user.email}" 
-           style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold;">
-          Reset Password
-        </a>
-        -->
+        ${emailHeading('Password Reset Request')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText('We received a request to reset your password. Enter the code below to proceed:')}
+        ${emailCode(user.passwordResetOTP, { note: 'This code is valid for 1 hour.' })}
+        ${emailText('If you did not request this, you can safely ignore this email.', { color: '#5B6B7C' })}
       `
     });
 
@@ -1110,9 +1098,9 @@ router.post('/test-email', async (req, res) => {
       to: testEmail,
       subject: 'Test Email from LMS',
       html: `
-        <h2>Test Email</h2>
-        <p>This is a test email from your LMS backend.</p>
-        <p>If you received this, your branded email configuration is working correctly!</p>
+        ${emailHeading('Test Email')}
+        ${emailText('This is a test email from your LMS backend.')}
+        ${emailText('If you received this, your branded email configuration is working correctly!', { color: FOREST })}
       `
     });
 

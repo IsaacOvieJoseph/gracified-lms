@@ -2,7 +2,7 @@ const Topic = require('../models/Topic');
 const Classroom = require('../models/Classroom');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
-const { sendEmail } = require('./email');
+const { sendEmail, emailHeading, emailText, emailPanel, emailButton, emailNote, NAVY } = require('./email');
 
 /**
  * Sends notifications to students and teacher when a topic is activated
@@ -80,19 +80,19 @@ const notifyTopicActivated = async (topicId) => {
         const emailSubject = `New Topic Active: ${topicName} | ${classroomName}`;
         const emailPromises = recipients.map(r => {
             const html = `
-                <h2 style="color: #4f46e5;">New Topic Active</h2>
-                <p>Hello <strong>${r.name}</strong>,</p>
-                <p>A new topic has been started in your class <strong>${classroomName}</strong>.</p>
-                <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4f46e5;">
-                    <p style="margin: 5px 0;"><strong>Topic:</strong> ${topicName}</p>
-                    ${topic.description ? `<p style="margin: 5px 0;"><strong>Description:</strong> ${topic.description}</p>` : ''}
-                    <p style="margin: 5px 0;"><strong>Estimated Completion:</strong> ${expectedEndDate} (GMT)</p>
-                </div>
-                <p>Log in to your dashboard to access the learning materials.</p>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}" 
-                   style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">
-                    Go to Classroom
-                </a>
+                ${emailHeading('New Topic Active')}
+                ${emailText(`Hello <strong>${r.name}</strong>,`)}
+                ${emailText(`A new topic has been started in your class <strong>${classroomName}</strong>.`)}
+                ${emailPanel(`
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0;">
+                        <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Topic</td><td style="text-align:right; font-weight:600; vertical-align:top;">${topicName}</td></tr>
+                        ${topic.description ? `<tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Description</td><td style="text-align:right; font-weight:600; vertical-align:top;">${topic.description}</td></tr>` : ''}
+                        <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Estimated Completion</td><td style="text-align:right; font-weight:600; vertical-align:top;">${expectedEndDate} (GMT)</td></tr>
+                    </table>
+                `, { accent: NAVY })}
+                ${emailText('Log in to your dashboard to access the learning materials.')}
+                ${emailButton('Go to Classroom', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+                ${emailNote('This is an automated notification from Gracified LMS. Please do not reply.')}
             `;
 
             return sendEmail({

@@ -2,7 +2,7 @@ const express = require('express');
 const Exam = require('../models/Exam');
 const ExamSubmission = require('../models/ExamSubmission');
 const { auth, authorize } = require('../middleware/auth');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailPanel, emailMeta, emailCode, emailResultHero, emailNote, emailButton, NAVY, FOREST, ROSE } = require('../utils/email');
 const mongoose = require('mongoose');
 const Classroom = require('../models/Classroom');
 const User = require('../models/User');
@@ -106,17 +106,16 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
                         classroomId: classId,
                         schoolId: schoolId,
                         html: `
-                            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                                <h2 style="color: #4f46e5;">New Assessment Available</h2>
-                                <p>Hello <strong>${student.name}</strong>,</p>
-                                <p>A new exam "<strong>${title}</strong>" has been assigned to your class: <strong>${classroom.name}</strong>.</p>
-                                <div style="background: #f9fafb; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                                    <p style="margin: 0; color: #374151;"><strong>Duration:</strong> ${duration} minutes</p>
-                                    ${dueDate ? `<p style="margin: 5px 0 0 0; color: #ef4444;"><strong>Due Date:</strong> ${new Date(dueDate).toLocaleString()}</p>` : ''}
-                                </div>
-                                <a href="${examUrl}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: bold;">Take Exam Now</a>
-                                <p style="font-size: 12px; color: #6b7280; margin-top: 20px;">If the button doesn't work, copy this link: ${examUrl}</p>
-                            </div>
+                            ${emailHeading('New Assessment Available')}
+                            ${emailText(`Hello <strong>${student.name}</strong>,`)}
+                            ${emailText(`A new exam "<strong>${title}</strong>" has been assigned to your class: <strong>${classroom.name}</strong>.`)}
+                            ${emailMeta([
+                                ['Exam', title],
+                                ['Duration', `${duration} minutes`],
+                                ...(dueDate ? [['Due Date', new Date(dueDate).toLocaleString()]] : [])
+                            ])}
+                            ${emailButton('Take Exam Now', examUrl)}
+                            <p style="font-size:12px; color:#5B6B7C; margin-top:14px;">If the button doesn't work, copy this link: <span style="color:#1D3557; word-break:break-all;">${examUrl}</span></p>
                         `
                     }).catch(err => console.error(`Failed to notify ${student.email}:`, err.message))
                 );
@@ -716,44 +715,36 @@ router.post('/submissions/:id/submit', async (req, res) => {
                 let emailHtml = '';
                 if (resultsArePublic) {
                     emailHtml = `
-                        <h2 style="color: #4f46e5;">Exam Submitted Successfully</h2>
-                        <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
-                        <p>Your assessment for <strong>"${exam.title}"</strong> has been received and graded.</p>
+                        ${emailHeading('Exam Submitted Successfully')}
+                        ${emailText(`Hello <strong>${submission.candidateName || 'Student'}</strong>,`)}
+                        ${emailText(`Your assessment for <strong>"${exam.title}"</strong> has been received and graded.`)}
                     `;
 
                     if (hasTheory) {
                         emailHtml += `
-                            <div style="background: #f3f4f6; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                                <p style="margin: 0; font-weight: bold; color: #374151;">Note: This exam contains theory questions.</p>
-                                <p style="margin: 5px 0 0 0; color: #6b7280;">Your final score will be determined after manual grading by the teacher.</p>
-                            </div>
+                            ${emailPanel('Note: This exam contains theory questions. Your final score will be determined after manual grading by the teacher.', { accent: NAVY })}
                         `;
                     } else {
                         const percentage = Math.round((totalScore / maxPossible) * 100);
                         emailHtml += `
-                            <div style="background: #4f46e5; color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0;">
-                                <div style="font-size: 14px; text-transform: uppercase; font-weight: bold; opacity: 0.8; margin-bottom: 5px;">Your Score</div>
-                                <div style="font-size: 48px; font-weight: 900;">${percentage}%</div>
-                                <div style="font-size: 16px; margin-top: 10px;">${totalScore} / ${maxPossible} Points</div>
-                            </div>
+                            ${emailResultHero({ eyebrow: 'Your Score', value: `${percentage}%`, meta: `${totalScore} / ${maxPossible} Points`, tone: NAVY })}
                         `;
                     }
                 } else {
                     // Send confirmation only, no score
                     emailHtml = `
-                        <h2 style="color: #4f46e5;">Exam Submitted</h2>
-                        <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
-                        <p>Your assessment for <strong>"${exam.title}"</strong> has been successfully received.</p>
-                        <div style="background: #f9fafb; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e5e7eb;">
-                            <p style="margin: 0; color: #374151;"><strong>Status:</strong> Received / Pending Result Release</p>
-                            <p style="margin: 5px 0 0 0; color: #6b7280;">Results will be sent to you once they are officially released on ${new Date(exam.resultPublishTime).toLocaleString()}.</p>
-                        </div>
+                        ${emailHeading('Exam Submitted')}
+                        ${emailText(`Hello <strong>${submission.candidateName || 'Student'}</strong>,`)}
+                        ${emailText(`Your assessment for <strong>"${exam.title}"</strong> has been successfully received.`)}
+                        ${emailPanel(`
+                            <p style="margin:0;"><strong>Status:</strong> Received / Pending Result Release</p>
+                            <p style="margin:4px 0 0; color:#5B6B7C;">Results will be sent to you once they are officially released on ${new Date(exam.resultPublishTime).toLocaleString()}.</p>
+                        `, { accent: NAVY })}
                     `;
                 }
 
                 emailHtml += `
-                    <p>Thank you for using our platform.</p>
-                    <p style="font-size: 12px; color: #9ca3af; margin-top: 30px;">This is an automated notification. Please do not reply.</p>
+                    ${emailNote('Thank you for using Gracified LMS. This is an automated notification — please do not reply.')}
                 `;
 
                 await sendEmail({
@@ -929,17 +920,11 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
                         classroomId: exam.classId,
                         schoolId: exam.schoolId,
                         html: `
-                            <h2 style="color: #4f46e5;">Exam Grading Complete</h2>
-                            <p>Hello <strong>${submission.candidateName || 'Student'}</strong>,</p>
-                            <p>Your assessment for <strong>"${exam.title}"</strong> has been reviewed and graded by the examiner.</p>
-                            
-                            <div style="background: #4f46e5; color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 25px 0;">
-                                <div style="font-size: 14px; text-transform: uppercase; font-weight: bold; opacity: 0.8; margin-bottom: 5px;">Final Score</div>
-                                <div style="font-size: 48px; font-weight: 900;">${percentage}%</div>
-                                <div style="font-size: 16px; margin-top: 10px;">${submission.totalScore} / ${maxPossible} Points</div>
-                            </div>
-                            
-                            <p>Thank you for your patience.</p>
+                            ${emailHeading('Exam Grading Complete')}
+                            ${emailText(`Hello <strong>${submission.candidateName || 'Student'}</strong>,`)}
+                            ${emailText(`Your assessment for <strong>"${exam.title}"</strong> has been reviewed and graded by the examiner.`)}
+                            ${emailResultHero({ eyebrow: 'Final Score', value: `${percentage}%`, meta: `${submission.totalScore} / ${maxPossible} Points`, tone: NAVY })}
+                            ${emailText('Thank you for your patience.')}
                         `
                     });
 

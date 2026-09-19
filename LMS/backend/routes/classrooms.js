@@ -12,7 +12,7 @@ const Settings = require('../models/Settings');
 const Assignment = require('../models/Assignment');
 const Topic = require('../models/Topic');
 const FeedbackRequest = require('../models/FeedbackRequest');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, emailHeading, emailText, emailDivider, emailButton, emailNote } = require('../utils/email');
 const PublicAttendee = require('../models/PublicAttendee');
 const { sanitizeAssignment } = require('../utils/answerKey');
 const axios = require('axios');
@@ -1637,7 +1637,11 @@ router.post('/:id/enroll', auth, async (req, res) => {
       await sendEmail({
         to: notifyEmails,
         subject: `New Enrollment: ${req.user.name} joined ${classroom.name}`,
-        html: `<p>Student <strong>${req.user.name}</strong> has enrolled in your class <strong>${classroom.name}</strong>.</p>`,
+        html: `
+        ${emailHeading('New Enrollment')}
+        ${emailText(`Student <strong>${req.user.name}</strong> has enrolled in your class <strong>${classroom.name}</strong>.`)}
+        ${emailNote('You can review the new candidate and manage access from your classroom dashboard.')}
+      `,
         classroomId: classroom._id
       });
     }
@@ -1944,7 +1948,7 @@ function generateGoogleMeetLink() {
 // Helper to notify students when a lecture starts
 const notifyStudentsLectureStart = async (classroom, initiator, link) => {
   const Notification = require('../models/Notification');
-  const { sendEmail } = require('../utils/email');
+  const { sendEmail, emailHeading, emailText, emailDivider, emailButton, emailNote } = require('../utils/email');
 
   if (!classroom.students || classroom.students.length === 0) return;
 
@@ -1968,18 +1972,14 @@ const notifyStudentsLectureStart = async (classroom, initiator, link) => {
     // Email notification
     if (student.email) {
       const emailContent = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-          <h2 style="color: #4f46e5;">Live Lecture Started!</h2>
-          <p>Hello <strong>${student.name || 'Student'}</strong>,</p>
-          <p>Your instructor, <strong>${initiator.name}</strong>, has just started a live lecture for <strong>${classroom.name}</strong> at ${schoolName}.</p>
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${link}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Join Lecture Now</a>
-          </div>
-          <p style="color: #666; font-size: 14px;">If the button above doesn't work, copy and paste this link into your browser:</p>
-          <p style="color: #4f46e5; font-size: 14px; word-break: break-all;">${link}</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="color: #888; font-size: 12px; text-align: center;">&copy; ${new Date().getFullYear()} Gracified LMS. All rights reserved.</p>
-        </div>
+        ${emailHeading('Live Lecture Started')}
+        ${emailText(`Hello <strong>${student.name || 'Student'}</strong>,`)}
+        ${emailText(`Your instructor, <strong>${initiator.name}</strong>, has just started a live lecture for <strong>${classroom.name}</strong> at ${schoolName}.`)}
+        ${emailButton('Join Lecture Now', link, { align: 'center' })}
+        ${emailText('If the button above doesn\u2019t work, copy and paste this link into your browser:', { color: '#5B6B7C', size: '14px' })}
+        <p style="font-size:14px; color:#1D3557; word-break:break-all; margin:0;">${link}</p>
+        ${emailDivider()}
+        ${emailNote('This is an automated notification from Gracified LMS.')}
       `;
 
       try {
@@ -2487,7 +2487,13 @@ router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher',
         await sendEmail({
           to: student.email,
           subject: 'Classroom Ended - Your Feedback Matters',
-          html: `The classroom "${classroom.name}" has formally ended. We'd love to hear your feedback. Please log in to your dashboard to rate your experience.`,
+          html: `
+            ${emailHeading('Classroom Ended')}
+            ${emailText(`Hello <strong>${student.name}</strong>,`)}
+            ${emailText(`The classroom "<strong>${classroom.name}</strong>" has formally ended. We\u2019d love to hear your feedback on the experience.`)}
+            ${emailText('Please log in to your dashboard to rate your experience.')}
+            ${emailButton('Share Feedback', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+          `,
           classroomId: classroom._id
         });
       }
