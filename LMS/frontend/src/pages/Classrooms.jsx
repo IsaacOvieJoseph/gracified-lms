@@ -424,7 +424,7 @@ const Classrooms = () => {
     }
 
     return (
-      <div key={classroom._id} className="flex flex-col" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}` }}>
+      <div key={classroom._id} className="flex flex-col overflow-hidden" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
         <div style={{ height: '3px', backgroundColor: NAVY }} />
 
         <div className="px-5 pt-4 pb-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
