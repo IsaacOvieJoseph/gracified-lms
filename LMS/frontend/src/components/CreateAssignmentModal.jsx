@@ -6,7 +6,7 @@ import { toLocalISOString } from '../utils/timezone';
 import FormFieldHelp from './FormFieldHelp';
 import AIAssistantPanel from './AIAssistantPanel';
 
-const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics, editAssignment }) => {
+const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics, editAssignment, aiPrefill }) => {
   const [createForm, setCreateForm] = useState({
     title: '',
     description: '',
@@ -38,10 +38,31 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
         published: editAssignment.published !== false
       });
       setOverallMaxScoreInput(editAssignment.maxScore || 100);
+    } else if (aiPrefill) {
+      const questions = (aiPrefill.questions || []).map((q) => ({
+        questionText: q.questionText || '',
+        options: Array.isArray(q.options) && q.options.length >= 2 ? q.options.map((o) => o || '') : ['', ''],
+        correctOption: q.correctOption || (Array.isArray(q.options) && q.options.length ? q.options[0] : ''),
+        markingPreference: q.markingPreference || (Array.isArray(q.options) && q.options.length ? 'even' : 'manual'),
+        maxScore: q.maxScore || 1,
+      }));
+      setCreateForm((prev) => ({
+        title: aiPrefill.title || prev.title,
+        description: aiPrefill.description || prev.description,
+        classroomId: prev.classroomId,
+        topicId: prev.topicId,
+        dueDate: prev.dueDate,
+        maxScore: aiPrefill.maxScore || prev.maxScore,
+        assignmentType: aiPrefill.assignmentType || prev.assignmentType,
+        publishResultsAt: prev.publishResultsAt,
+        questions: questions.length ? questions : prev.questions,
+        published: prev.published,
+      }));
+      setOverallMaxScoreInput(aiPrefill.maxScore || 100);
     } else if (classroomId) {
       setCreateForm(prevForm => ({ ...prevForm, classroomId }));
     }
-  }, [classroomId, editAssignment]);
+  }, [classroomId, editAssignment, aiPrefill]);
 
   if (!show) {
     return null;

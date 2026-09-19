@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatAmount } from '../utils/currency';
 import FormFieldHelp from '../components/FormFieldHelp';
 import AIAssistantPanel from '../components/AIAssistantPanel';
+import { consumeGracyPrefill } from '../utils/gracyPrefill';
 
 const levelOptions = [
   { value: 'Pre-Primary', label: 'Pre-Primary' },
@@ -115,6 +116,26 @@ const Classrooms = () => {
   });
 
   const canCreate = ['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role);
+
+  // Gracy → create-form handoff: consume a prefilled class draft on mount.
+  useEffect(() => {
+    const prefill = consumeGracyPrefill('classroom');
+    if (prefill) {
+      const subject = (prefill.subject && typeof prefill.subject === 'object')
+        ? prefill.subject.name || prefill.subject.label
+        : prefill.subject;
+      setFormData((prev) => ({
+        ...prev,
+        name: prefill.name || prev.name,
+        description: prefill.description || prev.description,
+        learningOutcomes: prefill.learningOutcomes || prev.learningOutcomes,
+        subject: subject || prev.subject,
+        level: levelOptions.some((o) => o.value === prefill.level) ? prefill.level : prev.level,
+      }));
+      setShowCreateModal(true);
+      toast.success('AI draft ready — review & create your class');
+    }
+  }, []);
 
   const customSelectStyles = {
     control: (base) => ({

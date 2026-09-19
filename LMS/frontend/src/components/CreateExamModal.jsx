@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import FormFieldHelp from './FormFieldHelp';
 import AIAssistantPanel from './AIAssistantPanel';
 
-const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classrooms = [], editExam }) => {
+const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classrooms = [], editExam, aiPrefill }) => {
     const [loading, setLoading] = useState(false);
     const [showAIPanel, setShowAIPanel] = useState(false);
     const [formData, setFormData] = useState({
@@ -46,10 +46,29 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                 dueDate: editExam.dueDate ? new Date(editExam.dueDate).toISOString().slice(0, 16) : '',
                 resultPublishTime: editExam.resultPublishTime ? new Date(editExam.resultPublishTime).toISOString().slice(0, 16) : ''
             });
+        } else if (aiPrefill) {
+            const mappedQuestions = (aiPrefill.questions || []).map(q => ({
+                questionText: q.questionText || '',
+                questionType: q.questionType || 'mcq',
+                options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4).map(o => o || '') : ['', '', '', ''],
+                correctOptionIndex: typeof q.correctOptionIndex === 'number'
+                    ? q.correctOptionIndex
+                    : Array.isArray(q.options) ? Math.max(0, q.options.indexOf(q.correctOption)) : 0,
+                maxScore: q.maxScore || 1
+            }));
+
+            setFormData(prev => ({
+                ...prev,
+                title: aiPrefill.title || prev.title,
+                description: aiPrefill.description || prev.description,
+                duration: aiPrefill.duration ? Number(aiPrefill.duration) : prev.duration,
+                classId: classroomId || prev.classId,
+                questions: mappedQuestions.length ? mappedQuestions : prev.questions
+            }));
         } else {
             setFormData(prev => ({ ...prev, classId: classroomId || '' }));
         }
-    }, [editExam, classroomId, show]);
+    }, [editExam, classroomId, show, aiPrefill]);
 
     if (!show) return null;
 

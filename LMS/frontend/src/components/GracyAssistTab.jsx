@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Wand2, Loader2, Copy, Download, Clock, School, BookOpen, ClipboardList, FileText, Presentation, HelpCircle, Send, ChevronDown, Sparkles } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 import Markdown from './Markdown';
 import MathText from './MathText';
+import { useAuth } from '../context/AuthContext';
+import { setGracyPrefill, shapePrefill, creatorUrl, announceNavigatedToCreator, PREFILLABLE_MODES, fetchTeacherClasses } from '../utils/gracyPrefill';
 
 // ── Modes (guide: mobile AI Assistant screen) ─────────────────────────────────
 const MODES = [
@@ -23,10 +26,10 @@ const MODES = [
 // extracts counts/types/duration, and Gracy only asks for what's missing.
 const ASSIST_FEED = {
   classroom: ['subject', 'topicName'],
-  topic: ['subject', 'topicName'],
-  syllabus: ['subject', 'topicName'],
-  assignment: ['subject', 'topicName', 'extra'],
-  exam: ['subject', 'topicName', 'extra'],
+  topic: ['subject', 'topicName', 'pickClass'],
+  syllabus: ['subject', 'topicName', 'pickClass'],
+  assignment: ['subject', 'topicName', 'extra', 'pickClass'],
+  exam: ['subject', 'topicName', 'extra', 'pickClass'],
   slides: ['subject', 'topicName', 'extra'],
   qna: ['question'],
 };
@@ -36,12 +39,13 @@ const flowStepFilled = (step, c) => {
     case 'subject': return !!(c.subject && String(c.subject).trim());
     case 'topicName': return !!c.topicName || c.topicSkipped === true;
     case 'extra': return c.extrasDone === true || !!(c.questionCount || c.slideCount || c.duration || c.assignmentType || c.examType || c.teacherHint);
+    case 'pickClass': return !!c.classroomId || c.classSkipped === true;
     case 'question': return !!(c.question && String(c.question).trim());
     default: return true;
   }
 };
 
-const flowQuestion = (type, step, collected) => {
+const flowQuestion = (type, step, collected, ctx = {}) => {
   const meta = MODES.find((m) => m.key === type);
   const label = meta?.label || type;
   switch (step) {
@@ -56,6 +60,20 @@ const flowQuestion = (type, step, collected) => {
       if (type === 'slides') return { text: 'Almost there — how many **slides** should I make? *(reply `go` for my default of 8)*', chips: ['10 slides', '8', 'go'] };
       if (type === 'assignment') return { text: 'Almost there — any preferences on **questions** or **MCQ vs theory**? *(reply `go` for my default: 5 theory questions)*', chips: ['10 questions', 'MCQ', 'theory', 'go'] };
       return { text: 'Almost there — any preferences on **questions**, **MCQ vs theory**, or a **time limit**? *(reply `go` for my default: 10 MCQs, 60 mins)*', chips: ['10 questions', 'MCQ', 'theory', 'go'] };
+    case 'pickClass': {
+      const classes = ctx.classes || [];
+      if (!classes.length) {
+        return { text: `Hmm — you don't have a class yet, and a **${label}** needs a class to live in. I'll show the result here for now — tap **Continue anyway** (or type \`skip\`) and you can create a class from it later.`, chips: ['Continue anyway'] };
+      }
+      const names = classes.slice(0, 3).map((c) => c.name);
+      const chips = [...names];
+      if (classes.length > 3) chips.push(`${classes.length - 3} more…`);
+      chips.push('Skip for now');
+      return {
+        text: `Almost there — which **class** should this ${label.toLowerCase()} be added to? Tap one below, or type its name.${classes.length > 3 ? ` *(you have ${classes.length} classes)*` : ''}`,
+        chips,
+      };
+    }
     case 'question':
       return { text: "Of course — what's your **question**? I'll explain it thoroughly.", chips: [] };
     default:
@@ -100,7 +118,7 @@ const buildAssistPayload = (flow) => {
   const c = flow.collected;
   const type = flow.type;
   return {
-    className: c.className || '',
+    className: c.className || c.classroomName || '',
     subject: c.subject || '',
     level: c.level || '',
     topicName: c.topicName || '',
@@ -111,7 +129,7 @@ const buildAssistPayload = (flow) => {
     slideCount: c.slideCount || 8,
     duration: c.duration || 60,
     question: c.question || '',
-    context: [c.subject, c.topicName, c.className].filter(Boolean).join(' ').trim(),
+    context: [c.subject, c.topicName, c.className || c.classroomName].filter(Boolean).join(' ').trim(),
   };
 };
 
@@ -125,7 +143,7 @@ const advanceFlowStep = (flow) => {
   return -1;
 };
 
-const applyStepAnswer = (flow, step, text, parsed) => {
+const applyStepAnswer = (flow, step, text, parsed, ctx = {}) => {
   const c = flow.collected;
   const trimmed = String(text || '').trim();
   switch (step) {
@@ -162,6 +180,28 @@ const applyStepAnswer = (flow, step, text, parsed) => {
       }
       c.extrasDone = true;
       break;
+    case 'pickClass': {
+      const classes = ctx.classes || [];
+      if (/^(skip|skip for now|none|no class|not now|pass|whatever)\b/i.test(trimmed)) {
+        c.classSkipped = true;
+        break;
+      }
+      const lower = trimmed.toLowerCase();
+      const match = classes.find((cl) => {
+        const name = String(cl.name || '').toLowerCase();
+        return name && (name.includes(lower) || lower.includes(name));
+      });
+      if (match) {
+        c.classroomId = match._id;
+        c.classroomName = match.name;
+        c.classSkipped = false;
+      } else if (parsed.className) {
+        c.classSkipped = true;
+      } else {
+        c.classSkipped = true;
+      }
+      break;
+    }
     default:
       break;
   }
@@ -257,7 +297,27 @@ const CopyButton = ({ text, label }) => (
 );
 
 // ── Result rendering (shared by the Assist tab + the chat tab) ───────────────
-const ResultViewer = ({ mode, result }) => {
+const OpenInFormButton = ({ mode, result, prefillMeta }) => {
+  const navigate = useNavigate();
+  if (!PREFILLABLE_MODES.includes(mode) || !result) return null;
+  const classroomId = prefillMeta?.classroomId;
+  const open = () => {
+    setGracyPrefill(mode, shapePrefill(mode, result));
+    navigate(creatorUrl(mode, classroomId));
+    announceNavigatedToCreator();
+  };
+  return (
+    <button
+      onClick={open}
+      className="w-full px-3 py-2.5 bg-primary text-white rounded-xl font-semibold text-[11px] transition-all hover:opacity-90 flex items-center justify-center gap-1.5"
+    >
+      <Wand2 className="w-3.5 h-3.5" />
+      Open in create form{prefillMeta?.classroomName ? ` · ${prefillMeta.classroomName}` : ''}
+    </button>
+  );
+};
+
+const ResultViewer = ({ mode, result, prefillMeta }) => {
   const [downloadingPptx, setDownloadingPptx] = useState(false);
 
   const downloadPptx = async () => {
@@ -359,6 +419,7 @@ const ResultViewer = ({ mode, result }) => {
           )}
         </div>
         <CopyButton text={`${result.name}\n\n${result.description || ''}\n\nLearning outcomes: ${result.learningOutcomes || ''}`} label="Copy Details" />
+        <OpenInFormButton mode={mode} result={result} prefillMeta={prefillMeta} />
       </div>
     );
   }
@@ -384,6 +445,7 @@ const ResultViewer = ({ mode, result }) => {
           ))}
         </div>
         <CopyButton text={topics.map((t, i) => `${i + 1}. ${t.name} — ${t.description}${t.duration ? ` (${t.duration.value} ${t.duration.mode}(s))` : ''}`).join('\n')} label="Copy Syllabus" />
+        <OpenInFormButton mode={mode} result={result} prefillMeta={prefillMeta} />
       </div>
     );
   }
@@ -404,6 +466,7 @@ const ResultViewer = ({ mode, result }) => {
           </p>
         </div>
         <CopyButton text={`${result.name}\n\n${result.description || ''}\n\nLesson outline:\n${result.lessonsOutline || ''}`} label="Copy Topic" />
+        <OpenInFormButton mode={mode} result={result} prefillMeta={prefillMeta} />
       </div>
     );
   }
@@ -435,6 +498,7 @@ const ResultViewer = ({ mode, result }) => {
         </div>
         {questions.length > 5 && <p className="text-[11px] text-slate-400 text-center">+{questions.length - 5} more questions</p>}
         <CopyButton text={`${result.title}\n\n${result.description || ''}\n\n${questions.map((q, i) => `Q${i + 1}. ${q.questionText}${q.options?.length ? ` (${q.options.join(' / ')})` : ''}`).join('\n')}`} label="Copy Content" />
+        <OpenInFormButton mode={mode} result={result} prefillMeta={prefillMeta} />
       </div>
     );
   }
@@ -444,6 +508,7 @@ const ResultViewer = ({ mode, result }) => {
 
 // ── Main Assist component (conversational, matching the chat flow) ───────────
 const GracyAssistTab = ({ prefill }) => {
+  const { user } = useAuth();
   // { type, collected: {}, stepIndex } | null
   const [flow, setFlow] = useState(null);
   // [{ role: 'user' | 'assistant', content?, type?, result?, chips?, isError? }]
@@ -499,7 +564,7 @@ const GracyAssistTab = ({ prefill }) => {
       const payload = buildAssistPayload(f);
       const res = await api.post(meta.endpoint, payload);
       const result = res.data?.[meta.resultKey] || res.data;
-      const { subject, topicName, question } = f.collected;
+      const { subject, topicName, question, classroomId, classroomName } = f.collected;
       setConvo((prev) => [
         ...prev,
         {
@@ -509,6 +574,7 @@ const GracyAssistTab = ({ prefill }) => {
             : `Done — here's your **${meta.label}**${subject ? ` for **${subject}**` : ''}${topicName ? ` · *${topicName}*` : ''}:`,
           type: f.type,
           result,
+          meta: classroomId ? { classroomId, classroomName } : null,
         },
         { role: 'assistant', content: 'Nice one! Pick another task above any time, or keep chatting. ✨' },
       ]);
@@ -542,7 +608,24 @@ const GracyAssistTab = ({ prefill }) => {
     }
     if (parsed.className) f.collected.className = parsed.className;
 
-    applyStepAnswer(f, step, text, parsed);
+    let ctx = {};
+    if (step === 'pickClass') ctx = { classes: await fetchTeacherClasses(user?._id) };
+
+    applyStepAnswer(f, step, text, parsed, ctx);
+
+    // Topic/syllabus MUST land in a class — if the teacher skipped it, re-ask.
+    if (
+      step === 'pickClass'
+      && !f.collected.classroomId
+      && (f.type === 'topic' || f.type === 'syllabus')
+      && ctx.classes.length > 0
+    ) {
+      const again = flowQuestion(f.type, step, f.collected, ctx);
+      setFlow({ ...f });
+      setConvo((prev) => [...prev, { role: 'assistant', content: "A **topic** needs a class to be saved into. Pick one of the classes below, or type its name.", chips: again.chips }]);
+      return;
+    }
+
     f.stepIndex += 1;
 
     const next = advanceFlowStep(f);
@@ -551,7 +634,8 @@ const GracyAssistTab = ({ prefill }) => {
       return;
     }
     f.stepIndex = next;
-    const q = flowQuestion(f.type, feed[next], f.collected);
+    if (feed[next] === 'pickClass') ctx = { classes: await fetchTeacherClasses(user?._id) };
+    const q = flowQuestion(f.type, feed[next], f.collected, ctx);
     setFlow({ ...f });
     setConvo((prev) => [...prev, { role: 'assistant', content: q.text, chips: q.chips }]);
   };
@@ -624,7 +708,7 @@ const GracyAssistTab = ({ prefill }) => {
 
               {msg.result && (
                 <div className="mt-3">
-                  <ResultViewer mode={msg.type} result={msg.result} />
+                  <ResultViewer mode={msg.type} result={msg.result} prefillMeta={msg.meta} />
                 </div>
               )}
 

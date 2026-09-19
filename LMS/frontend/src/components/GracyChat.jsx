@@ -14,6 +14,7 @@ import GracyAssistTab, {
   MODES, ResultViewer, TaskCards,
   ASSIST_FEED, flowStepFilled, flowQuestion, parseAssistInfo, buildAssistPayload, advanceFlowStep, applyStepAnswer,
 } from './GracyAssistTab';
+import { fetchTeacherClasses } from '../utils/gracyPrefill';
 import {
   isPracticeRequest,
   extractPracticeArea,
@@ -282,7 +283,7 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
 
               {msg.assistResult && msg.assistResult.result && (
                 <div className="mt-3">
-                  <ResultViewer mode={msg.assistResult.type} result={msg.assistResult.result} />
+                  <ResultViewer mode={msg.assistResult.type} result={msg.assistResult.result} prefillMeta={msg.assistMeta} />
                 </div>
               )}
 
@@ -414,6 +415,13 @@ const GracyChatInner = ({ user }) => {
     }
   }, [messages, isOpen, activeTab]);
 
+  // Close the widget when Gracy navigates the teacher to a create form.
+  useEffect(() => {
+    const onNavigated = () => setIsOpen(false);
+    window.addEventListener('gracy:navigated', onNavigated);
+    return () => window.removeEventListener('gracy:navigated', onNavigated);
+  }, []);
+
   const checkAccess = async () => {
     try {
       const res = await api.get('/ai/tutor/access');
@@ -463,13 +471,14 @@ const GracyChatInner = ({ user }) => {
       const payload = buildAssistPayload(flow);
       const res = await api.post(meta.endpoint, payload);
       const result = res.data?.[meta.resultKey] || res.data;
-      const { subject, topicName, question } = flow.collected;
+      const { subject, topicName, question, classroomId, classroomName } = flow.collected;
       setMessages((prev) => [...prev, {
         role: 'assistant',
         content: flow.type === 'qna'
           ? `Here's your answer to **"${question || 'that'}"**:`
           : `Done — here's your **${meta.label}**${subject ? ` for **${subject}**` : ''}${topicName ? ` · *${topicName}*` : ''}:`,
         assistResult: { type: flow.type, result },
+        assistMeta: classroomId ? { classroomId, classroomName } : null,
       }]);
     } catch (err) {
       const errMsg = err.response?.data?.message || 'Sorry, the AI could not generate that. Please try again.';
@@ -501,7 +510,24 @@ const GracyChatInner = ({ user }) => {
     }
     if (parsed.className) flow.collected.className = parsed.className;
 
-    applyStepAnswer(flow, step, text, parsed);
+    let ctx = {};
+    if (step === 'pickClass') ctx = { classes: await fetchTeacherClasses(user?._id) };
+
+    applyStepAnswer(flow, step, text, parsed, ctx);
+
+    // Topic/syllabus MUST land in a class — if the teacher skipped it, re-ask.
+    if (
+      step === 'pickClass'
+      && !flow.collected.classroomId
+      && (flow.type === 'topic' || flow.type === 'syllabus')
+      && ctx.classes.length > 0
+    ) {
+      const again = flowQuestion(flow.type, step, flow.collected, ctx);
+      setIsLoading(false);
+      setMessages((prev) => [...prev, { role: 'assistant', content: "A **topic** needs a class to be saved into. Pick one of the classes below, or type its name.", suggestedFollowUp: again.chips }]);
+      return;
+    }
+
     flow.stepIndex += 1;
 
     const next = advanceFlowStep(flow);
@@ -510,7 +536,8 @@ const GracyChatInner = ({ user }) => {
       return;
     }
     flow.stepIndex = next;
-    const q = flowQuestion(flow.type, feed[next], flow.collected);
+    if (feed[next] === 'pickClass') ctx = { classes: await fetchTeacherClasses(user?._id) };
+    const q = flowQuestion(flow.type, feed[next], flow.collected, ctx);
     setIsLoading(false);
     setMessages((prev) => [...prev, { role: 'assistant', content: q.text, suggestedFollowUp: q.chips }]);
   };

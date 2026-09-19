@@ -13,6 +13,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import FormFieldHelp from '../components/FormFieldHelp';
 import AIAssistantPanel from '../components/AIAssistantPanel';
+import { consumeGracyPrefill } from '../utils/gracyPrefill';
 
 const TopicManagement = () => {
     const { id: classroomId } = useParams();
@@ -64,6 +65,34 @@ const TopicManagement = () => {
             fetchClassroomDetails();
         }
     }, [classroomId]);
+
+    // Gracy → create-form handoff: seed the topic form or bulk-apply a syllabus.
+    useEffect(() => {
+        const topicPrefill = consumeGracyPrefill('topic');
+        if (topicPrefill) {
+            setFormData((prev) => ({
+                ...prev,
+                name: topicPrefill.name || prev.name,
+                description: topicPrefill.description || prev.description,
+                lessonsOutline: topicPrefill.lessonsOutline || prev.lessonsOutline,
+                duration: prev.duration
+                    ? {
+                        ...prev.duration,
+                        ...(topicPrefill.duration && typeof topicPrefill.duration === 'object'
+                            ? { mode: topicPrefill.duration.mode, value: typeof topicPrefill.duration.value === 'number' ? topicPrefill.duration.value : prev.duration.value }
+                            : {}),
+                    }
+                    : prev.duration,
+            }));
+            setShowCreateForm(true);
+        }
+        const syllabusPrefill = consumeGracyPrefill('syllabus');
+        if (syllabusPrefill && Array.isArray(syllabusPrefill.topics) && syllabusPrefill.topics.length) {
+            handleApplySyllabus(syllabusPrefill.topics);
+            toast.success('AI syllabus ready — adding topics to this class…');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const fetchTopics = async () => {
         try {

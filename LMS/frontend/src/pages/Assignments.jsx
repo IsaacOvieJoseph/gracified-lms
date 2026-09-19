@@ -12,6 +12,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import { Edit, Trash2, X, Loader2, Share2 } from 'lucide-react';
 import { formatDisplayDate } from '../utils/timezone';
 import ShareScriptModal from '../components/ShareScriptModal';
+import { consumeGracyPrefill } from '../utils/gracyPrefill';
 
 const Assignments = () => {
   const { user, loading: userLoading } = useAuth();
@@ -34,6 +35,7 @@ const Assignments = () => {
   const [expandedSubmissions, setExpandedSubmissions] = useState(new Set()); // Track which submissions are expanded
   const [expandedAssignments, setExpandedAssignments] = useState(new Set()); // Track which assignments are expanded
   const [assignmentToEdit, setAssignmentToEdit] = useState(null);
+  const [assignmentAiPrefill, setAssignmentAiPrefill] = useState(null);
   const [assignmentToDelete, setAssignmentToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -68,6 +70,15 @@ const Assignments = () => {
     window.addEventListener('schoolSelectionChanged', handler);
     return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, [user, selectedSchools]);
+
+  // Gracy → create-form handoff: seed + open the assignment modal.
+  useEffect(() => {
+    const assignmentPrefill = consumeGracyPrefill('assignment');
+    if (assignmentPrefill) {
+      setAssignmentAiPrefill(assignmentPrefill);
+      setShowCreateAssignmentModal(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -849,11 +860,13 @@ const Assignments = () => {
           onClose={() => {
             setShowCreateAssignmentModal(false);
             setAssignmentToEdit(null);
+            setAssignmentAiPrefill(null);
           }}
           onSubmitSuccess={handleCreateAssignmentSuccess}
           availableTopics={topics}
           availableClassrooms={classrooms}
           editAssignment={assignmentToEdit}
+          aiPrefill={assignmentAiPrefill}
         />
       )}
 

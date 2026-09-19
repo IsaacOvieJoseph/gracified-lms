@@ -20,6 +20,7 @@ import PaymentRequiredModal from '../components/PaymentRequiredModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import QnABoardManagement from '../components/QnABoardManagement';
 import CreateExamModal from '../components/CreateExamModal';
+import { consumeGracyPrefill } from '../utils/gracyPrefill';
 
 // subjectOptions converted to dynamic state inside component
 
@@ -697,8 +698,10 @@ const ClassroomDetail = () => {
   const [assignmentToDelete, setAssignmentToDelete] = useState(null);
   const [isDeletingAssignment, setIsDeletingAssignment] = useState(false);
   const [assignmentToEdit, setAssignmentToEdit] = useState(null);
+  const [assignmentAiPrefill, setAssignmentAiPrefill] = useState(null);
   const [showCreateExamModal, setShowCreateExamModal] = useState(false);
   const [examToEdit, setExamToEdit] = useState(null);
+  const [examAiPrefill, setExamAiPrefill] = useState(null);
   const [publishing, setPublishing] = useState(false);
   const [notifyingAssignmentId, setNotifyingAssignmentId] = useState(null);
   const [showRemoveStudentModal, setShowRemoveStudentModal] = useState(false);
@@ -726,6 +729,20 @@ const ClassroomDetail = () => {
     return () => { window.removeEventListener('schoolSelectionChanged', handler); clearInterval(wbInterval); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Gracy → create-form handoff: seed + open the assignment/exam modals.
+  useEffect(() => {
+    const assignmentPrefill = consumeGracyPrefill('assignment');
+    if (assignmentPrefill) {
+      setAssignmentAiPrefill(assignmentPrefill);
+      setShowCreateAssignmentModal(true);
+    }
+    const examPrefill = consumeGracyPrefill('exam');
+    if (examPrefill) {
+      setExamAiPrefill(examPrefill);
+      setShowCreateExamModal(true);
+    }
+  }, []);
 
   const fetchTopicStatus = async () => {
     try {
@@ -3017,11 +3034,13 @@ const ClassroomDetail = () => {
               onClose={() => {
                 setShowCreateAssignmentModal(false);
                 setAssignmentToEdit(null);
+                setAssignmentAiPrefill(null);
               }}
               onSubmitSuccess={handleCreateAssignment} // Pass the success callback
               classroomId={id} // Pass the current classroom ID
               availableTopics={availableTopicsForAssignment}
               editAssignment={assignmentToEdit}
+              aiPrefill={assignmentAiPrefill}
             />
           )
         }
@@ -3058,10 +3077,12 @@ const ClassroomDetail = () => {
             onClose={() => {
               setShowCreateExamModal(false);
               setExamToEdit(null);
+              setExamAiPrefill(null);
             }}
             onSubmitSuccess={fetchExams}
             classroomId={id}
             editExam={examToEdit}
+            aiPrefill={examAiPrefill}
           />
         )}
 

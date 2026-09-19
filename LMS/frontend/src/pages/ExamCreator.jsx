@@ -23,6 +23,7 @@ import FormFieldHelp from '../components/FormFieldHelp';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import { Sparkles } from 'lucide-react';
 import MathText from '../components/MathText';
+import { consumeGracyPrefill } from '../utils/gracyPrefill';
 
 const ExamCreator = () => {
     const navigate = useNavigate();
@@ -58,6 +59,31 @@ const ExamCreator = () => {
             fetchExam();
         }
     }, [id]);
+
+    // Gracy → create-form handoff: seed the exam form from an AI draft.
+    useEffect(() => {
+        const examPrefill = consumeGracyPrefill('exam');
+        if (examPrefill) {
+            const questions = (examPrefill.questions || []).map((q) => ({
+                questionText: q.questionText || '',
+                questionType: q.questionType || 'mcq',
+                options: Array.isArray(q.options) && q.options.length >= 4
+                    ? q.options.slice(0, 4).map((o) => o || '')
+                    : ['', '', '', ''],
+                correctOptionIndex: typeof q.correctOptionIndex === 'number'
+                    ? q.correctOptionIndex
+                    : Array.isArray(q.options) ? Math.max(0, q.options.indexOf(q.correctOption)) : 0,
+                maxScore: q.maxScore || 1,
+            }));
+            setFormData((prev) => ({
+                ...prev,
+                title: examPrefill.title || prev.title,
+                description: examPrefill.description || prev.description,
+                duration: examPrefill.duration || prev.duration,
+                questions: questions.length ? questions : prev.questions,
+            }));
+        }
+    }, []);
 
     const fetchClassrooms = async () => {
         try {
