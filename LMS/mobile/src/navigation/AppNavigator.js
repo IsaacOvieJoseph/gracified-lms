@@ -30,7 +30,6 @@ import ExamsScreen from '../screens/exams/ExamsScreen';
 import ExamCenterScreen from '../screens/exams/ExamCenterScreen';
 import ExamDetailScreen from '../screens/exams/ExamDetailScreen';
 import PaymentsScreen from '../screens/payments/PaymentsScreen';
-import PaystackWebViewScreen from '../screens/payments/PaystackWebViewScreen';
 import QnACenterScreen from '../screens/qna/QnACenterScreen';
 import WhiteboardScreen from '../screens/whiteboard/WhiteboardScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
@@ -146,7 +145,6 @@ export default function AppNavigator() {
             <Stack.Screen name="Exams" component={ExamsScreen} />
             <Stack.Screen name="ExamCenter" component={ExamCenterScreen} />
             <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
-            <Stack.Screen name="PaystackWebView" component={PaystackWebViewScreen} />
             <Stack.Screen name="QnACenter" component={QnACenterScreen} />
             <Stack.Screen name="Whiteboard" component={WhiteboardScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />

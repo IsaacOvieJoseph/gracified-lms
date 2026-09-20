@@ -626,7 +626,7 @@ router.post('/:id/submit', auth, async (req, res) => {
           correctAnswersCount++;
         }
       }
-      score = (correctAnswersCount / assignment.questions.length) * assignment.maxScore;
+      score = Math.round(((correctAnswersCount / assignment.questions.length) * assignment.maxScore) * 10) / 10;
       status = 'graded'; // MCQ assignments are graded immediately
     }
 
@@ -758,7 +758,7 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
       return res.status(404).json({ message: 'Submission not found' });
     }
 
-    submission.score = score;
+    submission.score = Math.round(Number(score) * 10) / 10;
     submission.feedback = feedback;
     submission.status = 'graded';
 
@@ -904,14 +904,14 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
 
       updatedQuestionScores.push({
         questionIndex: i,
-        score: qScore.score,
+        score: Math.round(Number(qScore.score) * 10) / 10,
         feedback: qScore.feedback || ''
       });
       totalScore += qScore.score;
     }
 
     submission.questionScores = updatedQuestionScores;
-    submission.score = totalScore;
+    submission.score = Math.round(totalScore * 10) / 10;
     submission.status = 'graded';
 
     await assignment.save();

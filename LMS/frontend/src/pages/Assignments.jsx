@@ -575,7 +575,7 @@ const Assignments = () => {
                             <h5 className="text-xs font-semibold text-muted-foreground tracking-wide opacity-40">Operational Payload Details:</h5>
                             {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
                               <div className="space-y-4">
-                                {assignment.questions.map((q, qIndex) => {
+                                {assignment.questions?.map((q, qIndex) => {
                                   const questionGrade = submission.questionScores?.find(qs => qs.questionIndex === qIndex);
                                   return (
                                     <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
@@ -599,7 +599,7 @@ const Assignments = () => {
                             )}
                             {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {assignment.questions.map((q, qIndex) => (
+                                {(assignment.questions || []).map((q, qIndex) => (
                                   <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
                                     <p className="text-xs font-semibold text-foreground mb-3">{q.questionText}</p>
                                     <div className="flex flex-wrap items-center gap-2">
@@ -632,7 +632,7 @@ const Assignments = () => {
                             <div className="space-y-4">
                               {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
                                 <div className="space-y-4">
-                                  {assignment.questions.map((q, qIndex) => (
+                                  {(assignment.questions || []).map((q, qIndex) => (
                                     <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
                                       <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-1 opacity-40">Objective {qIndex + 1}</p>
                                       <p className="text-sm font-semibold text-foreground mb-2">{q.questionText}</p>
@@ -648,7 +648,7 @@ const Assignments = () => {
                               )}
                               {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  {assignment.questions.map((q, qIndex) => (
+                                  {(assignment.questions || []).map((q, qIndex) => (
                                     <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5 flex items-center justify-between">
                                       <span className="text-xs font-semibold text-foreground truncate mr-2">{q.questionText}</span>
                                       <span className="text-xs font-semibold text-primary tracking-wide bg-primary/5 px-3 py-1 rounded-full border border-primary/20 whitespace-nowrap">Opt {submission.answers[qIndex]}</span>

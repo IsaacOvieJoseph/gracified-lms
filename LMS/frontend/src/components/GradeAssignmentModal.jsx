@@ -8,7 +8,7 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
 
   useEffect(() => {
     if (submissionToGrade && selectedAssignment) {
-      const initialQuestionGrades = selectedAssignment.questions.map((q, qIndex) => {
+      const initialQuestionGrades = (selectedAssignment.questions || []).map((q, qIndex) => {
         const existingGrade = submissionToGrade.questionScores?.find(qs => qs.questionIndex === qIndex);
         return {
           questionIndex: qIndex,
@@ -46,9 +46,9 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
 
       // Client-side validation for scores (backend also validates)
       for (const qg of questionGrades) {
-        const assignmentQuestion = selectedAssignment.questions[qg.questionIndex];
-        if (qg.score < 0 || qg.score > assignmentQuestion.maxScore) {
-          toast.error(`Score for question ${qg.questionIndex + 1} must be between 0 and ${assignmentQuestion.maxScore}.`);
+        const assignmentQuestion = (selectedAssignment.questions || [])[qg.questionIndex];
+        if (!assignmentQuestion || qg.score < 0 || qg.score > (assignmentQuestion.maxScore || 0)) {
+          toast.error(`Score for question ${qg.questionIndex + 1} must be between 0 and ${assignmentQuestion?.maxScore || 0}.`);
           return;
         }
       }
@@ -98,7 +98,7 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
                   <span>Submission Review</span>
                 </div>
                 <div className="space-y-4">
-                  {selectedAssignment.questions.map((q, qIndex) => (
+                  {(selectedAssignment.questions || []).map((q, qIndex) => (
                     <div key={qIndex} className="bg-white dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-none transition-all hover:border-primary/20 dark:hover:border-indigo-900/50">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-3 leading-relaxed">
                         <span className="text-indigo-200 mr-2">#{qIndex + 1}</span>
@@ -132,7 +132,7 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
             <form onSubmit={handleGradeSubmission} className="space-y-8">
               {selectedAssignment.assignmentType === 'theory' && (
                 <div className="space-y-6">
-                  {selectedAssignment.questions.map((question, qIndex) => {
+                  {(selectedAssignment.questions || []).map((question, qIndex) => {
                     const studentAnswer = Array.isArray(submissionToGrade.answers) ? submissionToGrade.answers[qIndex] : '';
                     const currentQuestionGrade = questionGrades.find(qg => qg.questionIndex === qIndex) || { score: 0, feedback: '' };
 

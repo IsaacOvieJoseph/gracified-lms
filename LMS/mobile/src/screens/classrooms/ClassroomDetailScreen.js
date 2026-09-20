@@ -206,47 +206,26 @@ export default function ClassroomDetailScreen({ route, navigation }) {
 
   const handleEnrollOrPay = async () => {
     if (classroom?.isPaid) {
-      // Initiate Paystack checkout
-      setActionLoading(true);
-      try {
-        const amount = classroom.pricing?.amount || 0;
-        const response = await api.post('/payments/paystack/initiate', {
-          amount,
-          classroomId: classroom._id,
-          type: 'class_enrollment'
-        });
-
-        const { authorization_url, reference } = response.data;
-        if (authorization_url) {
-          navigation.navigate('PaystackWebView', {
-            authorizationUrl: authorization_url,
-            reference,
-            classroomId: classroom._id
-          });
-        } else {
-          Alert.alert('Checkout Error', 'Payment initiation failed: authorization URL missing.');
-        }
-      } catch (err) {
-        Alert.alert('Checkout Error', err?.response?.data?.message || 'Failed to initiate payment.');
-      } finally {
-        setActionLoading(false);
-      }
-    } else {
-      // Free classroom enrollment
-      setActionLoading(true);
-      try {
-        await api.post(`/classrooms/${classroomId}/enroll`);
-        setUser((currentUser) => ({
-          ...currentUser,
-          enrolledClasses: [...(currentUser?.enrolledClasses || []), classroomId],
-        }));
-        Alert.alert('Enrolled', 'You have successfully enrolled in this classroom!');
-        loadData(false);
-      } catch (err) {
-        Alert.alert('Enrollment failed', err?.response?.data?.message || 'Failed to enroll.');
-      } finally {
-        setActionLoading(false);
-      }
+      Alert.alert(
+        'Paid enrollment',
+        'This classroom requires paid enrollment. Complete payment on the Gracified website and your access will appear here automatically.'
+      );
+      return;
+    }
+    // Free classroom enrollment
+    setActionLoading(true);
+    try {
+      await api.post(`/classrooms/${classroomId}/enroll`);
+      setUser((currentUser) => ({
+        ...currentUser,
+        enrolledClasses: [...(currentUser?.enrolledClasses || []), classroomId],
+      }));
+      Alert.alert('Enrolled', 'You have successfully enrolled in this classroom!');
+      loadData(false);
+    } catch (err) {
+      Alert.alert('Enrollment failed', err?.response?.data?.message || 'Failed to enroll.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -391,37 +370,7 @@ export default function ClassroomDetailScreen({ route, navigation }) {
       if (callData.isPaid && !callData.hasPaid && user?.role === 'student') {
         Alert.alert(
           'Paid lecture',
-          `This lecture costs NGN ${Number(callData.amount || 0).toLocaleString()}.`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Pay',
-              onPress: async () => {
-                try {
-                  const payRes = await api.post('/payments/paystack/initiate', {
-                    amount: callData.amount || 0,
-                    classroomId,
-                    callSessionId: callData.callId,
-                    type: 'lecture_access',
-                  });
-                  const { authorization_url, reference } = payRes.data || {};
-                  if (authorization_url) {
-                    navigation.navigate('PaystackWebView', {
-                      authorizationUrl: authorization_url,
-                      reference,
-                      classroomId,
-                      callSessionId: callData.callId,
-                      type: 'lecture_access',
-                    });
-                  } else {
-                    Alert.alert('Checkout Error', 'Payment initiation failed: authorization URL missing.');
-                  }
-                } catch (payErr) {
-                  Alert.alert('Checkout Error', payErr?.response?.data?.message || 'Unable to start lecture payment.');
-                }
-              }
-            }
-          ]
+          'This lecture requires paid access. Complete payment on the Gracified website, then try joining again.'
         );
         return;
       }
@@ -974,25 +923,25 @@ export default function ClassroomDetailScreen({ route, navigation }) {
             <Text style={[styles.gateTitle, { color: theme.text }]}>Unlock learning space</Text>
             <Text style={[styles.gateSub, { color: theme.muted }]}>
               {classroom?.isPaid
-                ? `This is a paid classroom. Secure payments are supported via Paystack.`
+                ? 'This classroom requires paid enrollment. Complete payment on the Gracified website and your access will appear here automatically.'
                 : 'This is a free classroom. Enroll now to access learning materials.'}
             </Text>
 
-            <Pressable
-              style={[styles.enrollBtn, { backgroundColor: theme.primary }, actionLoading && { opacity: 0.7 }]}
-              onPress={handleEnrollOrPay}
-              disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <ActivityIndicator color={theme.onPrimary} />
-              ) : (
-                <Text style={[styles.enrollBtnText, { color: theme.onPrimary }]}>
-                  {classroom?.isPaid
-                    ? `Pay and enroll (NGN ${classroom.pricing?.amount?.toLocaleString()})`
-                    : 'Enroll in Class'}
-                </Text>
-              )}
-            </Pressable>
+            {!classroom?.isPaid && (
+              <Pressable
+                style={[styles.enrollBtn, { backgroundColor: theme.primary }, actionLoading && { opacity: 0.7 }]}
+                onPress={handleEnrollOrPay}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <ActivityIndicator color={theme.onPrimary} />
+                ) : (
+                  <Text style={[styles.enrollBtnText, { color: theme.onPrimary }]}>
+                    Enroll in Class
+                  </Text>
+                )}
+              </Pressable>
+            )}
           </View>
         ) : (
           // Enrolled features

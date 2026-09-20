@@ -218,33 +218,19 @@ export default function ClassroomsScreen({ navigation, route }) {
 
     try {
       if (item.isPaid) {
-        const amount = item.pricing?.amount || 0;
-        const response = await api.post('/payments/paystack/initiate', {
-          amount,
-          classroomId: item._id,
-          type: 'class_enrollment'
-        });
-
-        const { authorization_url, reference } = response.data || {};
-        if (authorization_url) {
-          navigation.navigate('PaystackWebView', {
-            authorizationUrl: authorization_url,
-            reference,
-            classroomId: item._id,
-            type: 'class_enrollment'
-          });
-        } else {
-          Alert.alert('Checkout Error', 'Payment initiation failed: authorization URL missing.');
-        }
-      } else {
-        await api.post(`/classrooms/${item._id}/enroll`);
-        setUser((currentUser) => ({
-          ...currentUser,
-          enrolledClasses: [...(currentUser?.enrolledClasses || []), item._id],
-        }));
-        setClassrooms((current) => current.map((classroom) => classroom._id === item._id ? { ...classroom, students: [...(classroom.students || []), { _id: user._id }] } : classroom));
-        Alert.alert('Enrolled', 'You have successfully enrolled in this classroom.');
+        Alert.alert(
+          'Paid classroom',
+          'This classroom requires paid enrollment. Complete payment on the Gracified website and your access will appear here automatically.'
+        );
+        return;
       }
+      await api.post(`/classrooms/${item._id}/enroll`);
+      setUser((currentUser) => ({
+        ...currentUser,
+        enrolledClasses: [...(currentUser?.enrolledClasses || []), item._id],
+      }));
+      setClassrooms((current) => current.map((classroom) => classroom._id === item._id ? { ...classroom, students: [...(classroom.students || []), { _id: user._id }] } : classroom));
+      Alert.alert('Enrolled', 'You have successfully enrolled in this classroom.');
     } catch (err) {
       Alert.alert('Enrollment failed', err?.response?.data?.message || 'Unable to enroll right now.');
     }
@@ -407,7 +393,7 @@ export default function ClassroomsScreen({ navigation, route }) {
 
         {isStudent(user) && (
           <Pressable style={[styles.actionBtn, { backgroundColor: theme.primary }]} onPress={() => enrolled ? navigation.navigate('ClassroomDetail', { classroomId: item._id }) : handleEnroll(item)}>
-            <Text style={[styles.actionBtnText, { color: theme.onPrimary }]}>{enrolled ? 'Open' : item.isPaid ? 'Pay & Enroll' : 'Enroll'}</Text>
+            <Text style={[styles.actionBtnText, { color: theme.onPrimary }]}>{enrolled ? 'Open' : item.isPaid ? 'Locked' : 'Enroll'}</Text>
           </Pressable>
         )}
       </View>

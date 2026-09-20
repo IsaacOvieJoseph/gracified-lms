@@ -3,7 +3,7 @@ import { Plus, Edit, Trash2, ExternalLink, Link as LinkIcon, Eye, Copy, MonitorP
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 
-const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
+const QnABoardManagement = ({ classroomId, classroom, user, canEdit, onBoardsCountChange }) => {
     const [boards, setBoards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -23,6 +23,9 @@ const QnABoardManagement = ({ classroomId, classroom, user, canEdit }) => {
         try {
             const { data } = await api.get(`/qna/classroom/${classroomId}`);
             setBoards(data);
+            if (onBoardsCountChange && Array.isArray(data)) {
+                onBoardsCountChange(data.length);
+            }
         } catch (err) {
             toast.error('Failed to load Q&A boards');
         } finally {

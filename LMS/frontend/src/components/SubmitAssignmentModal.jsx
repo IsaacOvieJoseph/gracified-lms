@@ -3,14 +3,19 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) => {
-  const [studentAnswers, setStudentAnswers] = useState(() => {
-    if (assignment.assignmentType === 'mcq') {
-      return Array(assignment.questions.length).fill('');
-    } else if (assignment.assignmentType === 'theory') {
-      return Array(assignment.questions.length).fill('');
-    }
-    return [];
+  const questions = (Array.isArray(assignment.questions) ? assignment.questions : []).map((q) => {
+    let options = Array.isArray(q.options)
+      ? q.options
+      : typeof q.options === 'string'
+        ? q.options.split(',').map((s) => s.trim()).filter(Boolean)
+        : q.options
+          ? [q.options]
+          : [];
+    return { ...q, options: options.filter((o) => o !== '' && o != null) };
   });
+  const isMcq = assignment.assignmentType === 'mcq';
+
+  const [studentAnswers, setStudentAnswers] = useState(() => Array(questions.length).fill(''));
 
   const handleAnswerChange = (qIndex, value) => {
     setStudentAnswers(prevAnswers => {
@@ -22,13 +27,16 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const allAnswered = studentAnswers.every(answer => {
-      if (assignment.assignmentType === 'mcq') {
-        return typeof answer === 'string' && answer.trim() !== '';
-      } else if (assignment.assignmentType === 'theory') {
+    if (questions.length === 0) {
+      onSubmit(assignment._id, []);
+      return;
+    }
+    const allAnswered = studentAnswers.every((answer, i) => {
+      const q = questions[i];
+      if (isMcq && q.options.length > 0) {
         return typeof answer === 'string' && answer.trim() !== '';
       }
-      return false;
+      return typeof answer === 'string' && answer.trim() !== '';
     });
 
     if (!allAnswered) {
@@ -45,12 +53,17 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-none max-w-2xl w-full p-8 space-y-6 animate-slide-up border dark:border-slate-800">
           <h3 className="text-2xl font-semibold text-slate-900 dark:text-white border-b dark:border-slate-800 pb-4">Submit: {assignment.title}</h3>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {assignment.questions.map((question, qIndex) => (
+            {questions.length === 0 && (
+              <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <p className="text-sm text-slate-600 dark:text-slate-400">This assignment has no questions listed. You can submit it as-is.</p>
+              </div>
+            )}
+            {questions.map((question, qIndex) => (
               <div key={qIndex} className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                 <p className="font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-tight leading-snug text-lg">Question {qIndex + 1}</p>
                 <div className="text-slate-600 dark:text-slate-400 mb-4 whitespace-pre-wrap">{question.questionText}</div>
 
-                {assignment.assignmentType === 'mcq' && (
+                {isMcq && question.options.length > 0 && (
                   <div className="grid grid-cols-1 gap-3">
                     {question.options.map((option, oIndex) => (
                       <label key={oIndex} className={`flex items-center p-4 rounded-xl cursor-pointer transition-all border-2 ${studentAnswers[qIndex] === option ? 'border-primary bg-primary/5 dark:bg-primary/10' : 'border-white dark:border-slate-800 hover:border-slate-100 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800 bg-white/50 dark:bg-slate-900/50'}`}>
@@ -67,7 +80,7 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
                     ))}
                   </div>
                 )}
-                {assignment.assignmentType === 'theory' && (
+                {((isMcq && question.options.length === 0) || !isMcq) && (
                   <div>
                     <label className="text-xs font-semibold text-slate-400 tracking-wide mb-1 block">Your Answer</label>
                     <textarea

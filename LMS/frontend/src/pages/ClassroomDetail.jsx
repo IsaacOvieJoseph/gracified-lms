@@ -51,6 +51,13 @@ const toDatetimeLocal = (iso) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+const formatScore = (val) => {
+  if (val === null || val === undefined || val === '') return '0';
+  const num = Number(val);
+  if (isNaN(num)) return val;
+  return Number.isInteger(num) ? num : Number(num.toFixed(1));
+};
+
 const getVideoEmbedInfo = (url) => {
   if (!url) return null;
 
@@ -713,6 +720,7 @@ const ClassroomDetail = () => {
   const [blockedTopic, setBlockedTopic] = useState(null);
   const [paidTopicIds, setPaidTopicIds] = useState(new Set()); // IDs of topics user has paid for
   const [exams, setExams] = useState([]);
+  const [qnaBoardsCount, setQnaBoardsCount] = useState(0);
   const [activeTab, setActiveTab] = useState('topics'); // Default tab
   const [weeklyPaymentRequired, setWeeklyPaymentRequired] = useState(false);
 
@@ -919,6 +927,7 @@ const ClassroomDetail = () => {
       }
       setWeeklyPaymentRequired(false);
       fetchExams(); // Fetch exams after classroom is loaded
+      fetchQnABoardsCount();
     } catch (error) {
       if (error.response?.status === 403 && error.response?.data?.paymentRequired) {
         setWeeklyPaymentRequired(true);
@@ -940,6 +949,17 @@ const ClassroomDetail = () => {
       setExams(response.data);
     } catch (error) {
       console.error('Error fetching exams:', error);
+    }
+  };
+
+  const fetchQnABoardsCount = async () => {
+    try {
+      const response = await api.get(`/qna/classroom/${id}`);
+      if (Array.isArray(response.data)) {
+        setQnaBoardsCount(response.data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching Q&A boards count:', error);
     }
   };
 
@@ -2306,13 +2326,13 @@ const ClassroomDetail = () => {
             {/* Tab Navigation */}
             <div className="flex flex-wrap border-b border-border bg-card rounded-sm overflow-x-auto mt-6 no-scrollbar">
               {[
-                { id: 'topics', label: 'Topics', icon: Book },
+                { id: 'topics', label: 'Topics', icon: Book, count: classroom?.topics?.length || 0 },
                 ...((isEnrolled || canEdit) ? [
-                  { id: 'assignments', label: 'Assignments', icon: FileText },
-                  { id: 'exams', label: 'Exams', icon: GraduationCap },
-                  { id: 'qna', label: 'Q&A Boards', icon: MessageSquare }
+                  { id: 'assignments', label: 'Assignments', icon: FileText, count: classroom?.assignments?.length || 0 },
+                  { id: 'exams', label: 'Exams', icon: GraduationCap, count: exams?.length || 0 },
+                  { id: 'qna', label: 'Q&A Boards', icon: MessageSquare, count: qnaBoardsCount || 0 }
                 ] : []),
-                ...(canViewStudents ? [{ id: 'students', label: 'Students', icon: Users }] : [])
+                ...(canViewStudents ? [{ id: 'students', label: 'Students', icon: Users, count: classroom?.students?.length || 0 }] : [])
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -2324,8 +2344,8 @@ const ClassroomDetail = () => {
                 >
                   <tab.icon size={15} strokeWidth={2} />
                   <span>{tab.label}</span>
-                  {tab.id === 'exams' && exams.length > 0 && (
-                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-border text-muted-foreground'}`}>{exams.length}</span>
+                  {tab.count > 0 && (
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-border text-muted-foreground'}`}>{tab.count}</span>
                   )}
                 </button>
               ))}
@@ -2435,6 +2455,7 @@ const ClassroomDetail = () => {
             classroom={classroom}
             user={user}
             canEdit={canEdit}
+            onBoardsCountChange={setQnaBoardsCount}
           />
         )}
 
@@ -2597,7 +2618,7 @@ const ClassroomDetail = () => {
                                     <div className="flex items-center space-x-2 mb-2">
                                       <CheckCircle className="w-5 h-5 text-green-600" />
                                       <span className="font-semibold">
-                                        Score: {submission.score}/{assignment.maxScore}
+                                        Score: {formatScore(submission.score)}/{assignment.maxScore}
                                       </span>
                                     </div>
                                     {submission.feedback && (
@@ -2607,7 +2628,7 @@ const ClassroomDetail = () => {
                                       <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
                                       {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
                                         <ul className="list-disc list-inside text-gray-700">
-                                          {assignment.questions.map((q, qIndex) => {
+                                          {assignment.questions && assignment.questions.map((q, qIndex) => {
                                             const questionGrade = submission.questionScores?.find(qs => qs.questionIndex === qIndex);
                                             return (
                                               <li key={qIndex}>
@@ -2615,7 +2636,7 @@ const ClassroomDetail = () => {
                                                 Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span><br />
                                                 {questionGrade && (
                                                   <span className="ml-2 text-sm font-medium text-green-600">
-                                                    Score: {questionGrade.score}/{q.maxScore}
+                                                    Score: {formatScore(questionGrade.score)}/{q.maxScore}
                                                     {questionGrade.feedback && ` - Feedback: ${questionGrade.feedback}`}
                                                   </span>
                                                 )}
@@ -2626,7 +2647,7 @@ const ClassroomDetail = () => {
                                       )}
                                       {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
                                         <ul className="list-disc list-inside text-gray-700">
-                                          {assignment.questions.map((q, qIndex) => (
+                                          {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
                                               <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
                                               Your Answer: {submission.answers[qIndex]}
@@ -2656,7 +2677,7 @@ const ClassroomDetail = () => {
                                       <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
                                       {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
                                         <ul className="list-disc list-inside text-gray-700">
-                                          {assignment.questions.map((q, qIndex) => (
+                                          {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
                                               <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
                                               Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span>
@@ -2669,7 +2690,7 @@ const ClassroomDetail = () => {
                                       )}
                                       {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
                                         <ul className="list-disc list-inside text-gray-700">
-                                          {assignment.questions.map((q, qIndex) => (
+                                          {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
                                               <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
                                               Your Answer: {submission.answers[qIndex]}

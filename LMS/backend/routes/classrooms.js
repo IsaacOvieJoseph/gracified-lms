@@ -1021,14 +1021,17 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       }
     }
 
+    // Convert Mongoose document to a plain JavaScript object to prevent Mongoose schema re-casting
+    const classroomData = classroom.toObject();
+
     // Filter out unpublished assignments for students; never leak answer keys
-    if (req.user.role === 'student' && classroom.assignments) {
-      classroom.assignments = classroom.assignments
-        .filter(a => a.published !== false)
+    if (req.user.role === 'student' && classroomData.assignments) {
+      classroomData.assignments = classroomData.assignments
+        .filter(a => a && a.published !== false)
         .map(a => sanitizeAssignment(a, req.user));
     }
 
-    res.json({ classroom, dynamicTopicPrice, showPaidTopics });
+    res.json({ classroom: classroomData, dynamicTopicPrice, showPaidTopics });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
