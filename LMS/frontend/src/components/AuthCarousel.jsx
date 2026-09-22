@@ -59,28 +59,27 @@ const AuthCarousel = ({
   className = '',
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const prevIndex = useRef(0);
-  const [transitioning, setTransitioning] = useState(false);
+  const [prevShownIndex, setPrevShownIndex] = useState(null);
 
+  // Advance immediately (no 700ms dead hold) and remember the outgoing slide.
+  // Both updates batch into one render: the outgoing slide mounts with a fade-OUT
+  // while the new one mounts with a fade-IN on top — a true simultaneous
+  // cross-fade instead of cut-to-background + fade-in.
   useEffect(() => {
     const interval = setInterval(() => {
-      prevIndex.current = currentIndex;
-      setTransitioning(true);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % slides.length);
-        setTransitioning(false);
-      }, 700);
+      setPrevShownIndex(currentIndex);
+      setCurrentIndex((prev) => (prev + 1) % slides.length);
     }, CAROUSEL_INTERVAL);
     return () => clearInterval(interval);
   }, [currentIndex, slides.length]);
 
   const current = slides[currentIndex];
-  const prev = slides[prevIndex.current];
+  const prev = prevShownIndex !== null ? slides[prevShownIndex] : null;
 
   return (
     <div className={`absolute inset-0 overflow-hidden bg-slate-900 ${className}`}>
       {/* Previous slide fading out */}
-      {transitioning && prevIndex.current !== currentIndex && (
+      {prev && prevShownIndex !== currentIndex && (
         <div className="absolute inset-0 carousel-fade-out">
           <img
             src={prev.image}
@@ -91,11 +90,8 @@ const AuthCarousel = ({
         </div>
       )}
 
-      {/* Active slide */}
-      <div
-        key={currentIndex}
-        className={`absolute inset-0 ${transitioning ? 'carousel-fade-in' : ''}`}
-      >
+      {/* Active slide — always fades in on mount so every new image cross-fades in instead of popping */}
+      <div key={currentIndex} className="absolute inset-0 carousel-fade-in">
         <img
           src={current.image}
           alt={current.title}

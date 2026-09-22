@@ -223,10 +223,9 @@ const Landing = () => {
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="relative overflow-hidden rounded-xl sm:rounded-xl shadow-none min-h-[540px] sm:min-h-[580px] md:min-h-[620px]">
-            <AuthCarousel hideText />
+      <section className="relative z-10">
+        <div className="relative overflow-hidden min-h-[540px] sm:min-h-[580px] md:min-h-[620px]">
+          <AuthCarousel hideText />
 
             {/* Extra left gradient for text legibility */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
@@ -268,7 +267,6 @@ const Landing = () => {
                 </p>
               </div>
             </div>
-          </div>
         </div>
       </section>
 
@@ -321,8 +319,8 @@ const Landing = () => {
       </section>
 
       {/* Who it's for */}
-      <section className="relative z-10 py-16 sm:py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-white/60 dark:bg-slate-900/60">
-        <div className="max-w-7xl mx-auto">
+      <section className="relative z-10 py-16 sm:py-20 md:py-28 bg-white/60 dark:bg-slate-900/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="text-center mb-16">
               <h2 className="text-2xl md:text-4xl font-semibold text-foreground mb-4 italic tracking-tight">
@@ -333,11 +331,9 @@ const Landing = () => {
               </p>
             </div>
           </Reveal>
-          <Reveal>
-            <div className="relative overflow-hidden rounded-xl sm:rounded-xl shadow-none min-h-[560px] sm:min-h-[640px]">
-              <AuthCarousel showDots showRegister />
-            </div>
-          </Reveal>
+        </div>
+        <div className="relative overflow-hidden min-h-[560px] sm:min-h-[640px]">
+          <AuthCarousel showDots showRegister />
         </div>
       </section>
 

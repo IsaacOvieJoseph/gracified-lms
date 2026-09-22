@@ -471,6 +471,14 @@
   }
 }
 
+/* On small screens prefer a clean cross-fade — no cinematic pan movement */
+@media (max-width: 640px) {
+  .carousel-pan {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
 /* ===== Ambient / Lively Background ===== */
 @keyframes float-blob {
   0%,
