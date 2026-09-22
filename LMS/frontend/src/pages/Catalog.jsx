@@ -71,7 +71,7 @@ const Catalog = () => {
       key={c._id}
       className="group relative flex flex-col overflow-hidden rounded-xl bg-card border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-none hover:shadow-none hover:-translate-y-1"
     >
-      <div className="relative h-36  from-primary/15 via-primary/5 to-transparent flex items-center justify-center overflow-hidden">
+      <div className="relative h-36 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent  scale-150" />
         <div className="relative flex flex-wrap items-center justify-center gap-2 px-4">
           <span className="px-3 py-1 rounded-full bg-card text-primary text-xs font-semibold tracking-wide border border-primary/20 shadow-none flex items-center gap-1.5">
@@ -342,7 +342,7 @@ const Catalog = () => {
       {/* CTA */}
       <section className="relative z-10 py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-xl sm:rounded-xl  from-primary to-primary/80 p-6 sm:p-8 md:p-12 text-center">
+          <div className="rounded-xl sm:rounded-xl bg-gradient-to-br from-primary to-primary/80 p-6 sm:p-8 md:p-12 text-center">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6">
               <span className="inline-flex items-center gap-2 text-white/90 text-sm">
                 <CheckCircle2 className="w-4 h-4" /> Join live without an account

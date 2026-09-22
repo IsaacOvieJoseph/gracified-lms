@@ -229,7 +229,7 @@ const Landing = () => {
             <AuthCarousel hideText />
 
             {/* Extra left gradient for text legibility */}
-            <div className="absolute inset-0  from-black/70 via-black/35 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
 
             {/* Content overlay */}
             <div className="absolute inset-0 flex items-center">
@@ -273,7 +273,7 @@ const Landing = () => {
       </section>
 
       {/* Stats */}
-      <section className="relative z-10 py-8 sm:py-12 border-y border-border bg-card ">
+      <section className="relative z-10 py-4 sm:py-6 border-y border-border bg-card ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((stat, i) => (
@@ -307,7 +307,7 @@ const Landing = () => {
                 <div
                   className="group relative p-6 rounded-xl bg-card border border-border shadow-none hover:border-primary/30 hover:shadow-none hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="absolute inset-0 -translate-x-full  from-transparent via-primary/10 to-transparent group-hover:animate-[shimmer-sweep_0.9s_ease]" />
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-primary/10 to-transparent group-hover:animate-[shimmer-sweep_0.9s_ease]" />
                   <div className="relative inline-flex p-3 rounded-xl bg-primary/10 text-primary mb-4 animate-float-slow" style={{ animationDelay: `${i * 0.4}s` }}>
                     <feature.icon className="w-6 h-6" />
                   </div>
@@ -345,26 +345,25 @@ const Landing = () => {
       <section className="relative z-10 py-16 sm:py-20 md:py-28 px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="max-w-4xl mx-auto">
-            <div className="relative overflow-hidden rounded-xl sm:rounded-xl  from-primary to-primary/70 p-6 sm:p-8 md:p-12 text-center">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
+            <div className="relative overflow-hidden rounded-xl sm:rounded-xl p-6 sm:p-8 md:p-12 text-center">
               <div className="relative z-10">
-                <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 sm:mb-4">
+                <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-foreground mb-3 sm:mb-4">
                   Ready to transform your learning experience?
                 </h2>
-                <p className="text-white/90 mb-8 max-w-xl mx-auto">
+                <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
                   Join thousands of educators and students already using Gracified.
                 </p>
                 <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-2 sm:gap-3 mb-10 sm:text-left">
                   {benefits.slice(0, 4).map((b, i) => (
-                    <span key={i} className="inline-flex items-center gap-2 text-white/90 text-sm justify-center sm:justify-start">
-                      <CheckCircle2 className="w-4 h-4 text-white/90 flex-shrink-0" />
+                    <span key={i} className="inline-flex items-center gap-2 text-muted-foreground text-sm justify-center sm:justify-start">
+                      <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
                       {b}
                     </span>
                   ))}
                 </div>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-white text-primary hover:bg-white/95 hover:scale-105 transition-all duration-300 shadow-none"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold btn-premium hover:scale-105 transition-all duration-300 shadow-none"
                 >
                   Get Started Free
                   <ArrowRight className="w-5 h-5" />

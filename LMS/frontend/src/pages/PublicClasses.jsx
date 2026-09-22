@@ -339,7 +339,7 @@ const PublicClasses = () => {
 
     return (
       <div key={c._id} className="card-premium flex flex-col group overflow-hidden bg-card border border-border shadow-none transition-all duration-300 hover:shadow-none hover:border-primary/20">
-        <div className="relative h-2  from-primary/40 to-primary/5" />
+        <div className="relative h-2 bg-gradient-to-r from-primary/40 to-primary/5" />
         <div className="p-6 flex flex-col h-full">
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1 min-w-0 pr-2">
