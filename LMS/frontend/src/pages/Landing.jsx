@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import AuthCarousel from '../components/AuthCarousel';
+import MobileShowcase from '../components/MobileShowcase';
 import logo from '../assets/logo.jpg';
 
 const SPARKLES = [
@@ -332,9 +333,7 @@ const Landing = () => {
             </div>
           </Reveal>
         </div>
-        <div className="relative overflow-hidden min-h-[560px] sm:min-h-[640px]">
-          <AuthCarousel showDots showRegister />
-        </div>
+        <MobileShowcase />
       </section>
 
       {/* CTA */}

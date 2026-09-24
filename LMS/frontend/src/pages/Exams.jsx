@@ -227,17 +227,18 @@ const Exams = () => {
                                             </td>
                                             <td className="px-8 py-6">
                                                 {user.role === 'student' ? (
-                                                    <div className={`inline-flex items-center px-4 py-1.5 rounded-xl text-xs font-semibold tracking-wide border shadow-none ${exam.submissionStatus === 'graded'
+                                                    <div className={`inline-flex items-center px-4 py-1.5 rounded-xl text-xs font-semibold tracking-wide border shadow-none ${exam.submissionStatus === 'graded' && exam.score !== null && exam.score !== undefined
                                                         ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                                                         : exam.submissionStatus === 'submitted'
                                                             ? 'bg-primary/10 text-primary border-primary/20'
                                                             : 'bg-muted text-muted-foreground border-border'
                                                         }`}>
-                                                        <span className={`w-2 h-2 rounded-full mr-2 ${exam.submissionStatus === 'graded' ? 'bg-emerald-500 shadow-none' :
+                                                        <span className={`w-2 h-2 rounded-full mr-2 ${exam.submissionStatus === 'graded' && exam.score !== null && exam.score !== undefined ? 'bg-emerald-500 shadow-none' :
                                                             exam.submissionStatus === 'submitted' ? 'bg-primary shadow-none' : 'bg-muted-foreground/30'
                                                             }`}></span>
-                                                        {exam.submissionStatus === 'graded' ? `${exam.score}% Score` :
-                                                            exam.submissionStatus === 'submitted' ? 'Submitted' : 'Pending'}
+                                                        {exam.submissionStatus === 'graded' && exam.score !== null && exam.score !== undefined ? `${exam.score}% Score` :
+                                                            exam.submissionStatus === 'graded' && exam.resultPublishTime ? `Results ${formatDisplayDate(exam.resultPublishTime)}` :
+                                                                exam.submissionStatus === 'submitted' ? 'Submitted' : 'Pending'}
                                                     </div>
                                                 ) : (
                                                     <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide border ${exam.isPublished

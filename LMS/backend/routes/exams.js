@@ -9,7 +9,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const School = require('../models/School');
 const Tutorial = require('../models/Tutorial');
-const { isNonStudent, stripCorrectOption, sanitizeExam } = require('../utils/answerKey');
+const { isNonStudent, stripCorrectOption, sanitizeExam, examResultsArePublic } = require('../utils/answerKey');
 const router = express.Router();
 
 // Helper to check school access
@@ -172,11 +172,17 @@ router.get('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'person
                     studentId: req.user._id
                 }).sort({ submittedAt: -1 });
 
+                // Percentage (0-100), not raw points, so UIs can display "40%" for 4/10
+                const maxPossible = exam.questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);
+                const hasPublishedScore = submission && submission.status === 'graded' && examResultsArePublic(exam) && maxPossible > 0;
+
                 return {
                     ...exam.toObject(),
                     submissionStatus: submission ? (submission.status === 'graded' ? 'graded' : 'submitted') : 'not-started',
                     submissionId: submission ? submission._id : null,
-                    score: submission && submission.status === 'graded' ? submission.totalScore : null
+                    score: hasPublishedScore ? Math.round((submission.totalScore / maxPossible) * 100) : null,
+                    totalScore: hasPublishedScore ? submission.totalScore : null,
+                    maxPossibleScore: maxPossible
                 };
             }));
 
@@ -451,12 +457,12 @@ router.get('/public/:token', async (req, res) => {
 
         // --- Results Logic for Students ---
         let resultData = null;
-        const resultsArePublic = exam.resultsPublished || (exam.resultPublishTime && new Date(exam.resultPublishTime) <= new Date());
+        const resultsArePublic = examResultsArePublic(exam);
 
         if (existingSubmissionId && (submissionStatus === 'submitted' || submissionStatus === 'graded')) {
             const submission = await ExamSubmission.findById(existingSubmissionId);
             resultData = {
-                score: submission.totalScore,
+                score: resultsArePublic ? submission.totalScore : null,
                 status: submission.status,
                 answers: resultsArePublic ? submission.answers : null, // Show breakdown only if published
                 submittedAt: submission.submittedAt
@@ -710,7 +716,7 @@ router.post('/submissions/:id/submit', async (req, res) => {
 
         if (emailTo) {
             try {
-                const resultsArePublic = exam.resultsPublished || (exam.resultPublishTime && new Date(exam.resultPublishTime) <= new Date()) || !exam.resultPublishTime;
+                const resultsArePublic = examResultsArePublic(exam);
 
                 let emailHtml = '';
                 if (resultsArePublic) {
@@ -764,7 +770,13 @@ router.post('/submissions/:id/submit', async (req, res) => {
             }
         }
 
-        res.json({ message: 'Exam submitted successfully', score: totalScore, status: submission.status });
+        const resultsArePublic = examResultsArePublic(exam);
+        res.json({
+            message: 'Exam submitted successfully',
+            status: submission.status,
+            score: resultsArePublic ? totalScore : null,
+            resultPublishTime: exam.resultPublishTime || null
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -908,7 +920,7 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
 
         if (emailTo) {
             try {
-                const resultsArePublic = exam.resultsPublished || (exam.resultPublishTime && new Date(exam.resultPublishTime) <= new Date()) || !exam.resultPublishTime;
+                const resultsArePublic = examResultsArePublic(exam);
 
                 if (resultsArePublic) {
                     const maxPossible = exam.questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);

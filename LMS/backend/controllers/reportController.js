@@ -4,6 +4,9 @@ const Classroom = require('../models/Classroom');
 const School = require('../models/School');
 const Attendance = require('../models/Attendance');
 const CallSession = require('../models/CallSession');
+const Exam = require('../models/Exam');
+const ExamSubmission = require('../models/ExamSubmission');
+const { examResultsArePublic } = require('../utils/answerKey');
 
 // Helper to calculate basic stats
 const calculateStats = (scores) => {
@@ -36,22 +39,39 @@ exports.getStudentPerformance = async (req, res) => {
             published: true // Only count published assignments
         }).populate('classroomId', 'name');
 
+        // Find exams the student can access: assigned to their classrooms
+        // (published) or already submitted via a link.
+        const examSubmissions = await ExamSubmission.find({ studentId: studentId }).sort({ submittedAt: -1 });
+        const submittedExamIds = examSubmissions.map(s => s.examId);
+        const exams = await Exam.find({
+            $or: [
+                { classId: { $in: classroomIds }, isPublished: true },
+                { _id: { $in: submittedExamIds } }
+            ]
+        }).populate('classId', 'name');
+
+        // Index exam submissions by exam for quick lookup
+        const examSubmissionByExam = {};
+        examSubmissions.forEach(s => {
+            const key = String(s.examId);
+            if (!examSubmissionByExam[key]) examSubmissionByExam[key] = s;
+        });
+
+        const examMaxPossible = (exam) => (exam.questions || []).reduce((sum, q) => sum + (q.maxScore || 1), 0);
+
         let totalAssignments = 0;
         let submittedCount = 0;
         let totalScore = 0;
         let maxPossibleScore = 0;
 
         const performanceByClass = {};
+        const taskDetails = [];
 
-        const assignmentDetails = [];
-
-        assignments.forEach(assignment => {
-            const classId = assignment.classroomId._id.toString();
-            const className = assignment.classroomId.name;
-
-            if (!performanceByClass[classId]) {
-                performanceByClass[classId] = {
-                    className,
+        const ensureClassBucket = (classId, className) => {
+            const key = classId ? String(classId) : 'independent';
+            if (!performanceByClass[key]) {
+                performanceByClass[key] = {
+                    className: className || 'Independent Exams',
                     totalAssignments: 0,
                     submittedCount: 0,
                     totalScore: 0,
@@ -60,8 +80,15 @@ exports.getStudentPerformance = async (req, res) => {
                     assignments: []
                 };
             }
+            return performanceByClass[key];
+        };
 
-            performanceByClass[classId].totalAssignments++;
+        assignments.forEach(assignment => {
+            const classId = assignment.classroomId._id.toString();
+            const className = assignment.classroomId.name;
+            const bucket = ensureClassBucket(classId, className);
+
+            bucket.totalAssignments++;
             totalAssignments++;
 
             // Find submission for this student
@@ -74,7 +101,7 @@ exports.getStudentPerformance = async (req, res) => {
 
             if (submission) {
                 submittedCount++;
-                performanceByClass[classId].submittedCount++;
+                bucket.submittedCount++;
 
                 if (submission.status === 'graded' || submission.status === 'returned') {
                     score = submission.score;
@@ -83,8 +110,8 @@ exports.getStudentPerformance = async (req, res) => {
                     totalScore += score;
                     maxPossibleScore += assignment.maxScore;
 
-                    performanceByClass[classId].totalScore += score;
-                    performanceByClass[classId].maxPossibleScore += assignment.maxScore;
+                    bucket.totalScore += score;
+                    bucket.maxPossibleScore += assignment.maxScore;
                 } else {
                     status = 'submitted'; // Submitted but not graded
                 }
@@ -93,6 +120,7 @@ exports.getStudentPerformance = async (req, res) => {
             }
 
             const assignmentData = {
+                type: 'assignment',
                 id: assignment._id,
                 title: assignment.title,
                 className,
@@ -102,12 +130,63 @@ exports.getStudentPerformance = async (req, res) => {
                 status
             };
 
-            assignmentDetails.push(assignmentData);
-            performanceByClass[classId].assignments.push(assignmentData);
+            taskDetails.push(assignmentData);
+            bucket.assignments.push(assignmentData);
+        });
+
+        // Exams (results only count once officially published)
+        exams.forEach(exam => {
+            const classId = exam.classId ? (exam.classId._id || exam.classId) : null;
+            const className = exam.classId?.name || null;
+            const bucket = ensureClassBucket(classId, className);
+            const maxPossible = examMaxPossible(exam);
+
+            bucket.totalAssignments++;
+            totalAssignments++;
+
+            const submission = examSubmissionByExam[String(exam._id)];
+
+            let score = 0;
+            let status = 'missing';
+
+            if (submission && (submission.status === 'submitted' || submission.status === 'graded')) {
+                submittedCount++;
+                bucket.submittedCount++;
+
+                if (submission.status === 'graded' && examResultsArePublic(exam)) {
+                    score = submission.totalScore || 0;
+                    status = 'graded';
+
+                    totalScore += score;
+                    maxPossibleScore += maxPossible;
+
+                    bucket.totalScore += score;
+                    bucket.maxPossibleScore += maxPossible;
+                } else {
+                    status = 'submitted'; // Submitted, awaiting manual grading / result release
+                }
+            } else if (submission && submission.status === 'in-progress') {
+                status = 'in-progress';
+            }
+
+            const examData = {
+                type: 'exam',
+                id: exam._id,
+                title: exam.title,
+                className: className || 'Public Exam',
+                dueDate: exam.resultPublishTime || exam.dueDate || null,
+                score: Math.round(score * 10) / 10,
+                maxScore: maxPossible,
+                status
+            };
+
+            taskDetails.push(examData);
+            bucket.assignments.push(examData);
         });
 
         // Calculate Attendance Per Class
         for (const classId of Object.keys(performanceByClass)) {
+            if (classId === 'independent') continue;
             const totalSessions = await CallSession.countDocuments({ classroomId: classId });
             const attendedSessions = await Attendance.countDocuments({ classroomId: classId, studentId: studentId });
             performanceByClass[classId].attendance = {
@@ -118,7 +197,7 @@ exports.getStudentPerformance = async (req, res) => {
         }
 
         // Calculate Global Attendance
-        const allClassIds = Object.keys(performanceByClass);
+        const allClassIds = Object.keys(performanceByClass).filter(cid => cid !== 'independent');
         let globalAttended = 0;
         let globalTotalSessions = 0;
 
@@ -148,7 +227,7 @@ exports.getStudentPerformance = async (req, res) => {
                 attendancePercentage: parseFloat(globalAttendancePercentage.toFixed(1))
             },
             byClass: Object.values(performanceByClass),
-            recentAssignments: assignmentDetails.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate)).slice(0, 10)
+            recentAssignments: taskDetails.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate)).slice(0, 10)
         });
 
     } catch (error) {
@@ -196,8 +275,15 @@ exports.getClassPerformance = async (req, res) => {
         const assignments = await Assignment.find({ classroomId: classId }); // Include unpublished? Maybe not.
         const totalSessions = await CallSession.countDocuments({ classroomId: classId });
 
+        // Exams assigned to this class (published). Results only count when released.
+        const exams = await Exam.find({ classId: classId, isPublished: true });
+        const classExamIds = exams.map(e => e._id);
+        const classExamSubmissions = await ExamSubmission.find({ examId: { $in: classExamIds } });
+        const examMaxPossible = (exam) => (exam.questions || []).reduce((sum, q) => sum + (q.maxScore || 1), 0);
+
         const studentStats = [];
         const assignmentStats = [];
+        const examStats = [];
 
         // Calculate Assignment Stats (Avg score usually)
         assignments.forEach(assign => {
@@ -213,6 +299,24 @@ exports.getClassPerformance = async (req, res) => {
                 maxScore: assign.maxScore,
                 averageScore: stats.average,
                 submissionCount: assign.submissions.length,
+                totalStudents: classroom.students.length
+            });
+        });
+
+        // Calculate Exam Stats (only released results count)
+        exams.forEach(exam => {
+            const stats = calculateStats(
+                classExamSubmissions
+                    .filter(s => String(s.examId) === String(exam._id) && s.status === 'graded' && examResultsArePublic(exam))
+                    .map(s => s.totalScore || 0)
+            );
+
+            examStats.push({
+                id: exam._id,
+                title: exam.title,
+                maxScore: examMaxPossible(exam),
+                averageScore: stats.average,
+                submissionCount: classExamSubmissions.filter(s => String(s.examId) === String(exam._id)).length,
                 totalStudents: classroom.students.length
             });
         });
@@ -235,6 +339,20 @@ exports.getClassPerformance = async (req, res) => {
                 }
             });
 
+            // Add exam contributions (gated by result release)
+            exams.forEach(exam => {
+                const sub = classExamSubmissions.find(s =>
+                    String(s.examId) === String(exam._id) && String(s.studentId) === String(student._id)
+                );
+                if (sub) {
+                    submittedCount++;
+                    if (sub.status === 'graded' && examResultsArePublic(exam)) {
+                        totalScore += sub.totalScore || 0;
+                        maxPossible += examMaxPossible(exam);
+                    }
+                }
+            });
+
             const percentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
 
             const attendedCount = await Attendance.countDocuments({ classroomId: classId, studentId: student._id });
@@ -245,7 +363,7 @@ exports.getClassPerformance = async (req, res) => {
                 name: student.name,
                 email: student.email,
                 assignmentsSubmitted: submittedCount,
-                totalAssignments: assignments.length,
+                totalAssignments: assignments.length + exams.length,
                 averagePercentage: parseFloat(percentage.toFixed(1)),
                 attendancePercentage: parseFloat(attendPct.toFixed(1)),
                 classesAttended: attendedCount,
@@ -260,6 +378,7 @@ exports.getClassPerformance = async (req, res) => {
                 studentCount: classroom.students.length
             },
             assignmentStats,
+            examStats,
             studentStats: studentStats.sort((a, b) => b.averagePercentage - a.averagePercentage)
         });
 

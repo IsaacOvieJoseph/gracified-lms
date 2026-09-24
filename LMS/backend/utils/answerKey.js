@@ -56,4 +56,20 @@ const sanitizeExam = (exam) => {
   return obj;
 };
 
-module.exports = { isNonStudent, stripCorrectOption, studentCanSeeAssignmentKey, sanitizeAssignment, sanitizeExam };
+// Whether an exam's results are viewable right now: explicitly published, no
+// scheduled release time (defaults to immediate release), or the scheduled
+// release time has passed.
+const examResultsArePublic = (exam, now = new Date()) =>
+  !!exam &&
+  (exam.resultsPublished ||
+    !exam.resultPublishTime ||
+    new Date(exam.resultPublishTime) <= now);
+
+module.exports = {
+  isNonStudent,
+  stripCorrectOption,
+  studentCanSeeAssignmentKey,
+  sanitizeAssignment,
+  sanitizeExam,
+  examResultsArePublic,
+};

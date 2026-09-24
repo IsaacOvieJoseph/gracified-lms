@@ -514,7 +514,7 @@ const ExamCenter = () => {
     // --- Final/Result Screen ---
     if (finished) {
         const totalPossible = questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);
-        const resultsHidden = (exam?.resultPublishTime && new Date(exam.resultPublishTime) > new Date()) ||
+        const resultsHidden = !(exam?.resultsPublished || !exam?.resultPublishTime || new Date(exam.resultPublishTime) <= new Date()) ||
             (questions.some(q => q.questionType === 'theory') && submissionStatus !== 'graded');
 
         return (

@@ -189,22 +189,42 @@ export default function ExamCenterScreen({ route, navigation }) {
         </View>
       ) : finished ? (
         // Finished / Results Page
-        <View style={styles.resultsContainer}>
-          <View style={[styles.resultsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Ionicons name="checkmark-circle-outline" size={64} color={theme.success} />
-            <Text style={[styles.resultsTitle, { color: theme.text }]}>Exam Completed</Text>
-            <Text style={[styles.resultsSubtitle, { color: theme.muted }]}>Your answers have been securely submitted to the grading engine.</Text>
+        (() => {
+          const hasTheory = (exam?.questions || []).some(q => q.questionType === 'theory');
+          const resultsHidden =
+            !(exam?.resultsPublished || !exam?.resultPublishTime || new Date(exam.resultPublishTime) <= new Date()) ||
+            (hasTheory && submissionStatus !== 'graded');
 
-            {score !== undefined && score !== null ? (
-              <View style={[styles.scoreBox, { backgroundColor: theme.surfaceElevated }]}>
-                <Text style={[styles.scoreLabel, { color: theme.text }]}>Automatic MCQ Score</Text>
-                <Text style={[styles.scoreValue, { color: theme.success }]}>{score} Points</Text>
+          return (
+            <View style={styles.resultsContainer}>
+              <View style={[styles.resultsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Ionicons name="checkmark-circle-outline" size={64} color={theme.success} />
+                <Text style={[styles.resultsTitle, { color: theme.text }]}>Exam Completed</Text>
+                <Text style={[styles.resultsSubtitle, { color: theme.muted }]}>Your answers have been securely submitted to the grading engine.</Text>
+
+                {!resultsHidden && score !== undefined && score !== null ? (
+                  <View style={[styles.scoreBox, { backgroundColor: theme.surfaceElevated }]}>
+                    <Text style={[styles.scoreLabel, { color: theme.text }]}>Automatic MCQ Score</Text>
+                    <Text style={[styles.scoreValue, { color: theme.success }]}>{score} Points</Text>
+                  </View>
+                ) : (
+                  <View style={[styles.scoreBox, { backgroundColor: theme.surfaceElevated }]}>
+                    <Text style={[styles.scoreLabel, { color: theme.text }]}>Result Restricted</Text>
+                    <Text style={[styles.scoreHeldText, { color: theme.muted }]}>
+                      {hasTheory && submissionStatus !== 'graded'
+                        ? 'Manual grading in progress. Please check back later.'
+                        : exam?.resultPublishTime
+                          ? `Results will be released on ${new Date(exam.resultPublishTime).toLocaleString()}.`
+                          : 'Results will be released once officially published.'}
+                    </Text>
+                  </View>
+                )}
+
+                <Button title="Return to portal" onPress={() => navigation.goBack()} />
               </View>
-            ) : null}
-
-            <Button title="Return to portal" onPress={() => navigation.goBack()} />
-          </View>
-        </View>
+            </View>
+          );
+        })()
       ) : (
         // Main Exam Taking Form
         <KeyboardAwareScrollView contentContainerStyle={styles.examScroll}>
@@ -320,4 +340,5 @@ const styles = StyleSheet.create({
   scoreBox: { paddingVertical: 14, paddingHorizontal: 24, borderRadius: 16, alignItems: 'center', marginBottom: 24 },
   scoreLabel: { fontSize: 12, fontWeight: '700' },
   scoreValue: { fontSize: 24, fontWeight: '800', marginTop: 4 },
+  scoreHeldText: { fontSize: 13, textAlign: 'center', lineHeight: 18, marginTop: 6 },
 });

@@ -379,14 +379,25 @@ export default function ReportsScreen({ navigation }) {
           <>
             <Text style={[styles.sectionHeading, { color: theme.text }]}>Recent Grades</Text>
             {recentAssignments.slice(0, 5).map((item, idx) => {
-              const scoreValue = Number(item.score ?? item.percentage ?? item.averagePercentage ?? item.overallAverage ?? 0);
+              const rawScore = Number(item.score ?? 0);
+              const maxScore = Number(item.maxScore ?? 0);
+              const scoreValue = maxScore > 0
+                ? (rawScore / maxScore) * 100
+                : Number(item.percentage ?? item.averagePercentage ?? item.overallAverage ?? 0);
               const hasPercentageScore = Number.isFinite(scoreValue) && scoreValue > 0;
 
               return (
                 <View key={item.id || item._id || idx} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <View style={styles.cardHeaderRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title || item.assignmentTitle || 'Assignment'}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title || item.assignmentTitle || 'Assignment'}</Text>
+                        {item.type === 'exam' && (
+                          <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: `${theme.primary}18` }}>
+                            <Text style={{ fontSize: 9, fontWeight: '800', color: theme.primary }}>EXAM</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={[styles.cardSubText, { color: theme.muted }]}>{item.className}</Text>
                     </View>
                     <View style={[styles.scoreBadge, { backgroundColor: item.status === 'graded' || item.status === 'returned' || item.submitted ? '#10b98118' : '#f59e0b18' }]}>

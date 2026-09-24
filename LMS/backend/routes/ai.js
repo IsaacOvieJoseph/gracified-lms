@@ -7,6 +7,7 @@ const TutorSession = require('../models/TutorSession');
 const PptxGenJS = require('pptxgenjs');
 const fs = require('fs');
 const path = require('path');
+const { examResultsArePublic } = require('../utils/answerKey');
 const router = express.Router();
 
 // ─── Provider helpers ─────────────────────────────────────────────────────────
@@ -1430,22 +1431,25 @@ router.get('/tutor/progress', auth, requireStudentAI, async (req, res) => {
         const assignments = await Assignment.find({ 'submissions.studentId': userId }).lean();
         const assignmentPcts = [];
         assignments.forEach((a) => {
+            const assignmentResultsHidden = a.assignmentType === 'mcq' && a.publishResultsAt && new Date(a.publishResultsAt) > new Date();
             (a.submissions || []).forEach((s) => {
                 if (s.studentId && String(s.studentId) === String(userId) && s.status === 'graded' && s.score !== undefined) {
                     const maxScore = a.maxScore || 100;
-                    assignmentPcts.push({ title: a.title, pct: maxScore ? (s.score / maxScore) * 100 : 0 });
+                    if (!assignmentResultsHidden) {
+                        assignmentPcts.push({ title: a.title, pct: maxScore ? (s.score / maxScore) * 100 : 0 });
+                    }
                 }
             });
         });
 
         const ExamSubmission = require('../models/ExamSubmission');
-        const examSubs = await ExamSubmission.find({ studentId: userId, status: 'graded' }).populate('examId', 'title questions').lean();
+        const examSubs = await ExamSubmission.find({ studentId: userId, status: 'graded' }).populate('examId', 'title questions resultsPublished resultPublishTime').lean();
         const examPcts = [];
         examSubs.forEach((s) => {
             const maxScore = s.examId && Array.isArray(s.examId.questions)
                 ? s.examId.questions.reduce((sum, q) => sum + (q.maxScore || 1), 0)
                 : 0;
-            if (maxScore) examPcts.push({ title: s.examId?.title || 'Exam', pct: (s.totalScore || 0) / maxScore * 100 });
+            if (maxScore && examResultsArePublic(s.examId)) examPcts.push({ title: s.examId?.title || 'Exam', pct: (s.totalScore || 0) / maxScore * 100 });
         });
 
         const sessions = await TutorSession.find({ userId });

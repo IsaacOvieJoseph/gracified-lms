@@ -591,3 +591,159 @@
     transition: none;
   }
 }
+
+/* ===== MobileShowcase ===== */
+
+/* Phone shell */
+.ms-phone-wrapper {
+  position: relative;
+  width: 220px;
+  height: 440px;
+  background: hsl(var(--foreground) / 0.08);
+  border: 3px solid hsl(var(--foreground) / 0.15);
+  border-radius: 36px;
+  box-shadow:
+    0 0 0 2px hsl(var(--foreground) / 0.06),
+    0 24px 60px -20px hsl(211 39% 13% / 0.35);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+/* Notch */
+.ms-phone-notch {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 18px;
+  background: hsl(var(--foreground) / 0.12);
+  border-radius: 0 0 14px 14px;
+  z-index: 10;
+}
+
+/* Screen area */
+.ms-phone-screen {
+  position: absolute;
+  inset: 0;
+  border-radius: 34px;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Home indicator bar */
+.ms-phone-home-bar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 4px;
+  background: hsl(var(--foreground) / 0.25);
+  border-radius: 2px;
+  z-index: 10;
+}
+
+/* App store CTA wrapper */
+.ms-store-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: not-allowed;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  transition: border-color 0.2s;
+}
+
+.ms-store-btn:hover {
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+/* "Coming Soon" tooltip */
+.ms-coming-soon {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.ms-store-btn:hover .ms-coming-soon {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Screenshot frame height */
+.ms-screenshot-frame {
+  height: 320px;
+}
+
+@media (min-width: 640px) {
+  .ms-screenshot-frame {
+    height: 380px;
+  }
+}
+
+/* Slide animations */
+@keyframes ms-slide-in-from-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ms-slide-in-from-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ms-slide-out-to-left {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-40px); }
+}
+
+@keyframes ms-slide-out-to-right {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(40px); }
+}
+
+.ms-slide-in {
+  animation: ms-slide-in-from-right 0.42s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.ms-slide-out-left {
+  animation: ms-slide-out-to-left 0.42s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.ms-slide-out-right {
+  animation: ms-slide-out-to-right 0.42s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Thumbnail progress bar */
+@keyframes ms-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-phone-wrapper,
+  .ms-slide-in,
+  .ms-slide-out-left,
+  .ms-slide-out-right {
+    animation: none !important;
+    transform: none !important;
+  }
+}
