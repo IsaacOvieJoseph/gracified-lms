@@ -119,7 +119,7 @@ const MobileShowcase = () => {
     : 'ms-slide-in';
 
   return (
-    <div className="relative z-10 py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8">
+    <div className="relative z-10 pt-8 sm:pt-10 md:pt-12 pb-0 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-10 lg:gap-16">
 

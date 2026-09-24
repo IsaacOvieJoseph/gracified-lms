@@ -161,10 +161,16 @@ function wrapEmail(content, customLogoUrl = null) {
           </div>
 
           <div style="padding:28px 20px; background:${PANEL}; border-top:1px solid ${HAIRLINE}; text-align:center;">
-            <div style="margin-bottom:10px; display:flex; align-items:center; justify-content:center;">
-              <img src="${gracifiedLogo}" alt="Gracified logo" style="max-height:22px; width:auto; vertical-align:middle; margin-right:10px; border-radius:4px;">
-              <span style="font-size:13px; color:${SLATE}; font-weight:500;">Powered by <strong style="color:${NAVY};">Gracified LMS</strong></span>
-            </div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 10px; border-collapse:collapse;">
+              <tr>
+                <td style="vertical-align:middle; padding-right:8px; line-height:0;">
+                  <img src="${gracifiedLogo}" alt="Gracified logo" width="20" height="20" style="display:block; width:20px; height:20px; border:0; border-radius:4px;">
+                </td>
+                <td style="vertical-align:middle; font-family:${SANS}; font-size:13px; color:${SLATE}; font-weight:500;">
+                  Powered by <strong style="color:${NAVY};">Gracified LMS</strong>
+                </td>
+              </tr>
+            </table>
             <p style="font-size:11px; color:${SLATE}; margin:0; letter-spacing:0.5px; text-transform:uppercase;">© ${new Date().getFullYear()} Gracified LMS. All rights reserved.</p>
           </div>
         </div>

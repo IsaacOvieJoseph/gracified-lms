@@ -323,7 +323,7 @@ const Landing = () => {
       </section>
 
       {/* Who it's for */}
-      <section className="relative z-10 py-16 sm:py-20 md:py-28 bg-white/60 dark:bg-slate-900/60">
+      <section className="relative z-10 pt-16 sm:pt-20 md:pt-28 pb-0 bg-white/60 dark:bg-slate-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="text-center mb-6">
@@ -340,7 +340,7 @@ const Landing = () => {
       </section>
 
       {/* CTA */}
-      <section className="relative z-10 py-16 sm:py-20 md:py-28 px-4 sm:px-6 lg:px-8">
+      <section className="relative z-10 pt-12 sm:pt-16 md:pt-20 pb-16 sm:pb-20 md:pb-28 px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="max-w-4xl mx-auto">
             <div className="relative overflow-hidden rounded-xl sm:rounded-xl p-6 sm:p-8 md:p-12 text-center">
