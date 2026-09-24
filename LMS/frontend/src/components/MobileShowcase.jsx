@@ -65,6 +65,8 @@ const MobileShowcase = () => {
   const [direction, setDirection] = useState('next');
   const [animating, setAnimating] = useState(false);
   const activeThumbRef = useRef(null);
+  const thumbRowRef = useRef(null);
+  const skipFirstScroll = useRef(true);
 
   useEffect(() => {
     const id = setInterval(() => advance('next'), SLIDE_INTERVAL);
@@ -73,7 +75,17 @@ const MobileShowcase = () => {
   }, [activeIdx]);
 
   useEffect(() => {
-    activeThumbRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    if (skipFirstScroll.current) {
+      skipFirstScroll.current = false;
+      return;
+    }
+    const container = thumbRowRef.current;
+    const thumb = activeThumbRef.current;
+    if (!container || !thumb) return;
+    const cRect = container.getBoundingClientRect();
+    const tRect = thumb.getBoundingClientRect();
+    const targetLeft = container.scrollLeft + (tRect.left - cRect.left) - cRect.width / 2 + tRect.width / 2;
+    container.scrollTo({ left: targetLeft, behavior: 'smooth' });
   }, [activeIdx]);
 
   const advance = (dir) => {
@@ -200,7 +212,7 @@ const MobileShowcase = () => {
 
                 {/* hover-only thumbnail overlay */}
                 <div className="absolute inset-x-0 bottom-0 z-10 px-2 pb-8 pt-12 bg-gradient-to-t from-black/75 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
-                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar snap-x snap-mandatory" ref={thumbRowRef}>
                     {SCREENSHOTS.map((shot, i) => (
                       <button
                         key={i}
