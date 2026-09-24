@@ -597,8 +597,8 @@
 /* Phone shell */
 .ms-phone-wrapper {
   position: relative;
-  width: 220px;
-  height: 440px;
+  width: 250px;
+  height: 500px;
   background: hsl(var(--foreground) / 0.08);
   border: 3px solid hsl(var(--foreground) / 0.15);
   border-radius: 36px;
@@ -654,8 +654,7 @@
   justify-content: center;
   position: relative;
   cursor: not-allowed;
-  padding: 6px;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid hsl(var(--border));
   background: hsl(var(--card));
   transition: border-color 0.2s;
@@ -690,12 +689,12 @@
 
 /* Screenshot frame height */
 .ms-screenshot-frame {
-  height: 320px;
+  height: 400px;
 }
 
 @media (min-width: 640px) {
   .ms-screenshot-frame {
-    height: 380px;
+    height: 520px;
   }
 }
 

@@ -298,6 +298,9 @@ const Landing = () => {
               <p className="max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
                 Built for modern education. Manage classrooms, track progress, and engage students effectively.
               </p>
+              <p className="max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
+                Designed for Global Learners. Whether you run a school or teach independently, Gracified adapts to your workflow.
+              </p>
             </div>
           </Reveal>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -323,12 +326,12 @@ const Landing = () => {
       <section className="relative z-10 py-16 sm:py-20 md:py-28 bg-white/60 dark:bg-slate-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2 className="text-2xl md:text-4xl font-semibold text-foreground mb-4 italic tracking-tight">
-                Designed for Global <span className="text-primary not-italic">Learners</span>
+                Your entire learning journey, <span className="text-primary not-italic">in your pocket</span>
               </h2>
               <p className="max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
-                Whether you run a school or teach independently, Gracified adapts to your workflow.
+                Swipe through a few of the powerful screens available right from your phone , desktop and tablets.
               </p>
             </div>
           </Reveal>
