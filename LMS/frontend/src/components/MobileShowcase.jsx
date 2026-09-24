@@ -64,11 +64,16 @@ const MobileShowcase = () => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [direction, setDirection] = useState('next');
   const [animating, setAnimating] = useState(false);
+  const activeThumbRef = useRef(null);
 
   useEffect(() => {
     const id = setInterval(() => advance('next'), SLIDE_INTERVAL);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdx]);
+
+  useEffect(() => {
+    activeThumbRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }, [activeIdx]);
 
   const advance = (dir) => {
@@ -102,7 +107,7 @@ const MobileShowcase = () => {
     : 'ms-slide-in';
 
   return (
-    <div className="relative z-10 py-10 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8">
+    <div className="relative z-10 py-8 sm:py-10 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-10 lg:gap-16">
 
@@ -158,7 +163,7 @@ const MobileShowcase = () => {
                   key={activeIdx}
                   src={SCREENSHOTS[activeIdx].src}
                   alt={SCREENSHOTS[activeIdx].label}
-                  className={`w-full h-full object-cover object-top ${slideClass}`}
+                  className={`w-full h-full object-contain ${slideClass}`}
                 />
                 <button
                   onClick={() => advance('prev')}
@@ -195,12 +200,13 @@ const MobileShowcase = () => {
 
                 {/* hover-only thumbnail overlay */}
                 <div className="absolute inset-x-0 bottom-0 z-10 px-2 pb-8 pt-12 bg-gradient-to-t from-black/75 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
-                  <div className="grid grid-cols-6 gap-1.5">
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar snap-x snap-mandatory">
                     {SCREENSHOTS.map((shot, i) => (
                       <button
                         key={i}
+                        ref={i === activeIdx ? activeThumbRef : null}
                         onClick={() => goTo(i)}
-                        className={`relative rounded-lg overflow-hidden border-2 transition-all duration-300 ${
+                        className={`relative shrink-0 w-16 snap-center rounded-lg overflow-hidden border-2 transition-all duration-300 ${
                           i === activeIdx
                             ? 'border-white shadow-sm scale-105'
                             : 'border-transparent opacity-60 hover:opacity-90'

@@ -737,6 +737,16 @@
   to   { width: 100%; }
 }
 
+/* Hide scrollbar on horizontal thumbnail strip */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ms-phone-wrapper,
   .ms-slide-in,

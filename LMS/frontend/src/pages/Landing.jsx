@@ -326,7 +326,7 @@ const Landing = () => {
       <section className="relative z-10 py-16 sm:py-20 md:py-28 bg-white/60 dark:bg-slate-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <div className="text-center mb-12">
+            <div className="text-center mb-6">
               <h2 className="text-2xl md:text-4xl font-semibold text-foreground mb-4 italic tracking-tight">
                 Your entire learning journey, <span className="text-primary not-italic">in your pocket</span>
               </h2>
