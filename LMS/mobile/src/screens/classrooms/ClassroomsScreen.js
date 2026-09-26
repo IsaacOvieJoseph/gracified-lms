@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, Pressable, Alert, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, Pressable, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -14,9 +14,6 @@ import {
   isStudent,
 } from '../../utils/roles';
 import { shareClassroomLink } from '../../utils/links';
-import DateTimePicker from '../../components/ui/DateTimePicker';
-import SelectField from '../../components/ui/SelectField';
-import KeyboardAwareScrollView from '../../components/ui/KeyboardAwareScrollView';
 
 const normalizeClassroomsResponse = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -27,8 +24,6 @@ const normalizeClassroomsResponse = (payload) => {
   }
   return [];
 };
-
-const classroomLevels = ['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other'];
 
 export default function ClassroomsScreen({ navigation, route }) {
   const { user, setUser } = useAuth();
@@ -41,70 +36,8 @@ export default function ClassroomsScreen({ navigation, route }) {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [teachers, setTeachers] = useState([]);
-  const [schools, setSchools] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    subject: '',
-    level: 'Other',
-    pricing: { amount: 0, type: 'one_time' },
-    isPaid: false,
-    isPrivate: false,
-    published: true,
-    capacity: 30,
-    teacherId: user?.role === 'teacher' || user?.role === 'personal_teacher' ? user._id : '',
-    schoolIds: user?.schoolId ? (Array.isArray(user.schoolId) ? user.schoolId : [user.schoolId]) : [],
-    schedule: [],
-  });
-
-  const addScheduleSlot = () => {
-    setFormData(prev => ({
-      ...prev,
-      schedule: [...prev.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }]
-    }));
-  };
-
-  const removeScheduleSlot = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      schedule: prev.schedule.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateScheduleSlot = (index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      schedule: prev.schedule.map((slot, i) => i === index ? { ...slot, [field]: value } : slot)
-    }));
-  };
 
   const canCreate = canCreateClassroom(user);
-
-  const fetchTeachers = async () => {
-    if (!['root_admin', 'school_admin'].includes(user?.role)) return;
-    try {
-      const response = await api.get('/users?role=teacher,personal_teacher');
-      const teacherList = Array.isArray(response.data?.users) ? response.data.users : response.data;
-      setTeachers(teacherList.filter((t) => ['teacher', 'personal_teacher'].includes(t.role)));
-    } catch (err) {
-      console.log('Could not load teachers', err?.message || err);
-    }
-  };
-
-  const fetchSchools = async () => {
-    if (!['root_admin', 'school_admin'].includes(user?.role)) return;
-    try {
-      const url = user?.role === 'school_admin' ? `/schools?adminId=${user._id}` : '/schools';
-      const response = await api.get(url);
-      const schoolList = Array.isArray(response.data?.schools) ? response.data.schools : response.data;
-      setSchools(schoolList || []);
-    } catch (err) {
-      console.log('Could not load schools', err?.message || err);
-    }
-  };
 
   const loadClassrooms = async () => {
     try {
@@ -141,8 +74,6 @@ export default function ClassroomsScreen({ navigation, route }) {
 
   useEffect(() => {
     if (user) {
-      fetchTeachers();
-      fetchSchools();
       loadClassrooms();
     } else {
       setLoading(false);
@@ -154,14 +85,7 @@ export default function ClassroomsScreen({ navigation, route }) {
   useEffect(() => {
     const aiResult = route?.params?.aiResult;
     if (!aiResult || route?.params?.aiAction !== 'classroom') return;
-    setFormData((prev) => ({
-      ...prev,
-      name: aiResult.name || prev.name,
-      description: aiResult.description || prev.description,
-      subject: aiResult.subject || prev.subject,
-      level: aiResult.level || prev.level,
-    }));
-    setShowCreateModal(true);
+    navigation.navigate('CreateClassroom', { mode: 'create', aiResult, aiAction: 'classroom' });
     navigation.setParams({ aiAction: undefined, aiResult: undefined });
   }, [route?.params?.aiAction, route?.params?.aiResult, navigation]);
 
@@ -271,68 +195,6 @@ export default function ClassroomsScreen({ navigation, route }) {
     );
   };
 
-  const handleCreateClassroom = async () => {
-    if (!user) return;
-    if (!formData.name.trim()) {
-      Alert.alert('Missing title', 'Please provide a classroom name.');
-      return;
-    }
-
-    setCreateLoading(true);
-    try {
-      const payload = {
-        name: formData.name,
-        description: formData.description,
-        subject: formData.subject,
-        level: formData.level,
-        isPaid: formData.isPaid && formData.pricing.amount > 0,
-        pricing: { ...formData.pricing },
-        isPrivate: formData.isPrivate,
-        published: formData.published,
-        capacity: Number(formData.capacity) || 30,
-        schedule: formData.schedule || [],
-      };
-
-      if (['teacher', 'personal_teacher'].includes(user.role)) {
-        payload.teacherId = user._id;
-      } else if (formData.teacherId) {
-        payload.teacherId = formData.teacherId;
-      }
-
-      if (user.role === 'school_admin') {
-        payload.schoolId = formData.schoolIds;
-      } else if (user.role === 'root_admin' && formData.schoolIds.length > 0) {
-        payload.schoolId = formData.schoolIds;
-      }
-
-      const response = await api.post('/classrooms', payload);
-      const newClassroom = response.data?.classroom || response.data;
-      if (newClassroom) {
-        setClassrooms((current) => [newClassroom, ...current]);
-      }
-      setShowCreateModal(false);
-      setFormData({
-        name: '',
-        description: '',
-        subject: '',
-        level: 'Other',
-        pricing: { amount: 0, type: 'one_time' },
-        isPaid: false,
-        isPrivate: false,
-        published: true,
-        capacity: 30,
-        teacherId: user?.role === 'teacher' || user?.role === 'personal_teacher' ? user._id : '',
-        schoolIds: user?.schoolId ? (Array.isArray(user.schoolId) ? user.schoolId : [user.schoolId]) : [],
-        schedule: [],
-      });
-      Alert.alert('Created', 'Classroom successfully created.');
-    } catch (err) {
-      Alert.alert('Creation failed', err?.response?.data?.message || 'Unable to create classroom.');
-    } finally {
-      setCreateLoading(false);
-    }
-  };
-
   const renderItem = ({ item }) => {
     const enrolled = isStudentEnrolled(item);
     const canManage = canManageClassroom(user, item);
@@ -406,7 +268,7 @@ export default function ClassroomsScreen({ navigation, route }) {
         <View style={styles.headerTopRow}>
           <Text style={[styles.title, { color: theme.text }]}>{isStudent(user) ? 'Explore Classes' : 'Learning Spaces'}</Text>
           {canCreate && (
-            <Pressable style={[styles.createBtn, { backgroundColor: theme.primary }]} onPress={() => setShowCreateModal(true)}>
+            <Pressable style={[styles.createBtn, { backgroundColor: theme.primary }]} onPress={() => navigation.navigate('CreateClassroom', { mode: 'create' })}>
               <Ionicons name="add-circle-outline" size={20} color={theme.onPrimary} />
               <Text style={[styles.createBtnText, { color: theme.onPrimary }]}>Create</Text>
             </Pressable>
@@ -556,237 +418,6 @@ export default function ClassroomsScreen({ navigation, route }) {
         />
       )}
 
-      {showCreateModal && (
-        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
-          <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <KeyboardAwareScrollView style={styles.modalKeyboardScroll} contentContainerStyle={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <View style={{ flex: 1, paddingRight: 12 }}>
-                  <Text style={[styles.modalTitle, { color: theme.text }]}>Create a classroom</Text>
-                  <Text style={[styles.modalSubtitle, { color: theme.muted }]}>Add the basics first. You can update these details later.</Text>
-                </View>
-                <Pressable onPress={() => setShowCreateModal(false)} style={styles.modalCloseButton}>
-                  <Ionicons name="close" size={24} color={theme.muted} />
-                </Pressable>
-              </View>
-
-              <Text style={[styles.sectionLabel, { color: theme.text }]}>Classroom name <Text style={{ color: theme.danger }}>*</Text></Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="e.g. SS2 Mathematics"
-                placeholderTextColor={theme.muted}
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                autoCapitalize="words"
-                returnKeyType="next"
-              />
-              <Text style={[styles.sectionLabel, { color: theme.text }]}>Description <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
-              <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="What will students learn in this class?"
-                placeholderTextColor={theme.muted}
-                value={formData.description}
-                onChangeText={(text) => setFormData({ ...formData, description: text })}
-                multiline
-                textAlignVertical="top"
-              />
-              <Text style={[styles.sectionLabel, { color: theme.text }]}>Subject <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="e.g. Mathematics, Biology"
-                placeholderTextColor={theme.muted}
-                value={formData.subject}
-                onChangeText={(text) => setFormData({ ...formData, subject: text })}
-                autoCapitalize="words"
-              />
-
-              <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 2 }]}>Grade / academic level</Text>
-              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Choose the level that best matches your learners.</Text>
-              <SelectField
-                value={formData.level}
-                options={classroomLevels}
-                onChange={(level) => setFormData({ ...formData, level })}
-                placeholder="Select grade / academic level"
-              />
-
-              <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 2 }]}>Access and payment</Text>
-              <View style={[styles.toggleGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <View style={styles.toggleRow}>
-                  <View style={styles.toggleCopy}>
-                    <Text style={[styles.toggleTitle, { color: theme.text }]}>Paid classroom</Text>
-                    <Text style={[styles.helperText, { color: theme.muted }]}>Require payment before enrollment.</Text>
-                  </View>
-                  <Switch value={formData.isPaid} onValueChange={(isPaid) => setFormData({ ...formData, isPaid })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
-                </View>
-                <View style={[styles.toggleRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
-                  <View style={styles.toggleCopy}>
-                    <Text style={[styles.toggleTitle, { color: theme.text }]}>Private classroom</Text>
-                    <Text style={[styles.helperText, { color: theme.muted }]}>Limit access to invited learners.</Text>
-                  </View>
-                  <Switch value={formData.isPrivate} onValueChange={(isPrivate) => setFormData({ ...formData, isPrivate })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
-                </View>
-              </View>
-
-              {formData.isPaid && (
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Price amount in NGN"
-                  placeholderTextColor={theme.muted}
-                  keyboardType="numeric"
-                  value={String(formData.pricing.amount)}
-                  onChangeText={(value) => setFormData({ ...formData, pricing: { ...formData.pricing, amount: Number(value) || 0 } })}
-                />
-              )}
-
-              <Text style={[styles.sectionLabel, { color: theme.text }]}>Student capacity</Text>
-              <Text style={[styles.helperText, { color: theme.muted, marginBottom: 6 }]}>Maximum number of students. Default: 30.</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="e.g. 30"
-                placeholderTextColor={theme.muted}
-                keyboardType="numeric"
-                value={String(formData.capacity)}
-                onChangeText={(value) => setFormData({ ...formData, capacity: value === '' ? '' : Number(value) })}
-              />
-
-              {/* Weekly Schedule Builder */}
-              <View style={[styles.scheduleBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <View style={styles.scheduleHeader}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={[styles.sectionLabel, { color: theme.text, marginBottom: 2 }]}>Weekly schedule <Text style={[styles.optionalLabel, { color: theme.muted }]}>(optional)</Text></Text>
-                    <Text style={[styles.helperText, { color: theme.muted }]}>Add recurring class times.</Text>
-                  </View>
-                  <Pressable style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20` }]} onPress={addScheduleSlot}>
-                    <Ionicons name="add-outline" size={16} color={theme.primary} />
-                    <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Add Slot</Text>
-                  </Pressable>
-                </View>
-
-                {formData.schedule.length === 0 ? (
-                  <Text style={[styles.helperText, { color: theme.muted, fontStyle: 'italic', marginTop: 6 }]}>No weekly schedule slots configured yet.</Text>
-                ) : (
-                  formData.schedule.map((slot, index) => (
-                    <View key={index} style={[styles.slotRow, { borderColor: theme.border }]}>
-                      <View style={styles.slotHeader}>
-                        <Text style={[styles.slotTitle, { color: theme.text }]}>Slot {index + 1}</Text>
-                        <Pressable onPress={() => removeScheduleSlot(index)}>
-                          <Ionicons name="trash-outline" size={16} color={theme.danger} />
-                        </Pressable>
-                      </View>
-
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginVertical: 8 }}>
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
-                          <Pressable
-                            key={d}
-                            style={[styles.miniChip, { backgroundColor: theme.background, borderColor: theme.border }, slot.dayOfWeek === d && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                            onPress={() => updateScheduleSlot(index, 'dayOfWeek', d)}
-                          >
-                            <Text style={[styles.miniChipText, { color: slot.dayOfWeek === d ? theme.onPrimary : theme.muted }]}>{d.slice(0, 3)}</Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-
-                      {/* Time pickers */}
-                      <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <View style={{ flex: 1 }}>
-                          <DateTimePicker
-                            label="Start Time"
-                            value={slot.startTime}
-                            onChange={(val) => updateScheduleSlot(index, 'startTime', val)}
-                            mode="time"
-                            placeholder="09:00"
-                            compact
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <DateTimePicker
-                            label="End Time"
-                            value={slot.endTime}
-                            onChange={(val) => updateScheduleSlot(index, 'endTime', val)}
-                            mode="time"
-                            placeholder="10:00"
-                            compact
-                          />
-                        </View>
-                      </View>
-                    </View>
-                  ))
-                )}
-              </View>
-
-              {['root_admin', 'school_admin'].includes(user?.role) && (
-                <View style={styles.cardsWrapper}>
-                  <Text style={[styles.sectionLabel, { color: theme.muted }]}>Assign teacher</Text>
-                  {teachers.length === 0 ? (
-                    <View style={{ gap: 10 }}>
-                      <Text style={[styles.helperText, { color: theme.muted }]}>No teachers yet for your school.</Text>
-                      <Pressable
-                        style={[styles.addSlotBtn, { backgroundColor: `${theme.primary}20`, alignSelf: 'flex-start' }]}
-                        onPress={() => {
-                          setShowCreateModal(false);
-                          navigation.navigate('ManageTeachers');
-                        }}
-                      >
-                        <Ionicons name="person-add-outline" size={16} color={theme.primary} />
-                        <Text style={[styles.addSlotBtnText, { color: theme.primary }]}>Create Teacher</Text>
-                      </Pressable>
-                    </View>
-                  ) : (
-                    <SelectField
-                      value={formData.teacherId}
-                      options={teachers.map((teacher) => ({ value: teacher._id, label: teacher.name }))}
-                      onChange={(teacherId) => setFormData({ ...formData, teacherId })}
-                      placeholder="Select a teacher"
-                    />
-                  )}
-                </View>
-              )}
-
-              {['root_admin', 'school_admin'].includes(user?.role) && (
-                <View style={styles.cardsWrapper}>
-                  <Text style={[styles.sectionLabel, { color: theme.muted }]}>School visibility</Text>
-                  <View style={styles.chipRow}>
-                    {schools.length === 0 ? (
-                      <Text style={[styles.helperText, { color: theme.muted }]}>No school list available.</Text>
-                    ) : schools.map((school) => (
-                      <Pressable
-                        key={school._id}
-                        style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, formData.schoolIds.includes(school._id) && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                        onPress={() => {
-                          const has = formData.schoolIds.includes(school._id);
-                          setFormData({
-                            ...formData,
-                            schoolIds: has
-                              ? formData.schoolIds.filter((id) => id !== school._id)
-                              : [...formData.schoolIds, school._id]
-                          });
-                        }}
-                      >
-                        <Text style={[styles.chipText, { color: formData.schoolIds.includes(school._id) ? theme.onPrimary : theme.muted }]}>{school.name}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              <View style={[styles.toggleGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <View style={styles.toggleRow}>
-                  <View style={styles.toggleCopy}>
-                    <Text style={[styles.toggleTitle, { color: theme.text }]}>Publish classroom</Text>
-                    <Text style={[styles.helperText, { color: theme.muted }]}>Make this class visible to learners.</Text>
-                  </View>
-                  <Switch value={formData.published} onValueChange={(published) => setFormData({ ...formData, published })} trackColor={{ false: theme.border, true: theme.primary }} thumbColor={theme.onPrimary} />
-                </View>
-              </View>
-
-              <Pressable style={[styles.submitBtn, { backgroundColor: theme.primary }, createLoading && { opacity: 0.7 }]} onPress={handleCreateClassroom} disabled={createLoading}>
-                <Text style={[styles.submitBtnText, { color: theme.onPrimary }]}>{createLoading ? 'Creating…' : 'Create Classroom'}</Text>
-              </Pressable>
-            </KeyboardAwareScrollView>
-          </View>
-        </View>
-      )}
-
     </SafeAreaView>
   );
 }
@@ -850,37 +481,4 @@ const styles = StyleSheet.create({
   adminActionsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   smallActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, minWidth: 88 },
   smallActionText: { fontSize: 11, fontWeight: '700' },
-  modalOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalContainer: { width: '100%', maxHeight: '90%', borderRadius: 28, borderWidth: 1, overflow: 'hidden' },
-  modalKeyboardScroll: { flex: 0 },
-  modalContent: { padding: 20, gap: 8 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  modalTitle: { fontSize: 20, fontWeight: '800' },
-  modalSubtitle: { fontSize: 12, lineHeight: 17, marginTop: 4 },
-  modalCloseButton: { padding: 6 },
-  input: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, marginBottom: 12 },
-  textArea: { minHeight: 100, textAlignVertical: 'top' },
-  inlineRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
-  chip: { paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderRadius: 16 },
-  chipText: { fontSize: 13, fontWeight: '700' },
-  cardsWrapper: { marginBottom: 14 },
-  sectionLabel: { fontSize: 12, fontWeight: '800', marginBottom: 3 },
-  optionalLabel: { fontSize: 11, fontWeight: '500' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  helperText: { fontSize: 12 },
-  toggleGroup: { borderWidth: 1, borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
-  toggleRow: { minHeight: 62, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  toggleCopy: { flex: 1, paddingRight: 12 },
-  toggleTitle: { fontSize: 13, fontWeight: '800', marginBottom: 2 },
-  submitBtn: { borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  submitBtnText: { fontWeight: '800', fontSize: 14 },
-  scheduleBox: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12 },
-  scheduleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  addSlotBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
-  addSlotBtnText: { fontSize: 12, fontWeight: '700' },
-  slotRow: { borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 8 },
-  slotHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  slotTitle: { fontSize: 12, fontWeight: '800' },
-  miniChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-  miniChipText: { fontSize: 11, fontWeight: '700' },
 });

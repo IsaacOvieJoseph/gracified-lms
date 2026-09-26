@@ -240,7 +240,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
 };
 
 // ── Chat Panel ──────────────────────────────────────────────────────────────
-const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef, isStudent, onPickTask }) => {
+const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef, isStudent, onPickTask, onNewChat }) => {
   const inputRef = useRef(null);
 
   // Auto-grow the textarea as long input wraps to multiple lines.
@@ -261,6 +261,17 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
   return (
     <>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50 custom-scrollbar">
+        {messages.length > 1 && (
+          <div className="flex justify-end">
+            <button
+              onClick={onNewChat}
+              className="text-[10px] font-semibold text-slate-400 hover:text-primary transition-colors flex items-center gap-1"
+              title="Start a new chat"
+            >
+              <Plus className="w-3.5 h-3.5" /> New chat
+            </button>
+          </div>
+        )}
         {!isStudent && (
           <div className="space-y-4">
             <TaskCards onPick={onPickTask} />
@@ -543,6 +554,13 @@ const GracyChatInner = ({ user }) => {
   };
 
   // ── Message sending with NLP quiz + conversational assist detection ──
+  const handleNewChat = () => {
+    assistFlow.current = null;
+    pendingPractice.current = null;
+    setSessionId(null);
+    setMessages([{ role: 'assistant', content: getIntroMessage(user) }]);
+  };
+
   const handleSendMessage = async (e, text = null) => {
     if (e) e.preventDefault();
     const messageText = text || inputValue;
@@ -602,6 +620,8 @@ const GracyChatInner = ({ user }) => {
     }
 
     // Conversational assist request (staff): gather missing info in chat.
+    // Never exposed to students — task generation (exam/topic/assignment/slides…)
+    // is an educator feature. Student requests stay on the study-partner chat.
     if (!isStudent(user)) {
       const assist = extractAssistIntent(messageText);
       if (assist) {
@@ -786,6 +806,7 @@ const GracyChatInner = ({ user }) => {
                 messagesEndRef={messagesEndRef}
                 isStudent={isStudent(user)}
                 onPickTask={(type) => startAssistFlow(type)}
+                onNewChat={handleNewChat}
               />
             )}
 

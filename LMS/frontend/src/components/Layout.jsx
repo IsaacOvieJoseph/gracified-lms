@@ -15,6 +15,7 @@ import FeedbackManager from './FeedbackManager';
 import OnboardingTour from './OnboardingTour';
 import ThemeToggle from './ThemeToggle';
 import GracyChat from './GracyChat';
+import MobileViewNotice from './MobileViewNotice';
 import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
@@ -346,6 +347,9 @@ const Layout = ({ children }) => {
       
       {/* Gracy AI Chat Widget */}
       <GracyChat user={user} />
+
+      {/* Mobile View Notice */}
+      <MobileViewNotice />
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import BottomSheet from './BottomSheet';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -136,170 +137,159 @@ export default function DateTimePicker({
         <Ionicons name="chevron-down-outline" size={16} color={theme.muted} />
       </Pressable>
 
-      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
-        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
-          <View style={[styles.modalCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>
-                {mode === 'time' ? 'Select Time' : 'Select Date'}
-              </Text>
-              <Pressable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={20} color={theme.muted} />
+      <BottomSheet
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={mode === 'time' ? 'Select Time' : 'Select Date'}
+        maxHeight="92%"
+      >
+        {mode !== 'time' && (
+          <>
+            {/* Presets */}
+            <View style={styles.presetRow}>
+              <Pressable
+                style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                onPress={() => handleQuickPreset(0)}
+              >
+                <Text style={[styles.presetChipText, { color: theme.primary }]}>Today</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                onPress={() => handleQuickPreset(1)}
+              >
+                <Text style={[styles.presetChipText, { color: theme.primary }]}>Tomorrow</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                onPress={() => handleQuickPreset(7)}
+              >
+                <Text style={[styles.presetChipText, { color: theme.primary }]}>+1 Week</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                onPress={() => handleQuickPreset(14)}
+              >
+                <Text style={[styles.presetChipText, { color: theme.primary }]}>+2 Weeks</Text>
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              {mode !== 'time' && (
-                <>
-                  {/* Presets */}
-                  <View style={styles.presetRow}>
-                    <Pressable
-                      style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                      onPress={() => handleQuickPreset(0)}
-                    >
-                      <Text style={[styles.presetChipText, { color: theme.primary }]}>Today</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                      onPress={() => handleQuickPreset(1)}
-                    >
-                      <Text style={[styles.presetChipText, { color: theme.primary }]}>Tomorrow</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                      onPress={() => handleQuickPreset(7)}
-                    >
-                      <Text style={[styles.presetChipText, { color: theme.primary }]}>+1 Week</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.presetChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                      onPress={() => handleQuickPreset(14)}
-                    >
-                      <Text style={[styles.presetChipText, { color: theme.primary }]}>+2 Weeks</Text>
-                    </Pressable>
-                  </View>
-
-                  {/* Month/Year Nav */}
-                  <View style={styles.monthHeader}>
-                    <Pressable onPress={handlePrevMonth} style={styles.navBtn}>
-                      <Ionicons name="chevron-back" size={20} color={theme.text} />
-                    </Pressable>
-                    <Text style={[styles.monthTitle, { color: theme.text }]}>
-                      {MONTHS[viewMonth]} {viewYear}
-                    </Text>
-                    <Pressable onPress={handleNextMonth} style={styles.navBtn}>
-                      <Ionicons name="chevron-forward" size={20} color={theme.text} />
-                    </Pressable>
-                  </View>
-
-                  {/* Days Header */}
-                  <View style={styles.daysRow}>
-                    {DAYS.map((d) => (
-                      <Text key={d} style={[styles.dayHeaderCell, { color: theme.muted }]}>
-                        {d}
-                      </Text>
-                    ))}
-                  </View>
-
-                  {/* Calendar Grid */}
-                  <View style={styles.grid}>
-                    {/* Empty leading cells */}
-                    {Array.from({ length: firstDayIndex }).map((_, i) => (
-                      <View key={`empty-${i}`} style={styles.gridCell} />
-                    ))}
-
-                    {/* Day cells */}
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                      const dayNum = i + 1;
-                      const isSelected =
-                        selectedDate.getFullYear() === viewYear &&
-                        selectedDate.getMonth() === viewMonth &&
-                        selectedDate.getDate() === dayNum;
-
-                      return (
-                        <Pressable
-                          key={dayNum}
-                          style={[
-                            styles.gridCell,
-                            isSelected && { backgroundColor: theme.primary, borderRadius: 12 },
-                          ]}
-                          onPress={() => handleSelectDay(dayNum)}
-                        >
-                          <Text
-                            style={[
-                              styles.dayCellText,
-                              { color: theme.text },
-                              isSelected && { color: theme.onPrimary, fontWeight: '800' },
-                            ]}
-                          >
-                            {dayNum}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </>
-              )}
-
-              {/* Time selection (for time mode or datetime mode) */}
-              {(mode === 'time' || mode === 'datetime') && (
-                <View style={styles.timeSection}>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Time Selection</Text>
-                  <View style={styles.timeRow}>
-                    {/* Hours */}
-                    <View style={styles.timeCol}>
-                      <Text style={[styles.timeLabel, { color: theme.muted }]}>Hour</Text>
-                      <ScrollView style={styles.timeScroll} nestedScrollEnabled>
-                        {Array.from({ length: 24 }).map((_, h) => (
-                          <Pressable
-                            key={h}
-                            style={[
-                              styles.timeItem,
-                              hours === h && { backgroundColor: theme.primary, borderRadius: 8 },
-                            ]}
-                            onPress={() => setHours(h)}
-                          >
-                            <Text style={[styles.timeItemText, { color: hours === h ? theme.onPrimary : theme.text }]}>
-                              {String(h).padStart(2, '0')}:00
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    </View>
-
-                    {/* Minutes */}
-                    <View style={styles.timeCol}>
-                      <Text style={[styles.timeLabel, { color: theme.muted }]}>Minute</Text>
-                      <ScrollView style={styles.timeScroll} nestedScrollEnabled>
-                        {[0, 15, 30, 45].map((m) => (
-                          <Pressable
-                            key={m}
-                            style={[
-                              styles.timeItem,
-                              minutes === m && { backgroundColor: theme.primary, borderRadius: 8 },
-                            ]}
-                            onPress={() => setMinutes(m)}
-                          >
-                            <Text style={[styles.timeItemText, { color: minutes === m ? theme.onPrimary : theme.text }]}>
-                              :{String(m).padStart(2, '0')}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-                </View>
-              )}
-
-              {/* Confirm Button */}
-              <Pressable style={[styles.confirmBtn, { backgroundColor: theme.primary }]} onPress={handleConfirm}>
-                <Text style={[styles.confirmBtnText, { color: theme.onPrimary }]}>Set Selection</Text>
+            {/* Month/Year Nav */}
+            <View style={styles.monthHeader}>
+              <Pressable onPress={handlePrevMonth} style={styles.navBtn}>
+                <Ionicons name="chevron-back" size={20} color={theme.text} />
               </Pressable>
-            </ScrollView>
+              <Text style={[styles.monthTitle, { color: theme.text }]}>
+                {MONTHS[viewMonth]} {viewYear}
+              </Text>
+              <Pressable onPress={handleNextMonth} style={styles.navBtn}>
+                <Ionicons name="chevron-forward" size={20} color={theme.text} />
+              </Pressable>
+            </View>
+
+            {/* Days Header */}
+            <View style={styles.daysRow}>
+              {DAYS.map((d) => (
+                <Text key={d} style={[styles.dayHeaderCell, { color: theme.muted }]}>
+                  {d}
+                </Text>
+              ))}
+            </View>
+
+            {/* Calendar Grid */}
+            <View style={styles.grid}>
+              {/* Empty leading cells */}
+              {Array.from({ length: firstDayIndex }).map((_, i) => (
+                <View key={`empty-${i}`} style={styles.gridCell} />
+              ))}
+
+              {/* Day cells */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const isSelected =
+                  selectedDate.getFullYear() === viewYear &&
+                  selectedDate.getMonth() === viewMonth &&
+                  selectedDate.getDate() === dayNum;
+
+                return (
+                  <Pressable
+                    key={dayNum}
+                    style={[
+                      styles.gridCell,
+                      isSelected && { backgroundColor: theme.primary, borderRadius: 12 },
+                    ]}
+                    onPress={() => handleSelectDay(dayNum)}
+                  >
+                    <Text
+                      style={[
+                        styles.dayCellText,
+                        { color: theme.text },
+                        isSelected && { color: theme.onPrimary, fontWeight: '800' },
+                      ]}
+                    >
+                      {dayNum}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {/* Time selection (for time mode or datetime mode) */}
+        {(mode === 'time' || mode === 'datetime') && (
+          <View style={styles.timeSection}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Time Selection</Text>
+            <View style={styles.timeRow}>
+              {/* Hours */}
+              <View style={styles.timeCol}>
+                <Text style={[styles.timeLabel, { color: theme.muted }]}>Hour</Text>
+                <ScrollView style={styles.timeScroll} nestedScrollEnabled>
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    <Pressable
+                      key={h}
+                      style={[
+                        styles.timeItem,
+                        hours === h && { backgroundColor: theme.primary, borderRadius: 8 },
+                      ]}
+                      onPress={() => setHours(h)}
+                    >
+                      <Text style={[styles.timeItemText, { color: hours === h ? theme.onPrimary : theme.text }]}>
+                        {String(h).padStart(2, '0')}:00
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Minutes */}
+              <View style={styles.timeCol}>
+                <Text style={[styles.timeLabel, { color: theme.muted }]}>Minute</Text>
+                <ScrollView style={styles.timeScroll} nestedScrollEnabled>
+                  {[0, 15, 30, 45].map((m) => (
+                    <Pressable
+                      key={m}
+                      style={[
+                        styles.timeItem,
+                        minutes === m && { backgroundColor: theme.primary, borderRadius: 8 },
+                      ]}
+                      onPress={() => setMinutes(m)}
+                    >
+                      <Text style={[styles.timeItemText, { color: minutes === m ? theme.onPrimary : theme.text }]}>
+                        :{String(m).padStart(2, '0')}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
           </View>
-        </View>
-      </Modal>
+        )}
+
+        {/* Confirm Button */}
+        <Pressable style={[styles.confirmBtn, { backgroundColor: theme.primary }]} onPress={handleConfirm}>
+          <Text style={[styles.confirmBtnText, { color: theme.onPrimary }]}>Set Selection</Text>
+        </Pressable>
+      </BottomSheet>
     </View>
   );
 }
@@ -339,36 +329,7 @@ const styles = StyleSheet.create({
     gap: 4,
     borderRadius: 12,
   },
-  compactPickerText: { fontSize: 12 },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    width: '100%',
-    maxHeight: '85%',
-    borderRadius: 24,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(150, 150, 150, 0.15)',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  closeBtn: {
-    padding: 4,
-  },
+compactPickerText: { fontSize: 12 },
   presetRow: {
     flexDirection: 'row',
     gap: 8,

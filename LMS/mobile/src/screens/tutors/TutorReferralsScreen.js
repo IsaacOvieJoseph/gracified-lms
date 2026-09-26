@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/api';
 import { useTheme } from '../../context/ThemeContext';
+import BottomSheet from '../../components/ui/BottomSheet';
 
 const STATUS_META = {
   open: { label: 'Open', color: '#f59e0b' },
@@ -359,62 +360,56 @@ export default function TutorReferralsScreen({ navigation }) {
         )}
       </ScrollView>
 
-      <Modal visible={showPicker} transparent animationType="slide">
-        <View style={styles.modalWrap}>
-          <View style={[styles.pickerCard, { backgroundColor: theme.surface }]}>
-            <View style={[styles.pickerHeader, { borderBottomColor: theme.border }]}>
-              <Text style={[styles.pickerTitle, { color: theme.text }]}>Share Your Class</Text>
-              <Pressable onPress={() => setShowPicker(false)}>
-                <Ionicons name="close" size={22} color={theme.muted} />
-              </Pressable>
-            </View>
-            <ScrollView style={styles.pickerScroll}>
-              <Text style={[styles.pickerHint, { color: theme.muted }]}>
-                Pick a class to share with this student. Sharing it closes the chat.
-              </Text>
-              {classes.length === 0 ? (
-                <View style={[styles.noClasses, { backgroundColor: `${theme.warning}14`, borderColor: theme.warning }]}>
-                  <Text style={[styles.noClassesText, { color: theme.warning }]}>
-                    You don&apos;t have any classes yet. Create one under Classrooms first.
-                  </Text>
-                </View>
-              ) : (
-                classes.map((c) => (
-                  <Pressable
-                    key={c._id}
-                    onPress={() => setChosenClass(c._id)}
-                    style={[
-                      styles.classOption,
-                      { borderColor: chosenClass === c._id ? theme.primary : theme.border },
-                      chosenClass === c._id && { backgroundColor: `${theme.primary}14` },
-                    ]}
-                  >
-                    <View style={styles.classTextWrap}>
-                      <Text style={[styles.className, { color: theme.text }]}>{c.name}</Text>
-                      <Text style={[styles.classSubject, { color: theme.muted }]}>
-                        {c.subject || 'General'}{c.isPaid ? ' • Paid' : ' • Free'}
-                      </Text>
-                    </View>
-                    {chosenClass === c._id ? (
-                      <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
-                    ) : (
-                      <Ionicons name="ellipse-outline" size={20} color={theme.border} />
-                    )}
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
-            <Pressable
-              style={[styles.shareSubmit, { backgroundColor: theme.success }, (!chosenClass || sharing) && { opacity: 0.5 }]}
-              onPress={shareClass}
-              disabled={!chosenClass || sharing}
-            >
-              {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="videocam-outline" size={16} color="#fff" />}
-              <Text style={styles.shareSubmitText}>Share Class & Close Chat</Text>
-            </Pressable>
+      <BottomSheet
+        visible={showPicker}
+        onClose={() => setShowPicker(false)}
+        title="Share Your Class"
+        footer={
+          <Pressable
+            style={[styles.shareSubmit, { backgroundColor: theme.success }, (!chosenClass || sharing) && { opacity: 0.5 }]}
+            onPress={shareClass}
+            disabled={!chosenClass || sharing}
+          >
+            {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="videocam-outline" size={16} color="#fff" />}
+            <Text style={styles.shareSubmitText}>Share Class & Close Chat</Text>
+          </Pressable>
+        }
+      >
+        <Text style={[styles.pickerHint, { color: theme.muted }]}>
+          Pick a class to share with this student. Sharing it closes the chat.
+        </Text>
+        {classes.length === 0 ? (
+          <View style={[styles.noClasses, { backgroundColor: `${theme.warning}14`, borderColor: theme.warning }]}>
+            <Text style={[styles.noClassesText, { color: theme.warning }]}>
+              You don&apos;t have any classes yet. Create one under Classrooms first.
+            </Text>
           </View>
-        </View>
-      </Modal>
+        ) : (
+          classes.map((c) => (
+            <Pressable
+              key={c._id}
+              onPress={() => setChosenClass(c._id)}
+              style={[
+                styles.classOption,
+                { borderColor: chosenClass === c._id ? theme.primary : theme.border },
+                chosenClass === c._id && { backgroundColor: `${theme.primary}14` },
+              ]}
+            >
+              <View style={styles.classTextWrap}>
+                <Text style={[styles.className, { color: theme.text }]}>{c.name}</Text>
+                <Text style={[styles.classSubject, { color: theme.muted }]}>
+                  {c.subject || 'General'}{c.isPaid ? ' • Paid' : ' • Free'}
+                </Text>
+              </View>
+              {chosenClass === c._id ? (
+                <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+              ) : (
+                <Ionicons name="ellipse-outline" size={20} color={theme.border} />
+              )}
+            </Pressable>
+          ))
+        )}
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -471,11 +466,6 @@ const styles = StyleSheet.create({
   emptyCard: { alignItems: 'center', borderWidth: 1, borderRadius: 16, padding: 24, marginTop: 10 },
   emptyTitle: { fontSize: 15, fontWeight: '800', marginTop: 10 },
   emptyText: { fontSize: 12, textAlign: 'center', lineHeight: 17, marginTop: 5 },
-  modalWrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  pickerCard: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 10, maxHeight: '80%' },
-  pickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 1 },
-  pickerTitle: { fontSize: 17, fontWeight: '800' },
-  pickerScroll: { padding: 16 },
   pickerHint: { fontSize: 12, lineHeight: 17, marginBottom: 12 },
   noClasses: { borderWidth: 1.5, borderRadius: 12, padding: 14 },
   noClassesText: { fontSize: 13, fontWeight: '600', lineHeight: 18 },

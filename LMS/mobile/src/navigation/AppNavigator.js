@@ -22,11 +22,15 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 
 // Feature Detail Screens
 import ClassroomDetailScreen from '../screens/classrooms/ClassroomDetailScreen';
+import CreateClassroomScreen from '../screens/classrooms/CreateClassroomScreen';
+import TopicFormScreen from '../screens/classrooms/TopicFormScreen';
+import AssignmentFormScreen from '../screens/classrooms/AssignmentFormScreen';
 import TopicDetailScreen from '../screens/classrooms/TopicDetailScreen';
 import VideoPlayerScreen from '../screens/classrooms/VideoPlayerScreen';
 import AssignmentsScreen from '../screens/assignments/AssignmentsScreen';
 import AssignmentDetailScreen from '../screens/assignments/AssignmentDetailScreen';
 import ExamsScreen from '../screens/exams/ExamsScreen';
+import ExamFormScreen from '../screens/exams/ExamFormScreen';
 import ExamCenterScreen from '../screens/exams/ExamCenterScreen';
 import ExamDetailScreen from '../screens/exams/ExamDetailScreen';
 import PaymentsScreen from '../screens/payments/PaymentsScreen';
@@ -36,8 +40,10 @@ import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import SharedResourceScreen from '../screens/shared/SharedResourceScreen';
 import ScheduleScreen from '../screens/schedule/ScheduleScreen';
 import ManageTeachersScreen from '../screens/users/ManageTeachersScreen';
+import CreateTeacherScreen from '../screens/users/CreateTeacherScreen';
 import AIAssistantScreen from '../screens/ai/AIAssistantScreen';
 import AITutorScreen from '../screens/ai/AITutorScreen';
+import AITutorChatScreen from '../screens/ai/AITutorChatScreen';
 import AITutorQuizScreen from '../screens/ai/AITutorQuizScreen';
 import AITutorGrowthScreen from '../screens/ai/AITutorGrowthScreen';
 import TutorRequestScreen from '../screens/tutors/TutorRequestScreen';
@@ -139,10 +145,14 @@ export default function AppNavigator() {
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="SharedResource" component={SharedResourceScreen} />
             <Stack.Screen name="ClassroomDetail" component={ClassroomDetailScreen} />
+            <Stack.Screen name="CreateClassroom" component={CreateClassroomScreen} />
+            <Stack.Screen name="TopicForm" component={TopicFormScreen} />
+            <Stack.Screen name="AssignmentForm" component={AssignmentFormScreen} />
             <Stack.Screen name="TopicDetail" component={TopicDetailScreen} />
             <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
             <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
             <Stack.Screen name="Exams" component={ExamsScreen} />
+            <Stack.Screen name="ExamForm" component={ExamFormScreen} />
             <Stack.Screen name="ExamCenter" component={ExamCenterScreen} />
             <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
             <Stack.Screen name="QnACenter" component={QnACenterScreen} />
@@ -150,8 +160,10 @@ export default function AppNavigator() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Schedule" component={ScheduleScreen} />
             <Stack.Screen name="ManageTeachers" component={ManageTeachersScreen} />
+            <Stack.Screen name="CreateTeacher" component={CreateTeacherScreen} />
             <Stack.Screen name="AIAssistant" component={AIAssistantScreen} />
             <Stack.Screen name="AITutor" component={AITutorScreen} />
+            <Stack.Screen name="AITutorChat" component={AITutorChatScreen} />
             <Stack.Screen name="AITutorQuiz" component={AITutorQuizScreen} />
             <Stack.Screen name="AITutorGrowth" component={AITutorGrowthScreen} />
             <Stack.Screen name="TutorRequest" component={TutorRequestScreen} />
