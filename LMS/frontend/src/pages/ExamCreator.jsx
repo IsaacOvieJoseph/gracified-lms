@@ -205,7 +205,7 @@ const ExamCreator = () => {
             <div className="max-w-4xl mx-auto pb-20">
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Header */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between bg-card/95 p-4 md:p-6 rounded-xl shadow-none border border-border sticky top-0 z-30 backdrop-blur-sm gap-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between bg-card/95 p-4 md:p-6 rounded-xl shadow-none border border-border sticky top--2 z-30 backdrop-blur-sm gap-4">
                         <div className="flex items-center space-x-4">
                             <button
                                 type="button"
