@@ -295,9 +295,9 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
         ${emailText(`Your payment for <strong>${type}</strong> has been ${status === 'success' ? 'processed successfully' : 'not completed'}.`)}
         ${emailPanel(`
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0;">
-            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Amount</td><td style="text-align:right; font-weight:600; vertical-align:top;">₦${amount}</td></tr>
-            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Date</td><td style="text-align:right; font-weight:600; vertical-align:top;">${new Date().toLocaleDateString()} (GMT)</td></tr>
-            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Status</td><td style="text-align:right; font-weight:600; vertical-align:top; color:${status === 'success' ? FOREST : ROSE};">${status.toUpperCase()}</td></tr>
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Amount</td><td style="text-align:right; font-weight:600; vertical-align:top; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word;">₦${amount}</td></tr>
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Date</td><td style="text-align:right; font-weight:600; vertical-align:top; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word;">${new Date().toLocaleDateString()} (GMT)</td></tr>
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Status</td><td style="text-align:right; font-weight:600; vertical-align:top; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word; color:${status === 'success' ? FOREST : ROSE};">${status.toUpperCase()}</td></tr>
           </table>
         `, { accent: status === 'success' ? FOREST : ROSE })}
         ${emailText('If you have any questions, please contact our support team.')}

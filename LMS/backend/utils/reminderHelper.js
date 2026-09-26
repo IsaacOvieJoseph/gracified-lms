@@ -1,6 +1,6 @@
 const Classroom = require('../models/Classroom');
 const Notification = require('../models/Notification');
-const { sendEmail, emailHeading, emailText, emailMeta, emailButton, emailNote, NAVY } = require('./email');
+const { sendEmail, emailHeading, emailText, emailMeta, emailInfoBlock, emailButton, emailNote, NAVY } = require('./email');
 
 /**
  * Core logic to check for upcoming classes and send reminders.
@@ -82,9 +82,10 @@ const checkAndSendReminders = async (forcedTime = null) => {
                         ['Starts At', `${timeStr} (GMT)`],
                         ['Day', currentDay]
                     ];
+                    let descriptionBlock = '';
                     if (topicInfo) {
                         rows.push(['Current Topic', topicInfo.name]);
-                        if (topicInfo.description) rows.push(['Description', topicInfo.description]);
+                        if (topicInfo.description) descriptionBlock = emailInfoBlock('Description', topicInfo.description);
                     }
 
                     let emailHtml = `
@@ -92,6 +93,7 @@ const checkAndSendReminders = async (forcedTime = null) => {
                       ${emailText(`Hello <strong>${user.name}</strong>,`)}
                       ${emailText('This is a reminder that your class session is starting soon:')}
                       ${emailMeta(rows)}
+                      ${descriptionBlock}
                       ${emailText('Please log in and be ready to join the session.')}
                       ${emailButton('Go to Classroom', `${(process.env.FRONTEND_URL || 'http://localhost:3000')}/classrooms/${classroom._id}`)}
                       ${emailNote('This is an automated reminder from Gracified LMS. Please do not reply.')}

@@ -790,7 +790,7 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
             ${emailText(`Hello <strong>${student.name}</strong>,`)}
             ${emailText(`Your submission for <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been graded.`)}
             ${emailResultHero({ eyebrow: 'Your Score', value: `${score} / ${assignment.maxScore}`, meta: assignment.assignmentType === 'mcq' ? 'Multiple-choice assessment' : 'Written assessment' })}
-            ${feedback ? emailPanel(`<p style="margin:0 0 4px; font-weight:600;">Feedback:</p><p style="margin:0; color:#5B6B7C;">${feedback}</p>`, { accent: NAVY }) : ''}
+            ${feedback ? emailPanel(`<p style="margin:0 0 4px; font-weight:600;">Feedback:</p><p style="margin:0; color:#5B6B7C; white-space:pre-line; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word;">${feedback}</p>`, { accent: NAVY }) : ''}
             ${emailButton('View Full Results', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
           `
         }).catch(e => console.error('Email error', e.message));
