@@ -21,6 +21,7 @@ import {
   extractPracticeQuantityFromMessage,
   isQuantityOnly,
   extractAssistIntent,
+  shouldUseAIIntentClassifier,
 } from '../utils/tutor';
 
 // ── Multi-Select Dropdown ────────────────────────────────────────────────────
@@ -365,6 +366,26 @@ const getIntroMessage = (user) => {
   return "Hi! I'm **Gracy**, your AI assistant. 👋\n\nPick a **task card** above, or just ask me in chat — for example:\n- *\"Create an assignment on fractions for SS1\"*\n- *\"Write an exam on cell division\"*\n- *\"Make slides for the water cycle\"*\n\nI'll ask you a couple of quick questions and generate it right here. What can I help you with today?";
 };
 
+// ── AI intent classifier (staff) ──────────────────────────────────────────────
+// Best-effort second opinion on top of extractAssistIntent(). The backend is
+// what decides staff-vs-student, so a reply here is always safe: unknown/error
+// results resolve to normal chat.
+const classifyAssistIntent = async (messageText) => {
+  try {
+    const res = await api.post('/ai/classify-intent', { message: messageText }, { skipLoader: true });
+    return res.data || null;
+  } catch (_) {
+    return null;
+  }
+};
+
+// Validate the model's answer against real, flow-capable task types before we
+// ever start a flow on it.
+const assistTypeKey = (type) => {
+  const valid = MODES.find((m) => m.key === type && type !== 'qna');
+  return valid ? valid.key : null;
+};
+
 // ── Main GracyChat Component ─────────────────────────────────────────────────
 const GracyChatInner = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -627,6 +648,19 @@ const GracyChatInner = ({ user }) => {
       if (assist) {
         startAssistFlow(assist.type, assist.area || null);
         return;
+      }
+
+      // AI second opinion: word mapping missed an assist request phrased
+      // unusually ("put together a 10-question test on fractions"). Best-effort
+      // and skip-guarded so ordinary Q&A isn't delayed or billed twice.
+      if (shouldUseAIIntentClassifier(messageText)) {
+        const ai = await classifyAssistIntent(messageText);
+        const aiType = assistTypeKey(ai?.type);
+        if (ai && ai.intent === 'assist' && aiType) {
+          const seed = [ai.count ? `${ai.count} questions` : '', ai.area ? `on ${ai.area}` : ''].filter(Boolean).join(' ');
+          startAssistFlow(aiType, seed || null);
+          return;
+        }
       }
     }
 

@@ -12,7 +12,7 @@ const router = express.Router();
 
 // ─── Provider helpers ─────────────────────────────────────────────────────────
 
-const callGroq = async (prompt) => {
+const callGroq = async (prompt, temperature = 0.7) => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey || apiKey === 'your_groq_api_key_here') {
         throw new Error('GROQ_API_KEY is not configured. Add your key from console.groq.com/keys to backend/.env and restart the server.');
@@ -29,7 +29,7 @@ const callGroq = async (prompt) => {
                 { role: 'user', content: prompt }
             ],
             model,
-            temperature: 0.7,
+            temperature,
             max_tokens: 4096,
             response_format: { type: 'json_object' }
         });
@@ -42,7 +42,7 @@ const callGroq = async (prompt) => {
     }
 };
 
-const callGemini = async (prompt) => {
+const callGemini = async (prompt, temperature = 0.7) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY is not configured.');
 
@@ -52,7 +52,7 @@ const callGemini = async (prompt) => {
 
     const body = {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
+        generationConfig: { temperature, maxOutputTokens: 4096 }
     };
 
     const response = await fetch(url, {
@@ -74,14 +74,15 @@ const callGemini = async (prompt) => {
 };
 
 // ─── Central call dispatcher ──────────────────────────────────────────────────
-const callAI = async (prompt) => {
+const callAI = async (prompt, opts = {}) => {
     const settings = await Settings.findOne();
     const provider = settings?.activeAIProvider || 'groq';
+    const temperature = typeof opts.temperature === 'number' ? opts.temperature : 0.7;
 
     if (provider === 'gemini') {
-        return callGemini(prompt);
+        return callGemini(prompt, temperature);
     }
-    return callGroq(prompt);
+    return callGroq(prompt, temperature);
 };
 
 const parseJSON = (text) => {
@@ -197,6 +198,120 @@ router.get('/provider', async (req, res) => {
         res.json({ provider: settings?.activeAIProvider || 'groq' });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+// The asset types Gracy can generate from an assist request. Mirrors the
+// frontend GracyAssistTab MODES (task cards) — explicitly NOT "chat" / "qna".
+const ASSIST_INTENT_TYPES = ['classroom', 'topic', 'syllabus', 'assignment', 'exam', 'slides'];
+
+// ─── POST /api/ai/classify-intent ─────────────────────────────────────────────
+// AI-powered intent classifier — a second opinion on top of the frontend's
+// keyword-based word mapping. The chat tab uses it to catch assist requests
+// that word matching misses ("put together a 10-question test on fractions").
+// Best-effort: any failure falls back to "chat" so normal Q&A is never blocked.
+// Strictly staff-only — students never get task-assist intent (they stay on the
+// study-partner chat + practice quiz).
+/**
+ * @swagger
+ * /api/ai/classify-intent:
+ *   post:
+ *     summary: Classify an educator's chat message as an assist request or plain chat
+ *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Intent classification result
+ */
+router.post('/classify-intent', auth, async (req, res) => {
+    try {
+        // Task assist is an educator feature. Students are hard-blocked server-side
+        // regardless of anything the client sends.
+        if (req.user?.role === 'student') {
+            return res.status(403).json({ message: 'Task assist is not available to students.' });
+        }
+
+        const { message } = req.body || {};
+        if (!message || !String(message).trim()) {
+            return res.status(400).json({ message: 'message is required' });
+        }
+        const text = String(message).trim().slice(0, 1000);
+
+        const prompt = `You are an intent classifier for Gracy, the AI assistant on an education platform used by teachers and administrators.
+
+Given the educator's chat message, decide whether they are asking Gracy to GENERATE/CREATE a teaching asset, or whether they are just chatting / asking a question.
+
+Allowed asset types: ${ASSIST_INTENT_TYPES.join(', ')}.
+
+Return intent "assist" ONLY when the user clearly asks to create/generate/make/build/draft/write/prepare/produce one of those assets (an exam, assignment, topic, syllabus, class, or slide deck). Treat most questions, greetings, lesson-planning discussions, explanations, and requests for advice as "chat".
+
+DISAMBIGUATION RULES:
+- A class mentioned as the DESTINATION of the asset is NOT the asset being created. "create a topic for my JSS1 class", "make an exam for my Biology SS2 class", "add slides for my class" create the topic/exam/slides — type must be "topic"/"exam"/"slides", never "classroom".
+- Select "classroom" for type ONLY when the class itself is the thing being created: "create a class", "set up a classroom for mathematics", "create a new class for JSS1".
+- When a message references both an asset and a class, "area" is the subject/topic of the asset (e.g. "fractions", "quadratic equations"), NOT the class name.
+
+Fill in:
+- "type": the asset type, or null when intent is chat.
+- "area": the subject/topic the asset is about (e.g. "photosynthesis", "quadratic equations", "fractions"). null if not mentioned.
+- "count": a requested number of questions/items/slides/marks/minutes when stated (integer 1-30), else null.
+- "confidence": 0-1 how sure you are about the intent.
+
+Return ONLY this JSON (no markdown, no extra text):
+{
+  "intent": "assist" | "chat",
+  "type": "topic" | "syllabus" | "assignment" | "exam" | "slides" | "classroom" | null,
+  "area": string | null,
+  "count": number | null,
+  "confidence": number
+}
+
+Message: ${text}`;
+
+        const raw = await callAI(prompt, { temperature: 0.1 });
+        let result = null;
+        try { result = parseJSON(raw); } catch (_) { result = null; }
+
+        if (!result || result.intent !== 'assist') {
+            return res.json({ intent: 'chat', type: null, area: null, count: null, confidence: 0 });
+        }
+
+        // Whitelist the type so a model hallucination can never start a flow it
+        // doesn't genuinely map to.
+        const type = ASSIST_INTENT_TYPES.includes(result.type) ? result.type : null;
+        if (!type) {
+            return res.json({ intent: 'chat', type: null, area: null, count: null, confidence: 0 });
+        }
+
+        const area = typeof result.area === 'string' && result.area.trim()
+            ? String(result.area).trim().slice(0, 100)
+            : null;
+
+        let count = parseInt(result.count, 10);
+        if (!Number.isFinite(count) || count < 1 || count > 30) count = null;
+
+        res.json({
+            intent: 'assist',
+            type,
+            area,
+            count,
+            confidence: Math.min(1, Math.max(0, parseFloat(result.confidence) || 0)),
+        });
+    } catch (err) {
+        // Best-effort by design: a classifier hiccup must never hard-fail the chat.
+        console.error('AI intent classification error:', err.message);
+        res.json({ intent: 'chat', type: null, area: null, count: null, confidence: 0 });
     }
 });
 

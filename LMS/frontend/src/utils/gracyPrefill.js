@@ -85,6 +85,10 @@ export const PREFILLABLE_MODES = ['classroom', 'topic', 'syllabus', 'assignment'
 export const CLASS_DEPENDENT_MODES = ['topic', 'syllabus', 'assignment', 'exam'];
 
 // Teacher's classrooms (cached per user) for the "which class?" suggestion step.
+// The backend /classrooms endpoint already scopes by role: teachers/personal
+// teachers get their own classes, school admins get every class in their
+// schools. We must NOT additionally filter by teacherId here — that empties the
+// list for admins, whose classes are assigned to other teachers.
 let classesCache = null;
 let classesCacheKey = null;
 
@@ -94,10 +98,7 @@ export const fetchTeacherClasses = async (userId) => {
     try {
       const res = await api.get('/classrooms');
       const all = res.data.classrooms || res.data || [];
-      classesCache = all.filter((c) => {
-        const t = c.teacherId?._id || c.teacherId;
-        return !userId || String(t) === String(userId);
-      });
+      classesCache = Array.isArray(all) ? all : [];
     } catch (_) {
       classesCache = [];
     }
