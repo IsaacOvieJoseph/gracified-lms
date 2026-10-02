@@ -8,7 +8,7 @@ const paymentSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['class_enrollment', 'topic_access', 'subscription', 'personal_teacher_subscription'],
+    enum: ['class_enrollment', 'topic_access', 'subscription', 'personal_teacher_subscription', 'lecture_access'],
     required: true
   },
   classroomId: {
@@ -21,15 +21,29 @@ const paymentSchema = new mongoose.Schema({
     ref: 'Topic',
     default: null
   },
+  callSessionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CallSession',
+    default: null
+  },
   amount: {
     type: Number,
     required: true
   },
   currency: {
     type: String,
-    default: 'USD'
+    default: 'NGN'
+  },
+  planId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubscriptionPlan',
+    default: null
   },
   stripePaymentId: {
+    type: String,
+    default: null
+  },
+  paystackReference: {
     type: String,
     default: null
   },
@@ -45,7 +59,27 @@ const paymentSchema = new mongoose.Schema({
   metadata: {
     type: Map,
     of: String
-  }
+  },
+  payoutStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'paid', 'none'],
+    default: 'none'
+  },
+  payoutOwnerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  taxRate: { type: Number, default: 0 },
+  vatRate: { type: Number, default: 0 },
+  serviceFeeRate: { type: Number, default: 0 },
+  taxAmount: { type: Number, default: 0 },
+  vatAmount: { type: Number, default: 0 },
+  serviceFeeAmount: { type: Number, default: 0 },
+  payoutAmount: { type: Number, default: 0 },
+  payoutApprovedAt: Date,
+  payoutPaidAt: Date,
+  payoutReference: String
 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

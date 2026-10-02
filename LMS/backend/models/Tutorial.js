@@ -14,6 +14,10 @@ const tutorialSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Classroom',
   }],
+  logoUrl: {
+    type: String,
+    default: null
+  },
 }, { timestamps: true });
 
 const Tutorial = mongoose.model('Tutorial', tutorialSchema);

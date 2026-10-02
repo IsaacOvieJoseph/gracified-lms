@@ -1,0 +1,614 @@
+const User = require('../models/User');
+const Assignment = require('../models/Assignment');
+const Classroom = require('../models/Classroom');
+const School = require('../models/School');
+const Attendance = require('../models/Attendance');
+const CallSession = require('../models/CallSession');
+const Exam = require('../models/Exam');
+const ExamSubmission = require('../models/ExamSubmission');
+const { examResultsArePublic } = require('../utils/answerKey');
+
+// Helper to calculate basic stats
+const calculateStats = (scores) => {
+    if (!scores.length) return { average: 0, min: 0, max: 0, count: 0 };
+    const sum = scores.reduce((a, b) => a + b, 0);
+    const avg = sum / scores.length;
+    return {
+        average: parseFloat(avg.toFixed(1)),
+        min: Math.min(...scores),
+        max: Math.max(...scores),
+        count: scores.length
+    };
+};
+
+// @desc    Get performance report for the logged-in student
+// @route   GET /api/reports/student/me
+// @access  Private (Student)
+exports.getStudentPerformance = async (req, res) => {
+    try {
+        const studentId = req.user._id;
+
+        // Find all classrooms the student is enrolled in
+        const classrooms = await Classroom.find({ students: studentId });
+        const classroomIds = classrooms.map(c => c._id);
+
+        // Find all assignments in these classrooms
+        // AND populate submissions for this student
+        const assignments = await Assignment.find({
+            classroomId: { $in: classroomIds },
+            published: true // Only count published assignments
+        }).populate('classroomId', 'name');
+
+        // Find exams the student can access: assigned to their classrooms
+        // (published) or already submitted via a link.
+        const examSubmissions = await ExamSubmission.find({ studentId: studentId }).sort({ submittedAt: -1 });
+        const submittedExamIds = examSubmissions.map(s => s.examId);
+        const exams = await Exam.find({
+            $or: [
+                { classId: { $in: classroomIds }, isPublished: true },
+                { _id: { $in: submittedExamIds } }
+            ]
+        }).populate('classId', 'name');
+
+        // Index exam submissions by exam for quick lookup
+        const examSubmissionByExam = {};
+        examSubmissions.forEach(s => {
+            const key = String(s.examId);
+            if (!examSubmissionByExam[key]) examSubmissionByExam[key] = s;
+        });
+
+        const examMaxPossible = (exam) => (exam.questions || []).reduce((sum, q) => sum + (q.maxScore || 1), 0);
+
+        let totalAssignments = 0;
+        let submittedCount = 0;
+        let totalScore = 0;
+        let maxPossibleScore = 0;
+
+        const performanceByClass = {};
+        const taskDetails = [];
+
+        const ensureClassBucket = (classId, className) => {
+            const key = classId ? String(classId) : 'independent';
+            if (!performanceByClass[key]) {
+                performanceByClass[key] = {
+                    className: className || 'Independent Exams',
+                    totalAssignments: 0,
+                    submittedCount: 0,
+                    totalScore: 0,
+                    maxPossibleScore: 0,
+                    attendance: { attended: 0, total: 0 },
+                    assignments: []
+                };
+            }
+            return performanceByClass[key];
+        };
+
+        assignments.forEach(assignment => {
+            const classId = assignment.classroomId._id.toString();
+            const className = assignment.classroomId.name;
+            const bucket = ensureClassBucket(classId, className);
+
+            bucket.totalAssignments++;
+            totalAssignments++;
+
+            // Find submission for this student
+            const submission = assignment.submissions.find(sub =>
+                sub.studentId.toString() === studentId.toString()
+            );
+
+            let score = 0;
+            let status = 'pending';
+
+            if (submission) {
+                submittedCount++;
+                bucket.submittedCount++;
+
+                if (submission.status === 'graded' || submission.status === 'returned') {
+                    score = submission.score;
+                    status = submission.status;
+
+                    totalScore += score;
+                    maxPossibleScore += assignment.maxScore;
+
+                    bucket.totalScore += score;
+                    bucket.maxPossibleScore += assignment.maxScore;
+                } else {
+                    status = 'submitted'; // Submitted but not graded
+                }
+            } else {
+                status = 'missing';
+            }
+
+            const assignmentData = {
+                type: 'assignment',
+                id: assignment._id,
+                title: assignment.title,
+                className,
+                dueDate: assignment.dueDate,
+                score: score === undefined || score === null ? score : Math.round(score * 10) / 10,
+                maxScore: assignment.maxScore,
+                status
+            };
+
+            taskDetails.push(assignmentData);
+            bucket.assignments.push(assignmentData);
+        });
+
+        // Exams (results only count once officially published)
+        exams.forEach(exam => {
+            const classId = exam.classId ? (exam.classId._id || exam.classId) : null;
+            const className = exam.classId?.name || null;
+            const bucket = ensureClassBucket(classId, className);
+            const maxPossible = examMaxPossible(exam);
+
+            bucket.totalAssignments++;
+            totalAssignments++;
+
+            const submission = examSubmissionByExam[String(exam._id)];
+
+            let score = 0;
+            let status = 'missing';
+
+            if (submission && (submission.status === 'submitted' || submission.status === 'graded')) {
+                submittedCount++;
+                bucket.submittedCount++;
+
+                if (submission.status === 'graded' && examResultsArePublic(exam)) {
+                    score = submission.totalScore || 0;
+                    status = 'graded';
+
+                    totalScore += score;
+                    maxPossibleScore += maxPossible;
+
+                    bucket.totalScore += score;
+                    bucket.maxPossibleScore += maxPossible;
+                } else {
+                    status = 'submitted'; // Submitted, awaiting manual grading / result release
+                }
+            } else if (submission && submission.status === 'in-progress') {
+                status = 'in-progress';
+            }
+
+            const examData = {
+                type: 'exam',
+                id: exam._id,
+                title: exam.title,
+                className: className || 'Public Exam',
+                dueDate: exam.resultPublishTime || exam.dueDate || null,
+                score: Math.round(score * 10) / 10,
+                maxScore: maxPossible,
+                status
+            };
+
+            taskDetails.push(examData);
+            bucket.assignments.push(examData);
+        });
+
+        // Calculate Attendance Per Class
+        for (const classId of Object.keys(performanceByClass)) {
+            if (classId === 'independent') continue;
+            const totalSessions = await CallSession.countDocuments({ classroomId: classId });
+            const attendedSessions = await Attendance.countDocuments({ classroomId: classId, studentId: studentId });
+            performanceByClass[classId].attendance = {
+                attended: attendedSessions,
+                total: totalSessions,
+                percentage: totalSessions > 0 ? parseFloat(((attendedSessions / totalSessions) * 100).toFixed(1)) : 0
+            };
+        }
+
+        // Calculate Global Attendance
+        const allClassIds = Object.keys(performanceByClass).filter(cid => cid !== 'independent');
+        let globalAttended = 0;
+        let globalTotalSessions = 0;
+
+        for (const cid of allClassIds) {
+            globalAttended += performanceByClass[cid].attendance.attended;
+            globalTotalSessions += performanceByClass[cid].attendance.total;
+        }
+        const globalAttendancePercentage = globalTotalSessions > 0 ? (globalAttended / globalTotalSessions) * 100 : 0;
+
+        // Calculate percentages
+        const overallPercentage = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
+
+        Object.values(performanceByClass).forEach(cls => {
+            cls.averagePercentage = cls.maxPossibleScore > 0 ? parseFloat(((cls.totalScore / cls.maxPossibleScore) * 100).toFixed(1)) : 0;
+        });
+
+        res.json({
+            student: {
+                name: req.user.name,
+                email: req.user.email
+            },
+            summary: {
+                totalAssignments,
+                submittedCount,
+                overallPercentage: parseFloat(overallPercentage.toFixed(1)),
+                pendingCount: totalAssignments - submittedCount, // Roughly, or specifically calculate 'missing'
+                attendancePercentage: parseFloat(globalAttendancePercentage.toFixed(1))
+            },
+            byClass: Object.values(performanceByClass),
+            recentAssignments: taskDetails.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate)).slice(0, 10)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching student report' });
+    }
+};
+
+// @desc    Get performance report for a specific class (for Teacher)
+// @route   GET /api/reports/class/:classId
+// @access  Private (Teacher, Admin)
+exports.getClassPerformance = async (req, res) => {
+    try {
+        const { classId } = req.params;
+
+        // Authorization: User must be teacher of this class OR admin
+        const classroom = await Classroom.findById(classId).populate('students', 'name email');
+        if (!classroom) {
+            return res.status(404).json({ message: 'Classroom not found' });
+        }
+
+        // Authorization check
+        let isAuthorized = false;
+
+        if (req.user.role === 'root_admin') {
+            isAuthorized = true;
+        } else if (req.user.role === 'school_admin') {
+            // Check if this class belongs to a school this admin manages
+            if (classroom.schoolId && classroom.schoolId.length > 0) {
+                const School = require('../models/School');
+                const school = await School.findOne({
+                    _id: { $in: classroom.schoolId },
+                    adminId: req.user._id
+                });
+                if (school) isAuthorized = true;
+            }
+        } else if (classroom.teacherId && classroom.teacherId.toString() === req.user._id.toString()) {
+            isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
+            return res.status(403).json({ message: 'Not authorized to view this report' });
+        }
+
+        const assignments = await Assignment.find({ classroomId: classId }); // Include unpublished? Maybe not.
+        const totalSessions = await CallSession.countDocuments({ classroomId: classId });
+
+        // Exams assigned to this class (published). Results only count when released.
+        const exams = await Exam.find({ classId: classId, isPublished: true });
+        const classExamIds = exams.map(e => e._id);
+        const classExamSubmissions = await ExamSubmission.find({ examId: { $in: classExamIds } });
+        const examMaxPossible = (exam) => (exam.questions || []).reduce((sum, q) => sum + (q.maxScore || 1), 0);
+
+        const studentStats = [];
+        const assignmentStats = [];
+        const examStats = [];
+
+        // Calculate Assignment Stats (Avg score usually)
+        assignments.forEach(assign => {
+            const scores = assign.submissions
+                .filter(sub => sub.status === 'graded' || sub.status === 'returned')
+                .map(sub => sub.score);
+
+            const stats = calculateStats(scores);
+
+            assignmentStats.push({
+                id: assign._id,
+                title: assign.title,
+                maxScore: assign.maxScore,
+                averageScore: stats.average,
+                submissionCount: assign.submissions.length,
+                totalStudents: classroom.students.length
+            });
+        });
+
+        // Calculate Exam Stats (only released results count)
+        exams.forEach(exam => {
+            const stats = calculateStats(
+                classExamSubmissions
+                    .filter(s => String(s.examId) === String(exam._id) && s.status === 'graded' && examResultsArePublic(exam))
+                    .map(s => s.totalScore || 0)
+            );
+
+            examStats.push({
+                id: exam._id,
+                title: exam.title,
+                maxScore: examMaxPossible(exam),
+                averageScore: stats.average,
+                submissionCount: classExamSubmissions.filter(s => String(s.examId) === String(exam._id)).length,
+                totalStudents: classroom.students.length
+            });
+        });
+
+        // Calculate Student Stats
+        // Use for...of to allow await inside
+        for (const student of classroom.students) {
+            let totalScore = 0;
+            let maxPossible = 0;
+            let submittedCount = 0;
+
+            assignments.forEach(assign => {
+                const sub = assign.submissions.find(s => s.studentId.toString() === student._id.toString());
+                if (sub) {
+                    submittedCount++;
+                    if (sub.status === 'graded' || sub.status === 'returned') {
+                        totalScore += sub.score;
+                        maxPossible += assign.maxScore;
+                    }
+                }
+            });
+
+            // Add exam contributions (gated by result release)
+            exams.forEach(exam => {
+                const sub = classExamSubmissions.find(s =>
+                    String(s.examId) === String(exam._id) && String(s.studentId) === String(student._id)
+                );
+                if (sub) {
+                    submittedCount++;
+                    if (sub.status === 'graded' && examResultsArePublic(exam)) {
+                        totalScore += sub.totalScore || 0;
+                        maxPossible += examMaxPossible(exam);
+                    }
+                }
+            });
+
+            const percentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
+
+            const attendedCount = await Attendance.countDocuments({ classroomId: classId, studentId: student._id });
+            const attendPct = totalSessions > 0 ? (attendedCount / totalSessions) * 100 : 0;
+
+            studentStats.push({
+                id: student._id,
+                name: student.name,
+                email: student.email,
+                assignmentsSubmitted: submittedCount,
+                totalAssignments: assignments.length + exams.length,
+                averagePercentage: parseFloat(percentage.toFixed(1)),
+                attendancePercentage: parseFloat(attendPct.toFixed(1)),
+                classesAttended: attendedCount,
+                totalClasses: totalSessions
+            });
+        }
+
+        res.json({
+            classroom: {
+                id: classroom._id,
+                name: classroom.name,
+                studentCount: classroom.students.length
+            },
+            assignmentStats,
+            examStats,
+            studentStats: studentStats.sort((a, b) => b.averagePercentage - a.averagePercentage)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching class report' });
+    }
+};
+
+// @desc    Get performance report for a school (School Admin)
+// @route   GET /api/reports/school/:schoolId
+// @access  Private (School Admin, Root Admin)
+exports.getSchoolPerformance = async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        let schools = [];
+        let reportName = "";
+
+        if (schoolId === 'all') {
+            if (req.user.role === 'root_admin') {
+                schools = await School.find();
+                reportName = "Global Combined Report";
+            } else if (req.user.role === 'school_admin') {
+                schools = await School.find({ adminId: req.user._id });
+                reportName = "All Managed Schools";
+            } else {
+                return res.status(403).json({ message: 'Not authorized' });
+            }
+        } else {
+            const school = await School.findById(schoolId);
+            if (!school) return res.status(404).json({ message: 'School not found' });
+
+            // Authorization: Check if user is root_admin or the school's admin
+            if (req.user.role !== 'root_admin' && school.adminId.toString() !== req.user._id.toString()) {
+                return res.status(403).json({ message: 'Not authorized' });
+            }
+            schools = [school];
+            reportName = school.name;
+        }
+
+        if (schools.length === 0) {
+            return res.json({
+                schoolName: reportName,
+                totalStudents: 0,
+                totalClassrooms: 0,
+                overallAverage: 0,
+                classPerformance: []
+            });
+        }
+
+        // Get all classrooms for these schools
+        const schoolIds = schools.map(s => s._id);
+        const classrooms = await Classroom.find({ schoolId: { $in: schoolIds } });
+
+        // Aggregate data
+        const totalStudents = new Set();
+        let totalAssignmentsCount = 0;
+        let totalSubmissionsCount = 0;
+        let globalScoreSum = 0;
+        let globalMaxScoreSum = 0;
+
+        const classPerformance = [];
+
+        for (const classroom of classrooms) {
+            classroom.students.forEach(s => totalStudents.add(s.toString()));
+
+            const assignments = await Assignment.find({ classroomId: classroom._id });
+
+            let clsScore = 0;
+            let clsMax = 0;
+            let clsSubs = 0;
+
+            assignments.forEach(a => {
+                totalAssignmentsCount++;
+                clsSubs += a.submissions.length;
+
+                a.submissions.forEach(s => {
+                    if (s.status === 'graded' || s.status === 'returned') {
+                        clsScore += s.score;
+                        clsMax += a.maxScore;
+                    }
+                });
+            });
+
+            totalSubmissionsCount += clsSubs;
+            globalScoreSum += clsScore;
+            globalMaxScoreSum += clsMax;
+
+            const clsAvg = clsMax > 0 ? (clsScore / clsMax) * 100 : 0;
+
+            // Calculate class-wide attendance avg
+            const totalClassSessions = await CallSession.countDocuments({ classroomId: classroom._id });
+            let totalStudentAttendancePctSum = 0;
+
+            if (totalClassSessions > 0 && classroom.students.length > 0) {
+                for (const st of classroom.students) {
+                    const att = await Attendance.countDocuments({ classroomId: classroom._id, studentId: st });
+                    totalStudentAttendancePctSum += (att / totalClassSessions);
+                }
+            }
+            const avgAttendance = classroom.students.length > 0 ? (totalStudentAttendancePctSum / classroom.students.length) * 100 : 0;
+
+            classPerformance.push({
+                id: classroom._id,
+                name: classroom.name,
+                studentCount: classroom.students.length,
+                averagePercentage: parseFloat(clsAvg.toFixed(1)),
+                attendancePercentage: parseFloat(avgAttendance.toFixed(1)),
+                assignmentCount: assignments.length
+            });
+        }
+
+        res.json({
+            schoolName: reportName,
+            totalStudents: totalStudents.size,
+            totalClassrooms: classrooms.length,
+            overallAverage: globalMaxScoreSum > 0 ? parseFloat(((globalScoreSum / globalMaxScoreSum) * 100).toFixed(1)) : 0,
+            classPerformance: classPerformance.sort((a, b) => b.averagePercentage - a.averagePercentage)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching school report' });
+    }
+};
+
+// @desc    Get dashboard stats for root admin
+// @route   GET /api/reports/admin/overview
+// @access  Private (Root Admin)
+exports.getAdminOverview = async (req, res) => {
+    try {
+        if (req.user.role !== 'root_admin') {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const stats = {
+            totalSchools: await School.countDocuments(),
+            totalUsers: await User.countDocuments(),
+            totalClassrooms: await Classroom.countDocuments(),
+            totalAssignments: await Assignment.countDocuments()
+        };
+
+        // Maybe add some recent activity or revenue stats later
+
+        res.json(stats);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Get consolidated students report for Teacher or School Admin
+// @route   GET /api/reports/all-students
+// @access  Private (Teacher, School Admin)
+exports.getAllStudentsReport = async (req, res) => {
+    try {
+        const user = req.user;
+        const { schoolId } = req.query;
+        let classrooms = [];
+
+        // 1. Identify relevant classrooms
+        if (user.role === 'personal_teacher' || user.role === 'teacher') {
+            classrooms = await Classroom.find({ teacherId: user._id }).populate('students', 'name email');
+        } else if (user.role === 'school_admin' || user.role === 'root_admin') {
+            let filter = {};
+            if (user.role === 'school_admin') {
+                const managedSchools = await School.find({ adminId: user._id });
+                const managedSchoolIds = managedSchools.map(s => s._id);
+                filter = { schoolId: { $in: managedSchoolIds } };
+            }
+
+            // Apply specific school filter if provided and not 'all'
+            if (schoolId && schoolId !== 'all') {
+                filter.schoolId = schoolId;
+            }
+
+            classrooms = await Classroom.find(filter).populate('students', 'name email');
+        } else {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const classroomNames = [...new Set(classrooms.map(c => c.name))].sort();
+        const studentMap = {}; // email -> { name, email, scores: { className: score } }
+
+        // 2. Iterate classrooms and calculate stats for each student
+        for (const classroom of classrooms) {
+            const assignments = await Assignment.find({ classroomId: classroom._id });
+
+            for (const student of classroom.students) {
+                let totalScore = 0;
+                let maxPossible = 0;
+
+                assignments.forEach(assign => {
+                    const sub = assign.submissions.find(s => s.studentId.toString() === student._id.toString());
+                    if (sub && (sub.status === 'graded' || sub.status === 'returned')) {
+                        totalScore += sub.score;
+                        maxPossible += assign.maxScore;
+                    }
+                });
+
+                const percentage = maxPossible > 0 ? parseFloat(((totalScore / maxPossible) * 100).toFixed(1)) : 0;
+
+                if (!studentMap[student.email]) {
+                    studentMap[student.email] = {
+                        id: student._id,
+                        name: student.name,
+                        email: student.email,
+                        scores: {}
+                    };
+                }
+
+                studentMap[student.email].scores[classroom.name] = percentage;
+            }
+        }
+
+        const students = Object.values(studentMap).map(s => {
+            const scoreValues = Object.values(s.scores);
+            const overallAverage = scoreValues.length > 0
+                ? parseFloat((scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length).toFixed(1))
+                : 0;
+            return { ...s, overallAverage };
+        });
+
+        res.json({
+            classrooms: classroomNames,
+            students: students.sort((a, b) => b.overallAverage - a.overallAverage)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching students report' });
+    }
+};

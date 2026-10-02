@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api'; // Use our configured API instance
 import { useAuth } from '../context/AuthContext';
+import { formatAmount } from '../utils/currency';
+import { LogOut } from 'lucide-react';
 
 const SubscriptionManagement = () => {
   const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [defaultPricingType, setDefaultPricingType] = useState('monthly');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, refreshUser } = useAuth();
@@ -22,7 +29,7 @@ const SubscriptionManagement = () => {
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch subscription plans');
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
       }
     };
 
@@ -39,6 +46,18 @@ const SubscriptionManagement = () => {
     // For now, we'll simulate subscription update
   };
 
+  const loadPaystackScript = () => {
+    return new Promise((resolve, reject) => {
+      if (window.PaystackPop) return resolve();
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Paystack script'));
+      document.body.appendChild(script);
+    });
+  };
+
   const handleSubscribe = async () => {
     if (!selectedPlan) {
       setError('Please select a plan.');
@@ -52,38 +71,116 @@ const SubscriptionManagement = () => {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     setError(null);
     try {
-      // For trial/pay-as-you-go, no immediate payment, just update user subscription
-      if (selectedPlan.planType === 'trial' || selectedPlan.planType === 'pay_as_you_go') {
-        // Simulate backend call to update user's subscription status
-        // In a real app, this would be an API call to user-subscriptions endpoint
-        await api.post('/user-subscriptions', {
-          userId: user._id,
-          planId: selectedPlan._id,
-          status: selectedPlan.planType === 'trial' ? 'trial' : 'pay_as_you_go',
-          startDate: new Date(),
-          // For trial, endDate is already handled in user creation. For pay-as-you-go, no fixed end.
-          // For simplicity, we're not setting endDate here for PAYG
+      await loadPaystackScript();
+
+      // Use the 'Payment API' for free plans (Trial / 0-price PAYG)
+      if (selectedPlan.price === 0) {
+        await api.post('/payments/free-subscription', {
+          planId: selectedPlan._id
         });
 
-        alert(`Successfully subscribed to ${selectedPlan.name}!`);
+        toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
         await refreshUser();
-        navigate('/dashboard'); // Redirect to dashboard after successful subscription
+        setSubmitting(false);
+        if (selectedPlan.planType === 'pay_as_you_go') {
+          setShowPricingModal(true);
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        // For paid plans (monthly, yearly), integrate with Stripe Checkout
-        alert(`Proceeding to payment for ${selectedPlan.name}. (Stripe integration needed here)`);
-        // TODO: Implement actual Stripe checkout for recurring payments
-        // After successful Stripe payment, you would then call your backend to update user-subscriptions
-        // Example: await axios.post('/api/payments/subscribe', { planId: selectedPlan._id });
-        await refreshUser();
-        navigate('/dashboard'); // Temporary redirect
+        // For paid plans (monthly, yearly), integrate with Paystack
+        const usePaystack = !!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || false;
+        if (usePaystack) {
+          const resp = await api.post('/payments/paystack/initiate', {
+            amount: selectedPlan.price,
+            planId: selectedPlan._id,
+            type: 'subscription'
+          });
+
+          if (resp.data && resp.data.reference) {
+            const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+            const payAmount = (import.meta.env.VITE_PAYSTACK_CURRENCY || 'NGN').toLowerCase() === 'ngn' ? Math.round(selectedPlan.price * 100) : Math.round(selectedPlan.price * 100);
+
+            try {
+              function handleCallback(response) {
+                // call async verify but keep this function synchronous for Paystack
+                (async () => {
+                  try {
+                    await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
+                    toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
+                    await refreshUser();
+                    if (selectedPlan.planType === 'pay_as_you_go') {
+                      setShowPricingModal(true);
+                    } else {
+                      navigate('/dashboard');
+                    }
+                  } catch (err) {
+                    console.error('Subscription verification error:', err);
+                    setError(err.response?.data?.message || 'Verification failed');
+                  } finally {
+                    setSubmitting(false);
+                  }
+                })();
+              }
+
+              function handleOnClose() {
+                setSubmitting(false);
+                toast.error('Payment window closed');
+              }
+
+              if (typeof handleCallback !== 'function') throw new Error('Invalid callback');
+
+              const handler = window.PaystackPop.setup({
+                key: pubKey,
+                email: userEmail,
+                amount: payAmount,
+                ref: resp.data.reference,
+                onClose: handleOnClose,
+                callback: handleCallback
+              });
+
+              if (handler && typeof handler.openIframe === 'function') {
+                handler.openIframe();
+              } else if (handler && typeof handler.open === 'function') {
+                handler.open();
+              } else {
+                throw new Error('Paystack handler not available');
+              }
+              // Wait for user interaction or callback
+              return;
+            } catch (setupErr) {
+              console.error('Paystack setup error:', setupErr);
+              throw new Error(`Failed to launch Paystack payment window: ${setupErr.message}`);
+            }
+          }
+        }
+
+        // Fallback or if Paystack not configured
+        toast.error('Payment configuration missing or failed to initialize');
+        setSubmitting(false);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Subscription failed');
+      console.error('Subscription process error:', err);
+      setError(err.response?.data?.message || err.message || 'Subscription failed');
+      setSubmitting(false);
+    }
+  };
+
+  const handleSavePricingPreference = async () => {
+    setUpdatingProfile(true);
+    try {
+      await api.put('/auth/profile', { defaultPricingType });
+      toast.success('Your class fee preference has been saved.');
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error('Failed to save preference, taking you to dashboard.');
+      navigate('/dashboard');
     } finally {
-      setLoading(false);
+      setUpdatingProfile(false);
+      setShowPricingModal(false);
     }
   };
 
@@ -94,7 +191,7 @@ const SubscriptionManagement = () => {
     navigate('/login', { state: { message: 'Please choose a subscription plan to access the platform.' } });
   };
 
-  if (loading) {
+  if (initialLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading plans...</div>;
   }
 
@@ -110,65 +207,194 @@ const SubscriptionManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-6">Choose Your Subscription Plan</h2>
-        
-        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
-          <p className="text-center text-sm text-gray-600 mb-4">
-            Your free trial ends on {new Date(user.trialEndDate).toLocaleDateString()}. Please select a plan before it expires.
+    <div className="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <div className="max-w-7xl w-full mx-auto bg-white p-6 sm:p-12 rounded-xl shadow-none relative border border-slate-100/50 animate-slide-up">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full  -mr-32 -mt-32 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full  -ml-32 -mb-32 pointer-events-none" />
+
+        <div className="absolute top-8 right-8 z-10">
+          <button
+            onClick={() => { logout(); navigate('/login'); }}
+            className="flex items-center space-x-2 px-5 py-2.5 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition-all active:scale-95 group shadow-none"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+        </div>
+
+        <div className="text-center mb-16 relative z-10">
+          <h2 className="text-4xl sm:text-5xl font-semibold text-slate-900 mb-4 tracking-tight">Choose Your Plan</h2>
+          <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto leading-relaxed">
+            Select the perfect subscription to power your educational institution. Scale as you grow.
           </p>
+        </div>
+
+        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() &&
+          !['student', 'teacher'].includes(user.role) && (
+            <div className="max-w-xl mx-auto mb-10 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-4 animate-bounce">
+              <div className="w-12 h-12 bg-white rounded-xl shadow-none flex items-center justify-center text-primary">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-primary font-semibold text-sm">
+                Your free trial ends on <span className="underline decoration-indigo-300 decoration-2">{new Date(user.trialEndDate).toLocaleDateString()}</span>. Enjoy the full experience!
+              </p>
+            </div>
+          )}
+
+        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) <= Date.now() &&
+          !['student', 'teacher'].includes(user.role) && (
+            <div className="max-w-xl mx-auto mb-10 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-4 animate-pulse">
+              <div className="w-12 h-12 bg-white rounded-xl shadow-none flex items-center justify-center text-red-500">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+              <p className="text-red-900 font-semibold text-sm tracking-tight">
+                Your free trial has expired! Select a plan to regain full access.
+              </p>
+            </div>
+          )}
+
+        {error && (
+          <div className="max-w-md mx-auto mb-8 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-center font-semibold text-sm">
+            {error}
+          </div>
         )}
 
-        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) <= Date.now() && (
-          <p className="text-center text-red-500 text-lg font-semibold mb-4">
-            Your free trial has expired! Please choose a plan to continue.
-          </p>
-        )}
-
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="flex flex-wrap justify-center gap-8 mb-12">
           {plans.map((plan) => (
             <div
               key={plan._id}
-              className={`p-6 border rounded-lg shadow-sm text-center cursor-pointer transition-all ${selectedPlan?._id === plan._id ? 'border-indigo-600 ring-2 ring-indigo-500' : 'border-gray-200 hover:shadow-md'}`}
+              className={`w-full max-w-sm flex flex-col p-8 rounded-xl cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedPlan?._id === plan._id
+                ? 'bg-slate-900 text-white shadow-none scale-[1.02] ring-4 ring-primary/20'
+                : 'bg-white text-slate-900 border-2 border-slate-100 hover:border-slate-200 hover:shadow-none hover:-translate-y-1'
+                }`}
               onClick={() => handleSelectPlan(plan)}
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-2">{plan.name}</h3>
-              <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
-              {plan.price > 0 ? (
-                <p className="text-2xl font-bold text-indigo-600">${plan.price}{plan.planType === 'monthly' ? '/month' : plan.planType === 'yearly' ? '/year' : ''}</p>
-              ) : (
-                <p className="text-2xl font-bold text-indigo-600">{plan.planType === 'trial' ? 'FREE' : 'Revenue Share'}</p>
+              {selectedPlan?._id === plan._id && (
+                <div className="absolute top-4 right-4 bg-primary text-white p-1 rounded-full animate-in zoom-in duration-300">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
               )}
-              {plan.planType === 'pay_as_you_go' && (
-                <p className="text-sm text-gray-500">{plan.revenueSharePercentage}% revenue share</p>
-              )}
-              <ul className="text-gray-700 text-left mt-4 space-y-1">
+
+              <h3 className={`text-2xl font-semibold mb-2 ${selectedPlan?._id === plan._id ? 'text-white' : 'text-slate-900'}`}>{plan.name}</h3>
+              <p className={`text-sm mb-6 font-medium ${selectedPlan?._id === plan._id ? 'text-slate-400' : 'text-slate-500'}`}>{plan.description}</p>
+
+              <div className="mb-8 p-6 bg-slate-50/10 rounded-xl border border-white/5 ">
+                {plan.price > 0 ? (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-semibold">{formatAmount(plan.price)}</span>
+                    <span className="text-sm font-semibold opacity-60">/{plan.planType === 'monthly' ? 'mo' : 'yr'}</span>
+                  </div>
+                ) : (
+                  <div className="text-3xl font-semibold text-primary">
+                    {plan.planType === 'trial' ? 'FREE TRIAL' : 'REV SHARE'}
+                  </div>
+                )}
+                {plan.planType === 'pay_as_you_go' && (
+                  <p className="text-xs font-semibold tracking-wide mt-2 opacity-60 text-primary">{plan.revenueSharePercentage}% Service Fee</p>
+                )}
+              </div>
+
+              <ul className="space-y-4 text-left flex-1 mb-10">
                 {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check-circle text-green-500 mr-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>{feature}</li>
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className={`mt-0.5 p-0.5 rounded-full ${selectedPlan?._id === plan._id ? 'bg-primary/20 text-primary' : 'bg-emerald-50 text-emerald-500'}`}>
+                      <CheckCircle className="w-4 h-4" />
+                    </div>
+                    <span className={`text-sm font-semibold ${selectedPlan?._id === plan._id ? 'text-slate-300' : 'text-slate-600'}`}>{feature}</span>
+                  </li>
                 ))}
               </ul>
+
+              <div className={`mt-auto p-1 rounded-xl transition-all ${selectedPlan?._id === plan._id ? 'bg-white/10' : 'bg-slate-50'}`}>
+                <div className={`py-4 rounded-xl font-semibold text-xs tracking-[0.2em] transition-all ${selectedPlan?._id === plan._id
+                  ? 'bg-primary text-white'
+                  : 'text-slate-400 group-hover:text-slate-600'
+                  }`}>
+                  {selectedPlan?._id === plan._id ? 'Plan Selected' : 'Choose Plan'}
+                </div>
+              </div>
             </div>
           ))}
         </div>
 
-        <button
-          onClick={handleSubscribe}
-          disabled={loading || !selectedPlan}
-          className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          {loading ? 'Processing...' : `Subscribe to ${selectedPlan ? selectedPlan.name : 'Plan'}`}
-        </button>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <button
+            onClick={handleSubscribe}
+            disabled={submitting || !selectedPlan}
+            className="w-full py-5 bg-primary text-white font-semibold text-xl rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-none active:scale-[0.98] flex items-center justify-center gap-3"
+          >
+            {submitting ? (
+              <>
+                <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                <span>Processing Payment...</span>
+              </>
+            ) : (
+              <>
+                <span>Complete Subscription</span>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              </>
+            )}
+          </button>
 
-        {user?.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
-          <p className="text-center mt-4">
-            <button onClick={handleSkipTrial} className="text-gray-600 hover:underline disabled:opacity-50" disabled={loading}>Skip for now (Trial Active)</button>
-          </p>
-        )}
-
+          {user?.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
+            <p className="text-center">
+              <button
+                onClick={handleSkipTrial}
+                className="text-slate-400 hover:text-slate-900 font-semibold text-sm tracking-wide transition-colors"
+                disabled={submitting}
+              >
+                Maybe Later • Continue Trial
+              </button>
+            </p>
+          )}
+        </div>
       </div>
+
+      {showPricingModal && (
+        <div className="fixed inset-0 bg-slate-900/60  z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-none max-w-md w-full p-8 animate-slide-up">
+            <h3 className="text-2xl font-semibold text-slate-900 mb-2">Class Fee Preference</h3>
+            <p className="text-slate-500 mb-8 leading-relaxed">
+              As a Pay-As-You-Go user, select your default billing model. You can customize this for specific classes later.
+            </p>
+
+            <div className="grid grid-cols-1 gap-3 mb-8">
+              {[
+                { id: 'monthly', label: 'Monthly' },
+                { id: 'weekly', label: 'Weekly' },
+                { id: 'per_lecture', label: 'Per Lecture' },
+                { id: 'per_topic', label: 'Per Topic' },
+                { id: 'free', label: 'Free' }
+              ].map((option) => (
+                <label
+                  key={option.id}
+                  className={`flex items-center p-4 rounded-xl cursor-pointer transition-all border-2 ${defaultPricingType === option.id ? 'border-primary bg-primary/5' : 'border-slate-50 hover:border-slate-100 hover:bg-slate-50'}`}
+                >
+                  <input
+                    type="radio"
+                    name="pricingType"
+                    value={option.id}
+                    checked={defaultPricingType === option.id}
+                    onChange={(e) => setDefaultPricingType(e.target.value)}
+                    className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
+                  />
+                  <span className={`ml-3 font-semibold ${defaultPricingType === option.id ? 'text-primary' : 'text-slate-600'}`}>{option.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <button
+              onClick={handleSavePricingPreference}
+              disabled={updatingProfile}
+              className="btn-premium w-full flex items-center justify-center py-4"
+            >
+              {updatingProfile ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirm Preference'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { User, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { validateEmail, validatePassword, passwordRequirements } from '../utils/validation';
+import logo from '../assets/logo.jpg';
+import ThemeToggle from '../components/ThemeToggle';
 
 const RegisterPersonalTeacher = () => {
   const [formData, setFormData] = useState({
@@ -10,15 +14,21 @@ const RegisterPersonalTeacher = () => {
     password: '',
     confirmPassword: '',
     tutorialName: '',
+    logoUrl: '',
   });
+  const [logoFile, setLogoFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   useEffect(() => {
     // Listen for school selection changes
-    const handler = () => {/* reload any school-dependent data here if needed */};
+    const handler = () => {/* reload any school-dependent data here if needed */ };
     window.addEventListener('schoolSelectionChanged', handler);
     return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, []);
@@ -27,11 +37,29 @@ const RegisterPersonalTeacher = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleLogoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setLogoFile(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
     setLoading(true);
+
+    if (!validateEmail(formData.email)) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
+    if (!validatePassword(formData.password)) {
+      setError(passwordRequirements);
+      setLoading(false);
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -39,15 +67,37 @@ const RegisterPersonalTeacher = () => {
       return;
     }
 
+    let currentLogoUrl = formData.logoUrl;
+
     try {
-      const response = await api.post('/auth/register', { ...formData, role: 'personal_teacher' });
+      // 1. Upload logo if selected
+      if (logoFile) {
+        setIsUploading(true);
+        const uploadData = new FormData();
+        uploadData.append('logo', logoFile);
+        const uploadRes = await api.post('/auth/upload-logo', uploadData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          skipLoader: true
+        });
+        currentLogoUrl = uploadRes.data.imageUrl;
+        setIsUploading(false);
+      }
+
+      // 2. Register with logoUrl
+      const response = await api.post('/auth/register', {
+        ...formData,
+        logoUrl: currentLogoUrl,
+        role: 'personal_teacher'
+      }, { skipLoader: true });
       setMessage(response.data.message);
       if (response.data.redirectToVerify) {
         sessionStorage.setItem('verifyEmail', formData.email);
         navigate('/verify-email', { state: { email: formData.email } });
       } else if (response.data.token) {
         login(response.data.token, response.data.user);
-        navigate('/dashboard');
+        const params = new URLSearchParams(location.search);
+        const redirectTo = params.get('redirect') || '/dashboard';
+        navigate(redirectTo);
       }
     } catch (err) {
       console.error('Registration error:', err);
@@ -63,84 +113,134 @@ const RegisterPersonalTeacher = () => {
     }
   };
 
+  const inputClass = "w-full px-4 py-2.5 bg-muted dark:bg-muted border border-border rounded-xl text-foreground placeholder-muted-foreground transition-all focus:bg-background dark:focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none";
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-900">Register as Personal Teacher</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
+    <div className="h-screen bg-background text-foreground flex font-inter relative overflow-hidden transition-colors duration-300">
+      {/* Ambient Blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
+
+      {/* Left Decoration - Desktop */}
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
+        <div className="max-w-md text-center">
+          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-xl shadow-none mb-8" />
+          <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
+            Elevate Your <span className="text-primary italic">Learning Experience</span>
+          </h2>
+          <p className="text-muted-foreground text-lg leading-relaxed">
+            The most intuitive management system for modern educational environments.
+          </p>
+          <div className="mt-12 grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">10k+</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Students</div>
+            </div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">99.9%</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Uptime</div>
+            </div>
           </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
+          <br /><br /><br />
+          <p className="mt-8 text-center text-muted-foreground/60 text-xs font-medium">
+            &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
+          </p>
+        </div>
+      </div>
+
+      {/* Right Form */}
+      <div className="flex-1 flex justify-center p-6 pt-10 pb-10 relative z-10">
+        <div className="w-full max-w-lg animate-slide-up">
+          <div className="lg:hidden text-center mb-8 relative">
+            <div className="absolute top-0 right-0"><ThemeToggle /></div>
+            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-xl shadow-none mb-4" />
+            <h1 className="text-2xl font-semibold text-foreground">Gracified LMS</h1>
           </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
+
+          <div className="card-premium p-8 md:p-10 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto relative">
+            <div className="hidden lg:flex absolute top-6 right-6"><ThemeToggle /></div>
+            <div className="text-center mb-8">
+              <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">Personal Teacher</h1>
+              <p className="text-muted-foreground">Start your independent teaching journey</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="name" className="block text-sm font-semibold text-foreground/80 ml-1">Full Name</label>
+                <input type="text" id="name" name="name" value={formData.name} onChange={handleChange}
+                  placeholder="Enter your full name" required className={inputClass} />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="block text-sm font-semibold text-foreground/80 ml-1">Email Address</label>
+                <input type="email" id="email" name="email" value={formData.email} onChange={handleChange}
+                  placeholder="teacher@example.com" required className={inputClass} />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="tutorialName" className="block text-sm font-semibold text-foreground/80 ml-1">School / Tutorial Name</label>
+                <input type="text" id="tutorialName" name="tutorialName" value={formData.tutorialName} onChange={handleChange}
+                  placeholder="e.g. Creative Arts Academy" required className={inputClass} />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="logo" className="block text-sm font-semibold text-foreground/80 ml-1">Logo / Profile Image (Optional)</label>
+                <input type="file" id="logo" name="logo" onChange={handleLogoChange} accept="image/*"
+                  className={`${inputClass} text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary/10 file:text-primary file:font-semibold file:cursor-pointer`} />
+                <p className="text-xs text-muted-foreground ml-1">Recommended: Square image, max 2MB</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="block text-sm font-semibold text-foreground/80 ml-1">Password</label>
+                <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} id="password" name="password" value={formData.password} onChange={handleChange}
+                    placeholder="••••••••" required className={`${inputClass} pr-10`} />
+                  <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-foreground/80 ml-1">Confirm</label>
+                <div className="relative">
+                  <input type={showConfirmPassword ? 'text' : 'password'} id="confirmPassword" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
+                    placeholder="••••••••" required className={`${inputClass} pr-10`} />
+                  <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-500 dark:text-red-400 font-medium">{error}</div>
+              )}
+              {message && (
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{message}</div>
+              )}
+
+              <button type="submit" disabled={loading || isUploading}
+                className="w-full btn-premium mt-6 disabled:opacity-60 disabled:cursor-not-allowed">
+                {isUploading ? 'Uploading logo...' : loading ? 'Creating account...' : 'Complete Registration'}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-border">
+              <p className="text-sm text-muted-foreground text-center">
+                Already have an account?{' '}
+                <Link to={`/login${location.search}`} className="font-semibold text-primary hover:text-primary/80 transition-colors">Sign in here</Link>
+              </p>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center mb-4">Other account types</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link to={`/register/student${location.search}`} className="btn-secondary text-sm py-2 justify-center">Student</Link>
+                <Link to={`/register/school-admin${location.search}`} className="btn-secondary text-sm py-2 justify-center">School Admin</Link>
+              </div>
+            </div>
           </div>
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="tutorialName" className="block text-sm font-medium text-gray-700">Tutorial Name</label>
-            <input
-              type="text"
-              id="tutorialName"
-              name="tutorialName"
-              value={formData.tutorialName}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {message && <p className="text-green-500 text-sm">{message}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {loading ? 'Registering...' : 'Register'}
-          </button>
-        </form>
-        <p className="text-sm text-center text-gray-600">
-          Already have an account? <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">Login</Link>
-        </p>
+        </div>
       </div>
     </div>
   );

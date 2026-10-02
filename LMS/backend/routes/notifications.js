@@ -1,59 +1,34 @@
 const express = require('express');
-const brevo = require('@getbrevo/brevo');
-const defaultClient = brevo.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
-const brevoEmailApi = new brevo.TransactionalEmailsApi();
-
-// Helper to send transactional email via Brevo
-async function sendEmail({ to, subject, html }) {
-  const sender = { name: 'Gracified LMS', email: process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL || 'no-reply@yourdomain.com' };
-  const receivers = Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }];
-  const sendSmtpEmail = new brevo.SendSmtpEmail();
-  sendSmtpEmail.sender = sender;
-  sendSmtpEmail.to = receivers;
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-  try {
-    await brevoEmailApi.sendTransacEmail(sendSmtpEmail);
-  } catch (err) {
-    console.error('Brevo sendEmail error:', err);
-    throw err;
-  }
-}
-
-// ========== OLD SIB-API-V3-SDK CODE (COMMENTED OUT) ==========
-// const SibApiV3Sdk = require('sib-api-v3-sdk');
-// const defaultClient = SibApiV3Sdk.ApiClient.instance;
-// const apiKey = defaultClient.authentications['api-key'];
-// apiKey.apiKey = process.env.BREVO_API_KEY;
-// const brevoEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-//
-// // Helper to send transactional email via Brevo (old version)
-// async function sendEmail({ to, subject, html }) {
-//   const sender = { name: 'LMS Platform', email: process.env.BREVO_SENDER_EMAIL || 'no-reply@yourdomain.com' };
-//   const receivers = Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }];
-//   const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-//   sendSmtpEmail.sender = sender;
-//   sendSmtpEmail.to = receivers;
-//   sendSmtpEmail.subject = subject;
-//   sendSmtpEmail.htmlContent = html;
-//   try {
-//     await brevoEmailApi.sendTransacEmail(sendSmtpEmail);
-//   } catch (err) {
-//     console.error('Brevo sendEmail error:', err);
-//     throw err;
-//   }
-// }
+const router = express.Router();
+const { sendEmail, emailHeading, emailText, emailMeta, emailPanel, emailButton, emailNote, emailResultHero, NAVY, FOREST, ROSE } = require('../utils/email');
 // ==========================================================
 const Classroom = require('../models/Classroom');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const internalAuth = require('../middleware/internalAuth'); // Import internalAuth middleware
-const router = express.Router();
+const { checkAndSendReminders } = require('../utils/reminderHelper');
+const { processPendingExamResults } = require('../utils/examNotificationHelper');
 
 
 // Send class reminder
+/**
+ * @swagger
+ * /api/notifications/class-reminder/{classroomId}:
+ *   post:
+ *     summary: Send class reminder (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reminders sent
+ */
 router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.classroomId)
@@ -76,16 +51,19 @@ router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
     await Promise.all(recipients.map(recipient => sendEmail({
       to: recipient.email,
       subject: `Class Reminder: ${classroom.name}`,
+      classroomId: classroom._id,
       html: `
-        <h2>Class Reminder</h2>
-        <p>Hello ${recipient.name},</p>
-        <p>This is a reminder that you have a class scheduled:</p>
-        <ul>
-          <li><strong>Class:</strong> ${classroom.name}</li>
-          <li><strong>Schedule:</strong> ${classroom.schedule}</li>
-          <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
-        </ul>
-        <p>Please be prepared and join on time.</p>
+        ${emailHeading('Class Session Reminder')}
+        ${emailText(`Hello <strong>${recipient.name}</strong>,`)}
+        ${emailText('This is a reminder for your upcoming class session:')}
+        ${emailMeta([
+          ['Class', classroom.name],
+          ['Schedule', classroom.schedule],
+          ['Time', `${new Date().toLocaleString()} (GMT)`]
+        ])}
+        ${emailText('Please be prepared and join the session on time.')}
+        ${emailButton('Join Classroom', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+        ${emailNote('This is an automated reminder from Gracified LMS. Please do not reply.')}
       `
     })));
 
@@ -96,6 +74,24 @@ router.post('/class-reminder/:classroomId', internalAuth, async (req, res) => {
 });
 
 // Send assignment reminder
+/**
+ * @swagger
+ * /api/notifications/assignment-reminder/{assignmentId}:
+ *   post:
+ *     summary: Send assignment reminder (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reminders sent
+ */
 router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId)
@@ -131,16 +127,19 @@ router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res)
     await Promise.all(recipients.map(recipient => sendEmail({
       to: recipient.email,
       subject: `Assignment Reminder: ${assignment.title}`,
+      classroomId: classroom._id,
       html: `
-        <h2>Assignment Reminder</h2>
-        <p>Hello ${recipient.name},</p>
-        <p>This is a reminder about an assignment:</p>
-        <ul>
-          <li><strong>Assignment:</strong> ${assignment.title}</li>
-          <li><strong>Class:</strong> ${classroom.name}</li>
-          <li><strong>Due Date:</strong> ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}</li>
-        </ul>
-        <p>Please make sure to submit before the due date.</p>
+        ${emailHeading('Assignment Reminder')}
+        ${emailText(`Hello <strong>${recipient.name}</strong>,`)}
+        ${emailText('This is a reminder about an upcoming assignment deadline:')}
+        ${emailMeta([
+          ['Assignment', assignment.title],
+          ['Class', classroom.name],
+          ['Due Date', assignment.dueDate ? `${new Date(assignment.dueDate).toLocaleDateString()} (GMT)` : 'N/A']
+        ])}
+        ${emailText('Don\u2019t forget to submit your work before the deadline!')}
+        ${emailButton('Open Assignment', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+        ${emailNote('This is an automated reminder from Gracified LMS. Please do not reply.')}
       `
     })));
 
@@ -151,6 +150,29 @@ router.post('/assignment-reminder/:assignmentId', internalAuth, async (req, res)
 });
 
 // Send assignment result
+/**
+ * @swagger
+ * /api/notifications/assignment-result/{assignmentId}/{studentId}:
+ *   post:
+ *     summary: Send assignment result notification (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Result sent
+ */
 router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId)
@@ -188,15 +210,18 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
     await sendEmail({
       to: student.email,
       subject: `Assignment Result: ${assignment.title}`,
+      classroomId: assignment.classroomId._id,
       html: `
-        <h2>Assignment Result</h2>
-        <p>Hello ${student.name},</p>
-        <p>Your assignment has been graded:</p>
-        <ul>
-          <li><strong>Assignment:</strong> ${assignment.title}</li>
-          <li><strong>Score:</strong> ${submission.score}/${assignment.maxScore}</li>
-          <li><strong>Feedback:</strong> ${submission.feedback || 'No feedback provided'}</li>
-        </ul>
+        ${emailHeading('Assignment Result Ready')}
+        ${emailText(`Hello <strong>${student.name}</strong>,`)}
+        ${emailText(`Your assignment for <strong>"${assignment.title}"</strong> has been graded.`)}
+        ${emailResultHero({
+          eyebrow: 'Your Score',
+          value: `${submission.score} / ${assignment.maxScore}`,
+          meta: submission.feedback ? `Feedback: ${submission.feedback}` : 'Feedback: Good job!',
+          tone: NAVY
+        })}
+        ${emailButton('View Detailed Results', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}`)}
       `
     });
 
@@ -204,15 +229,17 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
     await sendEmail({
       to: teacher.email,
       subject: `Assignment Graded: ${assignment.title}`,
+      classroomId: assignment.classroomId._id,
       html: `
-        <h2>Assignment Graded</h2>
-        <p>Hello ${teacher.name},</p>
-        <p>You have graded an assignment:</p>
-        <ul>
-          <li><strong>Assignment:</strong> ${assignment.title}</li>
-          <li><strong>Student:</strong> ${student.name}</li>
-          <li><strong>Score:</strong> ${submission.score}/${assignment.maxScore}</li>
-        </ul>
+        ${emailHeading('Assignment Graded')}
+        ${emailText(`Hello <strong>${teacher.name}</strong>,`)}
+        ${emailText(`You have successfully graded an assignment for <strong>${student.name}</strong>.`)}
+        ${emailMeta([
+          ['Assignment', assignment.title],
+          ['Student', student.name],
+          ['Final Score', `${submission.score} / ${assignment.maxScore}`]
+        ])}
+        ${emailButton('Go to Classroom', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id}`)}
       `
     });
 
@@ -223,6 +250,27 @@ router.post('/assignment-result/:assignmentId/:studentId', internalAuth, async (
 });
 
 // Send payment notification
+/**
+ * @swagger
+ * /api/notifications/payment-notification:
+ *   post:
+ *     summary: Send payment notification (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - status
+ *     responses:
+ *       200:
+ *         description: Notification sent
+ */
 router.post('/payment-notification', internalAuth, async (req, res) => {
   try {
     const { userId, type, amount, status } = req.body;
@@ -240,15 +288,20 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
     await sendEmail({
       to: user.email,
       subject: `Payment ${status}: ${type}`,
+      userId: user._id,
       html: `
-        <h2>Payment Notification</h2>
-        <p>Hello ${user.name},</p>
-        <p>Your payment has been ${status}:</p>
-        <ul>
-          <li><strong>Type:</strong> ${type}</li>
-          <li><strong>Amount:</strong> $${amount}</li>
-          <li><strong>Status:</strong> ${status}</li>
-        </ul>
+        ${emailHeading(status === 'success' ? 'Payment Successful' : 'Payment Failed')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText(`Your payment for <strong>${type}</strong> has been ${status === 'success' ? 'processed successfully' : 'not completed'}.`)}
+        ${emailPanel(`
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0;">
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Amount</td><td style="text-align:right; font-weight:600; vertical-align:top; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word;">₦${amount}</td></tr>
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Date</td><td style="text-align:right; font-weight:600; vertical-align:top; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word;">${new Date().toLocaleDateString()} (GMT)</td></tr>
+            <tr><td style="color:#5B6B7C; font-weight:600; padding:2px 12px 2px 0; vertical-align:top;">Status</td><td style="text-align:right; font-weight:600; vertical-align:top; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word; color:${status === 'success' ? FOREST : ROSE};">${status.toUpperCase()}</td></tr>
+          </table>
+        `, { accent: status === 'success' ? FOREST : ROSE })}
+        ${emailText('If you have any questions, please contact our support team.')}
+        ${emailButton('Go to Dashboard', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`)}
       `
     });
 
@@ -258,5 +311,104 @@ router.post('/payment-notification', internalAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+// Send payout notification
+/**
+ * @swagger
+ * /api/notifications/payout-notification:
+ *   post:
+ *     summary: Send payout notification (Internal)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Notification sent
+ */
+router.post('/payout-notification', internalAuth, async (req, res) => {
+  try {
+    const { userId, amount, status, classroomId } = req.body;
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const classroomName = classroomId ? (await Classroom.findById(classroomId))?.name : 'class enrollment';
+
+    await sendEmail({
+      to: user.email,
+      subject: `Payout Approved: ${classroomName}`,
+      classroomId: classroomId,
+      html: `
+        ${emailHeading('Payout Successful')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText('Great news! Your disbursement has been approved and paid out to your registered bank account.')}
+        ${emailMeta([
+          ['Amount', `₦${amount}`],
+          ['Source', classroomName],
+          ['Status', 'PAID']
+        ])}
+        ${emailText('The funds should reflect in your account within 1\u20133 business days depending on your bank.')}
+        ${emailButton('View Transaction History', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`)}
+      `
+    });
+
+    res.json({ message: 'Payout notification sent successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/**
+ * Trigger for external cron jobs (e.g., cron-job.org)
+ * GET /api/notifications/trigger-reminders?secret=YOUR_CRON_SECRET
+ */
+/**
+ * @swagger
+ * /api/notifications/trigger-reminders:
+ *   get:
+ *     summary: Trigger all scheduled reminders and exam processing (Cron)
+ *     tags: [Notifications]
+ *     parameters:
+ *       - in: query
+ *         name: secret
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reminders triggered
+ */
+router.get('/trigger-reminders', async (req, res) => {
+  try {
+    const cronSecret = process.env.CRON_SECRET;
+    const providedSecret = req.query.secret;
+
+    if (cronSecret && providedSecret !== cronSecret) {
+      return res.status(401).json({ message: 'Unauthorized trigger' });
+    }
+
+    const result = await checkAndSendReminders();
+    const examResult = await processPendingExamResults();
+
+    res.json({
+      success: true,
+      message: 'Notification check completed',
+      details: {
+        reminders: result,
+        examResults: examResult
+      }
+    });
+  } catch (error) {
+    console.error('Trigger Reminders Error:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+module.exports = router;

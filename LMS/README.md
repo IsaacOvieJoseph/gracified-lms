@@ -139,7 +139,7 @@ VITE_API_URL=http://localhost:5000/api
 npm run dev
 ```
 
-The frontend will run on `http://localhost:3000`
+The frontend will run on `http://localhost:5173`
 
 ## Demo Accounts
 
@@ -192,6 +192,12 @@ After seeding the database, you can use these accounts:
 - `POST /api/payments/confirm` - Confirm payment
 - `GET /api/payments/history` - Get payment history
 - `GET /api/payments/:id` - Get payment by ID
+ - `POST /api/payments/paystack/initiate` - Initiate Paystack transaction
+ - `GET /api/payments/paystack/verify` - Verify Paystack transaction reference
+ - `POST /api/payments/paystack/webhook` - Paystack webhook receiver (server-side)
+
+Frontend callback (optional): `https://<your-domain>/payments/verify`
+ - Purpose: user-facing redirect after completing payment. The page reads the `reference` query parameter and calls `GET /api/payments/paystack/verify?reference=...` to finalize verification.
 
 ### Zoom
 - `POST /api/zoom/create-meeting/:classroomId` - Create Zoom meeting
@@ -266,9 +272,12 @@ The built files will be in `frontend/dist/`
 - `SMTP_PASS` - SMTP password
 - `ZOOM_API_KEY` - Zoom API key (optional)
 - `ZOOM_API_SECRET` - Zoom API secret (optional)
+ - `PAYSTACK_SECRET_KEY` - Paystack secret key (required if using Paystack)
+ - `PAYSTACK_CURRENCY` - Currency code for Paystack amounts (e.g., `NGN`)
 
 ### Frontend (.env)
 - `VITE_API_URL` - Backend API URL
+ - `VITE_PAYSTACK_PUBLIC_KEY` - Paystack public key for inline widget (optional)
 
 ## Security Notes
 

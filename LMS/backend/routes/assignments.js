@@ -2,13 +2,96 @@ const express = require('express');
 const Assignment = require('../models/Assignment');
 const Classroom = require('../models/Classroom');
 const Notification = require('../models/Notification'); // Import Notification model
-const axios = require('axios'); // Ensure axios is imported here
+const { sendEmail, emailHeading, emailText, emailMeta, emailPanel, emailButton, emailResultHero, emailNote, FOREST, NAVY } = require('../utils/email');
 const { auth, authorize } = require('../middleware/auth');
-const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
+const subscriptionCheck = require('../middleware/subscriptionCheck');
+const { notifyNewAssignment } = require('../utils/assignmentNotificationHelper'); // Import subscriptionCheck middleware
 const { filterAssignmentsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
+const Settings = require('../models/Settings');
+const { sanitizeAssignment } = require('../utils/answerKey');
 const router = express.Router();
 
+// Helper to check school access
+const hasSchoolAccess = (user, classroom) => {
+  if (user.role === 'root_admin') return true;
+  if (!user.schoolId || !classroom.schoolId) return false;
+
+  const userSchools = Array.isArray(user.schoolId) ? user.schoolId : [user.schoolId];
+  const classroomSchools = Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId];
+
+  const userSchoolIds = userSchools.map(id => (id._id || id).toString());
+  const classroomSchoolIds = classroomSchools.map(id => (id._id || id).toString());
+
+  return userSchoolIds.some(id => classroomSchoolIds.includes(id));
+};
+
+// Get all assignments relevant to the user
+/**
+ * @swagger
+ * /api/assignments:
+ *   get:
+ *     summary: Get all assignments relevant to the authenticated user
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of assignments
+ */
+router.get('/', auth, async (req, res) => {
+  try {
+    let query = {};
+    if (req.user.role === 'student') {
+      const classrooms = await Classroom.find({ students: req.user._id }).select('_id');
+      const classroomIds = classrooms.map(c => c._id);
+      query = { classroomId: { $in: classroomIds }, published: { $ne: false } };
+    } else if (req.user.role === 'teacher' || req.user.role === 'personal_teacher') {
+      const classrooms = await Classroom.find({ teacherId: req.user._id }).select('_id');
+      const classroomIds = classrooms.map(c => c._id);
+      query = { classroomId: { $in: classroomIds } };
+    } else if (req.user.role === 'school_admin') {
+      const School = require('../models/School');
+      const adminSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const adminSchoolIds = adminSchools.map(s => s._id);
+      const classrooms = await Classroom.find({ schoolId: { $in: adminSchoolIds } }).select('_id');
+      const classroomIds = classrooms.map(c => c._id);
+      query = { classroomId: { $in: classroomIds } };
+    }
+
+    const assignments = await Assignment.find(query)
+      .populate('classroomId', 'name')
+      .populate('topicId', 'name isPaid price')
+      .sort({ createdAt: -1 });
+
+    const payload = req.user.role === 'student'
+      ? assignments.map(a => sanitizeAssignment(a, req.user))
+      : assignments;
+
+    res.json({ assignments: payload });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get assignments for a classroom
+/**
+ * @swagger
+ * /api/assignments/classroom/{classroomId}:
+ *   get:
+ *     summary: Get assignments for a specific classroom
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classroomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of classroom assignments
+ */
 router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) => {
   try {
     // First check if classroom exists and owner's subscription is valid
@@ -27,26 +110,31 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
     // Check subscription only if user is not a teacher or student
-    if (req.user.role !== 'teacher' && req.user.role !== 'student') {
+    if (isCheckingEnabled && req.user.role !== 'teacher' && req.user.role !== 'student' && req.user.role !== 'root_admin') {
       const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
       if (!isOwnerSubscriptionValid) {
         return res.json({ assignments: [] }); // Return empty array if subscription expired
       }
     }
-    
+
     // For teachers, allow access to their own class assignments regardless of subscription
     if (req.user.role === 'teacher') {
       const teacherId = classroom.teacherId._id || classroom.teacherId;
       if (teacherId.toString() !== req.user._id.toString()) {
         // Teacher trying to access someone else's class - check subscription
-        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
-        if (!isOwnerSubscriptionValid) {
-          return res.json({ assignments: [] });
+        if (isCheckingEnabled) {
+          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+          if (!isOwnerSubscriptionValid) {
+            return res.json({ assignments: [] });
+          }
         }
       }
     }
-    
+
     // For students, allow access to enrolled class assignments regardless of subscription
     if (req.user.role === 'student') {
       const isEnrolled = classroom.students.some(
@@ -59,8 +147,13 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       }
     }
 
-    let assignments = await Assignment.find({ classroomId: req.params.classroomId })
-      .populate('topicId', 'name')
+    let query = { classroomId: req.params.classroomId };
+    if (req.user.role === 'student') {
+      query.published = { $ne: false };
+    }
+
+    let assignments = await Assignment.find(query)
+      .populate('topicId', 'name isPaid price')
       .populate({
         path: 'classroomId',
         populate: [
@@ -87,13 +180,35 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
     // Filter assignments to ensure classroom owner subscription is still valid (except for teachers and students)
     assignments = await filterAssignmentsBySubscription(assignments, req.user);
 
-    res.json({ assignments });
+    const payload = req.user.role === 'student'
+      ? assignments.map(a => sanitizeAssignment(a, req.user))
+      : assignments;
+
+    res.json({ assignments: payload });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
 // Get assignment by ID
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   get:
+ *     summary: Get assignment by ID
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Assignment details
+ */
 router.get('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
@@ -115,12 +230,19 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
           }
         ]
       })
-      .populate('topicId', 'name')
+      .populate('topicId', 'name isPaid price')
       .populate('submissions.studentId', 'name email');
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
+
+    if (req.user.role === 'student' && assignment.published === false) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
 
     // Check if classroom owner's subscription is valid (skip check for teachers and students)
     if (assignment.classroomId) {
@@ -131,9 +253,11 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
           // Teacher's own class - allow access
         } else if (req.user.role !== 'student') {
           // Teacher accessing someone else's class - check subscription
-          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(assignment.classroomId);
-          if (!isOwnerSubscriptionValid) {
-            return res.status(403).json({ message: 'This assignment is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+          if (isCheckingEnabled && req.user.role !== 'root_admin') {
+            const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(assignment.classroomId);
+            if (!isOwnerSubscriptionValid) {
+              return res.status(403).json({ message: 'This assignment is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+            }
           }
         }
       }
@@ -150,33 +274,66 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       }
       // For other users, check subscription
       else {
-        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(assignment.classroomId);
-        if (!isOwnerSubscriptionValid) {
-          return res.status(403).json({ message: 'This assignment is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+        if (isCheckingEnabled && req.user.role !== 'root_admin') {
+          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(assignment.classroomId);
+          if (!isOwnerSubscriptionValid) {
+            return res.status(403).json({ message: 'This assignment is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+          }
         }
       }
     }
 
-    res.json({ assignment });
+    res.json({ assignment: sanitizeAssignment(assignment, req.user) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
 // Create assignment
+/**
+ * @swagger
+ * /api/assignments:
+ *   post:
+ *     summary: Create a new assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - classroomId
+ *               - assignmentType
+ *               - questions
+ *             properties:
+ *               title:
+ *                 type: string
+ *               classroomId:
+ *                 type: string
+ *               assignmentType:
+ *                 type: string
+ *                 enum: [mcq, theory]
+ *     responses:
+ *       201:
+ *         description: Assignment created
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
-    const { title, description, classroomId, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt } = req.body;
+    const { title, description, classroomId, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt, published } = req.body;
 
-    const classroom = await Classroom.findById(classroomId);
+    const classroom = await Classroom.findById(classroomId).populate('students', 'name email').populate('teacherId', 'name email');
     if (!classroom) {
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
     const canCreate =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
 
     if (!canCreate) {
       return res.status(403).json({ message: 'Access denied' });
@@ -238,7 +395,8 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       maxScore: calculatedOverallMaxScore,
       assignmentType,
       questions,
-      publishResultsAt: publishResultsAt || null
+      publishResultsAt: publishResultsAt || null,
+      published: published !== undefined ? published : true
     });
 
     await assignment.save();
@@ -246,41 +404,9 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
     // Add assignment to classroom
     classroom.assignments.push(assignment._id);
     await classroom.save();
-
-    // Trigger assignment reminder if dueDate is set
-    if (assignment.dueDate) {
-      try {
-        // Replace with actual backend notification service call
-        // Example using internal API call if setup (requires proper base URL)
-        await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/assignment-reminder/${assignment._id}`, {},
-          { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } });
-      } catch (notificationError) {
-        console.error('Error sending assignment reminder notification:', notificationError.message);
-      }
-    }
-
-    // Create in-app notifications for new assignment
-    try {
-      // Notification for teacher
-      await Notification.create({
-        userId: classroom.teacherId,
-        message: `New assignment: "${assignment.title}" has been created in "${classroom.name}".`,
-        type: 'new_assignment',
-        entityId: assignment._id,
-        entityRef: 'Assignment',
-      });
-
-      // Notifications for students in the classroom
-      const studentNotifications = classroom.students.map(studentId => ({
-        userId: studentId,
-        message: `New assignment: "${assignment.title}" has been posted in "${classroom.name}".`,
-        type: 'new_assignment',
-        entityId: assignment._id,
-        entityRef: 'Assignment',
-      }));
-      await Notification.insertMany(studentNotifications);
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notifications for new assignment:', inAppNotifError.message);
+    // Send notifications only if published
+    if (assignment.published) {
+      await notifyNewAssignment(assignment);
     }
 
     res.status(201).json({ assignment });
@@ -290,35 +416,54 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 });
 
 // Update assignment
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   put:
+ *     summary: Update an assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Assignment updated
+ */
 router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
-    const { title, description, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt } = req.body;
+    const { title, description, topicId, dueDate, maxScore, assignmentType, questions, publishResultsAt, published } = req.body;
 
     const assignment = await Assignment.findById(req.params.id);
-
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
-    // Basic authorization check (can be expanded)
-    const classroom = await Classroom.findById(assignment.classroomId);
+    const classroom = await Classroom.findById(assignment.classroomId).populate('students', 'name email').populate('teacherId', 'name email');
     const canEdit =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
 
     if (!canEdit) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Update fields
     if (title !== undefined) assignment.title = title;
     if (description !== undefined) assignment.description = description;
     if (topicId !== undefined) assignment.topicId = topicId;
     if (dueDate !== undefined) assignment.dueDate = dueDate;
     if (maxScore !== undefined) assignment.maxScore = maxScore;
 
-    // Update new assignment type fields
     if (assignmentType !== undefined) {
       if (!['mcq', 'theory'].includes(assignmentType)) {
         return res.status(400).json({ message: 'Invalid assignment type.' });
@@ -330,88 +475,110 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'per
       if (!Array.isArray(questions) || questions.length === 0) {
         return res.status(400).json({ message: 'Assignments must have at least one question.' });
       }
-
-      if (assignment.assignmentType === 'mcq') {
-        for (const q of questions) {
-          if (!q.questionText || !Array.isArray(q.options) || q.options.length < 2 || !q.correctOption) {
-            return res.status(400).json({ message: 'MCQ questions must have text, at least two options, and a correct option.' });
-          }
-          if (!q.options.includes(q.correctOption)) {
-            return res.status(400).json({ message: 'Correct option must be one of the provided options for MCQ.' });
-          }
-        }
-      } else if (assignment.assignmentType === 'theory') {
-        for (const q of questions) {
-          if (!q.questionText || !q.markingPreference || !['ai', 'manual'].includes(q.markingPreference)) {
-            return res.status(400).json({ message: 'Theory questions must have text and a valid marking preference.' });
-          }
-        }
-      }
       assignment.questions = questions;
     }
 
-    // Recalculate overall maxScore if questions were updated for a theory assignment
     if (assignment.assignmentType === 'theory' && questions !== undefined) {
       assignment.maxScore = questions.reduce((sum, q) => sum + q.maxScore, 0);
     } else if (assignment.assignmentType === 'mcq' && maxScore !== undefined) {
-      assignment.maxScore = maxScore; // Allow updating overall maxScore directly for MCQ
+      assignment.maxScore = maxScore;
     }
 
-    // Update publishResultsAt field
     if (publishResultsAt !== undefined) {
       if (assignment.assignmentType === 'mcq') {
-        if (publishResultsAt && isNaN(new Date(publishResultsAt).getTime())) {
-          return res.status(400).json({ message: 'Invalid publish results date.' });
-        }
         assignment.publishResultsAt = publishResultsAt;
-      } else if (publishResultsAt) {
-        return res.status(400).json({ message: 'publishResultsAt is only applicable for MCQ assignments.' });
       }
+    }
+
+    let newlyPublished = false;
+    if (published !== undefined) {
+      if (published === true && assignment.published === false) {
+        newlyPublished = true;
+      }
+      assignment.published = published;
     }
 
     await assignment.save();
 
-    // Trigger assignment reminder if dueDate is set/updated
-    if (assignment.dueDate) {
-      await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/assignment-reminder/${assignment._id}`, {},
-        { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } }); // Assuming `api` is available or import `axios`
+    if (newlyPublished) {
+      await notifyNewAssignment(assignment);
     }
 
-    // Create in-app notifications for updated assignment (especially if dueDate changes)
-    try {
-      // Only send if dueDate actually changed and is set
-      const oldDueDate = req.body.oldDueDate; // Assuming frontend sends old dueDate for comparison
-      if (assignment.dueDate && (!oldDueDate || new Date(assignment.dueDate).getTime() !== new Date(oldDueDate).getTime())) {
-        const message = `Assignment "${assignment.title}" in "${classroom.name}" has been updated. New due date: ${new Date(assignment.dueDate).toLocaleDateString()}.`;
+    // Notifications
+    if (assignment.dueDate) {
+      try {
+        const recipients = [
+          { user: classroom.teacherId, name: classroom.teacherId.name, email: classroom.teacherId.email },
+          ...classroom.students.map(s => ({ user: s, name: s.name, email: s.email }))
+        ].filter(r => r.email);
 
-        await Notification.create({
-          userId: classroom.teacherId,
-          message,
-          type: 'assignment_reminder',
-          entityId: assignment._id,
-          entityRef: 'Assignment',
-        });
+        const message = `Assignment Update: "${assignment.title}" in "${classroom.name}" has been updated. New due date: ${new Date(assignment.dueDate).toLocaleDateString()}.`;
 
-        const studentNotifications = classroom.students.map(studentId => ({
-          userId: studentId,
-          message,
-          type: 'assignment_reminder',
-          entityId: assignment._id,
-          entityRef: 'Assignment',
-        }));
-        await Notification.insertMany(studentNotifications);
+        for (const recipient of recipients) {
+          // In-app
+          await Notification.create({
+            userId: recipient.user._id,
+            message,
+            type: 'assignment_reminder',
+            entityId: assignment._id,
+            entityRef: 'Assignment',
+          }).catch(e => console.error('In-app error', e.message));
+
+          // Email
+          sendEmail({
+            to: recipient.email,
+            subject: `Assignment Updated: ${assignment.title}`,
+            classroomId: classroom._id,
+            html: `
+              ${emailHeading('Assignment Updated')}
+              ${emailText(`Hello <strong>${recipient.name}</strong>,`)}
+              ${emailText(`The assignment <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been updated.`)}
+              ${emailPanel(`<p style="margin:0;"><strong>New Due Date:</strong> ${new Date(assignment.dueDate).toLocaleDateString()}</p>`, { accent: NAVY })}
+              ${emailText('Please review the updated instructions or deadline.')}
+              ${emailButton('Go to Classroom', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+            `
+          }).catch(e => console.error('Email error', e.message));
+        }
+      } catch (e) {
+        console.error('Notification error', e.message);
       }
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notifications for updated assignment:', inAppNotifError.message);
     }
 
     res.json({ message: 'Assignment updated successfully', assignment });
   } catch (error) {
-    res.status(500).json({ message: error.reason || error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
 // Submit assignment (Student)
+/**
+ * @swagger
+ * /api/assignments/{id}/submit:
+ *   post:
+ *     summary: Submit an assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               answers:
+ *                 type: array
+ *                 items: {}
+ *     responses:
+ *       200:
+ *         description: Assignment submitted
+ */
 router.post('/:id/submit', auth, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
@@ -428,6 +595,11 @@ router.post('/:id/submit', auth, async (req, res) => {
 
     if (!isEnrolled) {
       return res.status(403).json({ message: 'Not enrolled in this classroom' });
+    }
+
+    // Check if deadline has passed
+    if (assignment.dueDate && new Date() > new Date(assignment.dueDate)) {
+      return res.status(400).json({ message: 'Assignment deadline has passed. You cannot submit anymore.' });
     }
 
     // Check if already submitted
@@ -454,7 +626,7 @@ router.post('/:id/submit', auth, async (req, res) => {
           correctAnswersCount++;
         }
       }
-      score = (correctAnswersCount / assignment.questions.length) * assignment.maxScore;
+      score = Math.round(((correctAnswersCount / assignment.questions.length) * assignment.maxScore) * 10) / 10;
       status = 'graded'; // MCQ assignments are graded immediately
     }
 
@@ -468,36 +640,99 @@ router.post('/:id/submit', auth, async (req, res) => {
 
     await assignment.save();
 
-    // Create in-app notification for the teacher about new submission
+    // Create notifications
     try {
-      // Populate classroom and teacherId to get teacher's ID
-      await assignment.populate('classroomId', 'teacherId'); // Ensure teacherId is populated
+      // 1. Notification for the teacher about new submission
+      await assignment.populate('classroomId', 'name teacherId');
       const teacherId = assignment.classroomId.teacherId;
+      const classroomName = assignment.classroomId.name;
 
       if (teacherId) {
         await Notification.create({
           userId: teacherId,
-          message: `Student ${req.user.name} has submitted assignment "${assignment.title}" in "${assignment.classroomId.name}".`,
+          message: `Student ${req.user.name} has submitted assignment "${assignment.title}" in "${classroomName}".`,
           type: 'new_submission',
           entityId: assignment._id,
           entityRef: 'Assignment',
         });
       }
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notification for new submission:', inAppNotifError.message);
+
+      // 2. Notification for the student if auto-graded (MCQ)
+      if (status === 'graded') {
+        const studentMessage = `Your MCQ assignment "${assignment.title}" in "${classroomName}" has been auto-graded. Score: ${score}/${assignment.maxScore}.`;
+
+        // In-app
+        await Notification.create({
+          userId: req.user._id,
+          message: studentMessage,
+          type: 'assignment_graded',
+          entityId: assignment._id,
+          entityRef: 'Assignment',
+        });
+
+        // Email
+        sendEmail({
+          to: req.user.email,
+          subject: `Assignment Graded: ${assignment.title}`,
+          classroomId: assignment.classroomId._id || assignment.classroomId,
+          html: `
+            ${emailHeading('Assignment Graded')}
+            ${emailText(`Hello <strong>${req.user.name}</strong>,`)}
+            ${emailText(`Your MCQ assignment for <strong>${classroomName}</strong> has been auto-graded.`)}
+            ${emailResultHero({ eyebrow: 'Your Score', value: `${score} / ${assignment.maxScore}`, meta: 'Auto-graded MCQ assessment', tone: FOREST })}
+            ${emailButton('View Results', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${assignment.classroomId._id || assignment.classroomId}`)}
+          `
+        }).catch(e => console.error('Auto-grading email error:', e.message));
+      }
+    } catch (notificationError) {
+      console.error('Error creating notifications after submission:', notificationError.message);
     }
 
-    res.json({ message: 'Assignment submitted successfully', assignment });
+    res.json({ message: 'Assignment submitted successfully', assignment: sanitizeAssignment(assignment, req.user) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Grade assignment (Teacher)
+/**
+ * @swagger
+ * /api/assignments/{id}/grade:
+ *   put:
+ *     summary: Grade a general submission (MCQ auto or Manual)
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *               - score
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *               score:
+ *                 type: number
+ *               feedback:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Graded successfully
+ */
 router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
-      .populate('classroomId');
+      .populate('classroomId')
+      .populate('submissions.studentId', 'name email');
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
@@ -506,8 +741,8 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
     const classroom = assignment.classroomId;
     const canGrade =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
 
     if (!canGrade) {
       return res.status(403).json({ message: 'Access denied' });
@@ -516,48 +751,61 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
     const { studentId, score, feedback } = req.body;
 
     const submission = assignment.submissions.find(
-      sub => sub.studentId.toString() === studentId
+      sub => sub.studentId._id.toString() === studentId
     );
 
     if (!submission) {
       return res.status(404).json({ message: 'Submission not found' });
     }
 
-    submission.score = score;
+    submission.score = Math.round(Number(score) * 10) / 10;
     submission.feedback = feedback;
     submission.status = 'graded';
 
     await assignment.save();
 
-    // Trigger assignment result notification
-    try {
-      await axios.post(`http://localhost:${process.env.PORT || 5000}/api/notifications/assignment-result/${assignment._id}/${studentId}`, {},
-        { headers: { 'x-internal-api-key': process.env.INTERNAL_API_KEY } });
-    } catch (notificationError) {
-      console.error('Error sending assignment result notification:', notificationError.message);
-    }
+    const student = submission.studentId;
 
-    // Create in-app notifications for assignment graded
+    // Notifications
     try {
-      // Notification for student
+      const message = `Grading Alert: Your assignment "${assignment.title}" in "${classroom.name}" has been graded. Score: ${score}/${assignment.maxScore}.`;
+
+      // Student In-app
       await Notification.create({
         userId: studentId,
-        message: `Your assignment "${assignment.title}" in "${classroom.name}" has been graded. Score: ${score}/${assignment.maxScore}.`,
+        message,
         type: 'assignment_graded',
         entityId: assignment._id,
         entityRef: 'Assignment',
       });
 
-      // Notification for teacher (who graded it)
+      // Student Email
+      if (student && student.email) {
+        sendEmail({
+          to: student.email,
+          subject: `Assignment Graded: ${assignment.title}`,
+          classroomId: classroom._id,
+          html: `
+            ${emailHeading('Assignment Result Ready')}
+            ${emailText(`Hello <strong>${student.name}</strong>,`)}
+            ${emailText(`Your submission for <strong>"${assignment.title}"</strong> in <strong>${classroom.name}</strong> has been graded.`)}
+            ${emailResultHero({ eyebrow: 'Your Score', value: `${score} / ${assignment.maxScore}`, meta: assignment.assignmentType === 'mcq' ? 'Multiple-choice assessment' : 'Written assessment' })}
+            ${feedback ? emailPanel(`<p style="margin:0 0 4px; font-weight:600;">Feedback:</p><p style="margin:0; color:#5B6B7C; white-space:pre-line; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word;">${feedback}</p>`, { accent: NAVY }) : ''}
+            ${emailButton('View Full Results', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+          `
+        }).catch(e => console.error('Email error', e.message));
+      }
+
+      // Teacher In-app
       await Notification.create({
-        userId: req.user._id, // The user grading is the teacher
-        message: `You graded assignment "${assignment.title}" for ${submission.studentId.name}. Score: ${score}/${assignment.maxScore}.`,
+        userId: req.user._id,
+        message: `You graded assignment "${assignment.title}" for ${student.name || 'a student'}. Score: ${score}/${assignment.maxScore}.`,
         type: 'assignment_graded',
         entityId: assignment._id,
         entityRef: 'Assignment',
       });
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notifications for assignment graded:', inAppNotifError.message);
+    } catch (e) {
+      console.error('Grading notification error', e.message);
     }
 
     res.json({ message: 'Assignment graded successfully', assignment });
@@ -567,10 +815,45 @@ router.put('/:id/grade', auth, authorize('root_admin', 'school_admin', 'teacher'
 });
 
 // Grade theory assignment (Teacher/Admin) - Manual or AI Placeholder
+/**
+ * @swagger
+ * /api/assignments/{id}/grade-theory:
+ *   put:
+ *     summary: Grade a theory assignment with per-question scores
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *               - questionScores
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *               questionScores:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Theory graded
+ */
 router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
-      .populate('classroomId');
+      .populate('classroomId')
+      .populate('submissions.studentId', 'name email');
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
@@ -583,8 +866,8 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
     const classroom = assignment.classroomId;
     const canGrade =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
-      classroom.teacherId.toString() === req.user._id.toString();
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
 
     if (!canGrade) {
       return res.status(403).json({ message: 'Access denied' });
@@ -621,29 +904,61 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
 
       updatedQuestionScores.push({
         questionIndex: i,
-        score: qScore.score,
+        score: Math.round(Number(qScore.score) * 10) / 10,
         feedback: qScore.feedback || ''
       });
       totalScore += qScore.score;
     }
 
     submission.questionScores = updatedQuestionScores;
-    submission.score = totalScore;
+    submission.score = Math.round(totalScore * 10) / 10;
     submission.status = 'graded';
 
     await assignment.save();
 
-    // Create in-app notification for student that their assignment has been graded
+    const submissionAfter = assignment.submissions.find(sub => sub.studentId._id.toString() === studentId);
+    const student = submissionAfter?.studentId;
+
+    // Notifications
     try {
+      const message = `Theory Graded: Your assignment "${assignment.title}" in "${classroom.name}" has been graded. Total Score: ${submissionAfter?.score}/${assignment.maxScore}.`;
+
+      // Student In-app
       await Notification.create({
         userId: studentId,
-        message: `Your theory assignment "${assignment.title}" in "${classroom.name}" has been graded. Total Score: ${submission.score}/${assignment.maxScore}.`,
+        message,
         type: 'assignment_graded',
         entityId: assignment._id,
         entityRef: 'Assignment',
       });
-    } catch (inAppNotifError) {
-      console.error('Error creating in-app notification for graded theory assignment:', inAppNotifError.message);
+
+      // Student Email
+      if (student && student.email) {
+        sendEmail({
+          to: student.email,
+          subject: `Theory Assignment Graded: ${assignment.title}`,
+          classroomId: classroom._id,
+          html: `
+            ${emailHeading('Theory Grade Released')}
+            ${emailText(`Hello <strong>${student.name}</strong>,`)}
+            ${emailText(`Excellent work! Your theory assignment <strong>"${assignment.title}"</strong> has been graded by your teacher.`)}
+            ${emailResultHero({ eyebrow: 'Overall Score', value: `${submissionAfter?.score} / ${assignment.maxScore}`, meta: 'Written assignment grade' })}
+            ${emailText('You can check individual question feedback and scores on your portal.')}
+            ${emailButton('View Detailed Feedback', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+          `
+        }).catch(e => console.error('Email error', e.message));
+      }
+
+      // Teacher In-app
+      await Notification.create({
+        userId: req.user._id,
+        message: `You graded theory assignment "${assignment.title}" for ${student.name || 'a student'}. Total Score: ${submissionAfter?.score}/${assignment.maxScore}.`,
+        type: 'assignment_graded',
+        entityId: assignment._id,
+        entityRef: 'Assignment',
+      });
+    } catch (e) {
+      console.error('Theory grading notification error', e.message);
     }
 
     res.json({ message: 'Theory assignment graded successfully', assignment });
@@ -653,6 +968,24 @@ router.put('/:id/grade-theory', auth, authorize('root_admin', 'school_admin', 't
 });
 
 // Get assignment results (Student/Teacher/Admin)
+/**
+ * @swagger
+ * /api/assignments/{id}/results:
+ *   get:
+ *     summary: Get results for an assignment
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Assignment results
+ */
 router.get('/:id/results', auth, subscriptionCheck, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
@@ -670,8 +1003,8 @@ router.get('/:id/results', auth, subscriptionCheck, async (req, res) => {
 
     // Authorization check
     const isStudent = req.user.role === 'student';
-    const isTeacherOfClassroom = classroom.teacherId.toString() === req.user._id.toString();
-    const isSchoolAdminOfClassroom = req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString();
+    const isTeacherOfClassroom = (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
+    const isSchoolAdminOfClassroom = req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom);
     const isRootAdmin = req.user.role === 'root_admin';
 
     if (!isStudent && !isTeacherOfClassroom && !isSchoolAdminOfClassroom && !isRootAdmin) {
@@ -705,7 +1038,103 @@ router.get('/:id/results', auth, subscriptionCheck, async (req, res) => {
       }
     }
 
-    res.json({ assignment: { ...assignment.toObject(), submissions: submissionsToReturn } });
+    let payload = sanitizeAssignment(assignment, req.user);
+    payload.submissions = submissionsToReturn;
+
+    res.json({ assignment: payload });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete assignment
+router.delete('/:id', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const classroom = await Classroom.findById(assignment.classroomId);
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found for this assignment' });
+    }
+
+    const canDelete =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
+
+    if (!canDelete) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Remove assignment from classroom
+    await Classroom.findByIdAndUpdate(assignment.classroomId, {
+      $pull: { assignments: assignment._id }
+    });
+
+    await Assignment.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Assignment deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Toggle assignment published status
+router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const { published } = req.body;
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const classroom = await Classroom.findById(assignment.classroomId);
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const previouslyPublished = assignment.published;
+    assignment.published = published;
+    await assignment.save();
+
+    // If newly published, trigger notifications
+    if (published && !previouslyPublished) {
+      await notifyNewAssignment(assignment);
+    }
+
+    res.json({ message: `Assignment ${published ? 'published' : 'unpublished'} successfully`, assignment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Trigger notifications for an assignment manually (Re-publish/Notify)
+router.post('/:id/notify', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const classroom = await Classroom.findById(assignment.classroomId);
+    const canManage =
+      req.user.role === 'root_admin' ||
+      (req.user.role === 'school_admin' && hasSchoolAccess(req.user, classroom)) ||
+      (classroom.teacherId?._id || classroom.teacherId).toString() === req.user._id.toString();
+
+    if (!canManage) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    await notifyNewAssignment(assignment);
+    res.json({ message: 'Notifications sent successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

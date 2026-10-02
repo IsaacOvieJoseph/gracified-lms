@@ -1,13 +1,14 @@
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Mobile WebViews can provide their reachable API host at runtime. This avoids
+// using the browser's localhost when the frontend is opened on a device.
+const runtimeApiUrl = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('mobileApiUrl') || window.__MOBILE_API_URL__
+  : null;
+const API_URL = runtimeApiUrl || import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Log API URL on load for debugging
-console.log('API Configuration:', {
-  VITE_API_URL: import.meta.env.VITE_API_URL,
-  API_URL: API_URL,
-  Environment: import.meta.env.MODE
-});
+
 
 const api = axios.create({
   baseURL: API_URL,
@@ -23,24 +24,49 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  console.log('API Interceptor: Sending request to', config.url, 'with Authorization header:', config.headers.Authorization ? 'present' : 'missing');
+
+  // Skip loading event for non-blocking calls if needed (e.g. notifications, auth check, whiteboard polling)
+  const isBackgroundCall =
+    config.skipLoader || // Allow manual opt-out
+    config.url.includes('/notifications') ||
+    config.url.includes('/auth/me') ||
+    config.url.includes('/settings') ||
+    config.url.includes('/whiteboard');
+
+  if (!isBackgroundCall) {
+    window.dispatchEvent(new CustomEvent('loading-start'));
+    // Attach flag to config so interceptor knows whether to fire loading-end
+    config._showLoader = true;
+  }
+
+
   return config;
 });
 
 // Handle token expiration and connection errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config?._showLoader) {
+      window.dispatchEvent(new CustomEvent('loading-end'));
+    }
+    return response;
+  },
   (error) => {
+    if (error.config?._showLoader) {
+      window.dispatchEvent(new CustomEvent('loading-end'));
+    }
     // Log connection errors for debugging
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      toast.error('The server is taking too long to respond. Please try again.');
       console.error('Request timeout - Backend may be slow or unavailable:', error.config?.url);
       console.error('API URL being used:', API_URL);
     } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+      toast.error('Unable to connect to the server. Please check your internet connection.');
       console.error('Network error - Cannot reach backend:', error.config?.url);
       console.error('API URL being used:', API_URL);
       console.error('Check if backend is running and CORS is configured correctly');
     }
-    
+
     if (error.response?.status === 401) {
       // Only redirect if not already on login page and not during token verification
       // Let AuthContext handle the logout/redirect logic to avoid conflicts
@@ -59,10 +85,8 @@ api.interceptors.response.use(
 export const setAuthToken = (token) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    console.log('API: Authorization header set with token.');
   } else {
     delete api.defaults.headers.common['Authorization'];
-    console.log('API: Authorization header removed.');
   }
 };
 

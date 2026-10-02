@@ -3,39 +3,567 @@ const Classroom = require('../models/Classroom');
 const User = require('../models/User');
 const School = require('../models/School');
 const Notification = require('../models/Notification'); // New import
+const CallSession = require('../models/CallSession');
+const Attendance = require('../models/Attendance');
 const { auth, authorize } = require('../middleware/auth');
 const subscriptionCheck = require('../middleware/subscriptionCheck'); // Import subscriptionCheck middleware
 const { filterClassroomsBySubscription, isClassroomOwnerSubscriptionValid } = require('../utils/subscriptionHelper');
+const Settings = require('../models/Settings');
+const Assignment = require('../models/Assignment');
+const Topic = require('../models/Topic');
+const FeedbackRequest = require('../models/FeedbackRequest');
+const { sendEmail, emailHeading, emailText, emailDivider, emailButton, emailNote } = require('../utils/email');
+const PublicAttendee = require('../models/PublicAttendee');
+const { sanitizeAssignment } = require('../utils/answerKey');
+const axios = require('axios');
 const router = express.Router();
 
-// Get all classrooms
+const PUBLIC_SESSION_WINDOW_MS = 55 * 60 * 1000;
+
+const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const publicClassroomPopulate = (query) => query
+  .populate({
+    path: 'teacherId',
+    select: 'name email role subscriptionStatus trialEndDate tutorialId',
+    populate: {
+      path: 'tutorialId',
+      select: 'name'
+    }
+  })
+  .populate('topics', 'name description status order isPaid price')
+  .populate({
+    path: 'schoolId',
+    select: 'name adminId shortCode logoUrl',
+    populate: {
+      path: 'adminId',
+      select: 'name email'
+    }
+  });
+
+const findPublicClassroom = async (identifier) => {
+  let classroom = await Classroom.findOne({ slug: identifier.toLowerCase() });
+
+  if (!classroom) {
+    classroom = await Classroom.findOne({ shortCode: identifier });
+  }
+
+  if (!classroom && require('mongoose').Types.ObjectId.isValid(identifier)) {
+    classroom = await Classroom.findById(identifier);
+  }
+
+  return classroom;
+};
+
+const getLatestPublicAccess = async (classroom) => {
+  const now = new Date();
+  const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
+  const isLive = latest && (now - new Date(latest.startedAt)) <= PUBLIC_SESSION_WINDOW_MS;
+
+  if (isLive) {
+    return {
+      accessType: 'live',
+      joinUrl: latest.link,
+      callSessionId: latest._id,
+      startedAt: latest.startedAt
+    };
+  }
+
+  if (classroom.publicAccess?.recordingUrl) {
+    return {
+      accessType: 'recording',
+      joinUrl: classroom.publicAccess.recordingUrl,
+      callSessionId: null,
+      startedAt: null
+    };
+  }
+
+  return {
+    accessType: 'none',
+    joinUrl: null,
+    callSessionId: null,
+    startedAt: null
+  };
+};
+
+const ensureGuestSeminarAvailable = async (classroom) => {
+  if (!classroom) return 'Classroom not found';
+  if (!classroom.published) return 'This public lecture is not active yet.';
+  if (classroom.isPrivate) return 'This public lecture is private.';
+  if (!classroom.publicAccess?.allowGuestAccess) return 'Guest access is not enabled for this classroom.';
+
+  const now = new Date();
+
+  // If the lecturer has already started a live session, the lecture is underway,
+  // so guests may join even if the scheduled public access window hasn't opened yet.
+  const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
+  const hasActiveLive = !!latest && (now - new Date(latest.startedAt)) <= PUBLIC_SESSION_WINDOW_MS;
+
+  if (!hasActiveLive) {
+    if (classroom.publicAccess?.startsAt && now < new Date(classroom.publicAccess.startsAt)) {
+      return 'This public lecture has not started yet.';
+    }
+    if (classroom.publicAccess?.endsAt && now > new Date(classroom.publicAccess.endsAt) && !classroom.publicAccess?.recordingUrl) {
+      return 'This public lecture has ended and no recording is available.';
+    }
+  }
+
+  return null;
+};
+
+// Public: Get classroom by shortCode for preview
+/**
+ * @swagger
+ * /api/classrooms/public/{identifier}:
+ *   get:
+ *     summary: Get classroom details by shortCode or ID (Public)
+ *     tags: [Classrooms]
+ *     parameters:
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom details
+ *       404:
+ *         description: Classroom not found
+ */
+router.get('/public/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const classroom = await findPublicClassroom(identifier);
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    const populatedClassroom = await publicClassroomPopulate(Classroom.findById(classroom._id));
+
+    if (!populatedClassroom.published) {
+      return res.status(403).json({ message: 'Classroom is not currently active for public preview.' });
+    }
+
+    if (populatedClassroom.isPrivate) {
+      return res.status(403).json({ message: 'This is a private classroom and cannot be previewed via public link. Kindly reach out to your class coordinator or teacher for access.' });
+    }
+
+    const latestAccess = await getLatestPublicAccess(populatedClassroom);
+
+    res.json({
+      classroom: populatedClassroom,
+      publicAccess: {
+        guestEnabled: !!populatedClassroom.publicAccess?.allowGuestAccess,
+        hasActiveLive: latestAccess.accessType === 'live',
+        hasRecording: !!populatedClassroom.publicAccess?.recordingUrl,
+        activeStartedAt: latestAccess.startedAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Public: guest join for free public lectures/seminars or paid attendees already verified.
+router.post('/public/:identifier/join', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { name, email, reference } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required to join.' });
+    }
+
+    const classroom = await findPublicClassroom(identifier);
+    const unavailableReason = await ensureGuestSeminarAvailable(classroom);
+    if (unavailableReason) {
+      return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
+    }
+
+    const latestAccess = await getLatestPublicAccess(classroom);
+    if (!latestAccess.joinUrl) {
+      return res.status(404).json({ message: 'No live session or recording is available yet.' });
+    }
+
+    const amount = classroom.isPaid ? Number(classroom.pricing?.amount || 0) : 0;
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    if (amount > 0) {
+      const paidAttendee = await PublicAttendee.findOne({
+        classroomId: classroom._id,
+        email: normalizedEmail,
+        status: { $in: ['admitted', 'watched_recording'] },
+        ...(reference ? { paystackReference: reference } : {})
+      });
+
+      if (!paidAttendee) {
+        return res.status(402).json({
+          message: 'Payment is required before joining this public lecture.',
+          paymentRequired: true,
+          amount,
+          currency: process.env.PAYSTACK_CURRENCY || 'NGN'
+        });
+      }
+    }
+
+    const attendee = await PublicAttendee.findOneAndUpdate(
+      {
+        classroomId: classroom._id,
+        email: normalizedEmail,
+        ...(reference ? { paystackReference: reference } : {})
+      },
+      {
+        $set: {
+          name,
+          email: normalizedEmail,
+          callSessionId: latestAccess.callSessionId,
+          accessType: latestAccess.accessType,
+          status: latestAccess.accessType === 'recording' ? 'watched_recording' : 'admitted',
+          amount,
+          currency: process.env.PAYSTACK_CURRENCY || 'NGN',
+          joinedAt: new Date()
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({
+      message: 'Access granted',
+      joinUrl: latestAccess.joinUrl,
+      accessType: latestAccess.accessType,
+      attendeeId: attendee._id,
+      instructions: classroom.publicAccess?.joinInstructions || ''
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Public: initiate Paystack payment for guests who do not have a platform account.
+router.post('/public/:identifier/paystack/initiate', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { name, email, returnUrl } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required for payment.' });
+    }
+
+    const classroom = await findPublicClassroom(identifier);
+    const unavailableReason = await ensureGuestSeminarAvailable(classroom);
+    if (unavailableReason) {
+      return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
+    }
+
+    const amount = Number(classroom.pricing?.amount || 0);
+    if (!classroom.isPaid || amount <= 0) {
+      return res.status(400).json({ message: 'This public lecture is free. Payment is not required.' });
+    }
+
+    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+    if (!PAYSTACK_SECRET) return res.status(500).json({ message: 'Paystack not configured' });
+
+    const currency = process.env.PAYSTACK_CURRENCY || 'NGN';
+    const payAmount = currency.toUpperCase() === 'NGN' ? Math.round(amount * 100) : Math.round(amount * 100);
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const callbackUrl = returnUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/c/${classroom.slug || classroom.shortCode}`;
+
+    const payload = {
+      email: normalizedEmail,
+      amount: payAmount,
+      currency,
+      callback_url: callbackUrl,
+      metadata: {
+        type: 'public_lecture_access',
+        classroomId: classroom._id.toString(),
+        guestName: name,
+        guestEmail: normalizedEmail
+      }
+    };
+
+    const resp = await axios.post('https://api.paystack.co/transaction/initialize', payload, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` }
+    });
+
+    if (resp.data && resp.data.status) {
+      const reference = resp.data.data.reference;
+      await PublicAttendee.findOneAndUpdate(
+        { classroomId: classroom._id, email: normalizedEmail },
+        {
+          $set: {
+            name,
+            email: normalizedEmail,
+            status: 'pending_payment',
+            amount,
+            currency,
+            paystackReference: reference
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      return res.json({ authorization_url: resp.data.data.authorization_url, reference });
+    }
+
+    return res.status(500).json({ message: 'Failed to initialize Paystack transaction' });
+  } catch (error) {
+    console.error('Public Paystack initiate error', error.message);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Public: verify a guest Paystack payment and grant access.
+router.get('/public/:identifier/paystack/verify', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { reference } = req.query;
+
+    if (!reference) return res.status(400).json({ message: 'Missing reference' });
+
+    const classroom = await findPublicClassroom(identifier);
+    const unavailableReason = await ensureGuestSeminarAvailable(classroom);
+    if (unavailableReason) {
+      return res.status(classroom ? 403 : 404).json({ message: unavailableReason });
+    }
+
+    const attendee = await PublicAttendee.findOne({ classroomId: classroom._id, paystackReference: reference });
+    if (attendee && ['admitted', 'watched_recording'].includes(attendee.status)) {
+      const latestAccess = await getLatestPublicAccess(classroom);
+      return res.json({
+        message: 'Payment already verified',
+        attendee,
+        joinUrl: latestAccess.joinUrl,
+        accessType: latestAccess.accessType
+      });
+    }
+
+    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+    if (!PAYSTACK_SECRET) return res.status(500).json({ message: 'Paystack not configured' });
+
+    const resp = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` }
+    });
+
+    if (!(resp.data && resp.data.data && resp.data.data.status === 'success')) {
+      return res.status(400).json({ message: 'Payment not successful', data: resp.data });
+    }
+
+    const data = resp.data.data;
+    const metadata = data.metadata || {};
+    const currency = data.currency || process.env.PAYSTACK_CURRENCY || 'NGN';
+    const paidAmount = currency.toUpperCase() === 'NGN' ? data.amount / 100 : data.amount / 100;
+    const expectedAmount = Number(classroom.pricing?.amount || 0);
+
+    if (paidAmount < expectedAmount) {
+      return res.status(400).json({ message: 'Payment amount is less than required access fee.' });
+    }
+
+    const latestAccess = await getLatestPublicAccess(classroom);
+
+    const updatedAttendee = await PublicAttendee.findOneAndUpdate(
+      { classroomId: classroom._id, paystackReference: reference },
+      {
+        $set: {
+          name: metadata.guestName || attendee?.name || 'Guest',
+          email: String(metadata.guestEmail || attendee?.email || data.customer?.email || '').toLowerCase(),
+          status: latestAccess.joinUrl
+            ? (latestAccess.accessType === 'recording' ? 'watched_recording' : 'admitted')
+            : 'admitted',
+          accessType: latestAccess.accessType || 'live',
+          callSessionId: latestAccess.callSessionId,
+          amount: expectedAmount,
+          currency,
+          joinedAt: new Date()
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    if (!latestAccess.joinUrl) {
+      return res.json({
+        message: 'Payment verified. The session is not live yet — check back when it goes live.',
+        attendee: updatedAttendee,
+        joinUrl: null,
+        accessType: 'none'
+      });
+    }
+
+    res.json({
+      message: 'Payment verified. Access granted.',
+      attendee: updatedAttendee,
+      joinUrl: latestAccess.joinUrl,
+      accessType: latestAccess.accessType
+    });
+  } catch (error) {
+    console.error('Public Paystack verify error', error.message);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/classrooms:
+ *   get:
+ *     summary: Get all classrooms accessible to the user
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of classrooms
+ *       401:
+ *         description: Unauthorized
+ */
+// Public: catalog of published, guest-enabled public lectures/seminars for the marketing site.
+/**
+ * @swagger
+ * /api/classrooms/catalog:
+ *   get:
+ *     summary: Public catalog of public lectures and seminars (no auth)
+ *     tags: [Classrooms]
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema: { type: string }
+ *         description: Comma-separated class formats (public_lecture, public_seminar)
+ *       - in: query
+ *         name: subject
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isPaid
+ *         schema: { type: string, enum: [true, false] }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: List of public classrooms
+ */
+router.get('/catalog', async (req, res) => {
+  try {
+    const { format, subject, isPaid, search, limit } = req.query;
+
+    const query = {
+      published: true,
+      isPrivate: { $ne: true },
+      classFormat: { $in: ['public_lecture', 'public_seminar'] },
+      'publicAccess.allowGuestAccess': true
+    };
+
+    if (format) {
+      const formats = String(format).split(',').filter(Boolean);
+      if (formats.length > 0) query.classFormat = { $in: formats };
+    }
+    if (subject) query.subject = subject;
+    if (isPaid === 'true') query.isPaid = true;
+    else if (isPaid === 'false') query.isPaid = false;
+    if (search) {
+      const regex = new RegExp(escapeRegExp(search), 'i');
+      query.$or = [{ name: regex }, { description: regex }, { subject: regex }, { learningOutcomes: regex }];
+    }
+
+    const maxLimit = Math.min(parseInt(limit) || 50, 100);
+
+    const classrooms = await Classroom.find(query)
+      .sort({ createdAt: -1 })
+      .limit(maxLimit)
+      .populate({ path: 'teacherId', select: 'name' })
+      .populate({ path: 'schoolId', select: 'name shortCode' })
+      .select('name description subject level isPaid pricing classFormat publicAccess slug shortCode teacherId schoolId introVideo topics createdAt');
+
+    const ids = classrooms.map(c => c._id);
+    const now = new Date();
+    const liveSessions = ids.length > 0
+      ? await CallSession.find({
+          classroomId: { $in: ids },
+          startedAt: { $gte: new Date(now.getTime() - PUBLIC_SESSION_WINDOW_MS) }
+        })
+      : [];
+    const liveByClass = {};
+    liveSessions.forEach(s => { liveByClass[s.classroomId.toString()] = s; });
+
+    const result = classrooms.map(c => {
+      const latest = liveByClass[c._id.toString()];
+      return {
+        ...c.toObject(),
+        isLive: !!latest,
+        liveStartedAt: latest ? latest.startedAt : null,
+        hasRecording: !!c.publicAccess?.recordingUrl,
+        topicsCount: Array.isArray(c.topics) ? c.topics.length : 0
+      };
+    });
+
+    res.json({ classrooms: result });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get('/', auth, subscriptionCheck, async (req, res) => {
   try {
     let query = {};
 
     // Students see only published classes (enrolled or available for enrollment)
-    if (req.user.role === 'student') {
-      query = {
-        published: true,
-        $or: [
-          { students: req.user._id }, // Already enrolled
-          { students: { $ne: req.user._id } } // Available to enroll
-        ]
-      };
+    if (req.user.role === 'student') {      // Check strict restriction for Admin-created students
+      if (req.user.createdBy) {
+        const creator = await User.findById(req.user.createdBy);
+        if (creator) {
+          if (creator.role === 'school_admin') {
+            const adminSchools = await School.find({ adminId: creator._id }).select('_id');
+            const adminSchoolIds = adminSchools.map(s => s._id);
+            query = { published: true, schoolId: { $in: adminSchoolIds } };
+          } else if (creator.role === 'personal_teacher') {
+            query = { published: true, teacherId: creator._id };
+          }
+        }
+      }
+
+      // If not strictly restricted (or fallback), check standard logic
+      if (!query.schoolId && !query.teacherId) {
+        const studentSchoolIds = Array.isArray(req.user.schoolId) ? req.user.schoolId : (req.user.schoolId ? [req.user.schoolId] : []);
+        query = {
+          published: true,
+          $or: [
+            { isPrivate: false }, // Publicly visible
+            { students: req.user._id }, // Already enrolled
+            { schoolId: { $in: studentSchoolIds } } // Member of the school
+          ]
+        };
+      }
     }
     // Teachers see their own classes
     else if (req.user.role === 'teacher' || req.user.role === 'personal_teacher') {
       query = { teacherId: req.user._id };
     }
-    // School Admin sees classes from their school
-    else if (req.user.role === 'school_admin' && req.user.schoolId) {
-      query = { schoolId: req.user.schoolId };
+    // School Admin sees classes from their schools (all schools they admin)
+    else if (req.user.role === 'school_admin') {
+      // Get all schools where this admin is the adminId
+      const School = require('../models/School');
+      const adminSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const adminSchoolIds = adminSchools.map(s => s._id);
+      if (adminSchoolIds.length > 0) {
+        query = { schoolId: { $in: adminSchoolIds } };
+      } else {
+        // If admin has no schools, return empty result
+        query = { _id: null }; // This will return no results
+      }
     }
 
     let classrooms = await Classroom.find(query)
-      .populate('teacherId', 'name email role subscriptionStatus trialEndDate')
+      .populate({
+        path: 'teacherId',
+        select: 'name email role subscriptionStatus trialEndDate tutorialId',
+        populate: {
+          path: 'tutorialId',
+          select: 'name'
+        }
+      })
       .populate('students', 'name email')
-      .populate('topics', 'name description')
+      .populate('topics', 'name description status order')
       .populate({
         path: 'schoolId',
         select: 'name adminId',
@@ -55,17 +583,335 @@ router.get('/', auth, subscriptionCheck, async (req, res) => {
   }
 });
 
+// Get all active meetings for user's classrooms
+/**
+ * @swagger
+ * /api/classrooms/active-meetings:
+ *   get:
+ *     summary: Get all active lecture sessions for user's classrooms
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active sessions
+ */
+router.get('/active-meetings', auth, async (req, res) => {
+  try {
+    let classroomQuery = {};
+    if (req.user.role === 'student') {
+      classroomQuery = {
+        published: true,
+        $or: [
+          { students: req.user._id },
+          { _id: { $in: req.user.enrolledClasses || [] } }
+        ]
+      };
+    } else if (req.user.role === 'teacher' || req.user.role === 'personal_teacher') {
+      classroomQuery = { teacherId: req.user._id };
+    }
+    else if (req.user.role === 'school_admin') {
+      const adminSchools = await School.find({ adminId: req.user._id }).select('_id');
+      classroomQuery = { schoolId: { $in: adminSchools.map(s => s._id) } };
+    }
+
+    const classrooms = await Classroom.find(classroomQuery).select('_id');
+    const classroomIds = classrooms.map(c => c._id);
+
+    const fortyFiveMinAgo = new Date(Date.now() - 45 * 60 * 1000);
+    const activeSessions = await CallSession.find({
+      classroomId: { $in: classroomIds },
+      startedAt: { $gt: fortyFiveMinAgo }
+    })
+      .populate('classroomId', 'name subject')
+      .populate('startedBy', 'name')
+      .sort({ startedAt: -1 });
+
+    res.json({ activeSessions });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get pending feedback requests for student
+/**
+ * @swagger
+ * /api/classrooms/feedback/pending:
+ *   get:
+ *     summary: Get pending feedback requests for student
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending feedback requests
+ */
+router.get('/feedback/pending', auth, async (req, res) => {
+  try {
+    const feedbackRequests = await FeedbackRequest.find({
+      studentId: req.user._id,
+      status: 'pending'
+    }).populate('classroomId', 'name');
+    res.json({ feedbackRequests });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Submit feedback
+/**
+ * @swagger
+ * /api/classrooms/feedback:
+ *   post:
+ *     summary: Submit feedback for a classroom or platform
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - requestId
+ *               - rating
+ *             properties:
+ *               requestId:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Feedback submitted
+ */
+router.post('/feedback', auth, async (req, res) => {
+  try {
+    const { requestId, rating, comment } = req.body;
+    const request = await FeedbackRequest.findOne({
+      _id: requestId,
+      studentId: req.user._id
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: 'Feedback request not found' });
+    }
+
+    request.status = 'completed';
+    request.rating = rating;
+    request.comment = comment;
+    request.submittedAt = Date.now();
+    await request.save();
+
+    res.json({ message: 'Feedback submitted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Trigger platform feedback request (Root Admin)
+/**
+ * @swagger
+ * /api/classrooms/feedback/request:
+ *   post:
+ *     summary: Request feedback from users (Root Admin)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               targetRole:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Feedback request sent
+ */
+router.post('/feedback/request', auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const { targetRole, message } = req.body;
+    // targetRole: 'all', 'student', 'teacher', 'school_admin'
+
+    let query = {};
+    if (targetRole && targetRole !== 'all') {
+      query.role = targetRole;
+    }
+    else {
+      query.role = { $in: ['student', 'teacher', 'school_admin', 'personal_teacher'] };
+    }
+
+    const users = await User.find(query).select('_id email title');
+
+    // Filter out users who already have a pending request of this type/message? 
+    // For simplicity, we'll allow multiple for now or rely on client to manage frequency.
+
+    const feedbackRequests = users.map(user => ({
+      studentId: user._id, // User providing feedback
+      type: 'platform',
+      title: message || 'We value your opinion!',
+      status: 'pending'
+    }));
+
+    if (feedbackRequests.length > 0) {
+      await FeedbackRequest.insertMany(feedbackRequests);
+    }
+
+    res.json({ message: `Feedback requested from ${feedbackRequests.length} users successfully.` });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all feedbacks (Root Admin)
+/**
+ * @swagger
+ * /api/classrooms/feedback/all:
+ *   get:
+ *     summary: Get all completed feedbacks (Root Admin)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of feedbacks
+ */
+router.get('/feedback/all', auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const feedbacks = await FeedbackRequest.find({ status: 'completed' })
+      .populate('studentId', 'name email')
+      .populate('teacherId', 'name email')
+      .sort({ submittedAt: -1 });
+    res.json({ feedbacks });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get pending feedback requests for student
+/**
+ * @swagger
+ * /api/classrooms/feedback/pending:
+ *   get:
+ *     summary: Get pending feedback requests for student
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending feedback requests
+ */
+router.get('/feedback/pending', auth, async (req, res) => {
+  try {
+    const feedbackRequests = await FeedbackRequest.find({
+      studentId: req.user._id,
+      status: 'pending'
+    }).populate('classroomId', 'name');
+    res.json({ feedbackRequests });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Submit feedback
+/**
+ * @swagger
+ * /api/classrooms/feedback:
+ *   post:
+ *     summary: Submit feedback for a classroom or platform
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - requestId
+ *               - rating
+ *             properties:
+ *               requestId:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Feedback submitted
+ */
+router.post('/feedback', auth, async (req, res) => {
+  try {
+    const { requestId, rating, comment } = req.body;
+    const request = await FeedbackRequest.findOne({
+      _id: requestId,
+      studentId: req.user._id
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: 'Feedback request not found' });
+    }
+
+    request.status = 'completed';
+    request.rating = rating;
+    request.comment = comment;
+    request.submittedAt = Date.now();
+    await request.save();
+
+    res.json({ message: 'Feedback submitted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get classroom by ID
+/**
+ * @swagger
+ * /api/classrooms/{id}:
+ *   get:
+ *     summary: Get classroom details by ID
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom details
+ *       404:
+ *         description: Classroom not found
+ */
 router.get('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id)
-      .populate('teacherId', 'name email role subscriptionStatus trialEndDate')
+      .populate({
+        path: 'teacherId',
+        select: 'name email role subscriptionStatus trialEndDate tutorialId',
+        populate: {
+          path: 'tutorialId',
+          select: 'name'
+        }
+      })
       .populate('students', 'name email')
-      .populate('topics', 'name description materials')
+      .populate('topics', 'name description materials status order isPaid price')
       .populate({
         path: 'assignments',
         populate: [
-          { path: 'topicId', select: 'name' }, // Populate topic details
+          { path: 'topicId', select: 'name isPaid price' }, // Populate topic details including payment info
           {
             path: 'submissions.studentId', // Populate student details within submissions
             select: 'name email'
@@ -74,7 +920,7 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       })
       .populate({
         path: 'schoolId',
-        select: 'name adminId',
+        select: 'name adminId shortCode logoUrl',
         populate: {
           path: 'adminId',
           select: 'name email subscriptionStatus trialEndDate'
@@ -85,26 +931,32 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
+    // If Root Admin has disabled subscription checking, skip all subscription gating
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
     // Check if classroom owner's subscription is valid (skip check for teachers and students)
-    if (req.user.role !== 'teacher' && req.user.role !== 'student') {
+    if (isCheckingEnabled && req.user.role !== 'teacher' && req.user.role !== 'student' && req.user.role !== 'root_admin') {
       const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
       if (!isOwnerSubscriptionValid) {
-        return res.status(403).json({ message: 'This class is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+        return res.status(403).json({ message: 'This class is not available. The class owner\\\'s subscription has expired.', subscriptionExpired: true });
       }
     }
-    
+
     // For teachers, allow access to their own classes regardless of subscription
     if (req.user.role === 'teacher') {
       const teacherId = classroom.teacherId._id || classroom.teacherId;
       if (teacherId.toString() !== req.user._id.toString()) {
         // Teacher trying to access someone else's class - check subscription
-        const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
-        if (!isOwnerSubscriptionValid) {
-          return res.status(403).json({ message: 'This class is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
+        if (isCheckingEnabled) {
+          const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
+          if (!isOwnerSubscriptionValid) {
+            return res.status(403).json({ message: 'This class is not available. The class owner\\\'s subscription has expired.', subscriptionExpired: true });
+          }
         }
       }
     }
-    
+
     // For students, allow access to enrolled classes regardless of subscription
     if (req.user.role === 'student') {
       const isEnrolled = classroom.students.some(
@@ -112,8 +964,33 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       ) || req.user.enrolledClasses.some(
         classId => classId.toString() === classroom._id.toString()
       );
-      if (!isEnrolled) {
-        return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
+
+      // If classroom is one_time, student must have a completed payment for enrollment
+      if (classroom.pricing?.type === 'one_time' && classroom.isPaid && !isEnrolled) {
+        // Proceed to enrollment/payment flow (handled by return status if needed)
+      }
+
+      // If classroom is weekly, check if student has paid within the last 7 days
+      if (classroom.pricing?.type === 'weekly' && classroom.isPaid && isEnrolled) {
+        const Payment = require('../models/Payment');
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const recentPayment = await Payment.findOne({
+          userId: req.user._id,
+          classroomId: classroom._id,
+          type: 'class_enrollment',
+          status: 'completed',
+          paymentDate: { $gte: sevenDaysAgo }
+        });
+
+        if (!recentPayment) {
+          return res.status(403).json({ 
+            message: 'Your weekly subscription has expired. Please pay to continue.', 
+            paymentRequired: true,
+            billingCycle: 'weekly'
+          });
+        }
       }
     }
 
@@ -123,13 +1000,79 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Classroom not available' });
     }
 
-    res.json({ classroom });
+    // Determine if dynamic topic pricing should be used
+    let dynamicTopicPrice = null;
+    let showPaidTopics = false;
+    const owner = classroom.teacherId;
+    // Check if class is per_topic and owner is pay_as_you_go
+    if (classroom.pricing?.type === 'per_topic' && owner && ['personal_teacher', 'school_admin'].includes(owner.role) && owner.subscriptionStatus === 'pay_as_you_go') {
+      showPaidTopics = true;
+      // Get current active topic
+      const Topic = require('../models/Topic');
+      let currentTopic = null;
+      if (classroom.currentTopicId) {
+        currentTopic = await Topic.findById(classroom.currentTopicId);
+      } else {
+        currentTopic = await Topic.findOne({ classroomId: classroom._id, status: 'active' }).sort({ order: 1 });
+      }
+      if (currentTopic && currentTopic.isPaid && currentTopic.price > 0) {
+        dynamicTopicPrice = currentTopic.price;
+        // Do NOT override classroom.pricing.amount; keep class price as originally set
+      }
+    }
+
+    // Convert Mongoose document to a plain JavaScript object to prevent Mongoose schema re-casting
+    const classroomData = classroom.toObject();
+
+    // Filter out unpublished assignments for students; never leak answer keys
+    if (req.user.role === 'student' && classroomData.assignments) {
+      classroomData.assignments = classroomData.assignments
+        .filter(a => a && a.published !== false)
+        .map(a => sanitizeAssignment(a, req.user));
+    }
+
+    res.json({ classroom: classroomData, dynamicTopicPrice, showPaidTopics });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
 // Create classroom
+/**
+ * @swagger
+ * /api/classrooms:
+ *   post:
+ *     summary: Create a new classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - schedule
+ *               - pricing
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               schedule:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               pricing:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Classroom created
+ *       400:
+ *         description: Invalid input
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const {
@@ -141,7 +1084,13 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       isPaid,
       teacherId,
       schoolId,
-      published
+      published,
+      isPrivate,
+      introVideo,
+      learningOutcomes,
+      subject,
+      classFormat,
+      publicAccess
     } = req.body;
 
     // Validate schedule array
@@ -167,42 +1116,78 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
     } else if (req.user.role === 'root_admin' || req.user.role === 'school_admin') {
       // Root admin and school admin can assign teachers
       if (!teacherId) {
-        return res.status(400).json({ message: 'teacherId is required for admin users' });
+        return res.status(400).json({ message: 'Please assign a teacher to the classroom.' });
       }
       // Verify teacher exists and belongs to school (if school admin)
       const teacher = await User.findById(teacherId);
       if (!teacher || !['teacher', 'personal_teacher'].includes(teacher.role)) {
         return res.status(400).json({ message: 'Invalid teacher ID' });
       }
-      if (req.user.role === 'school_admin' && teacher.schoolId?.toString() !== req.user.schoolId?.toString()) {
-        return res.status(403).json({ message: 'Teacher must belong to your school' });
+
+      if (req.user.role === 'school_admin') {
+        const managedSchools = await School.find({ adminId: req.user._id }).select('_id');
+        const managedSchoolIds = managedSchools.map(s => s._id.toString());
+
+        // Fetch teacher again to get fresh schoolId data
+
+        const teacherToVerify = await User.findById(teacherId);
+
+        const teacherSchoolIds = (Array.isArray(teacherToVerify?.schoolId) ? teacherToVerify.schoolId : [teacherToVerify?.schoolId])
+
+          .filter(Boolean)
+
+          .map(id => (id._id || id).toString());
+
+        const hasAccess = teacherSchoolIds.some(sid => managedSchoolIds.includes(sid));
+
+        if (!hasAccess && teacherToVerify?.role !== 'personal_teacher') {
+          // One final check: if the teacher belongs to NO schools yet, but is assigned to this school's admin,
+          // or if there's any other indicator of association. 
+          // For now, let's just make the error message more descriptive if it fails.
+          return res.status(403).json({
+            message: 'Teacher must belong to one of your schools. Please check the teacher\\\'s profile and ensure they are assigned to your school.',
+            adminSchoolCount: managedSchools.length,
+            teacherSchoolCount: teacherSchoolIds.length
+          });
+        }
       }
       finalTeacherId = teacherId;
     }
 
     // Determine school ID
-    let finalSchoolId = null; // Default to null
+    let finalSchoolId = [];
     if (req.user.role === 'school_admin') {
-      finalSchoolId = req.user.schoolId;
+      const School = require('../models/School');
+      if (schoolId) {
+        const requestedSchoolIds = Array.isArray(schoolId) ? schoolId : [schoolId];
+        const validSchools = await School.find({
+          _id: { $in: requestedSchoolIds },
+          adminId: req.user._id
+        }).select('_id');
+
+        finalSchoolId = validSchools.map(s => s._id);
+        if (finalSchoolId.length === 0) {
+          return res.status(403).json({ message: 'You can only create classrooms for your assigned schools' });
+        }
+      } else {
+        // Default to first school if none provided
+        const firstSchool = await School.findOne({ adminId: req.user._id }).sort({ createdAt: 1 });
+        if (firstSchool) {
+          finalSchoolId = [firstSchool._id];
+        }
+      }
     } else if (req.user.role === 'teacher') {
-      // If a regular teacher creates a class, it should be associated with their school
-      finalSchoolId = req.user.schoolId;
+      finalSchoolId = Array.isArray(req.user.schoolId) ? req.user.schoolId : (req.user.schoolId ? [req.user.schoolId] : []);
     } else if (req.user.role === 'personal_teacher') {
-      finalSchoolId = null;
+      finalSchoolId = [];
     } else if (req.user.role === 'root_admin') {
-      if (teacherId) {
-        // If root admin is assigning a teacher, get the schoolId from the assigned teacher
+      if (schoolId !== undefined) {
+        finalSchoolId = Array.isArray(schoolId) ? schoolId : (schoolId ? [schoolId] : []);
+      } else if (teacherId) {
         const assignedTeacher = await User.findById(teacherId);
         if (assignedTeacher && assignedTeacher.role === 'teacher') {
-          finalSchoolId = assignedTeacher.schoolId;
-        } else if (assignedTeacher && assignedTeacher.role === 'personal_teacher') {
-          finalSchoolId = null;
-        } else if (schoolId) { // If teacherId is provided but not a regular/personal teacher, or no schoolId on teacher
-          finalSchoolId = schoolId;
+          finalSchoolId = Array.isArray(assignedTeacher.schoolId) ? assignedTeacher.schoolId : (assignedTeacher.schoolId ? [assignedTeacher.schoolId] : []);
         }
-      } else if (schoolId) {
-        // If no teacherId, but schoolId is provided in body by root_admin
-        finalSchoolId = schoolId;
       }
     }
 
@@ -212,19 +1197,34 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
       schedule,
       capacity,
       pricing: pricing || { type: 'per_class', amount: 0 },
-      isPaid: isPaid || false,
+      isPaid: (isPaid && pricing?.amount > 0) ? true : false,
       teacherId: finalTeacherId,
       schoolId: finalSchoolId,
-      published: published !== undefined ? published : false
+      published: published !== undefined ? published : false,
+      isPrivate: isPrivate !== undefined ? isPrivate : false,
+      introVideo,
+      learningOutcomes,
+      subject,
+      classFormat: classFormat || 'classroom',
+      publicAccess: {
+        allowGuestAccess: !!publicAccess?.allowGuestAccess,
+        durationValue: Number(publicAccess?.durationValue || 1),
+        durationUnit: publicAccess?.durationUnit || 'days',
+        startsAt: publicAccess?.startsAt || null,
+        endsAt: publicAccess?.endsAt || null,
+        recordingUrl: publicAccess?.recordingUrl || null,
+        joinInstructions: publicAccess?.joinInstructions || ''
+      }
     });
 
     await classroom.save();
     await classroom.populate('teacherId', 'name email');
 
     // Notify School Admin if a class is created in their school
-    if (classroom.schoolId) {
+    const firstSchoolId = Array.isArray(classroom.schoolId) ? classroom.schoolId[0] : classroom.schoolId;
+    if (firstSchoolId) {
       try {
-        const school = await School.findById(classroom.schoolId);
+        const school = await School.findById(firstSchoolId);
         if (school && school.adminId) {
           await Notification.create({
             userId: school.adminId,
@@ -246,6 +1246,38 @@ router.post('/', auth, authorize('root_admin', 'school_admin', 'teacher', 'perso
 });
 
 // Update classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}:
+ *   put:
+ *     summary: Update classroom details
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Classroom updated
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Classroom not found
+ */
 router.put('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
@@ -254,12 +1286,21 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
-    // Check permissions
-    // Unpublished classes can be edited by teacher, personal teacher, school admin, and root admin
-    // Published classes can only be edited by their teacher or admins
+    // Check managed schools for school admin
+    let hasAccess = false;
+    if (req.user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = Array.isArray(classroom.schoolId)
+        ? classroom.schoolId.map(sid => sid.toString())
+        : (classroom.schoolId ? [classroom.schoolId.toString()] : []);
+
+      hasAccess = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+
     const canEdit =
       req.user.role === 'root_admin' ||
-      req.user.role === 'school_admin' ||
+      (req.user.role === 'school_admin' && hasAccess) ||
       (req.user.role === 'teacher' && classroom.teacherId.toString() === req.user._id.toString()) ||
       (req.user.role === 'personal_teacher' && classroom.teacherId.toString() === req.user._id.toString()) ||
       (!classroom.published && ['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(req.user.role));
@@ -268,16 +1309,35 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published } = req.body;
+    const { name, description, schedule, capacity, pricing, isPaid, teacherId, schoolId, published, isPrivate, introVideo, learningOutcomes, subject, classFormat, publicAccess } = req.body;
 
     if (name) classroom.name = name;
     if (description) classroom.description = description;
     if (capacity) classroom.capacity = capacity;
     if (pricing) classroom.pricing = pricing;
-    if (isPaid !== undefined) classroom.isPaid = isPaid;
+    if (isPaid !== undefined || pricing) {
+      // Re-evaluate isPaid if either isPaid or pricing is provided
+      const newIsPaid = isPaid !== undefined ? isPaid : classroom.isPaid;
+      const newAmount = pricing ? pricing.amount : (classroom.pricing ? classroom.pricing.amount : 0);
+      classroom.isPaid = !!(newIsPaid && newAmount > 0);
+    }
     if (teacherId) classroom.teacherId = teacherId; // Further authorization/validation might be needed here
     if (schoolId) classroom.schoolId = schoolId; // Further authorization/validation might be needed here
     if (published !== undefined) classroom.published = published;
+    if (isPrivate !== undefined) classroom.isPrivate = isPrivate;
+    if (classFormat) classroom.classFormat = classFormat;
+    if (publicAccess) {
+      classroom.publicAccess = {
+        ...classroom.publicAccess,
+        allowGuestAccess: !!publicAccess.allowGuestAccess,
+        durationValue: Number(publicAccess.durationValue || classroom.publicAccess?.durationValue || 1),
+        durationUnit: publicAccess.durationUnit || classroom.publicAccess?.durationUnit || 'days',
+        startsAt: publicAccess.startsAt || null,
+        endsAt: publicAccess.endsAt || null,
+        recordingUrl: publicAccess.recordingUrl || null,
+        joinInstructions: publicAccess.joinInstructions || ''
+      };
+    }
 
     // Handle schedule update with validation
     if (schedule) {
@@ -296,12 +1356,6 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
       classroom.schedule = schedule;
     }
 
-
-
-
-
-
-
     Object.assign(classroom, req.body);
     classroom.updatedAt = Date.now();
     await classroom.save();
@@ -314,6 +1368,26 @@ router.put('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Delete classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}:
+ *   delete:
+ *     summary: Delete a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom deleted
+ *       403:
+ *         description: Access denied
+ */
 router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
@@ -322,10 +1396,21 @@ router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
-    // Check permissions
+    // Check managed schools for school admin
+    let hasAccess = false;
+    if (req.user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = Array.isArray(classroom.schoolId)
+        ? classroom.schoolId.map(sid => sid.toString())
+        : (classroom.schoolId ? [classroom.schoolId.toString()] : []);
+
+      hasAccess = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+
     const canDelete =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
+      (req.user.role === 'school_admin' && hasAccess) ||
       (req.user.role === 'teacher' && classroom.teacherId.toString() === req.user._id.toString()) ||
       (req.user.role === 'personal_teacher' && classroom.teacherId.toString() === req.user._id.toString());
 
@@ -341,6 +1426,34 @@ router.delete('/:id', auth, subscriptionCheck, async (req, res) => {
 });
 
 // Publish/Unpublish classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}/publish:
+ *   put:
+ *     summary: Publish or unpublish a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               published:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Status updated
+ *       403:
+ *         description: Access denied
+ */
 router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
@@ -349,10 +1462,21 @@ router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'person
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
-    // Check permissions
+    // Check managed schools for school admin
+    let hasAccess = false;
+    if (req.user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = Array.isArray(classroom.schoolId)
+        ? classroom.schoolId.map(sid => sid.toString())
+        : (classroom.schoolId ? [classroom.schoolId.toString()] : []);
+
+      hasAccess = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+
     const canPublish =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
+      (req.user.role === 'school_admin' && hasAccess) ||
       (req.user.role === 'personal_teacher' && classroom.teacherId.toString() === req.user._id.toString());
 
     if (!canPublish) {
@@ -402,9 +1526,31 @@ router.put('/:id/publish', auth, authorize('root_admin', 'school_admin', 'person
 });
 
 // Enroll student (after payment or free class)
+/**
+ * @swagger
+ * /api/classrooms/{id}/enroll:
+ *   post:
+ *     summary: Enroll current student in a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Enrolled successfully
+ *       400:
+ *         description: Already enrolled or classroom full
+ *       404:
+ *         description: Classroom not found
+ */
 router.post('/:id/enroll', auth, async (req, res) => {
   try {
-    const classroom = await Classroom.findById(req.params.id);
+    const classroom = await Classroom.findById(req.params.id).populate('teacherId schoolId');
 
     if (!classroom) {
       return res.status(404).json({ message: 'Classroom not found' });
@@ -430,6 +1576,11 @@ router.post('/:id/enroll', auth, async (req, res) => {
       return res.status(400).json({ message: 'Classroom is full' });
     }
 
+    // Only allow direct enrollment if class is free (amount #0)
+    if (classroom.isPaid && classroom.pricing?.amount > 0) {
+      return res.status(400).json({ message: 'This is a paid class. Please enroll through the payment flow.' });
+    }
+
     // Enroll student
     classroom.students.push(req.user._id);
     await classroom.save();
@@ -439,13 +1590,163 @@ router.post('/:id/enroll', auth, async (req, res) => {
       $addToSet: { enrolledClasses: classroom._id }
     });
 
+    // --- Notification Logic ---
+    const Notification = require('../models/Notification');
+    const sendEmail = require('../utils/email').sendEmail;
+    const School = require('../models/School');
+
+    // Get teacher, personal teacher, and school admin
+    let notifyUserIds = [];
+    let notifyEmails = [];
+
+    // Teacher
+    if (classroom.teacherId) {
+      notifyUserIds.push(classroom.teacherId._id);
+      notifyEmails.push(classroom.teacherId.email);
+    }
+
+    // Personal Teacher (if different from teacher)
+    if (classroom.teacherId && classroom.teacherId.role === 'personal_teacher') {
+      // Already added above, so skip
+    }
+
+    // School Admin(s)
+    if (classroom.schoolId && classroom.schoolId.length > 0) {
+      for (const school of classroom.schoolId) {
+        if (school.adminId) {
+          notifyUserIds.push(school.adminId);
+          const adminUser = await User.findById(school.adminId);
+          if (adminUser && adminUser.email) notifyEmails.push(adminUser.email);
+        }
+      }
+    }
+
+    // Remove duplicates
+    notifyUserIds = [...new Set(notifyUserIds.map(id => id.toString()))];
+    notifyEmails = [...new Set(notifyEmails)];
+
+    // Create in-app notifications
+    const notifications = notifyUserIds.map(userId => ({
+      userId,
+      message: `Student ${req.user.name} has enrolled in your class "${classroom.name}".`,
+      type: 'student_enrolled',
+      entityId: classroom._id,
+      entityRef: 'Classroom',
+    }));
+    await Notification.insertMany(notifications);
+
+    // Send email notifications
+    if (notifyEmails.length > 0) {
+      await sendEmail({
+        to: notifyEmails,
+        subject: `New Enrollment: ${req.user.name} joined ${classroom.name}`,
+        html: `
+        ${emailHeading('New Enrollment')}
+        ${emailText(`Student <strong>${req.user.name}</strong> has enrolled in your class <strong>${classroom.name}</strong>.`)}
+        ${emailNote('You can review the new candidate and manage access from your classroom dashboard.')}
+      `,
+        classroomId: classroom._id
+      });
+    }
+
     res.json({ message: 'Enrolled successfully', classroom });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
+// Leave classroom (student unenrolls themselves)
+/**
+ * @swagger
+ * /api/classrooms/{id}/leave:
+ *   post:
+ *     summary: Student unenrolls from a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully left the class
+ *       403:
+ *         description: Only students can leave
+ */
+router.post('/:id/leave', auth, async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id);
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    // Only students can leave
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can leave a class' });
+    }
+
+    // Check if enrolled
+    const isEnrolled = classroom.students.some(
+      studentId => studentId.toString() === req.user._id.toString()
+    );
+
+    if (!isEnrolled) {
+      return res.status(400).json({ message: 'You are not enrolled in this class' });
+    }
+
+    // Remove student from classroom
+    classroom.students = classroom.students.filter(
+      studentId => studentId.toString() !== req.user._id.toString()
+    );
+    await classroom.save();
+
+    // Remove classroom from user's enrolled classes
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { enrolledClasses: classroom._id }
+    });
+
+    res.json({ message: 'Successfully left the class' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Add student to classroom (School Admin, Personal Teacher, Root Admin)
+/**
+ * @swagger
+ * /api/classrooms/{id}/students:
+ *   post:
+ *     summary: Add a student to a classroom (Admin/Teacher only)
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Student added
+ *       403:
+ *         description: Access denied
+ */
 router.post('/:id/students', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const { studentId } = req.body;
@@ -456,9 +1757,21 @@ router.post('/:id/students', auth, authorize('root_admin', 'school_admin', 'pers
     }
 
     // Check permissions
+    // Check managed schools for school admin
+    let hasAccess = false;
+    if (req.user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+        .filter(Boolean)
+        .map(sid => (sid._id || sid).toString());
+
+      hasAccess = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+
     const canManage =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
+      (req.user.role === 'school_admin' && hasAccess) ||
       (req.user.role === 'personal_teacher' && classroom.teacherId._id.toString() === req.user._id.toString());
 
     if (!canManage) {
@@ -498,6 +1811,29 @@ router.post('/:id/students', auth, authorize('root_admin', 'school_admin', 'pers
 });
 
 // Remove student from classroom
+/**
+ * @swagger
+ * /api/classrooms/{id}/students/{studentId}:
+ *   delete:
+ *     summary: Remove a student from a classroom
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Student removed
+ */
 router.delete('/:id/students/:studentId', auth, authorize('root_admin', 'school_admin', 'personal_teacher'), subscriptionCheck, async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id).populate('teacherId');
@@ -507,9 +1843,20 @@ router.delete('/:id/students/:studentId', auth, authorize('root_admin', 'school_
     }
 
     // Check permissions
+    let hasAccess = false;
+    if (req.user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: req.user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+        .filter(Boolean)
+        .map(sid => (sid._id || sid).toString());
+
+      hasAccess = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+
     const canManage =
       req.user.role === 'root_admin' ||
-      (req.user.role === 'school_admin' && classroom.schoolId?.toString() === req.user.schoolId?.toString()) ||
+      (req.user.role === 'school_admin' && hasAccess) ||
       (req.user.role === 'personal_teacher' && classroom.teacherId._id.toString() === req.user._id.toString());
 
     if (!canManage) {
@@ -535,6 +1882,35 @@ router.delete('/:id/students/:studentId', auth, authorize('root_admin', 'school_
 });
 
 // Update teacher (Root Admin only, for non-personal teacher classes)
+/**
+ * @swagger
+ * /api/classrooms/{id}/teacher:
+ *   put:
+ *     summary: Update classroom teacher (Root Admin only)
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - teacherId
+ *             properties:
+ *               teacherId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Teacher updated
+ */
 router.put('/:id/teacher', auth, authorize('root_admin'), subscriptionCheck, async (req, res) => {
   try {
     const { teacherId } = req.body;
@@ -566,5 +1942,638 @@ router.put('/:id/teacher', auth, authorize('root_admin'), subscriptionCheck, asy
   }
 });
 
-module.exports = router;
+// Generate a pseudo Google Meet link (note: creating a real Meet requires Google Workspace API/OAuth)
+function generateGoogleMeetLink() {
+  const rand = (len) => Array.from({ length: len }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
+  return `https://meet.google.com/${rand(3)}-${rand(4)}-${rand(3)}`;
+}
 
+// Helper to notify students when a lecture starts
+const notifyStudentsLectureStart = async (classroom, initiator, link) => {
+  const Notification = require('../models/Notification');
+  const { sendEmail, emailHeading, emailText, emailDivider, emailButton, emailNote } = require('../utils/email');
+
+  if (!classroom.students || classroom.students.length === 0) return;
+
+  const schoolName = (Array.isArray(classroom.schoolId) && classroom.schoolId[0]?.name) || initiator.tutorialId?.name || 'our platform';
+  
+  const notificationPromises = classroom.students.map(async (student) => {
+    // In-app notification
+    try {
+      await Notification.create({
+        userId: student._id || student,
+        message: `Live lecture started for "${classroom.name}" by ${initiator.name}. Click to join!`,
+        type: 'lecture_started',
+        entityId: classroom._id,
+        entityRef: 'Classroom',
+        link: link // Custom field if supported by your FE, else just entityId
+      });
+    } catch (err) {
+      console.error(`Failed to create in-app notification for student ${student._id}:`, err.message);
+    }
+
+    // Email notification
+    if (student.email) {
+      const emailContent = `
+        ${emailHeading('Live Lecture Started')}
+        ${emailText(`Hello <strong>${student.name || 'Student'}</strong>,`)}
+        ${emailText(`Your instructor, <strong>${initiator.name}</strong>, has just started a live lecture for <strong>${classroom.name}</strong> at ${schoolName}.`)}
+        ${emailButton('Join Lecture Now', link, { align: 'center' })}
+        ${emailText('If the button above doesn\u2019t work, copy and paste this link into your browser:', { color: '#5B6B7C', size: '14px' })}
+        <p style="font-size:14px; color:#1D3557; word-break:break-all; margin:0;">${link}</p>
+        ${emailDivider()}
+        ${emailNote('This is an automated notification from Gracified LMS.')}
+      `;
+
+      try {
+        await sendEmail({
+          to: student.email,
+          subject: `LIVE NOW: ${classroom.name} Lecture has started!`,
+          html: emailContent
+        });
+      } catch (err) {
+        console.error(`Failed to send lecture start email to ${student.email}:`, err.message);
+      }
+    }
+  });
+
+  await Promise.allSettled(notificationPromises);
+};
+
+// Start a class call (teacher, personal_teacher owner, school_admin of school, root_admin)
+/**
+ * @swagger
+ * /api/classrooms/{id}/call/start:
+ *   post:
+ *     summary: Start a live lecture call
+ *     tags: [Classroom Calls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isPaid:
+ *                 type: boolean
+ *               amount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Call session started
+ *       403:
+ *         description: Google auth required or access denied
+ */
+router.post('/:id/call/start', auth, subscriptionCheck, async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id)
+      .populate('schoolId')
+      .populate('students', 'name email')
+      .populate({
+        path: 'teacherId',
+        select: 'name tutorialId',
+        populate: { path: 'tutorialId', select: 'name' }
+      });
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+
+    const user = req.user;
+
+    // Permission: teacher assigned, personal_teacher owner, school_admin of the school, or root_admin
+    const teacherIdStr = classroom.teacherId?._id ? classroom.teacherId._id.toString() : (classroom.teacherId ? classroom.teacherId.toString() : null);
+    const isTeacherOwner = teacherIdStr && user._id.toString() === teacherIdStr;
+    const isPersonalTeacherOwner = user.role === 'personal_teacher' && isTeacherOwner;
+    const isRoot = user.role === 'root_admin';
+    // Check managed schools for school admin
+    let isSchoolAdminOfClass = false;
+    if (user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+        .filter(Boolean)
+        .map(sid => (sid._id || sid).toString());
+
+      isSchoolAdminOfClass = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+
+    if (!(isTeacherOwner || isPersonalTeacherOwner || isRoot || isSchoolAdminOfClass)) {
+      return res.status(403).json({ message: 'Access denied. Only class teacher or admins can start the call.' });
+    }
+
+    const isPaid = !!classroom.isPaid && Number(classroom.pricing?.amount || 0) > 0;
+    const amount = Number(classroom.pricing?.amount || 0);
+
+    // Find latest call session
+    const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
+    const now = new Date();
+    let link = null;
+    let created = false;
+
+    // Prepare details for Google Meet
+    const Topic = require('../models/Topic');
+    let currentTopic = null;
+    if (classroom.currentTopicId) {
+      currentTopic = await Topic.findById(classroom.currentTopicId);
+    } else {
+      currentTopic = await Topic.findOne({ classroomId: classroom._id, status: 'active' }).sort({ order: 1 });
+    }
+
+    const schoolOrTutorial = (Array.isArray(classroom.schoolId) && classroom.schoolId[0]?.name) || classroom.teacherId?.tutorialId?.name || 'Tutorial';
+    const summary = `${classroom.name} | ${schoolOrTutorial}`;
+
+    let description = `Lecture for Class: ${classroom.name}.\n`;
+    if (currentTopic) {
+      description += `Current Topic: ${currentTopic.name}\n`;
+      if (currentTopic.description) {
+        description += `Topic Description: ${currentTopic.description}\n`;
+      }
+    }
+    description += `Started At: ${now.toLocaleString()} (GMT)`;
+
+    if (!latest) {
+      // create a real Google Meet if configured, otherwise fallback to pseudo link
+      let eventId = null;
+      let htmlLink = null;
+      try {
+        const { createGoogleMeet } = require('../utils/googleMeet');
+        // Fetch initiator's Google OAuth refresh token and its last update time
+        const initiator = await User.findById(user._id).select('googleOAuthRefreshToken updatedAt');
+        let refreshToken = initiator?.googleOAuthRefreshToken || null;
+        let needsGoogleAuth = false;
+        if (!refreshToken) {
+          needsGoogleAuth = true;
+        } else {
+          // Check if token is older than 6 days
+          const tokenAgeMs = Date.now() - new Date(initiator.updatedAt).getTime();
+          const sixDaysMs = 6 * 24 * 60 * 60 * 1000;
+          if (tokenAgeMs > sixDaysMs) {
+            needsGoogleAuth = true;
+          }
+        }
+        if (needsGoogleAuth) {
+          return res.status(403).json({ message: 'Google authorization required', googleAuthRequired: true });
+        }
+        const meet = await createGoogleMeet({
+          summary,
+          description,
+          attendees: [],
+          refreshToken
+        });
+        link = meet.meetUrl || generateGoogleMeetLink();
+        eventId = meet.eventId || null;
+        htmlLink = meet.htmlLink || null;
+      } catch (err) {
+        console.warn('Google Meet creation failed, falling back to pseudo link:', err.message);
+        link = generateGoogleMeetLink();
+      }
+      const session = new CallSession({ 
+        classroomId: classroom._id, 
+        startedBy: user._id, 
+        link, 
+        startedAt: now, 
+        eventId, 
+        htmlLink,
+        isPaid: !!isPaid,
+        amount: amount || 0
+      });
+      await session.save();
+      created = true;
+      // Start background task to notify students
+      notifyStudentsLectureStart(classroom, user, link);
+    } else {
+      const diffMs = now - new Date(latest.startedAt);
+      const fortyFiveMin = 45 * 60 * 1000;
+      if (diffMs > fortyFiveMin) {
+        let eventId = null;
+        let htmlLink = null;
+        try {
+          const { createGoogleMeet } = require('../utils/googleMeet');
+          // Fetch initiator's Google OAuth refresh token and its last update time
+          const initiator = await User.findById(user._id).select('googleOAuthRefreshToken updatedAt');
+          let refreshToken = initiator?.googleOAuthRefreshToken || null;
+          let needsGoogleAuth = false;
+          if (!refreshToken) {
+            needsGoogleAuth = true;
+          } else {
+            // Check if token is older than 6 days
+            const tokenAgeMs = Date.now() - new Date(initiator.updatedAt).getTime();
+            const sixDaysMs = 6 * 24 * 60 * 60 * 1000;
+            if (tokenAgeMs > sixDaysMs) {
+              needsGoogleAuth = true;
+            }
+          }
+          if (needsGoogleAuth) {
+            return res.status(403).json({ message: 'Google authorization required', googleAuthRequired: true });
+          }
+          const meet = await createGoogleMeet({
+            summary,
+            description,
+            attendees: [],
+            refreshToken
+          });
+          link = meet.meetUrl || generateGoogleMeetLink();
+          eventId = meet.eventId || null;
+          htmlLink = meet.htmlLink || null;
+        } catch (err) {
+          console.warn('Google Meet creation failed, falling back to pseudo link:', err.message);
+          link = generateGoogleMeetLink();
+        }
+        const session = new CallSession({ 
+          classroomId: classroom._id, 
+          startedBy: user._id, 
+          link, 
+          startedAt: now, 
+          eventId, 
+          htmlLink,
+          isPaid: !!isPaid,
+          amount: amount || 0
+        });
+        await session.save();
+        created = true;
+        // Start background task to notify students
+        notifyStudentsLectureStart(classroom, user, link);
+      } else {
+        link = latest.link;
+        // carry over any metadata from latest
+        if (latest.eventId) {
+          // prefer latest's event metadata
+          res.locals._callEventId = latest.eventId;
+          res.locals._callHtmlLink = latest.htmlLink;
+        }
+      }
+    }
+
+    // prepare response metadata
+    const resp = { link, created, startedAt: now };
+    if (res.locals._callEventId) {
+      resp.eventId = res.locals._callEventId;
+      resp.htmlLink = res.locals._callHtmlLink || null;
+    }
+    else if (created) {
+      // load the just-created session to return event metadata if present
+      const justCreated = await CallSession.findOne({ classroomId: classroom._id }).sort({ createdAt: -1 });
+      if (justCreated) {
+        resp.eventId = justCreated.eventId || null;
+        resp.htmlLink = justCreated.htmlLink || null;
+      }
+    }
+
+    res.json(resp);
+  } catch (error) {
+    console.error('Error starting class call:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get latest call link for a classroom (join) - allowed for enrolled students, teacher, school admin of school, personal teacher owner, root_admin
+/**
+ * @swagger
+ * /api/classrooms/{id}/call:
+ *   get:
+ *     summary: Get the latest call link for a classroom
+ *     tags: [Classroom Calls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Call link details
+ *       404:
+ *         description: No active call found
+ */
+router.get('/:id/call', auth, subscriptionCheck, async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id).populate('students').populate('schoolId');
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+
+    const user = req.user;
+
+    const enrolled = (classroom.students || []).some(s => (s._id ? s._id.toString() : s.toString()) === user._id.toString()) || (user.enrolledClasses || []).some(cid => cid.toString() === classroom._id.toString());
+    const teacherIdStr = classroom.teacherId?._id ? classroom.teacherId._id.toString() : (classroom.teacherId ? classroom.teacherId.toString() : null);
+    const isTeacherOwner = teacherIdStr && user._id.toString() === teacherIdStr;
+    const isRoot = user.role === 'root_admin';
+    // Check managed schools for school admin
+    let isSchoolAdminOfClass = false;
+    if (user.role === 'school_admin') {
+      const managedSchools = await School.find({ adminId: user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+        .filter(Boolean)
+        .map(sid => (sid._id || sid).toString());
+
+      isSchoolAdminOfClass = classSchoolIds.some(sid => managedSchoolIds.includes(sid));
+    }
+    const isPersonalTeacherOwner = user.role === 'personal_teacher' && isTeacherOwner;
+
+    if (!(enrolled || isTeacherOwner || isRoot || isSchoolAdminOfClass || isPersonalTeacherOwner)) {
+      return res.status(403).json({ message: 'Access denied. Only enrolled students, class teacher, school admin, personal teacher owner, or root admin can join the call.' });
+    }
+
+    const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
+    const now = new Date();
+    const fiftyFiveMin = 55 * 60 * 1000; // 55 minutes in milliseconds
+
+    if (latest) {
+      const diffMs = now - new Date(latest.startedAt);
+      if (diffMs > fiftyFiveMin) {
+        // If the latest call started more than 55 minutes ago, consider it inactive
+        return res.status(404).json({ message: 'No active call found (previous call expired)' });
+      } else {
+        // Check if student has paid for this specific lecture if it's a paid lecture
+        let hasPaid = false;
+        if (latest.isPaid && user.role === 'student') {
+          const Payment = require('../models/Payment');
+          const payment = await Payment.findOne({
+            userId: user._id,
+            classroomId: classroom._id,
+            callSessionId: latest._id,
+            status: 'completed'
+          });
+          if (payment) hasPaid = true;
+        } else {
+          hasPaid = true; // Not a paid lecture or not a student
+        }
+
+        return res.json({ 
+          link: latest.link, 
+          startedAt: latest.startedAt, 
+          isPaid: latest.isPaid, 
+          amount: latest.amount,
+          callId: latest._id,
+          hasPaid
+        });
+      }
+    } else {
+      return res.status(404).json({ message: 'No active call found' });
+    }
+  } catch (error) {
+    console.error('Error fetching class call:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Mark attendance for a student joining a call
+/**
+ * @swagger
+ * /api/classrooms/{id}/call/attend:
+ *   post:
+ *     summary: Mark attendance for a call session
+ *     tags: [Classroom Calls]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Attendance marked
+ */
+router.post('/:id/call/attend', auth, subscriptionCheck, async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can mark attendance' });
+    }
+
+    const classroom = await Classroom.findById(req.params.id);
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+
+    // Check enrollment
+    const isEnrolled = (classroom.students || []).some(s => s.toString() === req.user._id.toString()) ||
+      (req.user.enrolledClasses || []).some(cid => cid.toString() === classroom._id.toString());
+
+    if (!isEnrolled) {
+      return res.status(403).json({ message: 'You are not enrolled in this class' });
+    }
+
+    // Find active call session
+    const latest = await CallSession.findOne({ classroomId: classroom._id }).sort({ startedAt: -1 });
+    if (!latest) {
+      return res.status(404).json({ message: 'No active call session found' });
+    }
+
+    // Check if session is still valid (e.g. within 55 mins)
+    const now = new Date();
+    const fiftyFiveMin = 55 * 60 * 1000;
+    if ((now - new Date(latest.startedAt)) > fiftyFiveMin) {
+      return res.status(400).json({ message: 'Call session has expired' });
+    }
+
+    // Create Call Attendance record
+    await Attendance.findOneAndUpdate(
+      {
+        classroomId: classroom._id,
+        studentId: req.user._id,
+        callSessionId: latest._id
+      },
+      { attendedAt: now },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({ message: 'Attendance marked successfully' });
+
+  } catch (error) {
+    console.error('Error marking attendance:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// End Classroom - Removes students, resets assignments/topics, requests feedback
+/**
+ * @swagger
+ * /api/classrooms/{id}/end:
+ *   post:
+ *     summary: End a classroom session (unenroll students, reset assignments)
+ *     tags: [Classrooms]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Classroom ended and reset
+ */
+router.post('/:id/end', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), subscriptionCheck, async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id);
+    if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
+
+    // Authorization check
+    let authorized = false;
+    const user = req.user;
+    if (user.role === 'root_admin') authorized = true;
+    else if (['teacher', 'personal_teacher'].includes(user.role)) {
+      if ((classroom.teacherId?._id || classroom.teacherId).toString() === user._id.toString()) authorized = true;
+    }
+    // School Admin check
+    else if (user.role === 'school_admin') {
+      const School = require('../models/School');
+      const managedSchools = await School.find({ adminId: user._id }).select('_id');
+      const managedSchoolIds = managedSchools.map(s => s._id.toString());
+      const classSchoolIds = (Array.isArray(classroom.schoolId) ? classroom.schoolId : [classroom.schoolId])
+        .filter(Boolean)
+        .map(sid => (sid._id || sid).toString());
+
+      if (classSchoolIds.some(sid => managedSchoolIds.includes(sid))) {
+        authorized = true;
+      }
+    }
+
+    if (!authorized) return res.status(403).json({ message: 'Access denied' });
+
+    // 1. Get students for feedback requests (before removing)
+    const studentsToNotify = (classroom.students || []).map(s => s.toString());
+
+    // 2. Clear Students
+    classroom.students = [];
+
+    // Also remove this classroom from the students' enrolledClasses array
+    if (studentsToNotify.length > 0) {
+      await User.updateMany(
+        { _id: { $in: studentsToNotify } },
+        { $pull: { enrolledClasses: classroom._id } }
+      );
+    }
+
+    // 3. Reset Assignments (Unpublish, Clear dates, Clear submissions)
+    await Assignment.updateMany(
+      { classroomId: classroom._id },
+      {
+        $set: {
+          published: false,
+          dueDate: null,
+          publishResultsAt: null,
+          submissions: []
+        }
+      }
+    );
+
+    // 4. Reset Topics (Status pending)
+    await Topic.updateMany(
+      { classroomId: classroom._id },
+      { $set: { status: 'pending', completedBy: null, completedAt: null } }
+    );
+
+    // 5. Create Feedback Requests & Notifications
+    for (const studentId of studentsToNotify) {
+      // Check if feedback request already exists to avoid dupes?
+      // Assuming new end class implies new feedback cycle.
+      await FeedbackRequest.create({
+        studentId,
+        classroomId: classroom._id,
+        classroomName: classroom.name,
+        teacherId: classroom.teacherId,
+        status: 'pending'
+      });
+
+      // Send Notification (Email)
+      const student = await User.findById(studentId);
+      if (student && student.email) {
+        // We use a generic message here; template could be improved.
+        await sendEmail({
+          to: student.email,
+          subject: 'Classroom Ended - Your Feedback Matters',
+          html: `
+            ${emailHeading('Classroom Ended')}
+            ${emailText(`Hello <strong>${student.name}</strong>,`)}
+            ${emailText(`The classroom "<strong>${classroom.name}</strong>" has formally ended. We\u2019d love to hear your feedback on the experience.`)}
+            ${emailText('Please log in to your dashboard to rate your experience.')}
+            ${emailButton('Share Feedback', `${process.env.FRONTEND_URL || 'http://localhost:3000'}/classrooms/${classroom._id}`)}
+          `,
+          classroomId: classroom._id
+        });
+      }
+    }
+
+
+    // 6. Notify Root Admins
+    try {
+      const rootAdmins = await User.find({ role: 'root_admin' });
+      const notifications = rootAdmins.map(admin => ({
+        user: admin._id,
+        message: `Classroom "${classroom.name}" has been ended/reset by ${req.user.name}.`,
+        type: 'classroom_ended',
+        relatedId: classroom._id
+      }));
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+    } catch (notifyErr) {
+      console.error('Error notifying root admins:', notifyErr);
+    }
+
+    await classroom.save();
+    res.json({ message: 'Classroom ended successfully. Students removed and notified.' });
+
+  } catch (err) {
+    console.error('Error ending classroom:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get public information for a classroom by shortCode or ID
+router.get('/public/:shortCode', async (req, res) => {
+  try {
+    const { shortCode } = req.params;
+    const mongoose = require('mongoose');
+
+    let classroom = await Classroom.findOne({ shortCode })
+      .populate('teacherId', 'name role')
+      .populate('schoolId', 'name logoUrl shortCode')
+      .populate('topics', 'name description status order')
+      .lean();
+
+    if (!classroom && mongoose.Types.ObjectId.isValid(shortCode)) {
+      classroom = await Classroom.findById(shortCode)
+        .populate('teacherId', 'name role')
+        .populate('schoolId', 'name logoUrl shortCode')
+        .populate('topics', 'name description status order')
+        .lean();
+    }
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+
+    res.json({ classroom });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get public info for a classroom (legacy search by ID)
+router.get('/:id/public', async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id)
+       .populate('teacherId', 'name role')
+       .populate('schoolId', 'name logoUrl shortCode')
+       .populate('topics', 'name description status order')
+       .lean();
+
+    if (!classroom) {
+      return res.status(404).json({ message: 'Classroom not found' });
+    }
+    res.json({ classroom });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+module.exports = router;

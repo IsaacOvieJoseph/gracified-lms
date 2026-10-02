@@ -34,3 +34,11 @@ data/
 coverage/
 .nyc_output/
 
+# Back-end uploads
+backend/uploads/
+
+# Mobile
+.expo/
+
+# emulator
+android/

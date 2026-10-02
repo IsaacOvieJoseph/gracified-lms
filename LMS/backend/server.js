@@ -1,11 +1,37 @@
+const dotenv = require('dotenv');
+dotenv.config();
+const dns = require('dns');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
+const http = require('http');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const { randomUUID } = require('crypto');
+const whiteboardSessions = require('./whiteboardSessions');
+const User = require('./models/User');
+const Classroom = require('./models/Classroom');
+const Whiteboard = require('./models/Whiteboard');
+const { startScheduler } = require('./utils/scheduler');
+const path = require('path');
 
-dotenv.config();
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const app = express();
+
+// Some Windows networks/security tools allow OS DNS resolution but block Node's DNS (c-ares),
+// which breaks MongoDB Atlas SRV lookups (mongodb+srv://). These defaults help avoid that.
+try {
+  dns.setDefaultResultOrder?.('ipv4first');
+  dns.setServers?.(['1.1.1.1', '8.8.8.8']);
+} catch (e) {
+  // best-effort only
+}
+
+// Trust proxy for rate limiting (needed on Render/cloud providers)
+app.set('trust proxy', 1);
 
 // Load models to ensure they are registered with Mongoose
 require('./models/User');
@@ -14,15 +40,74 @@ require('./models/Assignment');
 require('./models/Topic');
 require('./models/Payment');
 require('./models/Notification');
-require('./models/School'); // Load School model
-require('./models/Tutorial'); // Load Tutorial model
-require('./models/SubscriptionPlan'); // Load SubscriptionPlan model
-require('./models/UserSubscription'); // Load UserSubscription model
+require('./models/School');
+require('./models/Tutorial');
+require('./models/SubscriptionPlan');
+require('./models/UserSubscription');
+require('./models/Exam');
+require('./models/ExamSubmission');
+require('./models/QnABoard');
+require('./models/QnAQuestion');
+require('./models/ScriptShareConfig');
+require('./models/ScriptAccessSession');
+require('./models/TutorSession');
+require('./models/TutorRequest');
+
+// Security Middlewares
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false, // Disable CSP for now as it can be very restrictive with third-party scripts/fonts
+})); // Sets various security-related HTTP headers
+app.use(mongoSanitize()); // Prevent NoSQL injection attacks
+
+// Rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://gracified-lms.vercel.app',
+  'https://gracified-lms.onrender.com'
+].filter(Boolean).flatMap(url => [url, url.endsWith('/') ? url.slice(0, -1) : url + '/']);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked for origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '50mb' })); // Increased limit for AI generation and uploads
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
+// Apply rate limiting to authentication routes
+app.use('/api/auth', authLimiter);
+app.use('/api/google-auth', authLimiter);
+
+// Basic health check and root routes
+app.get('/', (req, res) => {
+  res.json({ status: 'OK', message: 'LMS API is running at /api' });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'LMS API is running' });
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -33,16 +118,30 @@ app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/zoom', require('./routes/zoom'));
 app.use('/api/whiteboard', require('./routes/whiteboard'));
-app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/notifications/inapp', require('./routes/notifications-inapp'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/schools', require('./routes/schools'));
+app.use('/api/marketing', require('./routes/marketing'));
 app.use('/api/subscription-plans', require('./routes/subscriptionPlans')); // New subscription plans route
 app.use('/api/user-subscriptions', require('./routes/userSubscriptions')); // New user subscriptions route
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/disbursements', require('./routes/disbursements'));
+const googleAuthRouter = require('./routes/googleAuth');
+app.use('/api/google-auth', googleAuthRouter);
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/exams', require('./routes/exams'));
+app.use('/api/qna', require('./routes/qna'));
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/tutor-requests', require('./routes/tutorRequests'));
+app.use('/api/scripts', require('./routes/scripts'));
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'LMS API is running' });
+// Swagger Documentation
+const { swaggerUi, specs } = require('./config/swagger');
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(specs);
 });
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -50,22 +149,499 @@ const connectDB = async () => {
     // Fix case sensitivity issue - use lowercase 'lms'
     let mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/lms';
     mongoUri = mongoUri.replace(/\/LMS$/, '/lms');
-    
+
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
     console.log('MongoDB Connected');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    if (error.message.includes('ENOTFOUND')) {
+      console.error('MongoDB connection error: Could not resolve DNS. Check your internet connection or MongoDB URI.');
+    } else {
+      console.error('MongoDB connection error:', error.message);
+    }
     process.exit(1);
   }
 };
 
-connectDB();
+connectDB().then(() => {
+  // Start the background scheduler for class reminders
+  startScheduler();
+});
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+
+// create http server and attach socket.io
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+// Authenticate socket connections using JWT token sent in handshake auth
+io.use(async (socket, next) => {
+  try {
+    const tokenRaw = socket.handshake.auth?.token || socket.handshake.headers?.authorization || '';
+    const token = tokenRaw.replace(/^Bearer\s+/i, '');
+    if (!token) return next(new Error('Authentication error: No token provided'));
+
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET not configured');
+      return next(new Error('Internal server error'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) return next(new Error('Authentication error: User not found'));
+    socket.data.user = user;
+    return next();
+  } catch (err) {
+    console.error('Socket auth error:', err.message);
+    return next(new Error('Authentication error'));
+  }
+});
+
+io.on('connection', (socket) => {
+  // client joins a whiteboard session for a class
+  socket.on('wb:join', async ({ classId }) => {
+    try {
+      if (!classId) return;
+      // determine teacher status: either user's role or explicit teacherId match
+      let isTeacher = ['teacher', 'personal_teacher', 'school_admin', 'root_admin', 'admin'].includes(socket.data.user.role);
+      try {
+        const classroom = await Classroom.findById(classId);
+        if (classroom && classroom.teacherId && classroom.teacherId.toString() === socket.data.user._id.toString()) {
+          isTeacher = true;
+        }
+      } catch (e) {
+        // ignore classroom lookup errors
+      }
+
+      console.log(`Whiteboard session join: classId=${classId}, user=${socket.data.user?.email} (${socket.data.user?._id})`);
+      const sessionId = whiteboardSessions.addClient(classId, socket.id);
+      socket.join(sessionId);
+
+      // Update Classroom whiteboard activity in DB for multi-instance discovery
+      await Classroom.findByIdAndUpdate(classId, { whiteboardActiveAt: new Date() });
+
+      // Start a heartbeat for this socket/session to keep DB status active
+      const heartbeat = setInterval(async () => {
+        try {
+          await Classroom.findByIdAndUpdate(classId, { whiteboardActiveAt: new Date() });
+        } catch (e) { }
+      }, 2 * 60 * 1000); // every 2 mins
+      socket._wbHeartbeat = heartbeat;
+
+      // assign a display color for presence cursor
+      const color = `hsl(${Math.floor(Math.abs(hashCode(socket.data.user._id.toString())) % 360)},70%,40%)`;
+      const name = socket.data.user ? (socket.data.user.name || socket.data.user.email || 'User') : 'User';
+      socket.data = { ...socket.data, classId, sessionId, isTeacher: !!isTeacher, color, name };
+
+      io.to(sessionId).emit('wb:user-joined', {
+        socketId: socket.id,
+        name,
+        color,
+        isTeacher: !!isTeacher,   // students use this to identify who to follow
+        muted: true, // Default to muted on join
+        videoEnabled: false,
+        handRaised: false,
+        active: whiteboardSessions.getActiveCount(classId)
+      });
+      const locked = whiteboardSessions.isLocked(classId);
+      const follow = whiteboardSessions.isFollow(classId);
+      
+      // Bulk logic: if board is NOT locked, allow new students by default
+      if (!locked) {
+        whiteboardSessions.allowUser(classId, socket.id, true);
+      }
+      
+      socket.emit('wb:lock-state', { locked });
+      socket.emit('wb:follow-state', { follow });
+      socket.emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+      socket.emit('wb:theme-state', { isDarkMode: whiteboardSessions.isDarkMode(classId) });
+      // Notify others about the update if joiner was allowed
+      if (!locked) {
+        io.to(sessionId).emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+      }
+      socket.emit('wb:voice-state', { enabled: whiteboardSessions.isVoiceEnabled(classId) });
+      // send persisted history to the newly joined socket
+      try {
+        const wb = await Whiteboard.findOne({ classId });
+        if (wb && wb.strokes && wb.strokes.length > 0) {
+          socket.emit('wb:history', wb.strokes);
+        }
+      } catch (err) {
+        console.error('Error fetching whiteboard history', err.message);
+      }
+
+      // Final step: Send the joiner a list of all currently active participants
+      // This ensures the teacher's list is populated even if students joined earlier
+      const participants = [];
+      const roomSockets = Array.from(io.sockets.adapter.rooms.get(sessionId) || []);
+      for (const sId of roomSockets) {
+        const s = io.sockets.sockets.get(sId);
+        if (s && s.data) {
+          participants.push({
+            socketId: s.id,
+            name: s.data.name || 'User',
+            color: s.data.color,
+            isTeacher: !!s.data.isTeacher,  // included so student can identify teacher on join
+            muted: s.data.muted ?? true,
+            videoEnabled: s.data.videoEnabled ?? false,
+            handRaised: s.data.handRaised ?? false
+          });
+        }
+      }
+      socket.emit('wb:participants', participants);
+
+    } catch (err) {
+      console.error('wb:join error', err);
+    }
+  });
+
+  // receive cursor positions from clients and broadcast to room
+  socket.on('wb:cursor', ({ xNorm, yNorm }) => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+    const payload = {
+      socketId: socket.id,
+      xNorm,
+      yNorm,
+      name: socket.data.user ? (socket.data.user.name || socket.data.user.email || 'User') : 'User',
+      color: socket.data.color || '#000',
+      isTeacher: !!socket.data.isTeacher  // let students identify the teacher for follow-mode
+    };
+    socket.to(sessionId).emit('wb:cursor', payload);
+  });
+
+  // Teacher broadcasts their scroll/page position — always forwarded.
+  // Follow-mode is a purely client-side decision for each student, so we never gate this.
+  socket.on('wb:viewport', ({ scrollTopNorm, page }) => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+    if (!socket.data.isTeacher) return; // only teacher may publish position
+    socket.to(sessionId).emit('wb:viewport', { scrollTopNorm, page, teacherSocketId: socket.id });
+  });
+
+  // teacher toggles follow mode for the session
+  socket.on('wb:follow', ({ follow }) => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+    if (!socket.data.isTeacher) return;
+    whiteboardSessions.follow(classId, !!follow);
+    io.to(sessionId).emit('wb:follow-state', { follow: !!follow });
+  });
+
+  socket.on('wb:leave', () => {
+    if (socket._wbHeartbeat) clearInterval(socket._wbHeartbeat);
+    const { classId, sessionId } = socket.data || {};
+    if (!classId) return;
+    whiteboardSessions.removeClient(classId, socket.id);
+    const s = whiteboardSessions.getSession(classId);
+    const active = s ? s.clients.size : 0;
+    if (s) io.to(s.sessionId).emit('wb:user-left', { socketId: socket.id, active });
+    socket.leave(sessionId || socket.id);
+  });
+
+  socket.on('wb:draw', (data) => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+    if (whiteboardSessions.isLocked(classId) && !socket.data.isTeacher) return;
+    socket.to(sessionId).emit('wb:draw', { ...data, userId: socket.id });
+    // persist stroke unless client marks it as ephemeral (we support client-side batching)
+    if (!data || data.persist !== false) {
+      (async () => {
+        try {
+          const stroke = {
+            ...(data || {}),
+            _id: data && (data.id || data._id) ? (data.id || data._id) : randomUUID(),
+            userId: socket.data.user ? socket.data.user._id : null,
+            ts: new Date(),
+          };
+          await Whiteboard.findOneAndUpdate(
+            { classId },
+            { $push: { strokes: stroke } },
+            { upsert: true }
+          );
+        } catch (err) {
+          console.error('Error persisting stroke', err.message);
+        }
+      })();
+    }
+  });
+
+  // receive bulk strokes (client-side batching flush)
+  socket.on('wb:draw-bulk', (payload) => {
+    const { strokes } = payload || {};
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+    if (!Array.isArray(strokes) || strokes.length === 0) return;
+    if (whiteboardSessions.isLocked(classId) && !socket.data.isTeacher) return;
+    // NOTE: do not re-broadcast bulk strokes (clients already received real-time per-stroke events)
+    // persist in bulk
+    (async () => {
+      try {
+        const strokesToSave = strokes.map(s => ({
+          ...s,
+          _id: s && (s.id || s._id) ? (s.id || s._id) : randomUUID(),
+          userId: socket.data.user ? socket.data.user._id : null,
+          ts: s.ts ? new Date(s.ts) : new Date(),
+        }));
+        await Whiteboard.updateOne(
+          { classId },
+          { $push: { strokes: { $each: strokesToSave } } },
+          { upsert: true }
+        );
+      } catch (err) {
+        console.error('Error persisting bulk strokes', err.message);
+      }
+    })();
+  });
+
+  // remove a stroke (undo) - validated by creator or teacher
+  socket.on('wb:remove-stroke', async ({ strokeId }) => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId || !strokeId) return;
+    try {
+      // find the stroke owner
+      const wb = await Whiteboard.findOne({ classId, 'strokes._id': strokeId }, { 'strokes.$': 1 });
+      if (!wb || !wb.strokes || wb.strokes.length === 0) return;
+      const stroke = wb.strokes[0];
+      const ownerId = stroke.userId ? stroke.userId.toString() : null;
+      const requesterId = socket.data.user ? socket.data.user._id.toString() : null;
+      const allowed = socket.data.isTeacher || (ownerId && requesterId && ownerId === requesterId);
+      if (!allowed) return;
+      await Whiteboard.updateOne({ classId }, { $pull: { strokes: { _id: strokeId } } });
+      const s = whiteboardSessions.getSession(classId);
+      if (s) io.to(s.sessionId).emit('wb:remove-stroke', { strokeId });
+    } catch (err) {
+      console.error('Error removing stroke', err.message);
+    }
+  });
+
+  socket.on('wb:clear', () => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    if (!socket.data.isTeacher) return;
+    const s = whiteboardSessions.getSession(classId);
+    if (s) io.to(s.sessionId).emit('wb:clear');
+    // clear persisted strokes
+    (async () => {
+      try {
+        await Whiteboard.findOneAndUpdate({ classId }, { $set: { strokes: [] } }, { upsert: true });
+      } catch (err) {
+        console.error('Error clearing persisted strokes', err.message);
+      }
+    })();
+  });
+
+  socket.on('wb:lock', ({ locked }) => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    if (!socket.data.isTeacher) return;
+    
+    whiteboardSessions.lock(classId, !!locked);
+    const s = whiteboardSessions.getSession(classId);
+    if (s) {
+      if (locked) {
+        whiteboardSessions.disallowAllUsers(classId);
+      } else {
+        whiteboardSessions.allowAllUsers(classId);
+      }
+      io.to(s.sessionId).emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+      io.to(s.sessionId).emit('wb:lock-state', { locked: !!locked });
+    }
+  });
+
+  socket.on('wb:theme', ({ isDarkMode }) => {
+    const { classId, isTeacher, sessionId } = socket.data || {};
+    if (!classId || !isTeacher || !sessionId) return;
+    
+    whiteboardSessions.setTheme(classId, !!isDarkMode);
+    io.to(sessionId).emit('wb:theme-state', { isDarkMode: !!isDarkMode });
+  });
+
+  // Voice Communication Handlers
+  socket.on('wb:voice-start', () => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+
+    console.log(`User ${socket.id} joining voice in class ${classId}`);
+
+    // If teacher joins, enable globally
+    if (socket.data.isTeacher) {
+      whiteboardSessions.setVoiceEnabled(classId, true);
+      socket.to(sessionId).emit('wb:voice-state', { enabled: true });
+    }
+
+    // Notify others that this user joined voice signaling
+    socket.to(sessionId).emit('wb:voice-user-joined', { userId: socket.id });
+  });
+
+  socket.on('wb:voice-stop', () => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+
+    console.log(`User ${socket.id} leaving voice in class ${classId}`);
+
+    // If teacher stops voice, disable globally for everyone
+    if (socket.data.isTeacher) {
+      whiteboardSessions.setVoiceEnabled(classId, false);
+      socket.to(sessionId).emit('wb:voice-state', { enabled: false });
+    }
+
+    // Notify others that this user left voice signaling
+    socket.to(sessionId).emit('wb:voice-user-left', { userId: socket.id });
+  });
+
+  socket.on('wb:sdp-offer', ({ targetUserId, sdp }) => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    console.log(`SDP offer from ${socket.id} to ${targetUserId}`);
+    io.to(targetUserId).emit('wb:sdp-offer', { senderUserId: socket.id, sdp });
+  });
+
+  socket.on('wb:sdp-answer', ({ targetUserId, sdp }) => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    console.log(`SDP answer from ${socket.id} to ${targetUserId}`);
+    io.to(targetUserId).emit('wb:sdp-answer', { senderUserId: socket.id, sdp });
+  });
+
+  socket.on('wb:ice-candidate', ({ targetUserId, candidate }) => {
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    console.log(`ICE candidate from ${socket.id} to ${targetUserId}`);
+    io.to(targetUserId).emit('wb:ice-candidate', { senderUserId: socket.id, candidate });
+  });
+
+  socket.on('wb:mute-status', ({ muted }) => {
+    const { classId, sessionId } = socket.data || {};
+    if (!classId || !sessionId) return;
+    console.log(`User ${socket.id} ${muted ? 'muted' : 'unmuted'}`);
+    socket.data.muted = !!muted;
+    socket.to(sessionId).emit('voice:speaking', { userId: socket.id, speaking: !muted });
+    // Also broadcast explicit mute state for UI icons
+    io.to(sessionId).emit('wb:user-mute-state', { userId: socket.id, muted: !!muted });
+  });
+
+  socket.on('wb:video-status', ({ enabled }) => {
+    const { sessionId } = socket.data || {};
+    if (!sessionId) return;
+    console.log(`User ${socket.id} video ${enabled ? 'enabled' : 'disabled'}`);
+    socket.data.videoEnabled = !!enabled;
+    io.to(sessionId).emit('wb:user-video-state', { userId: socket.id, enabled: !!enabled });
+  });
+
+  socket.on('wb:raise-hand', ({ raised }) => {
+    const { sessionId } = socket.data || {};
+    if (!sessionId) return;
+    socket.data.handRaised = !!raised;
+    io.to(sessionId).emit('wb:hand-state', { userId: socket.id, raised: !!raised });
+  });
+
+  socket.on('wb:force-mute', ({ targetUserId, muteAll, force, lock }) => {
+    const { sessionId, isTeacher, classId } = socket.data || {};
+    if (!isTeacher || !sessionId) return;
+
+    // 'force' can be true (mute) or false (unmute)
+    const state = force !== undefined ? !!force : true;
+
+    if (muteAll) {
+      console.log(`Teacher ${socket.id} mass setting: forceMute=${state}, lock=${!!lock}`);
+
+      // If muting: Force everyone's hardware OFF. 
+      // If unmuting: DO NOT force hardware ON (per request), just release lock.
+      if (state === true) {
+        socket.to(sessionId).emit('wb:force-mute', { force: true });
+      }
+
+      // Always broadcast lock state if requested
+      if (lock !== undefined) {
+        io.to(sessionId).emit('wb:mic-lock-state', { locked: !!lock });
+      }
+
+      const roomSockets = io.sockets.adapter.rooms.get(sessionId);
+      if (roomSockets) {
+        for (const sId of roomSockets) {
+          if (sId === socket.id) continue;
+          const s = io.sockets.sockets.get(sId);
+          if (s) {
+            // Only force track 'true' (muted) on server.
+            // If releasing, we don't know their state yet until they click.
+            if (state === true) {
+              s.data.muted = true;
+              io.to(sessionId).emit('wb:user-mute-state', { userId: s.id, muted: true });
+            }
+          }
+        }
+      }
+    } else if (targetUserId) {
+      console.log(`Teacher ${socket.id} force setting student ${targetUserId} mute to ${state}`);
+      io.to(targetUserId).emit('wb:force-mute', { force: state });
+
+      // Update state and broadcast UI sync
+      const targetSocket = io.sockets.sockets.get(targetUserId);
+      if (targetSocket) {
+        targetSocket.data.muted = state;
+        io.to(sessionId).emit('wb:user-mute-state', { userId: targetUserId, muted: state });
+      }
+    }
+  });
+
+  socket.on('wb:allow-user', ({ targetSocketId, allowed }) => {
+    const { isTeacher, sessionId, classId } = socket.data || {};
+    if (!isTeacher || !sessionId || !classId) return;
+    
+    whiteboardSessions.allowUser(classId, targetSocketId, !!allowed);
+    io.to(sessionId).emit('wb:allowed-drawers', whiteboardSessions.getAllowedUsers(classId));
+    io.to(sessionId).emit('wb:allow-user-status', { userId: targetSocketId, allowed: !!allowed });
+  });
+
+  socket.on('disconnect', () => {
+    if (socket._wbHeartbeat) clearInterval(socket._wbHeartbeat);
+    const { classId } = socket.data || {};
+    if (!classId) return;
+    whiteboardSessions.removeClient(classId, socket.id);
+    const s = whiteboardSessions.getSession(classId);
+    const active = s ? s.clients.size : 0;
+    if (s) io.to(s.sessionId).emit('wb:user-left', { socketId: socket.id, active });
+  });
+});
+
+// small deterministic hash for consistent HSL color generation
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+}
+
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  const status = err.status || 500;
+  const message = process.env.NODE_ENV === 'production'
+    ? 'An internal server error occurred.'
+    : err.message;
+
+  res.status(status).json({ message });
+});
+
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 

@@ -1,9 +1,83 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
-import { Plus, Calendar, Users, Book, Video, Edit, Eye, EyeOff, Search } from 'lucide-react';
+import {
+  Plus, Calendar, Users, User, Eye,
+  EyeOff, Search, Trash2, Loader2, School, ArrowRight, Layers,
+  Sparkles, X, Coins, SlidersHorizontal
+} from 'lucide-react';
+import { convertLocalToUTC, convertUTCToLocal } from '../utils/timezone';
+import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { formatAmount } from '../utils/currency';
+import FormFieldHelp from '../components/FormFieldHelp';
+import AIAssistantPanel from '../components/AIAssistantPanel';
+import { consumeGracyPrefill } from '../utils/gracyPrefill';
+
+const levelOptions = [
+  { value: 'Pre-Primary', label: 'Pre-Primary' },
+  { value: 'Primary', label: 'Primary' },
+  { value: 'High School', label: 'High School' },
+  { value: 'Pre-University', label: 'Pre-University' },
+  { value: 'Undergraduate', label: 'Undergraduate' },
+  { value: 'Postgraduate', label: 'Postgraduate' },
+  { value: 'Professional', label: 'Professional' },
+  { value: 'Vocational', label: 'Vocational' },
+  { value: 'Other', label: 'Other' },
+];
+
+const defaultSubjects = [
+  'Mathematics', 'English', 'Physics', 'Chemistry', 'Biology',
+  'Computer Science', 'History', 'Geography', 'Economics',
+  'Literature', 'Art', 'Music', 'Physical Education'
+];
+
+const INK = '#14202E';
+const NAVY = '#1D3557';
+const SLATE = '#5B6B7C';
+const HAIRLINE = '#DDE3E9';
+const PAPER = '#FFFFFF';
+const PANEL = '#F7F8FA';
+const GOLD = '#A9791F';
+const FOREST = '#2F6E4E';
+const ROSE = '#A23B2E';
+
+const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: 'var(--radius)' };
+
+function DetailRow({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Icon size={14} style={{ color: SLATE }} />
+      <span style={{ color: SLATE }}>{label}</span>
+      <span className="font-semibold flex-1 min-w-0 truncate text-right" style={{ color: INK }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+const cardGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+  gap: '20px',
+  alignItems: 'stretch',
+};
+
+const SectionHeader = ({ title, count, icon: Icon }) => (
+  <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center gap-3">
+      <Icon className="w-5 h-5" style={{ color: NAVY }} />
+      <h2 className="font-serif text-[22px] font-semibold" style={{ color: INK }}>{title}</h2>
+      <span className="text-xs font-semibold px-2.5 py-1 tracking-wide" style={{ color: SLATE, border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: 'var(--radius)' }}>
+        {count} total
+      </span>
+    </div>
+    <div className="h-px flex-1 hidden md:block" style={{ backgroundColor: HAIRLINE, marginLeft: 24 }} />
+  </div>
+);
 
 const Classrooms = () => {
   const { user } = useAuth();
@@ -13,73 +87,225 @@ const Classrooms = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [subjectOptions, setSubjectOptions] = useState(defaultSubjects.map(s => ({ value: s, label: s })));
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    schedule: [],   // Changed from '' to []
-    capacity: 30,
-    pricing: { type: 'per_class', amount: 0 },
-    isPaid: false,
-    teacherId: '',
-    published: false
-  });
-
-  // Get selectedSchools from localStorage
-  const [selectedSchools, setSelectedSchools] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('selectedSchools')) || [];
-    } catch {
-      return [];
+    name: '', description: '', learningOutcomes: '', subject: '',
+    level: 'Other', schedule: [], capacity: 30,
+    pricing: { type: user?.defaultPricingType || 'monthly', amount: 0 },
+    isPaid: false, teacherId: '', schoolIds: [], published: false, isPrivate: false,
+    classFormat: 'classroom',
+    publicAccess: {
+      allowGuestAccess: false,
+      durationValue: 1,
+      durationUnit: 'days',
+      startsAt: '',
+      recordingUrl: '',
+      joinInstructions: ''
     }
   });
+  const [selectedSubject, setSelectedSubject] = useState('All Subjects');
+  const [selectedLevel, setSelectedLevel] = useState('All Levels');
+  const [selectedPrice, setSelectedPrice] = useState('All Prices');
+
+  const [openMySchool, setOpenMySchool] = useState(true);
+  const [openOthers, setOpenOthers] = useState(true);
+  const [selectedSchools, setSelectedSchools] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('selectedSchools')) || []; } catch { return []; }
+  });
+
+  const canCreate = ['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role);
+
+  // Gracy → create-form handoff: consume a prefilled class draft on mount.
+  useEffect(() => {
+    const prefill = consumeGracyPrefill('classroom');
+    if (prefill) {
+      const subject = (prefill.subject && typeof prefill.subject === 'object')
+        ? prefill.subject.name || prefill.subject.label
+        : prefill.subject;
+      setFormData((prev) => ({
+        ...prev,
+        name: prefill.name || prev.name,
+        description: prefill.description || prev.description,
+        learningOutcomes: prefill.learningOutcomes || prev.learningOutcomes,
+        subject: subject || prev.subject,
+        level: levelOptions.some((o) => o.value === prefill.level) ? prefill.level : prev.level,
+      }));
+      setShowCreateModal(true);
+      toast.success('AI draft ready — review & create your class');
+    }
+  }, []);
+
+  const customSelectStyles = {
+    control: (base) => ({
+      ...base,
+      minHeight: '60px',
+      borderRadius: '1rem',
+      backgroundColor: 'hsl(var(--card))',
+      borderColor: 'hsl(var(--border))',
+      borderWidth: '2px',
+      fontWeight: '700',
+      boxShadow: 'none',
+      '&:hover': {
+        borderColor: 'hsl(var(--primary))'
+      }
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? 'hsl(var(--primary))'
+        : state.isFocused
+        ? 'hsl(var(--primary) / 0.15)'
+        : 'hsl(var(--card))',
+      color: state.isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
+      fontWeight: '700',
+      cursor: 'pointer',
+      ':active': {
+        backgroundColor: 'hsl(var(--primary) / 0.2)'
+      }
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: 'hsl(var(--foreground))'
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: 'hsl(var(--card))',
+      border: '1px solid hsl(var(--border))',
+      borderRadius: '1rem',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      zIndex: 9999
+    }),
+    multiValue: (base) => ({
+      ...base,
+      backgroundColor: 'hsl(var(--muted))'
+    }),
+    multiValueLabel: (base) => ({
+      ...base,
+      color: 'hsl(var(--foreground))',
+      fontWeight: '600'
+    }),
+    multiValueRemove: (base) => ({
+      ...base,
+      color: 'hsl(var(--muted-foreground))',
+      ':hover': {
+        backgroundColor: 'hsl(var(--primary) / 0.15)',
+        color: 'hsl(var(--primary))'
+      }
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 99999
+    })
+  };
+
+  const filterSelectStyles = {
+    ...customSelectStyles,
+    control: (base) => ({
+      ...customSelectStyles.control(base),
+      minHeight: '48px',
+      height: '48px',
+      borderRadius: 'var(--radius)',
+      borderWidth: '1px',
+      borderColor: 'hsl(var(--border))',
+      fontWeight: '500',
+      fontSize: '14px',
+      '&:hover': { borderColor: 'hsl(var(--foreground) / 0.35)' }
+    }),
+    valueContainer: (base) => ({ ...base, padding: '0 12px' }),
+    singleValue: (base) => ({ ...base, color: 'hsl(var(--foreground))', fontWeight: '500' }),
+    placeholder: (base) => ({ ...base, color: 'hsl(var(--muted-foreground))' })
+  };
+
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data && res.data.subjects) {
+          const uniqueSubjects = Array.from(new Set([...defaultSubjects, ...res.data.subjects]));
+          uniqueSubjects.sort();
+          setSubjectOptions(uniqueSubjects.map(s => ({ value: s, label: s })));
+        }
+      } catch (err) { }
+    };
+    fetchSubjects();
+  }, []);
 
   useEffect(() => {
     fetchClassrooms();
-    if (['root_admin', 'school_admin'].includes(user?.role)) {
-      fetchTeachers();
-    }
-    // Listen for school selection changes from SchoolSwitcher
-    const handler = (e) => {
+    if (['root_admin', 'school_admin'].includes(user?.role)) fetchTeachers();
+
+    const handler = () => {
+      try { setSelectedSchools(JSON.parse(localStorage.getItem('selectedSchools')) || []); } catch { }
       fetchClassrooms();
-      if (['root_admin', 'school_admin'].includes(user?.role)) {
-        fetchTeachers();
-      }
+      if (['root_admin', 'school_admin'].includes(user?.role)) fetchTeachers();
     };
     window.addEventListener('schoolSelectionChanged', handler);
     return () => window.removeEventListener('schoolSelectionChanged', handler);
-  }, [user, selectedSchools]);
+  }, [user]);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredClassrooms(classrooms);
-    } else {
+    let filtered = [...classrooms];
+
+    if (selectedSubject !== 'All Subjects') {
+      filtered = filtered.filter(c => (c.subject?.name || c.subject) === selectedSubject);
+    }
+
+    if (selectedLevel !== 'All Levels') {
+      filtered = filtered.filter(c => c.level === selectedLevel);
+    }
+
+    if (selectedPrice === 'Free') {
+      filtered = filtered.filter(c => !c.isPaid);
+    } else if (selectedPrice === 'Paid') {
+      filtered = filtered.filter(c => c.isPaid);
+    }
+
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      const filtered = classrooms.filter(c => 
+      filtered = filtered.filter(c =>
         c.name?.toLowerCase().includes(query) ||
         c.description?.toLowerCase().includes(query) ||
-        c.teacherId?.name?.toLowerCase().includes(query)
+        c.teacherId?.name?.toLowerCase().includes(query) ||
+        c.subject?.toLowerCase().includes(query)
       );
-      setFilteredClassrooms(filtered);
     }
-  }, [searchQuery, classrooms]);
+
+    setFilteredClassrooms(filtered);
+  }, [searchQuery, selectedSubject, selectedLevel, selectedPrice, classrooms]);
 
   const fetchClassrooms = async () => {
-    setLoading(true);
+    if (classrooms.length === 0) setLoading(true);
     try {
       const response = await api.get('/classrooms');
-      let filteredClassrooms = response.data.classrooms;
-      // Students and teachers see only published classrooms in the list
-      if (user?.role === 'student' || user?.role === 'teacher') {
-        filteredClassrooms = filteredClassrooms.filter(c => c.published);
+      console.log('Fetched classrooms:', response.data);
+      let filtered = response.data.classrooms || [];
+      if (!Array.isArray(filtered)) {
+        console.error('Classrooms data is not an array:', filtered);
+        filtered = [];
       }
-      // School admin: filter by selected school unless 'All' (empty array)
+      // Public lectures & seminars live in their own module (/public-classes).
+      filtered = filtered.filter(c => !['public_lecture', 'public_seminar'].includes(c.classFormat));
+      // Students should only see published classrooms.
+      // Teachers should be able to see their own classrooms even if unpublished (so they can manage/publish them).
+      if (user?.role === 'student') {
+        filtered = filtered.filter(c => c.published);
+        console.log('After published filter (student):', filtered.length);
+      }
       if (user?.role === 'school_admin' && selectedSchools.length > 0) {
-        filteredClassrooms = filteredClassrooms.filter(c => selectedSchools.includes(c.schoolId?._id || c.schoolId));
+        filtered = filtered.filter(c => {
+          const cids = Array.isArray(c.schoolId) ? c.schoolId.map(sid => (sid?._id || sid).toString()) : [c.schoolId?._id?.toString() || c.schoolId?.toString()];
+          return selectedSchools.some(sel => cids.includes((sel?._id || sel).toString()));
+        });
+        console.log('After school filter:', filtered.length);
       }
-      setClassrooms([...filteredClassrooms]);
-      setFilteredClassrooms([...filteredClassrooms]);
+      console.log('Setting classrooms with count:', filtered.length);
+      setClassrooms(filtered);
+      setFilteredClassrooms(filtered);
     } catch (error) {
       console.error('Error fetching classrooms:', error);
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to load classrooms');
     } finally {
       setLoading(false);
     }
@@ -87,420 +313,679 @@ const Classrooms = () => {
 
   const fetchTeachers = async () => {
     try {
-      let url = '/users';
-      if (user?.role === 'school_admin' && user?.schoolId) {
-        url = `/users?schoolId=${user.schoolId}&role=teacher,personal_teacher`; // Filter by schoolId and roles
-      }
-      console.log('Classrooms.jsx: Fetching teachers from URL:', url);
-      const response = await api.get(url);
-      console.log('Classrooms.jsx: Raw response data for teachers:', response.data);
-      const teacherList = response.data.users.filter(u => 
-        ['teacher', 'personal_teacher'].includes(u.role)
-      );
-      setTeachers(teacherList);
-      console.log('Classrooms.jsx: Filtered teacher list length:', teacherList.length, 'Teachers:', teacherList);
-    } catch (error) {
-      console.error('Error fetching teachers:', error);
-    }
+      const response = await api.get('/users?role=teacher,personal_teacher');
+      setTeachers(response.data.users.filter(u => ['teacher', 'personal_teacher'].includes(u.role)));
+    } catch (error) { }
   };
 
-  const handlePublishToggle = async (classroomId, currentStatus) => {
+  const [publishingClassId, setPublishingClassId] = useState(null);
+  const handlePublishToggle = async (id, status) => {
+    setPublishingClassId(id);
     try {
-      await api.put(`/classrooms/${classroomId}/publish`, { published: !currentStatus });
+      await api.put(`/classrooms/${id}/publish`, { published: !status });
       fetchClassrooms();
-    } catch (error) {
-      alert(error.response?.data?.message || 'Error updating publish status');
-    }
+    } catch (error) { toast.error('Error updating status'); }
+    finally { setPublishingClassId(null); }
   };
 
-  // School selection state for school admin
-  const [selectedSchool, setSelectedSchool] = useState(() => {
-    try {
-      const arr = JSON.parse(localStorage.getItem('selectedSchools'));
-      return arr && arr.length ? arr[0] : '';
-    } catch {
-      return '';
-    }
-  });
   const [schools, setSchools] = useState([]);
   useEffect(() => {
     if (user?.role === 'school_admin') {
-      api.get('/schools?adminId=' + user._id)
-        .then(res => setSchools(res.data.schools || []))
-        .catch(() => setSchools([]));
+      api.get('/schools?adminId=' + user._id).then(res => setSchools(res.data.schools || []));
+    } else if (user?.role === 'root_admin') {
+      api.get('/schools').then(res => setSchools(res.data.schools || []));
     }
   }, [user]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    setIsCreating(true);
     try {
-      const submitData = { ...formData };
-      if (user?.role === 'school_admin') {
-        submitData.schoolId = selectedSchool;
+      if (['root_admin', 'school_admin'].includes(user?.role) && !formData.teacherId) {
+        setIsCreating(false);
+        return toast.error('Please assign a teacher to the classroom.');
       }
-      // Teachers don't need to provide teacherId (it's auto-assigned)
-      if (user?.role === 'teacher' || user?.role === 'personal_teacher') {
-        delete submitData.teacherId;
+
+      const submitData = {
+        ...formData,
+        isPaid: formData.isPaid && formData.pricing?.amount > 0,
+        publicAccess: {
+          ...formData.publicAccess,
+          allowGuestAccess: formData.classFormat !== 'classroom' && formData.publicAccess.allowGuestAccess,
+          endsAt: formData.publicAccess.startsAt
+            ? new Date(new Date(formData.publicAccess.startsAt).getTime() + Number(formData.publicAccess.durationValue || 1) * (formData.publicAccess.durationUnit === 'weeks' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString()
+            : null
+        },
+        schedule: formData.schedule.map(s => {
+          const utc = convertLocalToUTC(s.dayOfWeek, s.startTime);
+          const utcEnd = convertLocalToUTC(s.dayOfWeek, s.endTime);
+          return { dayOfWeek: utc.dayOfWeek, startTime: utc.time, endTime: utcEnd.time };
+        })
+      };
+
+      if (['school_admin', 'root_admin'].includes(user?.role)) {
+        const sel = formData.schoolIds?.includes('ALL') ? schools.map(s => s._id) : formData.schoolIds;
+        if (user?.role === 'school_admin' && (!sel || sel.length === 0)) {
+          setIsCreating(false);
+          return toast.error('Select at least one school');
+        }
+        submitData.schoolId = sel || [];
+        delete submitData.schoolIds;
+      } else {
+        delete submitData.schoolIds;
       }
+
+      if (user?.role === 'teacher' || user?.role === 'personal_teacher') delete submitData.teacherId;
       await api.post('/classrooms', submitData);
       setShowCreateModal(false);
-      setFormData({
-        name: '',
-        description: '',
-        schedule: [],
-        capacity: 30,
-        pricing: { type: 'per_class', amount: 0 },
-        isPaid: false,
-        teacherId: '',
-        published: false
-      });
       fetchClassrooms();
+      toast.success('Classroom created');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating classroom');
+      toast.error(error.response?.data?.message || 'Error creating classroom');
     }
+    finally { setIsCreating(false); }
   };
 
-  const canCreate = ['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [classToDelete, setClassToDelete] = useState(null);
+  const handleDeleteClick = (id, e) => { e.preventDefault(); setClassToDelete(id); setShowDeleteModal(true); };
 
-  if (loading) {
-    return <Layout><div className="text-center py-8">Loading...</div></Layout>;
-  }
+  const confirmDelete = async () => {
+    try {
+      await api.delete(`/classrooms/${classToDelete}`);
+      toast.success('Deleted');
+      fetchClassrooms();
+      setShowDeleteModal(false);
+    } catch (error) { toast.error('Error deleting'); }
+  };
+
+  const isMySchoolClass = (classroom) => {
+    if (!user?.schoolId || user.schoolId.length === 0) return false;
+    const usids = user.schoolId.map(s => (s?._id || s).toString());
+    const cids = Array.isArray(classroom.schoolId) ? classroom.schoolId.map(sid => (sid?._id || sid).toString()) : [(classroom.schoolId?._id || classroom.schoolId)?.toString()];
+    return cids.some(cid => usids.includes(cid));
+  };
+
+  const renderClassroomCard = (classroom) => {
+    const isNew = new Date(classroom.createdAt) > new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const isAdmin = ['root_admin', 'school_admin', 'personal_teacher'].includes(user?.role);
+    const canModify = user?.role === 'root_admin' || user?.role === 'school_admin' || user?._id === classroom.teacherId?._id;
+    const isFree = !classroom.isPaid || (classroom.pricing?.amount || 0) <= 0;
+
+    const firstSession = classroom.schedule && classroom.schedule[0];
+    let scheduleLabel = 'TBA';
+    if (firstSession) {
+      try {
+        const local = convertUTCToLocal(firstSession.dayOfWeek, firstSession.startTime);
+        scheduleLabel = `${local.dayOfWeek ? local.dayOfWeek.substring(0, 3) : 'TBA'} ${local.hhmm}`;
+      } catch {
+        scheduleLabel = `${firstSession.dayOfWeek || 'TBA'} ${firstSession.startTime || ''}`;
+      }
+    }
+
+    return (
+      <div key={classroom._id} className="flex flex-col overflow-hidden" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+        <div style={{ height: '3px', backgroundColor: NAVY }} />
+
+        <div className="px-5 pt-4 pb-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="flex-1 font-serif text-[19px] font-semibold leading-snug min-w-0" style={{ color: INK }}>
+              {classroom.name}
+              {isNew && <span className="ml-2 text-[10px] font-sans align-middle px-1.5 py-0.5 tracking-wide" style={{ color: '#B7791F', border: '1px solid #EAD8BC', backgroundColor: '#FBF4E8', borderRadius: 'var(--radius)' }}>New</span>}
+            </h3>
+            {isFree ? (
+              <span className="text-xs font-semibold px-2 py-1 shrink-0 whitespace-nowrap" style={{ color: FOREST, border: `1px solid #CFE3D6`, backgroundColor: '#F2F8F4', borderRadius: 'var(--radius)' }}>
+                Free
+              </span>
+            ) : (
+              <div className="text-right shrink-0">
+                <div className="font-serif text-lg font-semibold leading-none" style={{ color: GOLD }}>
+                  {formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')}
+                </div>
+                <div className="text-xs mt-1" style={{ color: SLATE }}>
+                  {classroom.pricing?.type ? classroom.pricing.type.replace('_', ' ') : 'paid'}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-2 text-sm" style={{ color: SLATE }}>
+            <User size={14} />
+            <span className="truncate">{classroom.teacherId?.name || 'TBA'}</span>
+          </div>
+        </div>
+
+        <div className="px-5 py-3 flex flex-col gap-2" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+          <DetailRow icon={Layers} label="Level:" value={classroom.level || 'Other'} />
+          <DetailRow icon={Calendar} label="Schedule:" value={scheduleLabel} />
+        </div>
+
+        <div className="px-5 py-3 flex items-center justify-between gap-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+          <div className="flex items-center gap-2 text-sm" style={{ color: SLATE }}>
+            <Users size={14} />
+            {classroom.students?.length || 0} enrolled
+          </div>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => handlePublishToggle(classroom._id, classroom.published)}
+                title={classroom.published ? 'Unpublish' : 'Publish'}
+                className="flex items-center justify-center w-8 h-8"
+                style={{ border: `1px solid ${classroom.published ? '#CFE3D6' : HAIRLINE}`, borderRadius: 'var(--radius)' }}
+                aria-label={classroom.published ? 'Unpublish class' : 'Publish class'}
+              >
+                {publishingClassId === classroom._id
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: INK }} />
+                  : classroom.published ? <Eye size={14} style={{ color: FOREST }} /> : <EyeOff size={14} style={{ color: SLATE }} />}
+              </button>
+            )}
+            {canModify && (
+              <button
+                onClick={(e) => handleDeleteClick(classroom._id, e)}
+                className="flex items-center justify-center w-8 h-8"
+                style={{ border: '1px solid #EBD3CE', borderRadius: 'var(--radius)' }}
+                aria-label="Delete class"
+              >
+                <Trash2 size={14} style={{ color: ROSE }} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="px-5 py-4 mt-auto">
+          <Link
+            to={`/classrooms/${classroom._id}`}
+            className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+            style={primaryActionStyle}
+          >
+            View classroom
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) return <Layout><div className="flex items-center justify-center min-h-[400px]"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div></Layout>;
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {user?.role === 'student' ? 'Available Classes' : 'Manage Classrooms'}
-          </h2>
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}` }}>
+          <div>
+            <h1 className="font-serif text-[26px] font-semibold" style={{ color: INK }}>Explore academies</h1>
+            <p className="text-sm mt-1" style={{ color: SLATE }}>Browse and manage the classes you teach or oversee.</p>
+          </div>
           {canCreate && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold whitespace-nowrap hover:opacity-90 transition-opacity"
+              style={primaryActionStyle}
             >
-              <Plus className="w-4 h-4" />
-              <span>Create Class</span>
+              <Plus size={16} /> Create new class
             </button>
           )}
         </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search by class name, description, or teacher..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClassrooms.map((classroom) => {
-            const isEnrolled = user?.enrolledClasses?.includes(classroom._id) ||
-              classroom.students?.some(s => s._id === user?._id);
-
-            // Check if class is from personal teacher
-            const isPersonalTeacher = !classroom.schoolId && classroom.teacherId?.role === 'personal_teacher';
-            
-            return (
-              <div key={classroom._id} className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition ${
-                isPersonalTeacher ? 'border-l-4 border-purple-500' : ''
-              }`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-xl font-bold text-gray-800">{classroom.name}</h3>
-                      {!classroom.published && (
-                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                          Draft
-                        </span>
-                      )}
-                      {isPersonalTeacher && (
-                        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-semibold">
-                          Personal Teacher
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      by {classroom.teacherId?.name || 'TBA'}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end space-y-1">
-                    {classroom.isPaid && classroom.pricing?.amount > 0 ? (
-                      <span className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-semibold">
-                        ${classroom.pricing?.amount || 0}
-                      </span>
-                    ) : (
-                      <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-semibold">
-                        Free
-                      </span>
-                    )}
-                    {['root_admin', 'school_admin', 'personal_teacher'].includes(user?.role) && (
-                      <button
-                        onClick={() => handlePublishToggle(classroom._id, classroom.published)}
-                        className={`text-xs px-2 py-1 rounded ${
-                          classroom.published 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                        title={classroom.published ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
-                      >
-                        {classroom.published ? <Eye className="w-3 h-3 inline" /> : <EyeOff className="w-3 h-3 inline" />}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {/* Displaying schedule - iterate over the array */}
-                    {classroom.schedule && classroom.schedule.length > 0 ? (
-                      classroom.schedule.map((session, index) => (
-                        <span key={index} className="mr-1">
-                          {session.dayOfWeek ? session.dayOfWeek.substring(0, 3) : 'N/A'} {session.startTime}-{session.endTime}
-                          {index < classroom.schedule.length - 1 ? ',' : ''}
-                        </span>
-                      ))
-                    ) : (
-                      <span>No schedule available</span>
-                    )}
-                  </div>
-                  {user?.role !== 'student' && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-2" />
-                      {classroom.students?.length || 0} students enrolled
-                    </div>
-                  )}
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Book className="w-4 h-4 mr-2" />
-                    {classroom.topics?.length || 0} topics
-                  </div>
-                </div>
-
-                <Link
-                  to={`/classrooms/${classroom._id}`}
-                  className="w-full block text-center bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition font-semibold mb-2"
-                >
-                  View Details
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-
-        {filteredClassrooms.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500">
-              {searchQuery.trim() !== ''
-                ? 'No classrooms found matching your search'
-                : 'No classrooms available'}
-            </p>
+        <div className="flex flex-wrap gap-3">
+          <div className="flex items-center gap-3 px-4 h-[48px] flex-[2] min-w-[220px]" style={{ border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: 'var(--radius)' }}>
+            <Search size={15} style={{ color: SLATE }} />
+            <input
+              type="text"
+              placeholder="Filter by title, subject, teacher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="text-sm w-full outline-none bg-transparent"
+              style={{ color: INK }}
+            />
           </div>
-        )}
+
+          <div className="flex-1 min-w-[180px]">
+            <Select
+              options={[{ value: 'All Subjects', label: 'All Subjects' }, ...subjectOptions]}
+              value={{ value: selectedSubject, label: selectedSubject }}
+              onChange={(sel) => setSelectedSubject(sel?.value || 'All Subjects')}
+              className="modern-select"
+              classNamePrefix="react-select"
+              menuPortalTarget={document.body}
+              styles={filterSelectStyles}
+              components={{ DropdownIndicator: () => <SlidersHorizontal size={14} style={{ color: SLATE }} />, IndicatorSeparator: () => null }}
+            />
+          </div>
+
+          <div className="flex-1 min-w-[180px]">
+            <Select
+              options={[{ value: 'All Levels', label: 'All Levels' }, ...levelOptions]}
+              value={{ value: selectedLevel, label: selectedLevel }}
+              onChange={(sel) => setSelectedLevel(sel?.value || 'All Levels')}
+              className="modern-select"
+              classNamePrefix="react-select"
+              menuPortalTarget={document.body}
+              styles={filterSelectStyles}
+              components={{ DropdownIndicator: () => <Layers size={14} style={{ color: SLATE }} />, IndicatorSeparator: () => null }}
+            />
+          </div>
+
+          <div className="flex-1 min-w-[180px]">
+            <Select
+              options={[
+                { value: 'All Prices', label: 'All Prices' },
+                { value: 'Free', label: 'Free Classes' },
+                { value: 'Paid', label: 'Paid Classes' }
+              ]}
+              value={{ value: selectedPrice, label: selectedPrice }}
+              onChange={(sel) => setSelectedPrice(sel?.value || 'All Prices')}
+              className="modern-select"
+              classNamePrefix="react-select"
+              menuPortalTarget={document.body}
+              styles={filterSelectStyles}
+              components={{ DropdownIndicator: () => <Coins size={14} style={{ color: SLATE }} />, IndicatorSeparator: () => null }}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-10">
+          {user?.role === 'student' && user?.schoolId?.length > 0 ? (
+            <>
+              <SectionHeader title="Your Facilities" count={filteredClassrooms.filter(isMySchoolClass).length} icon={School} />
+              <div className="animate-slide-up" style={cardGridStyle}>
+                {filteredClassrooms.filter(isMySchoolClass).map(renderClassroomCard)}
+              </div>
+
+              {filteredClassrooms.filter(c => !isMySchoolClass(c)).length > 0 && (
+                <>
+                  <div className="pt-12 mb-8 border-t" style={{ borderColor: HAIRLINE }}>
+                    <SectionHeader title="Global Classrooms" count={filteredClassrooms.filter(c => !isMySchoolClass(c)).length} icon={Sparkles} />
+                  </div>
+                  <div className="animate-slide-up" style={cardGridStyle}>
+                    {filteredClassrooms.filter(c => !isMySchoolClass(c)).map(renderClassroomCard)}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="animate-slide-up" style={cardGridStyle}>
+              {filteredClassrooms.map(renderClassroomCard)}
+            </div>
+          )}
+
+          {filteredClassrooms.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-6" style={{ backgroundColor: PAPER, border: `1px dashed ${HAIRLINE}` }}>
+              <div className="w-16 h-16 flex items-center justify-center mb-6" style={{ backgroundColor: PANEL, borderRadius: 'var(--radius)' }}>
+                <Search className="w-8 h-8" style={{ color: SLATE, opacity: 0.5 }} />
+              </div>
+              <h3 className="font-serif text-[20px] font-semibold" style={{ color: INK }}>No classes match</h3>
+              <p className="text-sm mt-1" style={{ color: SLATE }}>Try adjusting your filters or search keywords.</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto" style={{ maxHeight: '90vh' }}>
-            <h3 className="text-xl font-bold mb-4">Create Classroom</h3>
-            { (['root_admin', 'school_admin'].includes(user?.role) && teachers.length === 0) && (
-                <p className="text-red-500 text-sm mb-4 text-center">
-                  Please ensure there is at least one teacher registered for the school.
-                </p>
-              )}
-            <form onSubmit={handleCreate} className="space-y-4">
-              {user?.role === 'school_admin' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
-                  <select
-                    value={selectedSchool}
-                    onChange={e => setSelectedSchool(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg"
-                    required
+        <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-6">
+            <div className="bg-card border border-border rounded-xl w-full max-w-2xl p-10 shadow-none animate-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-10">
+                <h2 className="text-3xl font-semibold tracking-tight text-foreground">Create <span className="text-primary not-italic">Classroom</span></h2>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAIPanel(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold tracking-wider hover:opacity-90 transition-all shadow-none  dark:shadow-none active:scale-95"
                   >
-                    <option value="">Select School</option>
-                    {schools.map(s => (
-                      <option key={s._id} value={s._id}>{s.name}</option>
-                    ))}
-                  </select>
+                    <Sparkles className="w-4 h-4" />
+                    Magic Generate
+                  </button>
+                  <button onClick={() => setShowCreateModal(false)} className="p-3 hover:bg-muted rounded-xl transition text-muted-foreground/60"><X className="w-6 h-6" /></button>
                 </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  rows="3"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-                {formData.schedule.map((session, index) => (
-                  <div key={index} className="flex space-x-2 mb-2 items-center">
-                    <select
-                      value={session.dayOfWeek}
-                      onChange={(e) => {
-                        const newSchedule = [...formData.schedule];
-                        newSchedule[index].dayOfWeek = e.target.value;
-                        setFormData({ ...formData, schedule: newSchedule });
-                      }}
-                      className="w-1/3 px-2 py-1 border rounded-lg"
-                      required
-                    >
-                      <option value="">Select Day</option>
-                      {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
+              <form onSubmit={handleCreate} className="space-y-8 pb-4">
+                {/* Basic Info */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Class Title</label>
                     <input
-                      type="time"
-                      value={session.startTime}
-                      onChange={(e) => {
-                        const newSchedule = [...formData.schedule];
-                        newSchedule[index].startTime = e.target.value;
-                        setFormData({ ...formData, schedule: newSchedule });
-                      }}
-                      className="w-1/3 px-2 py-1 border rounded-lg"
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. Advanced Quantum Mechanics"
+                      className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground focus:border-primary transition-all outline-none"
                       required
                     />
-                    <input
-                      type="time"
-                      value={session.endTime}
-                      onChange={(e) => {
-                        const newSchedule = [...formData.schedule];
-                        newSchedule[index].endTime = e.target.value;
-                        setFormData({ ...formData, schedule: newSchedule });
-                      }}
-                      className="w-1/3 px-2 py-1 border rounded-lg"
-                      required
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
+                      Grade Level
+                      <FormFieldHelp content="The grade or difficulty level of this class." />
+                    </label>
+                    <Select
+                      options={levelOptions}
+                      value={levelOptions.find(opt => opt.value === formData.level)}
+                      onChange={sel => setFormData({ ...formData, level: sel?.value })}
+                      className="modern-select"
+                      classNamePrefix="react-select"
+                      menuPortalTarget={document.body}
+                      styles={customSelectStyles}
                     />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1 flex items-center">
+                      Subject Matter
+                      <FormFieldHelp content="Categorize your class for better discoverability in the marketplace." />
+                    </label>
+                    <CreatableSelect
+                      options={subjectOptions}
+                      value={formData.subject ? { value: formData.subject, label: formData.subject } : null}
+                      onChange={sel => setFormData({ ...formData, subject: sel?.value || '' })}
+                      className="modern-select"
+                      classNamePrefix="react-select"
+                      menuPortalTarget={document.body}
+                      styles={customSelectStyles}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Tell students what this class is about..."
+                      className="w-full min-h-[100px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary transition-all outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Learning Outcomes</label>
+                    <textarea
+                      value={formData.learningOutcomes}
+                      onChange={e => setFormData({ ...formData, learningOutcomes: e.target.value })}
+                      placeholder="What will students learn? (comma separated)..."
+                      className="w-full min-h-[80px] bg-muted border-2 border-border p-4 rounded-xl font-medium text-foreground focus:border-primary transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Roles & Visibility */}
+                <div className="grid md:grid-cols-2 gap-6 bg-muted p-6 rounded-xl border border-border">
+                  {(user?.role === 'root_admin' || user?.role === 'school_admin') && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">Assign Teacher</label>
+                      <Select
+                        options={teachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
+                        value={teachers.find(t => t._id === formData.teacherId) ? { value: formData.teacherId, label: teachers.find(t => t._id === formData.teacherId).name } : null}
+                        onChange={sel => setFormData({ ...formData, teacherId: sel?.value })}
+                        placeholder="Select a teacher..."
+                        className="modern-select"
+                        classNamePrefix="react-select"
+                        menuPortalTarget={document.body}
+                        styles={customSelectStyles}
+                      />
+                    </div>
+                  )}
+
+                  {['school_admin', 'root_admin'].includes(user?.role) && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide px-1">
+                        Assign to Schools {user?.role === 'root_admin' && '(Optional - leave blank for none)'}
+                      </label>
+                      <Select
+                        isMulti
+                        options={[{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].map(s => ({ value: s._id, label: s.name }))}
+                        value={formData.schoolIds?.map(id => {
+                          const s = [{ _id: 'ALL', name: 'ALL SCHOOLS' }, ...schools].find(sch => sch._id === id);
+                          return { value: id, label: s?.name || id };
+                        })}
+                        onChange={sels => setFormData({ ...formData, schoolIds: sels ? sels.map(s => s.value) : [] })}
+                        className="modern-select"
+                        classNamePrefix="react-select"
+                        menuPortalTarget={document.body}
+                        styles={customSelectStyles}
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 md:col-span-2">
+                    {/* Max Capacity */}
+                    <div className="space-y-2">
+                       <div className="flex items-center gap-1">
+                        <span className="text-xs font-semibold text-muted-foreground tracking-wide">Billet Limit</span>
+                        <FormFieldHelp content="The maximum number of students allowed to enroll in this class." />
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formData.capacity}
+                          onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 30 })}
+                          onWheel={(e) => e.target.blur()}
+                          className="w-full pl-4 pr-4 py-3 bg-card border-2 border-border rounded-xl focus:border-primary transition-all outline-none font-semibold text-foreground"
+                          min="1"
+                          placeholder="30"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Private Toggle */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-semibold text-muted-foreground tracking-wide leading-none">Access Channel</span>
+                        <FormFieldHelp content="Private classes won't appear in the global marketplace. Only students with a direct link can enroll." />
+                      </div>
+                      <label 
+                        onClick={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPrivate ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-border/80'}`}
+                      >
+                        <span className={`text-xs font-semibold tracking-wide transition-colors ${formData.isPrivate ? 'text-primary' : 'text-muted-foreground'}`}>Private</span>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPrivate ? 'bg-primary' : 'bg-muted'}`}>
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPrivate ? 'translate-x-4' : ''}`} />
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Paid Toggle */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-semibold text-muted-foreground tracking-wide leading-none">Monetization</span>
+                        <FormFieldHelp content="If enabled, students must pay the specified fee to access content or join lectures." />
+                      </div>
+                      <label 
+                        onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all cursor-pointer group min-h-[64px] ${formData.isPaid ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-border/80'}`}
+                      >
+                        <span className={`text-xs font-semibold tracking-wide transition-colors ${formData.isPaid ? 'text-primary' : 'text-muted-foreground'}`}>Premium</span>
+                        <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPaid ? 'bg-primary' : 'bg-muted'}`}>
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing details if paid */}
+                 {formData.isPaid && (
+                   <div className="p-6 rounded-xl bg-primary/10 border border-primary/20 animate-in fade-in duration-300">
+                     <div className="grid md:grid-cols-2 gap-6">
+                       <div className="space-y-1.5">
+                         <label className="text-xs font-semibold text-primary tracking-wide px-1 flex items-center">
+                           Billing Protocol
+                           <FormFieldHelp content="Defines when students are charged: Weekly (every 7 days), Per Lecture (on join), or One Time (enrolment only)." />
+                         </label>
+                         <Select
+                           options={[
+                             { value: 'per_lecture', label: 'Per Lecture' },
+                             { value: 'per_topic', label: 'Per Topic' },
+                             { value: 'weekly', label: 'Weekly' },
+                             { value: 'monthly', label: 'Monthly' },
+                             { value: 'one_time', label: 'One Time Purchase' }
+                           ]}
+                           value={{ value: formData.pricing.type, label: formData.pricing.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                           onChange={sel => setFormData({ ...formData, pricing: { ...formData.pricing, type: sel?.value } })}
+                           menuPortalTarget={document.body}
+                           styles={{
+                             control: (base) => ({
+                               ...base,
+                               minHeight: '60px',
+                               borderRadius: '1rem',
+                               borderWidth: '2px',
+                               borderColor: 'var(--border-border)',
+                               backgroundColor: 'var(--bg-muted)',
+                               fontWeight: '700',
+                               opacity: 0.8,
+                               '&:hover': { borderColor: 'var(--primary)' }
+                             }),
+                             singleValue: (base) => ({ ...base, color: 'var(--text-foreground)' }),
+                             menuPortal: base => ({ ...base, zIndex: 9999 })
+                           }}
+                         />
+                       </div>
+                       <div className="space-y-1.5">
+                         <label className="text-xs font-semibold text-primary tracking-wide px-1 flex items-center">
+                           Value ({import.meta.env.VITE_CURRENCY || 'NGN'})
+                           <FormFieldHelp content="The fee students will pay based on the selected billing cycle." />
+                         </label>
+                         <input
+                           type="number"
+                           value={formData.pricing.amount}
+                           onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 } })}
+                           onWheel={(e) => e.target.blur()}
+                           className="w-full h-[60px] bg-muted border-2 border-border rounded-xl focus:border-primary focus:bg-card transition-all outline-none px-4 font-semibold text-foreground"
+                           min="0"
+                           placeholder="e.g. 5000"
+                           required={formData.isPaid}
+                         />
+                       </div>
+                     </div>
+                   </div>
+                 )}
+
+                {/* Schedule Builder */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-xs font-semibold text-muted-foreground tracking-wide">Temporal Logistics</label>
                     <button
                       type="button"
-                      onClick={() => {
-                        const newSchedule = formData.schedule.filter((_, i) => i !== index);
-                        setFormData({ ...formData, schedule: newSchedule });
-                      }}
-                      className="text-red-500 hover:text-red-700"
+                      onClick={() => setFormData({ ...formData, schedule: [...formData.schedule, { dayOfWeek: 'Monday', startTime: '09:00', endTime: '10:00' }] })}
+                      className="text-xs font-semibold text-primary flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded-xl transition-all tracking-wide border border-primary/20"
                     >
-                      X
+                      <Plus className="w-3.5 h-3.5" /> Add Schedule Slot
                     </button>
                   </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ 
-                    ...formData, 
-                    schedule: [...formData.schedule, { dayOfWeek: '', startTime: '', endTime: '' }] 
-                  })}
-                  className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-                >
-                  Add Session
-                </button>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                <input
-                  type="number"
-                  value={formData.capacity}
-                  onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  min="1"
-                  required
-                />
-              </div>
-              {['root_admin', 'school_admin'].includes(user?.role) && teachers.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Assign Teacher</label>
-                  <select
-                    value={formData.teacherId}
-                    onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg"
-                    required
-                  >
-                    <option value="">Select a teacher</option>
-                    {teachers.map(teacher => (
-                      <option key={teacher._id} value={teacher._id}>
-                        {teacher.name} ({teacher.email})
-                      </option>
+
+                  <div className="space-y-3">
+                    {formData.schedule.map((s, idx) => (
+                      <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted rounded-xl border border-border animate-in slide-in-from-right duration-300">
+                        <select
+                          value={s.dayOfWeek}
+                          onChange={e => {
+                            const newSched = [...formData.schedule];
+                            newSched[idx].dayOfWeek = e.target.value;
+                            setFormData({ ...formData, schedule: newSched });
+                          }}
+                          className="flex-1 min-w-[120px] bg-card border-none rounded-xl text-xs font-semibold tracking-wide focus:ring-0"
+                        >
+                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => <option key={d} className="bg-card">{d}</option>)}
+                        </select>
+                        <input
+                          type="time"
+                          value={s.startTime}
+                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                          onChange={e => {
+                            const newSched = [...formData.schedule];
+                            newSched[idx].startTime = e.target.value;
+                            setFormData({ ...formData, schedule: newSched });
+                          }}
+                          className="w-32 bg-card border-none rounded-xl text-xs font-semibold tracking-wide focus:ring-0 cursor-pointer"
+                        />
+                        <span className="text-muted-foreground">to</span>
+                        <input
+                          type="time"
+                          value={s.endTime}
+                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                          onChange={e => {
+                            const newSched = [...formData.schedule];
+                            newSched[idx].endTime = e.target.value;
+                            setFormData({ ...formData, schedule: newSched });
+                          }}
+                          className="w-32 bg-card border-none rounded-xl text-xs font-semibold tracking-wide focus:ring-0 cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSched = formData.schedule.filter((_, i) => i !== idx);
+                            setFormData({ ...formData, schedule: newSched });
+                          }}
+                          className="p-2.5 text-rose-500 hover:bg-danger/10 rounded-xl transition-all border border-border/50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     ))}
-                  </select>
+                    {formData.schedule.length === 0 && (
+                      <p className="text-xs font-semibold text-muted-foreground/30 tracking-wide text-center py-8 bg-muted rounded-xl border border-dashed border-border/30">No operational windows scheduled yet.</p>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.isPaid}
-                    onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                  />
-                  <span>Paid Class</span>
-                </label>
-              </div>
-              {['root_admin', 'school_admin', 'personal_teacher'].includes(user?.role) && (
-                <div>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.published}
-                      onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
-                    />
-                    <span>Publish immediately</span>
-                  </label>
+
+                <div className="pt-8 flex gap-4 sticky bottom-0 bg-card  pb-2 border-t border-border mt-4">
+                  <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-4 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition">Cancel</button>
+                  <button type="submit" disabled={isCreating} className="btn-premium flex-1">
+                    {isCreating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'ACTIVATE ACADEMY'}
+                  </button>
                 </div>
-              )}
-              {formData.isPaid && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-                  <input
-                    type="number"
-                    value={formData.pricing.amount}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      pricing: { ...formData.pricing, amount: parseFloat(e.target.value) }
-                    })}
-                    className="w-full px-4 py-2 border rounded-lg"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-              )}
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || (['root_admin', 'school_admin'].includes(user?.role) && teachers.length === 0)}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-400 disabled:hover:bg-gray-400"
-                >
-                  Create
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-slate-950/80  z-[200] flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-xl w-full max-w-sm p-8 shadow-none animate-in zoom-in-95 duration-300 text-center">
+            <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2 tracking-tight">Delete Classroom?</h3>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-8">This action is irreversible. All data and active enrollments will be removed from the platform.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-6 py-4 rounded-xl border border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-6 py-4 rounded-xl bg-danger text-white font-semibold text-xs tracking-wide shadow-none  hover:bg-danger/90 transition"
+              >
+                PURGE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <AIAssistantPanel
+        isOpen={showAIPanel}
+        onClose={() => setShowAIPanel(false)}
+        allowedModes={['classroom']}
+        defaultMode="classroom"
+        prefill={{
+          subject: formData.subject,
+          className: formData.name,
+          level: formData.level,
+          teacherHint: formData.description || ''
+        }}
+        onApplyTopic={(data) => {
+          setFormData(prev => ({
+            ...prev,
+            name: data.name || prev.name,
+            description: data.description || prev.description,
+            learningOutcomes: data.learningOutcomes || prev.learningOutcomes
+          }));
+          setShowAIPanel(false);
+        }}
+      />
     </Layout>
   );
 };
 
 export default Classrooms;
-

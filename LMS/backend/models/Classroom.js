@@ -10,16 +10,29 @@ const classroomSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  learningOutcomes: {
+    type: String,
+    trim: true
+  },
   teacherId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  schoolId: {
+  subject: {
+    type: String,
+    trim: true
+  },
+  level: {
+    type: String,
+    enum: ['Pre-Primary', 'Primary', 'High School', 'Pre-University', 'Undergraduate', 'Postgraduate', 'Professional', 'Vocational', 'Other'],
+    default: 'Other'
+  },
+  schoolId: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'School',
     default: null
-  },
+  }],
   students: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -48,8 +61,8 @@ const classroomSchema = new mongoose.Schema({
   pricing: {
     type: {
       type: String,
-      enum: ['per_class', 'per_topic', 'per_subject', 'free'],
-      default: 'per_class'
+      enum: ['per_lecture', 'per_topic', 'weekly', 'monthly', 'one_time', 'free'],
+      default: 'per_lecture'
     },
     amount: {
       type: Number,
@@ -60,6 +73,44 @@ const classroomSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  classFormat: {
+    type: String,
+    enum: ['classroom', 'public_lecture', 'public_seminar'],
+    default: 'classroom'
+  },
+  publicAccess: {
+    allowGuestAccess: {
+      type: Boolean,
+      default: false
+    },
+    durationValue: {
+      type: Number,
+      default: 1
+    },
+    durationUnit: {
+      type: String,
+      enum: ['days', 'weeks'],
+      default: 'days'
+    },
+    startsAt: {
+      type: Date,
+      default: null
+    },
+    endsAt: {
+      type: Date,
+      default: null
+    },
+    recordingUrl: {
+      type: String,
+      trim: true,
+      default: null
+    },
+    joinInstructions: {
+      type: String,
+      trim: true,
+      default: ''
+    }
+  },
   topics: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Topic'
@@ -68,17 +119,44 @@ const classroomSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assignment'
   }],
-  zoomMeetingId: {
+  whiteboardUrl: {
     type: String,
     default: null
   },
-  whiteboardUrl: {
-    type: String,
+  whiteboardActiveAt: {
+    type: Date,
     default: null
   },
   published: {
     type: Boolean,
     default: false
+  },
+  isPrivate: {
+    type: Boolean,
+    default: false
+  },
+  // Track current active topic
+  currentTopicId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Topic',
+    default: null
+  },
+  introVideo: {
+    type: String, // URL to intro video (YouTube, Vimeo, etc.)
+    default: null
+  },
+  shortCode: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow nulls for existing records until updated
+    index: true
+  },
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+    lowercase: true
   },
   createdAt: {
     type: Date,
@@ -88,6 +166,52 @@ const classroomSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+// Generate unique shortCode and slug before saving
+classroomSchema.pre('save', async function (next) {
+  // Generate shortCode
+  if (!this.shortCode) {
+    const crypto = require('crypto');
+    const generateCode = () => crypto.randomBytes(4).toString('hex'); // 8 characters
+    let code = generateCode();
+
+    // Ensure uniqueness (though 8 hex chars is quite large, good to check)
+    let exists = await this.constructor.findOne({ shortCode: code });
+    while (exists) {
+      code = generateCode();
+      exists = await this.constructor.findOne({ shortCode: code });
+    }
+    this.shortCode = code;
+  }
+
+  // Generate slug from name
+  if (this.isModified('name') || !this.slug) {
+    const generateSlug = (name) => {
+      return name
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    };
+
+    let slug = generateSlug(this.name);
+    let baseSlug = slug;
+    let counter = 1;
+
+    // Ensure slug uniqueness
+    let exists = await this.constructor.findOne({ slug, _id: { $ne: this._id } });
+    while (exists) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+      exists = await this.constructor.findOne({ slug, _id: { $ne: this._id } });
+    }
+    this.slug = slug;
+  }
+
+  next();
 });
 
 module.exports = mongoose.model('Classroom', classroomSchema);

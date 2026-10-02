@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Gracified LMS",
+    "slug": "gracified-lms-mobile",
+    "scheme": "gracifiedlms",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/favicon_adaptive.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.isaac_joseph.gracifiedlmsmobile"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0023c05d-2ea5-4700-9fc2-1907c85914b9"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo_lightmode.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#fbfcff",
+          "dark": {
+            "image": "./assets/logo_darkmode.png",
+            "backgroundColor": "#0a0d1f"
+          }
+        }
+      ],
+      "expo-status-bar"
+    ]
+  }
+}

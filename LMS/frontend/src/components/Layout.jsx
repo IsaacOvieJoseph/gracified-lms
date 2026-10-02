@@ -1,14 +1,35 @@
-import React, { useEffect, useState, useRef } from 'react'; // Added useRef
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Book, LogOut, Users, DollarSign, FileText, LayoutDashboard, Landmark, Bell } from 'lucide-react'; // Added Bell icon
+import React, { useEffect, useState, useRef } from 'react';
+import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import {
+  Book, LogOut, Users, User, DollarSign, FileText,
+  LayoutDashboard, Landmark, Bell, Menu, X,
+  MessageSquare, BarChart2, Settings, ShieldCheck,
+  ChevronRight, Search, CreditCard, PieChart, ArrowLeft, Radio, GraduationCap
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api'; // Ensure api is imported
+import api from '../utils/api';
 import SubscriptionBlockBanner from './SubscriptionBlockBanner';
 import SchoolSwitcher from './SchoolSwitcher';
+import FeedbackManager from './FeedbackManager';
+import OnboardingTour from './OnboardingTour';
+import ThemeToggle from './ThemeToggle';
+import GracyChat from './GracyChat';
+import MobileViewNotice from './MobileViewNotice';
+import logo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
-  const { user, logout, refreshUser } = useAuth();
-  // School switcher state for school admins
+  const { user, logout, refreshUser, platformSettings } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   const [selectedSchools, setSelectedSchools] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('selectedSchools')) || [];
@@ -16,44 +37,49 @@ const Layout = ({ children }) => {
       return [];
     }
   });
-  const location = useLocation();
-  const navigate = useNavigate();
-    // Real-time: Refresh user subscription status on every route change
-    useEffect(() => {
-      if (user && refreshUser) {
-        refreshUser();
-      }
-      // eslint-disable-next-line
-    }, [location.pathname]);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const notificationsRef = useRef(null); // Ref for closing dropdown on outside click
+
+  const notificationsRef = useRef(null);
+  const profileRef = useRef(null);
+
+  const schoolLogo = user?.schoolId?.[0]?.logoUrl || user?.tutorialId?.logoUrl || user?.schoolId?.logoUrl || null;
+  const displayLogo = schoolLogo || logo;
+
+  useEffect(() => {
+    if (user && refreshUser) {
+      refreshUser();
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    // Listen for school selection changes from SchoolSwitcher elsewhere if needed
+    const handler = () => {
+      try {
+        setSelectedSchools(JSON.parse(localStorage.getItem('selectedSchools')) || []);
+      } catch { }
+    };
+    window.addEventListener('schoolSelectionChanged', handler);
+    return () => window.removeEventListener('schoolSelectionChanged', handler);
+  }, []);
 
   useEffect(() => {
     if (user) {
       fetchNotifications();
+      const interval = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(interval);
     }
-    const interval = setInterval(() => {
-      if (user) {
-        fetchNotifications();
-      }
-    }, 30000); // Fetch notifications every 30 seconds
-
-    return () => clearInterval(interval);
   }, [user]);
 
-  // Close notifications dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setShowProfileDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchNotifications = async () => {
@@ -62,7 +88,7 @@ const Layout = ({ children }) => {
       setNotifications(response.data.notifications);
       setUnreadCount(response.data.notifications.filter(n => !n.read).length);
     } catch (error) {
-      console.error('Error fetching in-app notifications:', error);
+      console.error('Error fetching notifications:', error);
     }
   };
 
@@ -70,18 +96,7 @@ const Layout = ({ children }) => {
     try {
       await api.put(`/notifications/inapp/${notificationId}/read`);
       fetchNotifications();
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      await api.put('/notifications/inapp/mark-all-read');
-      fetchNotifications();
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
+    } catch (error) { }
   };
 
   const handleLogout = () => {
@@ -89,142 +104,301 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  const isActive = (path) => location.pathname === path;
-
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/classrooms', icon: Book, label: 'Classrooms' },
-    ...(user?.role === 'student' ? [{ path: '/payments', icon: DollarSign, label: 'Payments' }] : []),
-    ...(user?.role === 'student' ? [{ path: '/assignments', icon: FileText, label: 'Assignments' }] : []),
+    ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/public-classes', icon: Radio, label: 'Public Classes' }] : []),
+    ...(['student', 'root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/payments', icon: CreditCard, label: 'Payments' }] : []),
+    { path: '/exams', icon: PieChart, label: 'Exams' },
+    ...(user?.role === 'student' ? [
+      { path: '/assignments', icon: FileText, label: 'Assignments' },
+      { path: '/find-tutor', icon: GraduationCap, label: 'Find a Tutor' }
+    ] : []),
     ...(['root_admin', 'school_admin', 'teacher', 'personal_teacher'].includes(user?.role) ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
+    ...(user?.role === 'personal_teacher' ? [{ path: '/tutor-referrals', icon: GraduationCap, label: 'Student Referrals' }] : []),
+    { path: '/reports', icon: BarChart2, label: 'Reports' },
     ...(['root_admin', 'school_admin'].includes(user?.role) ? [{ path: '/schools', icon: Landmark, label: 'Schools' }] : []),
+    ...(user?.role === 'root_admin' ? [
+      { path: '/disbursements', icon: Landmark, label: 'Disbursements' },
+      { path: '/subscription-plans-admin', icon: CreditCard, label: 'Subscription Plans' },
+      { path: '/feedbacks', icon: MessageSquare, label: 'Feedbacks' },
+      { path: '/tutor-requests', icon: GraduationCap, label: 'Tutor Requests' },
+      { path: '/platform-settings', icon: Settings, label: 'Platform Settings' },
+      { path: '/marketing', icon: ShieldCheck, label: 'Marketing' }
+    ] : []),
   ];
 
-  // Block all activity except dashboard if subscription is expired or never active
-  // Allow if user is on a valid free trial (trial not expired and never used before)
   const isDashboard = location.pathname === '/dashboard';
   let shouldBlock = false;
-  if (user) {
-    // Block if subscription is not active and not on a valid trial
-    const isTrial = user.subscriptionStatus === 'trial';
-    const trialValid = isTrial && user.trialEndDate && new Date(user.trialEndDate) > new Date() && !user.trialExpired;
-    shouldBlock = user.subscriptionStatus !== 'active' && !trialValid;
+  const isCheckingEnabled = platformSettings ? platformSettings.subscriptionCheckingEnabled : true;
+
+  if (isCheckingEnabled && user && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
+    if (user.subscriptionStatus !== 'pay_as_you_go') {
+      const trialValid = user.subscriptionStatus === 'trial' && user.trialEndDate && new Date(user.trialEndDate) > new Date() && !user.trialExpired;
+      const activeValid = user.subscriptionStatus === 'active' && !user.subscriptionExpired;
+      shouldBlock = !trialValid && !activeValid;
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {shouldBlock && !isDashboard && (
-        <SubscriptionBlockBanner onViewPlans={() => navigate('/subscription-management')} />
-      )}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Book className="w-8 h-8 text-blue-600" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-800">LMS Platform</h1>
-              <p className="text-xs text-gray-500">
-                {user?.role?.replace('_', ' ').toUpperCase()}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {/* School Switcher for school admins */}
-            <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
-            {user && (
-              <div className="relative" ref={notificationsRef}>
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
-                >
-                  <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full transform translate-x-1/2 -translate-y-1/2">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
+    <div className="flex h-screen bg-background overflow-hidden font-inter">
+      <FeedbackManager />
 
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                      <h4 className="font-semibold text-gray-800">Notifications</h4>
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={handleMarkAllAsRead}
-                          className="text-blue-600 hover:underline text-sm"
-                        >
-                          Mark all as read
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map(notification => (
-                          <div
-                            key={notification._id}
-                            className={`p-3 border-b border-gray-100 last:border-b-0 ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
-                          >
-                            <p className="text-sm font-medium text-gray-800">{notification.message}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {new Date(notification.createdAt).toLocaleString()}
-                            </p>
-                            {!notification.read && (
-                              <button
-                                onClick={() => handleMarkAsRead(notification._id)}
-                                className="mt-2 text-xs text-blue-600 hover:underline"
-                              >
-                                Mark as Read
-                              </button>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <p className="p-3 text-center text-gray-500 text-sm">No new notifications.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <span className="text-sm text-gray-600">{user?.name}</span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
-            </button>
-          </div>
+      {/* Sidebar - Desktop */}
+      <aside className={`hidden md:flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className="p-6 flex items-center gap-3 border-b border-border/50">
+          <img
+            src={logo}
+            alt="Logo"
+            className="w-8 h-8 rounded-full object-cover shrink-0"
+          />
+          {!isSidebarCollapsed && (
+            <span className="text-lg font-semibold text-foreground font-serif tracking-tight">
+              Gracified
+            </span>
+          )}
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <nav className="flex space-x-2 mb-6 bg-white p-2 rounded-lg shadow-sm">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition ${
-                  isActive(item.path)
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              id={`nav-${item.path.split('/')[1]}`}
+              to={item.path}
+              className={({ isActive }) => `
+                nav-link ${isActive ? 'active' : ''}
+                ${isSidebarCollapsed ? 'justify-center px-0' : ''}
+              `}
+              title={isSidebarCollapsed ? item.label : ''}
+            >
+              <item.icon className={`w-5 h-5 ${isSidebarCollapsed ? 'w-6 h-6' : ''}`} />
+              {!isSidebarCollapsed && <span>{item.label}</span>}
+            </NavLink>
+          ))}
         </nav>
 
-        {children}
+        <div className="p-4 border-t border-border">
+          <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'p-2 bg-background'}`}>
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+              {user?.profilePicture ? (
+                <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-semibold text-sm text-primary">{user?.name?.charAt(0)}</span>
+              )}
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{user?.name}</p>
+                <p className="text-xs tracking-wider font-semibold text-muted-foreground">{user?.role?.replace('_', ' ')}</p>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleLogout}
+            className={`mt-4 w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-danger/10 rounded-xl transition-colors ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
+          >
+            <LogOut className="w-5 h-5" />
+            {!isSidebarCollapsed && <span>Sign Out</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Navbar */}
+        <header className="h-16 border-b border-border bg-card  sticky top-0 z-30 flex items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 rounded-xl hover:bg-muted transition text-muted-foreground"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="hidden md:flex items-center gap-3 text-muted-foreground">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center justify-center w-8 h-8 rounded-xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/30 hover:shadow-none transition-all"
+                title="Go Back"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <LandingBreadcrumbs path={location.pathname} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <SchoolSwitcher user={user} selectedSchools={selectedSchools} setSelectedSchools={setSelectedSchools} />
+
+            <div className="relative flex items-center" ref={notificationsRef}>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition relative shrink-0"
+                title="Notifications"
+              >
+                <Bell className="w-5 h-5 text-muted-foreground" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-xl shadow-none z-50 overflow-hidden animate-slide-up">
+                  <div className="p-4 border-b border-border flex justify-between items-center bg-muted">
+                    <h4 className="font-semibold text-foreground">Activity</h4>
+                    <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-semibold">{unreadCount} New</span>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map(n => (
+                        <div key={n._id} className={`p-4 border-b border-border last:border-0 hover:bg-muted transition cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}>
+                          <p className="text-sm font-medium text-foreground">{n.message}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-muted-foreground font-medium">{new Date(n.createdAt).toLocaleDateString()}</span>
+                            {!n.read && (
+                              <button onClick={() => handleMarkAsRead(n._id)} className="text-xs font-semibold text-primary hover:underline">Mark as read</button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-muted-foreground">
+                        <Bell className="w-10 h-10 mx-auto mb-2 opacity-10" />
+                        <p className="text-sm">No new activity</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative flex items-center" ref={profileRef}>
+              <button
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="w-9 h-9 rounded-full bg-slate-100 overflow-hidden shadow-none hover:scale-105 transition shrink-0 flex items-center justify-center"
+                title="User Profile"
+              >
+                {user?.profilePicture ? (
+                  <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-semibold text-sm text-primary">{user?.name?.charAt(0)}</span>
+                )}
+              </button>
+
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-3 w-56 bg-card border border-border rounded-xl shadow-none z-50 py-2 animate-slide-up">
+                  <div className="px-4 py-3 border-b border-border/50 mb-1">
+                    <p className="text-sm font-semibold text-foreground truncate">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  </div>
+                  <button onClick={() => { setShowProfileDropdown(false); navigate('/profile'); }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-muted text-foreground text-sm font-medium transition-colors">
+                    <User className="w-4 h-4" /> Account Settings
+                  </button>
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-danger/10 text-red-500 text-sm font-semibold transition-colors">
+                    <LogOut className="w-4 h-4" /> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Dynamic Canvas Area */}
+        <main id="dashboard-main" className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 custom-scrollbar">
+          {shouldBlock && !isDashboard && (
+            <div className="mb-6">
+              <SubscriptionBlockBanner onViewPlans={() => navigate('/subscription-management')} user={user} />
+            </div>
+          )}
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] md:hidden">
+          <div className="absolute inset-0 bg-black/60 " onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-card flex flex-col p-6 animate-slide-in-right">
+            <div className="flex items-center justify-between mb-8">
+              <img src={logo} alt="Logo" className="w-10 h-10 rounded-xl" />
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-muted-foreground">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <nav className="flex-1 space-y-1 overflow-y-auto">
+              {navItems.map(item => (
+                <NavLink key={item.path} to={item.path} onClick={() => setIsMobileMenuOpen(false)} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <item.icon className="w-5 h-5" /> {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="mt-auto pt-6 border-t border-border">
+              <button onClick={handleLogout} className="w-full btn-danger shadow-none">
+                <LogOut className="w-5 h-5" /> Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Onboarding Tour */}
+      <OnboardingTour user={user} />
+      
+      {/* Gracy AI Chat Widget */}
+      <GracyChat user={user} />
+
+      {/* Mobile View Notice */}
+      <MobileViewNotice />
+    </div>
+  );
+};
+
+const LandingBreadcrumbs = ({ path }) => {
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length === 0) return <span className="text-primary cursor-default">Platform</span>;
+
+  const getName = (segment) => {
+    // Check if it's a MongoID (24 chars hex)
+    if (/^[0-9a-fA-F]{24}$/.test(segment)) {
+      return localStorage.getItem(`bc_${segment}`) || '...';
+    }
+    return segment.replace(/-/g, ' ');
+  };
+
+  return (
+    <div className="flex items-center gap-2 text-xs font-semibold tracking-wide overflow-hidden">
+      <Link
+        to="/dashboard"
+        className="text-primary hover:text-primary/80 transition-colors"
+      >
+        LMS
+      </Link>
+      {parts.map((p, i) => {
+        const linkPath = `/${parts.slice(0, i + 1).join('/')}`;
+        const isLast = i === parts.length - 1;
+        const displayName = getName(p);
+
+        return (
+          <React.Fragment key={i}>
+            <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
+            {isLast ? (
+              <span className="text-slate-800 truncate max-w-[150px]">
+                {displayName}
+              </span>
+            ) : (
+              <Link
+                to={linkPath}
+                className="text-slate-400 hover:text-primary transition-colors truncate max-w-[150px]"
+              >
+                {displayName}
+              </Link>
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };
 
 export default Layout;
-

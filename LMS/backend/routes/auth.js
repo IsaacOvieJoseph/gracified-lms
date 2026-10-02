@@ -6,38 +6,96 @@ const SubscriptionPlan = require('../models/SubscriptionPlan'); // Import Subscr
 const Tutorial = require('../models/Tutorial'); // Import Tutorial model
 const { auth } = require('../middleware/auth');
 const crypto = require('crypto');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { sendEmail, emailHeading, emailText, emailCode, emailNote, FOREST } = require('../utils/email');
+const { logoStorage } = require('../config/cloudinary');
+
 const router = express.Router();
 
-// Brevo (formerly Sendinblue) email configuration
-const brevo = require('@getbrevo/brevo');
-const defaultClient = brevo.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
-const brevoApiInstance = new brevo.TransactionalEmailsApi();
-
-// Helper function to send email via Brevo
-const sendEmailViaBrevo = async ({ to, subject, html, name }) => {
-  const sendSmtpEmail = new brevo.SendSmtpEmail();
-  
-  sendSmtpEmail.sender = {
-    name: 'Gracified LMS',
-    email: process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL
-  };
-  
-  sendSmtpEmail.to = [{ email: to, name: name || to }];
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-  
-  try {
-    const result = await brevoApiInstance.sendTransacEmail(sendSmtpEmail);
-    return result;
-  } catch (error) {
-    console.error('Brevo API error:', error);
-    throw error;
+// Configure storage for logos - Use Cloudinary if configured, otherwise fallback to local
+const localLogoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/logos';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
-};
+});
 
-// Verify email configuration
+const upload = multer({
+  storage: process.env.CLOUDINARY_CLOUD_NAME ? logoStorage : localLogoStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|webp/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only images are allowed (jpeg, jpg, png, webp)'));
+  }
+});
+
+// Logo upload endpoint
+/**
+ * @swagger
+ * /api/auth/upload-logo:
+ *   post:
+ *     summary: Upload a logo (school or tutorial)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               logo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Logo uploaded successfully
+ *       400:
+ *         description: No file uploaded or invalid file
+ */
+router.post('/upload-logo', upload.single('logo'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
+
+  // If using local storage, perform deep file validation
+  if (!process.env.CLOUDINARY_CLOUD_NAME) {
+    try {
+      const fileTypeModule = await import('file-type');
+      const FileType = fileTypeModule.default || fileTypeModule;
+      const fromFileFn = FileType.fromFile || FileType.fileTypeFromFile;
+
+      if (typeof fromFileFn === 'function') {
+        const type = await fromFileFn(req.file.path);
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!type || !allowedTypes.includes(type.mime)) {
+          if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+          return res.status(400).json({ message: 'Invalid file content. Only real images (JPG, PNG, WebP) are allowed.' });
+        }
+      }
+    } catch (err) {
+      console.error('File validation error:', err.message);
+      // Fallback: don't block if validation library fails on local
+    }
+  }
+
+  const imageUrl = process.env.CLOUDINARY_CLOUD_NAME ? req.file.path : `${req.protocol}://${req.get('host')}/uploads/logos/${req.file.filename}`;
+  res.json({ imageUrl });
+});
+
+// Email configuration check
 const isEmailConfigured = () => {
   return !!(process.env.BREVO_API_KEY && (process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL));
 };
@@ -68,8 +126,10 @@ const generateAndSendOTP = async (user) => {
     // Check if email is configured
     if (!isEmailConfigured()) {
       console.error('Email not configured: BREVO_API_KEY or BREVO_FROM_EMAIL missing');
-      const otp = crypto.randomInt(100000, 999999).toString();
-      console.log(`OTP for ${user.email}: ${otp}`);
+      if (process.env.NODE_ENV === 'development') {
+        const otp = crypto.randomInt(100000, 999999).toString();
+        console.log(`OTP for ${user.email}: ${otp}`);
+      }
       return;
     }
 
@@ -79,17 +139,20 @@ const generateAndSendOTP = async (user) => {
     await user.save();
 
     console.log(`Attempting to send OTP email to ${user.email} via Brevo...`);
-    
-    const result = await sendEmailViaBrevo({
+
+    const result = await sendEmail({
       to: user.email,
       name: user.name,
       subject: 'Email Verification OTP',
+      userId: user._id,
+      isSystemEmail: true,
       html: `
-        <h2>Email Verification</h2>
-        <p>Hello ${user.name},</p>
-        <p>Your OTP for email verification is: <strong>${otp}</strong></p>
-        <p>This OTP is valid for 1 hour.</p>
-        <p>If you did not request this, please ignore this email.</p>
+        ${emailHeading('Email Verification')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText('Thank you for joining Gracified LMS. To complete your registration, please enter the following One-Time Password (OTP):')}
+        ${emailCode(user.otp, { note: 'This code is valid for 1 hour.' })}
+        ${emailText('If you did not request this, you can safely ignore this email.', { color: '#5B6B7C' })}
+        ${emailNote('Need help? Contact our support team.')}
       `
     });
 
@@ -102,9 +165,11 @@ const generateAndSendOTP = async (user) => {
       response: error.response?.body,
       message: error.message
     });
-    
+
     // Log OTP in console for development/debugging
-    console.log(`OTP for ${user.email} (email failed): ${user.otp || 'not generated'}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`OTP for ${user.email} (email failed): ${user.otp || 'not generated'}`);
+    }
     throw error; // Re-throw so caller can handle it
   }
 };
@@ -159,11 +224,54 @@ const generateAndSendOTP = async (user) => {
 // };
 // ==========================================================
 
-// Register
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [school_admin, personal_teacher, teacher, student]
+ *               schoolName:
+ *                 type: string
+ *               tutorialName:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registration successful, OTP sent
+ *       400:
+ *         description: User already exists
+ *       403:
+ *         description: Root admin registration forbidden
+ */
 router.post('/register', async (req, res) => {
   try {
-    let { name, email, password, role, schoolName, tutorialName } = req.body;
+    let { name, email, password, role, schoolName, tutorialName, bankName, bankCode, accountNumber, accountName, payoutFrequency, schoolId, logoUrl } = req.body;
     email = email.toLowerCase();
+
+    // Prevent creation of root_admin via public registration
+    if (role === 'root_admin') {
+      return res.status(403).json({ message: 'Registration as root_admin is not allowed.' });
+    }
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -178,19 +286,41 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists and is verified' });
     }
 
-    const user = new User({ name, email, password, role, isVerified: false });
+    const user = new User({
+      name,
+      email,
+      password,
+      role,
+      isVerified: false,
+      bankDetails: (role === 'school_admin' || role === 'personal_teacher') ? {
+        bankName,
+        bankCode,
+        accountNumber,
+        accountName,
+      } : undefined,
+      payoutPreference: (role === 'school_admin' || role === 'personal_teacher') ? {
+        frequency: payoutFrequency || 'weekly'
+      } : undefined
+    });
     await user.save();
 
     if (role === 'school_admin') {
-      const school = new School({ name: schoolName, adminId: user._id });
+      const school = new School({ name: schoolName, adminId: user._id, logoUrl: logoUrl || null });
       await school.save();
       user.schoolId.push(school._id); // Push into array
+      if (logoUrl) user.profilePicture = logoUrl; // Sync logo with profile picture
     } else if (role === 'personal_teacher') {
-      const tutorial = new Tutorial({ name: tutorialName, teacherId: user._id });
+      const tutorial = new Tutorial({ name: tutorialName, teacherId: user._id, logoUrl: logoUrl || null });
       await tutorial.save();
       user.tutorialId = tutorial._id;
+      if (logoUrl) user.profilePicture = logoUrl; // Sync logo with profile picture
+    } else if (role === 'student' && schoolId) {
+      // If student selects a school/tutorial center
+      if (schoolId !== 'none') {
+        user.schoolId.push(schoolId);
+      }
     }
-    
+
     // Assign free trial for School Admins and Personal Teachers
     if (role === 'school_admin' || role === 'personal_teacher') {
       const freeTrialPlan = await SubscriptionPlan.findOne({ planType: 'trial' });
@@ -208,7 +338,7 @@ router.post('/register', async (req, res) => {
 
     // Send response immediately, then send email in background
     res.status(201).json({ message: 'Registration successful. Please verify your email with the OTP sent to your email.', redirectToVerify: true, email });
-    
+
     // Generate and send OTP asynchronously (don't block response)
     generateAndSendOTP(user).catch(err => {
       console.error('Error sending OTP email after registration:', err.message);
@@ -222,7 +352,32 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Verify OTP
+/**
+ * @swagger
+ * /api/auth/verify-otp:
+ *   post:
+ *     summary: Verify email with OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified, returns token
+ *       400:
+ *         description: Invalid or expired OTP
+ */
 router.post('/verify-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
@@ -240,6 +395,7 @@ router.post('/verify-otp', async (req, res) => {
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
+    user.loginCount = (user.loginCount || 0) + 1;
     await user.save();
 
     const token = jwt.sign(
@@ -258,7 +414,11 @@ router.post('/verify-otp', async (req, res) => {
         role: user.role,
         isVerified: user.isVerified,
         schoolId: user.schoolId,
-        tutorialId: user.tutorialId
+        tutorialId: user.tutorialId,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference,
+        profilePicture: user.profilePicture,
+        loginCount: user.loginCount
       }
     });
   } catch (error) {
@@ -267,6 +427,29 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 // Resend OTP
+/**
+ * @swagger
+ * /api/auth/resend-otp:
+ *   post:
+ *     summary: Resend verification OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent
+ *       404:
+ *         description: User not found
+ */
 router.post('/resend-otp', async (req, res) => {
   try {
     let { email } = req.body;
@@ -283,7 +466,7 @@ router.post('/resend-otp', async (req, res) => {
 
     // Send response immediately, then send email in background
     res.json({ message: 'New OTP sent to your email' });
-    
+
     generateAndSendOTP(user).catch(err => {
       console.error('Error sending OTP email:', err.message);
     });
@@ -292,13 +475,40 @@ router.post('/resend-otp', async (req, res) => {
   }
 });
 
-// Login
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ *       403:
+ *         description: Email not verified
+ */
 router.post('/login', async (req, res) => {
   try {
     let { email, password } = req.body;
     email = email.toLowerCase();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('subscriptionPlan');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -318,11 +528,45 @@ router.post('/login', async (req, res) => {
 
     // Check subscription status for School Admin and Personal Teacher
     let trialExpired = false;
-    if ((user.role === 'school_admin' || user.role === 'personal_teacher') && user.subscriptionStatus === 'trial') {
-      if (user.trialEndDate && user.trialEndDate < Date.now()) {
+    let subscriptionExpired = false;
+
+    const Settings = require('../models/Settings');
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
+    if (isCheckingEnabled && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
+      if (user.subscriptionStatus === 'trial' && user.trialEndDate && user.trialEndDate < Date.now()) {
         trialExpired = true;
       }
+      if (user.subscriptionStatus === 'active' && user.subscriptionEndDate && user.subscriptionEndDate < Date.now()) {
+        subscriptionExpired = true;
+      }
     }
+
+    // Check if 2FA is enabled for this user (Root Admins always have 2FA enabled)
+    if (user.twoFAEnabled || user.role === 'root_admin') {
+      const { generateAndSend2FAOTP, generateTempLoginToken } = require('../utils/twoFA');
+      
+      // Generate temp login token
+      const tempToken = generateTempLoginToken(user);
+      await user.save();
+
+      // Send 2FA OTP
+      generateAndSend2FAOTP(user).catch(err => {
+        console.error('Error sending 2FA OTP email during login:', err.message);
+      });
+
+      return res.status(202).json({
+        message: 'A verification code has been sent to your email. Please verify to complete login.',
+        requiresVerification: true,
+        tempToken,
+        email: user.email,
+      });
+    }
+
+    // Increment loginCount
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
 
     const token = jwt.sign(
       { userId: user._id },
@@ -344,35 +588,109 @@ router.post('/login', async (req, res) => {
         enrolledClasses: user.enrolledClasses,
         subscriptionStatus: user.subscriptionStatus,
         trialEndDate: user.trialEndDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        defaultPricingType: user.defaultPricingType,
+        profilePicture: user.profilePicture,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference,
+        subscriptionPlan: user.subscriptionPlan,
+        loginCount: user.loginCount,
+        twoFAEnabled: user.role === 'root_admin' ? true : user.twoFAEnabled
       },
       trialExpired,
+      subscriptionExpired,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Get current user
-router.get('/me', auth, async (req, res) => {
+/**
+ * @swagger
+ * /api/auth/verify-2fa-login:
+ *   post:
+ *     summary: Verify 2FA OTP for login
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tempToken
+ *               - otp
+ *             properties:
+ *               tempToken:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid OTP or temp token
+ */
+router.post('/verify-2fa-login', async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .select('-password')
-      .populate('enrolledClasses', 'name schedule')
-      .populate('schoolId', 'name') // Populate school name
-      .populate('tutorialId', 'name'); // Populate tutorial name
+    const { tempToken, otp } = req.body;
     
-    // Check subscription status for School Admin and Personal Teacher
+    if (!tempToken || !otp) {
+      return res.status(400).json({ message: 'Temporary token and OTP are required.' });
+    }
+
+    const { verifyTempLoginToken, verify2FAOTP, verifyBackupCode, clearTempLoginToken, clear2FAOTP } = require('../utils/twoFA');
+
+    // Find the user who has this temp token
+    const user = await User.findOne({ tempLoginToken: tempToken }).populate('subscriptionPlan');
+    
+    if (!user || !verifyTempLoginToken(user, tempToken)) {
+      return res.status(401).json({ message: 'Session expired or invalid token. Please log in again.' });
+    }
+
+    // Verify OTP or Backup Code
+    const isOtpValid = verify2FAOTP(user, otp);
+    const isBackupValid = !isOtpValid && verifyBackupCode(user, otp);
+
+    if (!isOtpValid && !isBackupValid) {
+      return res.status(401).json({ message: 'Invalid or expired verification code.' });
+    }
+
+    // Clear temp tokens
+    clearTempLoginToken(user);
+    clear2FAOTP(user);
+
+    // Increment login count
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
     let trialExpired = false;
-    if ((user.role === 'school_admin' || user.role === 'personal_teacher') && user.subscriptionStatus === 'trial') {
-      if (user.trialEndDate && user.trialEndDate < Date.now()) {
+    let subscriptionExpired = false;
+
+    const Settings = require('../models/Settings');
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
+    if (isCheckingEnabled && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
+      if (user.subscriptionStatus === 'trial' && user.trialEndDate && user.trialEndDate < Date.now()) {
         trialExpired = true;
+      }
+      if (user.subscriptionStatus === 'active' && user.subscriptionEndDate && user.subscriptionEndDate < Date.now()) {
+        subscriptionExpired = true;
       }
     }
 
     res.json({
+      token,
       user: {
         id: user._id,
-        _id: user._id, // ensure _id is present
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -382,8 +700,88 @@ router.get('/me', auth, async (req, res) => {
         enrolledClasses: user.enrolledClasses,
         subscriptionStatus: user.subscriptionStatus,
         trialEndDate: user.trialEndDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        defaultPricingType: user.defaultPricingType,
+        profilePicture: user.profilePicture,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference,
+        subscriptionPlan: user.subscriptionPlan,
+        loginCount: user.loginCount,
+        twoFAEnabled: user.role === 'root_admin' ? true : user.twoFAEnabled
       },
       trialExpired,
+      subscriptionExpired,
+    });
+  } catch (error) {
+    console.error('2FA Verification error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get current user
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current logged in user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .populate('enrolledClasses', 'name schedule')
+      .populate('schoolId', 'name logoUrl') // Populate school name and logo
+      .populate('tutorialId', 'name logoUrl') // Populate tutorial name and logo
+      .populate('subscriptionPlan');
+
+    // Check subscription status for School Admin and Personal Teacher
+    let trialExpired = false;
+    let subscriptionExpired = false;
+
+    const Settings = require('../models/Settings');
+    const settings = await Settings.findOne();
+    const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
+
+    if (isCheckingEnabled && (user.role === 'school_admin' || user.role === 'personal_teacher')) {
+      if (user.subscriptionStatus === 'trial' && user.trialEndDate && user.trialEndDate < Date.now()) {
+        trialExpired = true;
+      }
+      if (user.subscriptionStatus === 'active' && user.subscriptionEndDate && user.subscriptionEndDate < Date.now()) {
+        subscriptionExpired = true;
+      }
+    }
+
+    res.json({
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        schoolId: user.schoolId,
+        tutorialId: user.tutorialId,
+        enrolledClasses: user.enrolledClasses,
+        subscriptionStatus: user.subscriptionStatus,
+        trialEndDate: user.trialEndDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        defaultPricingType: user.defaultPricingType,
+        profilePicture: user.profilePicture,
+        bankDetails: user.bankDetails,
+        payoutPreference: user.payoutPreference,
+        subscriptionPlan: user.subscriptionPlan,
+        twoFAEnabled: user.role === 'root_admin' ? true : user.twoFAEnabled
+      },
+      trialExpired,
+      subscriptionExpired,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -396,8 +794,10 @@ const generateAndSendPasswordResetOTP = async (user) => {
     // Check if email is configured
     if (!isEmailConfigured()) {
       console.error('Email not configured: BREVO_API_KEY or BREVO_FROM_EMAIL missing');
-      const otp = crypto.randomInt(100000, 999999).toString();
-      console.log(`Password Reset OTP for ${user.email}: ${otp}`);
+      if (process.env.NODE_ENV === 'development') {
+        const otp = crypto.randomInt(100000, 999999).toString();
+        console.log(`Password Reset OTP for ${user.email}: ${otp}`);
+      }
       return;
     }
 
@@ -407,17 +807,19 @@ const generateAndSendPasswordResetOTP = async (user) => {
     await user.save();
 
     console.log(`Attempting to send password reset OTP email to ${user.email} via Brevo...`);
-    
-    const result = await sendEmailViaBrevo({
+
+    const result = await sendEmail({
       to: user.email,
       name: user.name,
       subject: 'Password Reset OTP',
+      userId: user._id,
+      isSystemEmail: true,
       html: `
-        <h2>Password Reset Request</h2>
-        <p>Hello ${user.name},</p>
-        <p>You requested to reset your password. Your OTP is: <strong>${otp}</strong></p>
-        <p>This OTP is valid for 1 hour.</p>
-        <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+        ${emailHeading('Password Reset Request')}
+        ${emailText(`Hello <strong>${user.name}</strong>,`)}
+        ${emailText('We received a request to reset your password. Enter the code below to proceed:')}
+        ${emailCode(user.passwordResetOTP, { note: 'This code is valid for 1 hour.' })}
+        ${emailText('If you did not request this, you can safely ignore this email.', { color: '#5B6B7C' })}
       `
     });
 
@@ -435,28 +837,49 @@ const generateAndSendPasswordResetOTP = async (user) => {
 };
 
 // Forgot Password - Request OTP
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset OTP sent (even if user doesn't exist)
+ */
 router.post('/forgot-password', async (req, res) => {
   try {
     let { email } = req.body;
     email = email.toLowerCase();
 
     const user = await User.findOne({ email });
-    
+
     // Only send OTP if user exists (don't reveal if user exists or not for security)
     if (user) {
       // Send response immediately, then send email in background
-      res.json({ 
+      res.json({
         message: 'If an account exists with this email, a password reset OTP has been sent.',
         email: email // Return email for frontend to use in next step
       });
-      
+
       // Generate and send password reset OTP asynchronously
       generateAndSendPasswordResetOTP(user).catch(err => {
         console.error('Error sending password reset OTP email:', err.message);
       });
     } else {
       // Still return success message (don't reveal user doesn't exist)
-      res.json({ 
+      res.json({
         message: 'If an account exists with this email, a password reset OTP has been sent.',
         email: email
       });
@@ -468,6 +891,32 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Verify Password Reset OTP
+/**
+ * @swagger
+ * /api/auth/verify-reset-otp:
+ *   post:
+ *     summary: Verify password reset OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP verified
+ *       400:
+ *         description: Invalid or expired OTP
+ */
 router.post('/verify-reset-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
@@ -487,7 +936,7 @@ router.post('/verify-reset-otp', async (req, res) => {
     }
 
     // OTP is valid - return success (don't clear OTP yet, wait for password reset)
-    res.json({ 
+    res.json({
       message: 'OTP verified successfully. You can now reset your password.',
       verified: true
     });
@@ -498,6 +947,27 @@ router.post('/verify-reset-otp', async (req, res) => {
 });
 
 // Resend Password Reset OTP
+/**
+ * @swagger
+ * /api/auth/resend-reset-otp:
+ *   post:
+ *     summary: Resend password reset OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset OTP sent
+ */
 router.post('/resend-reset-otp', async (req, res) => {
   try {
     let { email } = req.body;
@@ -511,7 +981,7 @@ router.post('/resend-reset-otp', async (req, res) => {
 
     // Send response immediately, then send email in background
     res.json({ message: 'Password reset OTP sent to your email' });
-    
+
     generateAndSendPasswordResetOTP(user).catch(err => {
       console.error('Error sending password reset OTP email:', err.message);
     });
@@ -522,6 +992,35 @@ router.post('/resend-reset-otp', async (req, res) => {
 });
 
 // Reset Password
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Reset password with OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid OTP or password too short
+ */
 router.post('/reset-password', async (req, res) => {
   try {
     let { email, otp, newPassword } = req.body;
@@ -547,11 +1046,12 @@ router.post('/reset-password', async (req, res) => {
 
     // Reset password
     user.password = newPassword; // Will be hashed by pre-save hook
+    user.isVerified = true;
     user.passwordResetOTP = undefined;
     user.passwordResetOTPExpires = undefined;
     await user.save();
 
-    res.json({ 
+    res.json({
       message: 'Password reset successfully. You can now login with your new password.'
     });
   } catch (error) {
@@ -560,11 +1060,28 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// Test email configuration endpoint (for debugging) - Using Brevo
+/**
+ * @swagger
+ * /api/auth/test-email:
+ *   post:
+ *     summary: Test email configuration (admin/debug)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Test email sent
+ */
 router.post('/test-email', async (req, res) => {
   try {
     if (!isEmailConfigured()) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Email not configured',
         details: {
           BREVO_API_KEY: process.env.BREVO_API_KEY ? 'set' : 'not set',
@@ -574,27 +1091,27 @@ router.post('/test-email', async (req, res) => {
     }
 
     const testEmail = req.body.email || process.env.BREVO_FROM_EMAIL || process.env.BREVO_SENDER_EMAIL;
-    
+
     console.log(`Testing email configuration - sending test email to ${testEmail} via Brevo...`);
-    
-    const result = await sendEmailViaBrevo({
+
+    const result = await sendEmail({
       to: testEmail,
       subject: 'Test Email from LMS',
       html: `
-        <h2>Test Email</h2>
-        <p>This is a test email from your LMS backend.</p>
-        <p>If you received this, your Brevo email configuration is working correctly!</p>
+        ${emailHeading('Test Email')}
+        ${emailText('This is a test email from your LMS backend.')}
+        ${emailText('If you received this, your branded email configuration is working correctly!', { color: FOREST })}
       `
     });
 
-    res.json({ 
+    res.json({
       message: 'Test email sent successfully via Brevo',
       messageId: result.messageId || 'N/A',
       to: testEmail
     });
   } catch (error) {
     console.error('Test email error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to send test email',
       error: error.message,
       details: {
@@ -604,6 +1121,7 @@ router.post('/test-email', async (req, res) => {
     });
   }
 });
+
 
 // ========== OLD NODEMAILER TEST ENDPOINT (COMMENTED OUT) ==========
 // // Test email configuration endpoint (for debugging) - Old nodemailer version
@@ -655,6 +1173,288 @@ router.post('/test-email', async (req, res) => {
 //   }
 // });
 // ==========================================================
+
+// ==========================================================
+
+// Set password for invited users
+/**
+ * @swagger
+ * /api/auth/set-password:
+ *   post:
+ *     summary: Set password for invited users
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password set successful
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post('/set-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+
+    // Find user with valid invite token
+    const user = await User.findOne({
+      inviteToken: token,
+      inviteTokenExpires: { $gt: Date.now() },
+      isPendingInvite: true
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired invite link' });
+    }
+
+    // Set the new password
+    user.password = password;
+    user.inviteToken = null;
+    user.inviteTokenExpires = null;
+    user.isPendingInvite = false;
+    user.isVerified = true;
+
+    await user.save();
+
+    // Generate JWT token for automatic login
+    const jwtToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      message: 'Password set successfully',
+      token: jwtToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify invite token (check if token is valid before showing set password form)
+/**
+ * @swagger
+ * /api/auth/verify-invite/{token}:
+ *   get:
+ *     summary: Verify invite token
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.get('/verify-invite/:token', async (req, res) => {
+  try {
+    const user = await User.findOne({
+      inviteToken: req.params.token,
+      inviteTokenExpires: { $gt: Date.now() },
+      isPendingInvite: true
+    }).select('name email role');
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired invite link' });
+    }
+
+    res.json({
+      valid: true,
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update profile settings
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update user profile settings
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               defaultPricingType:
+ *                 type: string
+ *               profilePicture:
+ *                 type: string
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *       401:
+ *         description: Unauthorized
+ */
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const {
+      name,
+      defaultPricingType,
+      bankName,
+      bankCode,
+      accountNumber,
+      accountName,
+      payoutFrequency,
+      paystackRecipientCode,
+      profilePicture,
+      schoolLogoUrl, // Expected if school admin wants to change logo
+      tutorialLogoUrl, // Expected if personal teacher wants to change logo
+      currentPassword,
+      newPassword,
+      confirmNewPassword,
+      twoFAEnabled
+    } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // 1. Password Change Logic
+    if (newPassword || currentPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required.' });
+      }
+      const isMatch = await user.matchPassword(currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Incorrect current password.' });
+      }
+
+      if (newPassword) {
+        if (newPassword !== confirmNewPassword) {
+          return res.status(400).json({ message: 'New passwords do not match.' });
+        }
+        if (newPassword.length < 6) {
+          return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+        }
+        user.password = newPassword; // Will be hashed by pre-save hook
+      }
+    }
+
+    // 2. Profile Updates
+    if (name !== undefined) user.name = name;
+    if (defaultPricingType !== undefined) user.defaultPricingType = defaultPricingType;
+    if (profilePicture !== undefined) user.profilePicture = profilePicture;
+    if (twoFAEnabled !== undefined) user.twoFAEnabled = twoFAEnabled;
+
+    // 3. Bank Details
+    if (bankName || bankCode || accountNumber || accountName || paystackRecipientCode) {
+      user.bankDetails = {
+        ...user.bankDetails,
+        ...(bankName && { bankName }),
+        ...(bankCode && { bankCode }),
+        ...(accountNumber && { accountNumber }),
+        ...(accountName && { accountName }),
+        ...(paystackRecipientCode && { paystackRecipientCode })
+      };
+    }
+
+    // 4. Payout Preference
+    if (payoutFrequency) {
+      if (!user.payoutPreference) user.payoutPreference = {};
+      user.payoutPreference.frequency = payoutFrequency;
+    }
+
+    // 5. School/Tutorial Logo Updates
+    if (schoolLogoUrl && user.role === 'school_admin' && user.schoolId && user.schoolId.length > 0) {
+      // Update all schools managed by this admin (or specific one if passed, but keeping it simple)
+      await School.updateMany(
+        { _id: { $in: user.schoolId } },
+        { $set: { logoUrl: schoolLogoUrl } }
+      );
+      user.profilePicture = schoolLogoUrl; // Sync school logo with profile picture
+    }
+
+    if (tutorialLogoUrl && user.role === 'personal_teacher' && user.tutorialId) {
+      await Tutorial.findByIdAndUpdate(user.tutorialId, { logoUrl: tutorialLogoUrl });
+      user.profilePicture = tutorialLogoUrl; // Sync tutorial logo with profile picture
+    }
+
+    await user.save();
+
+    // Explicitly populate for the response so frontend UI (logos, etc.) updates immediately
+    await user.populate([
+      { path: 'schoolId', select: 'name logoUrl' },
+      { path: 'tutorialId', select: 'name logoUrl' }
+    ]);
+
+    // Return full user object (excluding password)
+    const userObj = user.toObject();
+    delete userObj.password;
+    delete userObj.otp;
+
+    // If we updated logos, we might want to refetch school/tutorial to return updated data if user object contains populated fields,
+    // but typically user obj just has IDs. The frontend will have to handle the school logo update separately or we return it.
+    // For now, let's just return the user. The logo URL for school/tutorial isn't directly on user (except maybe if we synced it, which we don't).
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: userObj
+    });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+// Update user's Expo push token
+router.post('/expo-push-token', auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    user.expoPushToken = token;
+    await user.save();
+    res.json({ message: 'Expo push token updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;
 

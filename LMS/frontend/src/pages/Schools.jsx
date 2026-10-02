@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-
+import { toast } from 'react-hot-toast';
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
-import { Plus, Pencil, Trash2, ArrowUpDown } from "lucide-react";
+import ConfirmationModal from "../components/ConfirmationModal";
+import { Plus, Pencil, Trash2, ArrowUpDown, Loader2, X, Share2, Award } from "lucide-react";
 
 const CreateSchoolModal = ({ open, onClose, onCreated }) => {
   const { user } = useAuth();
   const [schoolName, setSchoolName] = useState('');
-  const [adminId, setAdminId] = useState(user?._id);
+  const [adminId, setAdminId] = useState(user?._id || '');
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -29,107 +30,110 @@ const CreateSchoolModal = ({ open, onClose, onCreated }) => {
       const payload = { name: schoolName };
 
       if (user.role === 'root_admin' && adminId) {
-        payload.adminId = adminId; // Root admin can explicitly assign an admin
-      } else if (user.role === 'school_admin') {
-        // School admin's adminId is handled by backend using req.user._id,
-        // but we can explicitly send it for clarity/robustness if needed.
-        // For now, relying on backend default for school_admin.
-        // If backend logic changes, uncomment: payload.adminId = user._id;
+        payload.adminId = adminId;
       }
 
-      await api.post('/schools', payload);
+      await api.post('/schools', payload, { skipLoader: true });
       setSchoolName('');
-      // Reset adminId to current user's ID only if it's a root_admin and they had selected someone else
       if (user.role === 'root_admin') {
-        setAdminId(''); // Clear selection for root_admin
+        setAdminId('');
       } else if (user.role === 'school_admin') {
-        setAdminId(user?._id); // Ensure it's reset to their own ID
+        setAdminId(user?._id);
       }
       onCreated && onCreated();
       onClose();
-      alert('School created successfully!');
+      toast.success('School created successfully!');
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to create school.');
+      toast.error(error.response?.data?.message || 'Failed to create school.');
     } finally {
       setLoading(false);
     }
   };
 
   if (!open) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-40">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-        <h2 className="text-xl font-bold mb-4">Create School</h2>
-        <form onSubmit={handleCreateSchool} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-medium text-sm">School Name</label>
-            <input
-              type="text"
-              value={schoolName}
-              onChange={(e) => setSchoolName(e.target.value)}
-              required
-              className="w-full border px-3 py-2 rounded"
-            />
+    <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="bg-card rounded-xl shadow-none p-8 w-full max-w-md animate-slide-up border border-border">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-semibold text-foreground tracking-tight italic">Academy <span className="text-primary not-italic">Establishment</span></h2>
+            <button onClick={onClose} className="p-2 hover:bg-primary/20 hover:text-primary rounded-xl transition text-muted-foreground/30 active:scale-90">
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          {user?.role === 'root_admin' && (
+          <form onSubmit={handleCreateSchool} className="space-y-6">
             <div>
-              <label className="block mb-1 font-medium text-sm">School Admin</label>
-              <select
-                value={adminId}
-                onChange={e => setAdminId(e.target.value)}
+              <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">School Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Gracified International"
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+                className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium"
                 required
-                className="w-full border px-3 py-2 rounded"
-              >
-                <option value="">Select Admin</option>
-                {admins.map(a => (
-                  <option key={a._id} value={a._id}>
-                    {a.name} ({a.email})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-          )}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 border px-3 py-2 rounded hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-            >
-              {loading ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
+            {user?.role === 'root_admin' && (
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">Assign Administrator</label>
+                <select
+                  value={adminId}
+                  onChange={e => setAdminId(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium appearance-none"
+                  required
+                >
+                  <option value="">Select an administrator</option>
+                  {admins.map(a => (
+                    <option key={a._id} value={a._id}>
+                      {a.name} ({a.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold tracking-wide text-xs text-muted-foreground hover:bg-muted transition"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-premium flex-1"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Create School"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 };
 
-
 const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
-  const { user } = useAuth(); // Access user from AuthContext
+  const { user } = useAuth();
   const [form, setForm] = useState({
     name: "",
     adminId: "",
+    aiTutorAccess: "inherit",
   });
-  const [admins, setAdmins] = useState([]); // State to store list of admins for dropdown
+  const [admins, setAdmins] = useState([]);
 
   useEffect(() => {
     if (school) {
       setForm({
         name: school.name,
         adminId: school.admin?._id || "",
+        aiTutorAccess: school.aiTutorAccess || "inherit",
       });
     }
   }, [school]);
 
-  // Fetch admins if user is root_admin and modal is open
   useEffect(() => {
     if (user?.role === 'root_admin' && open) {
       api.get('/users').then(res => {
@@ -138,249 +142,117 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
     }
   }, [user, open]);
 
-  if (!open || !school) return null;
-
   const submit = async (e) => {
     e.preventDefault();
-
     try {
       const payload = { name: form.name };
       if (user.role === 'root_admin') {
-        payload.adminId = form.adminId; // Root admin can change adminId
+        payload.adminId = form.adminId;
+        payload.aiTutorAccess = form.aiTutorAccess;
       } else if (user.role === 'school_admin') {
-        payload.adminId = user._id; // School admin's adminId is fixed to themselves
+        payload.adminId = user._id;
       }
       await api.put(`/schools/${school._id}`, payload);
+      toast.success('School updated successfully!');
       onUpdated();
       onClose();
     } catch (err) {
+      toast.error(err.response?.data?.message || 'Update failed');
       console.error("Update failed", err);
     }
   };
 
+  if (!open || !school) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
-        <h3 className="text-xl font-bold mb-4">Edit School</h3>
-
-        <form onSubmit={submit} className="space-y-4">
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              School Name
-            </label>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-              required
-            />
+    <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="bg-card rounded-xl shadow-none p-8 w-full max-w-md animate-slide-up border border-border">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-semibold text-foreground tracking-tight italic">Reconfigure <span className="text-primary not-italic">Academy</span></h2>
+            <button onClick={onClose} className="p-2 hover:bg-primary/20 hover:text-primary rounded-xl transition text-muted-foreground/30 active:scale-90">
+              <X className="w-6 h-6" />
+            </button>
           </div>
 
-          {user?.role === 'root_admin' ? (
+          <form onSubmit={submit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                School Admin
-              </label>
-              <select
-                value={form.adminId}
-                onChange={e => setForm({ ...form, adminId: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              >
-                <option value="">Select Admin</option>
-                {admins.map(a => (
-                  <option key={a._id} value={a._id}>
-                    {a.name} ({a.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            // For School Admin, display their own adminId as fixed
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Admin (Fixed)
-              </label>
+              <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">School Name</label>
               <input
-                type="text"
-                value={school.admin?.name || 'N/A'} // Display admin's name
-                className="w-full px-4 py-2 border rounded-lg bg-gray-100 cursor-not-allowed"
-                disabled
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. Isaac Ovie Joseph Academy"
+                className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium"
+                required
               />
             </div>
-          )}
 
-          <div className="flex space-x-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
+            {user?.role === 'root_admin' ? (
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">School Admin</label>
+                <select
+                  value={form.adminId}
+                  onChange={e => setForm({ ...form, adminId: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium appearance-none"
+                  required
+                >
+                  <option value="">Select Admin</option>
+                  {admins.map(a => (
+                    <option key={a._id} value={a._id}>
+                      {a.name} ({a.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">Administrator</label>
+                <input
+                  type="text"
+                  value={school.admin?.name || 'N/A'}
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl cursor-not-allowed text-muted-foreground/40 font-medium"
+                  disabled
+                />
+              </div>
+            )}
 
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Save
-            </button>
-          </div>
+            {user?.role === 'root_admin' && (
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">AI Tutor Access</label>
+                <select
+                  value={form.aiTutorAccess}
+                  onChange={e => setForm({ ...form, aiTutorAccess: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-muted border border-border rounded-xl focus:border-primary outline-none transition-colors text-foreground font-medium appearance-none"
+                >
+                  <option value="inherit">Inherit (use global setting)</option>
+                  <option value="enabled">Enabled for this school</option>
+                  <option value="disabled">Disabled for this school</option>
+                </select>
+                <p className="text-[11px] text-muted-foreground/60 font-medium mt-2">Overrides the global AI Tutor setting for students of this school. Individual student settings can still override this.</p>
+              </div>
+            )}
 
-        </form>
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 rounded-xl border border-border font-semibold tracking-wide text-xs text-muted-foreground hover:bg-muted transition"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                className="btn-premium flex-1"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 };
-
-
-// export default function SchoolsPage() {
-//   const { user } = useAuth();
-//   const [modalOpen, setModalOpen] = useState(false);
-//   const [schools, setSchools] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [search, setSearch] = useState("");
-
-//   const canManage =
-//     user?.role === "root_admin" || user?.role === "school_admin";
-
-//   // Fetch schools
-//   const loadSchools = async () => {
-//     try {
-//       setLoading(true);
-//       const res = await api.get("/schools");
-//       setSchools(res.data);
-//     } catch (err) {
-//       console.error("Error loading schools:", err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     loadSchools();
-//   }, []);
-
-//   // Search filtering
-//   const filteredSchools = schools.filter((s) => {
-//     const q = search.toLowerCase();
-//     return (
-//       s.name?.toLowerCase().includes(q) ||
-//       s.admin?.name?.toLowerCase().includes(q) ||
-//       s.admin?.email?.toLowerCase().includes(q)
-//     );
-//   });
-
-//   return (
-//     <Layout>
-//       <div className="space-y-6">
-//         {/* ---------- HEADER ---------- */}
-//         <div className="flex justify-between items-center">
-//           <h2 className="text-2xl font-bold text-gray-800">Schools</h2>
-
-//           {canManage && (
-//             <button
-//               onClick={() => setModalOpen(true)}
-//               className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-//             >
-//               <Plus className="w-4 h-4" />
-//               <span>Create School</span>
-//             </button>
-//           )}
-//         </div>
-
-//         {/* ---------- SEARCH BAR ---------- */}
-//         <div>
-//           <input
-//             type="text"
-//             placeholder="Search schools..."
-//             className="px-4 py-2 border rounded-lg w-72 shadow-sm focus:ring focus:ring-blue-300 focus:outline-none"
-//             value={search}
-//             onChange={(e) => setSearch(e.target.value)}
-//           />
-//         </div>
-
-//         {/* ---------- TABLE ---------- */}
-//         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-//           <table className="w-full">
-//             <thead className="bg-gray-50">
-//               <tr>
-//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                   School Name
-//                 </th>
-//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                   Admin Name
-//                 </th>
-//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                   Admin Email
-//                 </th>
-//                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-//                   Teachers
-//                 </th>
-//                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-//                   Students
-//                 </th>
-//               </tr>
-//             </thead>
-
-//             <tbody className="divide-y divide-gray-200">
-//               {loading ? (
-//                 <tr>
-//                   <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-//                     Loading...
-//                   </td>
-//                 </tr>
-//               ) : filteredSchools.length === 0 ? (
-//                 <tr>
-//                   <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-//                     No matching schools found
-//                   </td>
-//                 </tr>
-//               ) : (
-//                 filteredSchools.map((school) => (
-//                   <tr key={school._id}>
-//                     <td className="px-6 py-4 text-sm font-medium text-gray-800">
-//                       {school.name}
-//                     </td>
-//                     <td className="px-6 py-4 text-sm text-gray-700">
-//                       {school.admin?.name ?? "N/A"}
-//                     </td>
-//                     <td className="px-6 py-4 text-sm text-gray-600">
-//                       {school.admin?.email ?? "N/A"}
-//                     </td>
-//                     <td className="px-6 py-4 text-center text-sm text-gray-700">
-//                       {school.teacherCount ?? 0}
-//                     </td>
-//                     <td className="px-6 py-4 text-center text-sm text-gray-700">
-//                       {school.studentCount ?? 0}
-//                     </td>
-//                   </tr>
-//                 ))
-//               )}
-//             </tbody>
-//           </table>
-//         </div>
-
-//         {/* ---------- EMPTY STATE ---------- */}
-//         {!loading && schools.length === 0 && (
-//           <div className="text-center py-12 bg-white rounded-lg shadow">
-//             <p className="text-gray-500">No schools found</p>
-//           </div>
-//         )}
-//       </div>
-
-//       {/* ---------- CREATE SCHOOL MODAL ---------- */}
-//       <CreateSchoolModal
-//         open={modalOpen}
-//         onClose={() => setModalOpen(false)}
-//         onCreated={loadSchools}
-//       />
-//     </Layout>
-//   );
-// }
-
-
 
 export default function SchoolsPage() {
   const { user } = useAuth();
@@ -389,31 +261,40 @@ export default function SchoolsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [schools, setSchools] = useState([]);
+  const [tutorialCenters, setTutorialCenters] = useState([]);
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [schoolToDelete, setSchoolToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const canManage = ["root_admin", "school_admin"].includes(user?.role); // Root admin and school admin can manage (edit/delete) schools
-  const canCreateSchool = ["root_admin", "school_admin"].includes(user?.role); // Both root_admin and school_admin can create new schools
+  const canManage = ["root_admin", "school_admin"].includes(user?.role);
+  const canCreateSchool = ["root_admin", "school_admin"].includes(user?.role);
+  const isRootAdmin = user?.role === "root_admin";
 
-  // Fetch schools
   const loadSchools = async () => {
     try {
-      setLoading(true);
+      if (schools.length === 0 && tutorialCenters.length === 0) setLoading(true);
       let response;
-      if (user?.role === "school_admin") {
-        // School admin fetches all schools they administer
-        response = await api.get("/schools"); // Backend will filter by user.schoolId array
-        setSchools(response.data.schools); // Backend now returns { schools: [...] }
-      } else if (user?.role === "root_admin") {
-        // Root admin fetches all schools
+      if (user?.role === "school_admin" || user?.role === "root_admin") {
         response = await api.get("/schools");
-        setSchools(response.data.schools); // Now returns { schools: [...] }
+        setSchools(response.data.schools || []);
       } else {
-        // Other roles or no user - no schools to load
         setSchools([]);
+      }
+      
+      // Load tutorial centers only for root_admin
+      if (isRootAdmin) {
+        try {
+          const tutResponse = await api.get("/schools/tutorial-centers/all");
+          setTutorialCenters(tutResponse.data.tutorialCenters || []);
+        } catch (err) {
+          console.error("Error loading tutorial centers:", err);
+          setTutorialCenters([]);
+        }
       }
     } catch (err) {
       console.error("Error loading schools:", err);
@@ -424,29 +305,29 @@ export default function SchoolsPage() {
 
   useEffect(() => {
     if (user) {
-      // Only load schools if user is defined
       loadSchools();
     }
-  }, [user]); // Re-run when user object changes
+  }, [user]);
 
-  // -----------------------
-  // SEARCH FILTER
-  // -----------------------
-  const filteredSchools = schools.filter((s) => {
+  // Combine schools and tutorial centers
+  const allInstitutions = [
+    ...schools.map(s => ({ ...s, type: 'school' })),
+    ...tutorialCenters
+  ];
+
+  const filteredInstitutions = Array.isArray(allInstitutions) ? allInstitutions.filter((inst) => {
     const q = search.toLowerCase();
+    const adminName = inst.type === 'school' ? inst.admin?.name : inst.teacherName;
+    const adminEmail = inst.type === 'school' ? inst.admin?.email : inst.teacherEmail;
     return (
-      s.name?.toLowerCase().includes(q) ||
-      s.admin?.name?.toLowerCase().includes(q) ||
-      s.admin?.email?.toLowerCase().includes(q)
+      inst.name?.toLowerCase().includes(q) ||
+      adminName?.toLowerCase().includes(q) ||
+      adminEmail?.toLowerCase().includes(q)
     );
-  });
+  }) : [];
 
-  // -----------------------
-  // SORTING LOGIC
-  // -----------------------
   const sortData = (field) => {
     let direction = sortDir;
-
     if (sortField === field) {
       direction = direction === "asc" ? "desc" : "asc";
       setSortDir(direction);
@@ -456,133 +337,194 @@ export default function SchoolsPage() {
     }
   };
 
-  const sortedSchools = [...filteredSchools].sort((a, b) => {
+  const sortedSchools = [...filteredInstitutions].sort((a, b) => {
     if (!sortField) return 0;
-
     let x = a[sortField];
     let y = b[sortField];
-
     if (sortField === "adminName") {
-      x = a.admin?.name || "";
-      y = b.admin?.name || "";
+      x = a.type === 'school' ? a.admin?.name : a.teacherName;
+      y = b.type === 'school' ? b.admin?.name : b.teacherName;
     }
     if (sortField === "adminEmail") {
-      x = a.admin?.email || "";
-      y = b.admin?.email || "";
+      x = a.type === 'school' ? a.admin?.email : a.teacherEmail;
+      y = b.type === 'school' ? b.admin?.email : b.teacherEmail;
     }
-
     if (typeof x === "string") x = x.toLowerCase();
     if (typeof y === "string") y = y.toLowerCase();
-
     if (sortDir === "asc") return x > y ? 1 : -1;
     return x < y ? 1 : -1;
   });
 
-  // -----------------------
-  // DELETE SCHOOL
-  // -----------------------
-  const deleteSchool = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this school?")) return;
+  const deleteSchool = (id) => {
+    setSchoolToDelete(id);
+    setShowDeleteModal(true);
+  };
 
+  const handleShare = (inst) => {
+    let url;
+    if (inst.type === 'school') {
+      url = `${window.location.origin}/s/${inst.slug || inst.shortCode || inst._id}`;
+    } else {
+      url = `${window.location.origin}/tutorial-center/${inst._id}`;
+    }
+    navigator.clipboard.writeText(url);
+    toast.success('Portal link copied!');
+  };
+
+  const handleManageSubscription = (inst) => {
+    if (inst.type === 'school') {
+      navigate('/subscription-management', { 
+        state: { 
+          schoolId: inst._id, 
+          schoolName: inst.name,
+          email: inst.admin?.email 
+        } 
+      });
+    } else {
+      navigate('/subscription-management', { 
+        state: { 
+          personalTeacherId: inst.teacherId, 
+          tutorialCenterName: inst.name,
+          email: inst.teacherEmail 
+        } 
+      });
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!schoolToDelete) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/schools/${id}`);
+      await api.delete(`/schools/${schoolToDelete}`);
+      toast.success('School deleted successfully');
+      setShowDeleteModal(false);
+      setSchoolToDelete(null);
       loadSchools();
     } catch (err) {
+      toast.error(err.response?.data?.message || 'Delete failed');
       console.error("Delete failed:", err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <Layout>
       <div className="space-y-6">
-        
-        {/* HEADER */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">Schools</h2>
-
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight italic">School <span className="text-primary not-italic">Management</span></h2>
           {canCreateSchool && (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="btn-premium px-8 py-3 rounded-xl flex items-center gap-3 shadow-none"
             >
-              <Plus className="w-4 h-4" />
-              <span>Create School</span>
+              <Plus className="w-5 h-5" />
+              <span className="font-semibold text-xs tracking-wide">Establish Establishment</span>
             </button>
           )}
         </div>
 
-        {/* SEARCH */}
-        <div>
+        <div className="relative">
           <input
             type="text"
-            placeholder="Search schools..."
-            className="px-4 py-2 border rounded-lg w-72 shadow-sm focus:ring focus:ring-blue-300 focus:outline-none"
+            placeholder="Search schools or tutorial centers..."
+            className="w-full sm:w-96 px-5 py-4 bg-muted/40 border-2 border-border rounded-xl font-semibold italic tracking-tight placeholder:opacity-30 placeholder:italic focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        {/* TABLE */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="card-premium overflow-hidden overflow-x-auto border border-border">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted text-muted-foreground border-b border-border">
               <tr>
                 <HeaderCell label="School Name" field="name" sortData={sortData} sortField={sortField} sortDir={sortDir} />
                 <HeaderCell label="Admin Name" field="adminName" sortData={sortData} sortField={sortField} sortDir={sortDir} />
                 <HeaderCell label="Admin Email" field="adminEmail" sortData={sortData} sortField={sortField} sortDir={sortDir} />
                 <HeaderCell label="Teachers" field="teacherCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
                 <HeaderCell label="Students" field="studentCount" sortData={sortData} sortField={sortField} sortDir={sortDir} center />
-
                 {canManage && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground/60 tracking-[0.25em] whitespace-nowrap">Actions</th>
                 )}
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-500">
-                    Loading...
+                  <td colSpan="6" className="text-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary/30" />
                   </td>
                 </tr>
               ) : sortedSchools.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-500">
-                    No schools found
-                  </td>
+                  <td colSpan="6" className="text-center py-20 text-muted-foreground/30 font-semibold italic tracking-wide">No establishments found</td>
                 </tr>
               ) : (
-                sortedSchools.map((school) => (
-                  <tr 
-                    key={school._id}
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => navigate(`/schools/${school._id}`)}
+                sortedSchools.map((inst) => (
+                  <tr
+                    key={inst._id}
+                    className="cursor-pointer hover:bg-muted transition-colors"
+                    onClick={() => inst.type === 'school' && navigate(`/schools/${inst._id}`)}
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-800">{school.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{school.admin?.name || "N/A"}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{school.admin?.email || "N/A"}</td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-700">{school.teacherCount}</td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-700">{school.studentCount}</td>
-
+                    <td className="px-6 py-5 text-sm font-semibold text-foreground italic">
+                      {inst.name}
+                      <span className="ml-2 text-xs font-semibold tracking-wide text-primary/60 bg-primary/5 px-2 py-1 rounded">
+                        {inst.type === 'school' ? 'School' : 'Tutorial'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-foreground/70 font-semibold tracking-tight">
+                      {inst.type === 'school' ? (inst.admin?.name || "N/A") : (inst.teacherName || "N/A")}
+                    </td>
+                    <td className="px-6 py-5 text-sm text-muted-foreground font-medium">
+                      {inst.type === 'school' ? (inst.admin?.email || "N/A") : (inst.teacherEmail || "N/A")}
+                    </td>
+                    <td className="px-6 py-5 text-center text-xs font-semibold text-primary">
+                        <span className="bg-primary/5 px-3 py-1 rounded-full border border-primary/10 tracking-[0.2em]">
+                          {inst.type === 'school' ? (inst.teacherCount || 0) : (inst.classCount || 0)}
+                        </span>
+                    </td>
+                    <td className="px-6 py-5 text-center text-xs font-semibold">
+                        <span className={`${inst.type === 'school' ? 'text-emerald-500 bg-emerald-500/5 border-emerald-500/10' : 'text-blue-500 bg-primary/5 border-blue-500/10'} px-3 py-1 rounded-full border tracking-[0.2em]`}>
+                          {inst.type === 'school' ? (inst.studentCount || 0) : (inst.subscriptionStatus || 'Active')}
+                        </span>
+                    </td>
                     {canManage && (
-                      <td 
-                        className="px-6 py-4 flex space-x-4"
-                        onClick={(e) => e.stopPropagation()} // prevent navigation
+                      <td
+                        className="px-6 py-5 flex items-center space-x-2"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <button
-                          onClick={() => { setSelectedSchool(school); setEditModalOpen(true); }}
-                          className="text-blue-600 hover:text-blue-800"
+                          onClick={() => handleShare(inst)}
+                          className="p-2 text-muted-foreground/30 hover:text-primary transition-colors"
+                          title="Share Access Link"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Share2 className="w-4 h-4" />
                         </button>
-
                         <button
-                          onClick={() => deleteSchool(school._id)}
-                          className="text-red-600 hover:text-red-800"
+                          onClick={() => handleManageSubscription(inst)}
+                          className="p-2 text-muted-foreground/30 hover:text-amber-500 transition-colors"
+                          title="Manage Subscription"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Award className="w-4 h-4" />
                         </button>
+                        {inst.type === 'school' && (
+                          <>
+                            <button
+                              onClick={() => { setSelectedSchool(inst); setEditModalOpen(true); }}
+                              className="p-2 text-muted-foreground/30 hover:text-blue-500 transition-colors"
+                              title="Reconfigure Academy"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteSchool(inst._id)}
+                              className="p-2 text-muted-foreground/30 hover:text-red-500 transition-colors"
+                              title="Decommission Academy"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -593,41 +535,44 @@ export default function SchoolsPage() {
         </div>
       </div>
 
-      {/* CREATE MODAL */}
       <CreateSchoolModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreated={loadSchools}
       />
 
-      {/* EDIT MODAL */}
       <EditSchoolModal
         open={editModalOpen}
         school={selectedSchool}
         onClose={() => setEditModalOpen(false)}
         onUpdated={loadSchools}
       />
+
+      <ConfirmationModal
+        show={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Decommission Academy"
+        message="Are you sure you want to delete this school? This action will permanently remove all associated users and data."
+        confirmText="DECOMMISSION"
+        isLoading={isDeleting}
+      />
     </Layout>
   );
 }
 
-/* -----------------------
-   SORTABLE HEADER COMPONENT
------------------------- */
-function HeaderCell({ label, field, sortData, sortField, sortDir, center }) {
+const HeaderCell = ({ label, field, sortData, sortField, sortDir, center = false }) => {
   return (
     <th
-      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase cursor-pointer select-none ${
-        center ? "text-center" : "text-left"
-      }`}
+      className={`px-6 py-5 text-xs font-semibold text-muted-foreground/30 tracking-[0.25em] cursor-pointer select-none transition-colors hover:text-primary ${center ? "text-center" : "text-left"
+        }`}
       onClick={() => sortData(field)}
     >
-      <div className="flex items-center space-x-1">
+      <div className={`flex items-center space-x-2 ${center ? "justify-center" : ""}`}>
         <span>{label}</span>
         <ArrowUpDown
-          className={`w-4 h-4 ${
-            sortField === field ? "text-gray-700" : "text-gray-400"
-          }`}
+          className={`w-3.5 h-3.5 transition-colors ${sortField === field ? "text-primary" : "text-muted-foreground/10"
+            }`}
         />
       </div>
     </th>

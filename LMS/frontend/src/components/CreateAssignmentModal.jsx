@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Loader2, Sparkles } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { toLocalISOString } from '../utils/timezone';
+import FormFieldHelp from './FormFieldHelp';
+import AIAssistantPanel from './AIAssistantPanel';
 
-const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics }) => {
+const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics, editAssignment, aiPrefill }) => {
   const [createForm, setCreateForm] = useState({
     title: '',
     description: '',
@@ -12,18 +16,53 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
     maxScore: 100,
     assignmentType: 'theory',
     publishResultsAt: '', // New field for MCQ result release time
-    questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }]
+    questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }],
+    published: true
   });
 
   const [isEvenlyDistributed, setIsEvenlyDistributed] = useState(false); // New state for checkbox
   const [overallMaxScoreInput, setOverallMaxScoreInput] = useState(100); // For even distribution input
 
   useEffect(() => {
-    // If a classroomId is passed, set it in the form
-    if (classroomId) {
+    if (editAssignment) {
+      setCreateForm({
+        title: editAssignment.title || '',
+        description: editAssignment.description || '',
+        classroomId: editAssignment.classroomId?._id || editAssignment.classroomId || classroomId || '',
+        topicId: editAssignment.topicId?._id || editAssignment.topicId || '',
+        dueDate: editAssignment.dueDate ? toLocalISOString(editAssignment.dueDate).split('T')[0] : '',
+        maxScore: editAssignment.maxScore || 100,
+        assignmentType: editAssignment.assignmentType || 'theory',
+        publishResultsAt: editAssignment.publishResultsAt ? toLocalISOString(editAssignment.publishResultsAt) : '',
+        questions: editAssignment.questions || [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }],
+        published: editAssignment.published !== false
+      });
+      setOverallMaxScoreInput(editAssignment.maxScore || 100);
+    } else if (aiPrefill) {
+      const questions = (aiPrefill.questions || []).map((q) => ({
+        questionText: q.questionText || '',
+        options: Array.isArray(q.options) && q.options.length >= 2 ? q.options.map((o) => o || '') : ['', ''],
+        correctOption: q.correctOption || (Array.isArray(q.options) && q.options.length ? q.options[0] : ''),
+        markingPreference: q.markingPreference || (Array.isArray(q.options) && q.options.length ? 'even' : 'manual'),
+        maxScore: q.maxScore || 1,
+      }));
+      setCreateForm((prev) => ({
+        title: aiPrefill.title || prev.title,
+        description: aiPrefill.description || prev.description,
+        classroomId: prev.classroomId,
+        topicId: prev.topicId,
+        dueDate: prev.dueDate,
+        maxScore: aiPrefill.maxScore || prev.maxScore,
+        assignmentType: aiPrefill.assignmentType || prev.assignmentType,
+        publishResultsAt: prev.publishResultsAt,
+        questions: questions.length ? questions : prev.questions,
+        published: prev.published,
+      }));
+      setOverallMaxScoreInput(aiPrefill.maxScore || 100);
+    } else if (classroomId) {
       setCreateForm(prevForm => ({ ...prevForm, classroomId }));
     }
-  }, [classroomId]);
+  }, [classroomId, editAssignment, aiPrefill]);
 
   if (!show) {
     return null;
@@ -92,32 +131,32 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
       if (createForm.assignmentType === 'mcq') {
         for (const q of createForm.questions) {
           if (!q.questionText || !Array.isArray(q.options) || q.options.length < 2 || !q.correctOption) {
-            alert('MCQ questions must have text, at least two options, and a correct option.');
+            toast.error('MCQ questions must have text, at least two options, and a correct option.');
             return;
           }
           if (!q.options.includes(q.correctOption)) {
-            alert('Correct option must be one of the provided options for MCQ.');
+            toast.error('Correct option must be one of the provided options for MCQ.');
             return;
           }
         }
         // Validate publishResultsAt for MCQ assignments
         if (createForm.publishResultsAt && isNaN(new Date(createForm.publishResultsAt).getTime())) {
-          alert('Invalid publish results date and time.');
+          toast.error('Invalid publish results date and time.');
           return;
         }
       } else if (createForm.assignmentType === 'theory') {
         for (const q of createForm.questions) {
           if (!q.questionText || !q.markingPreference || !['ai', 'manual'].includes(q.markingPreference)) {
-            alert('Theory questions must have text and a valid marking preference.');
+            toast.error('Theory questions must have text and a valid marking preference.');
             return;
           }
         }
         if (createForm.publishResultsAt) {
-          alert('Publish results date is only applicable for MCQ assignments.');
+          toast.error('Publish results date is only applicable for MCQ assignments.');
           return;
         }
       }
-      
+
       // Handle maxScore for theory assignments
       if (createForm.assignmentType === 'theory') {
         let newQuestions = [...createForm.questions];
@@ -125,7 +164,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
         if (isEvenlyDistributed) {
           if (overallMaxScoreInput <= 0) {
-            alert('Overall Max Score must be greater than 0 for even distribution.');
+            toast.error('Overall Max Score must be greater than 0 for even distribution.');
             return;
           }
           const questionsCount = newQuestions.length;
@@ -140,7 +179,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
         } else { // per_question
           for (const q of newQuestions) {
             if (q.maxScore <= 0) {
-              alert('Each theory question must have a max score greater than 0.');
+              toast.error('Each theory question must have a max score greater than 0.');
               return;
             }
             calculatedOverallMaxScore += q.maxScore;
@@ -153,9 +192,23 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
           maxScore: calculatedOverallMaxScore // Set the overall maxScore for the assignment
         }));
       }
-      
-      await api.post('/assignments', createForm);
-      alert('Assignment created successfully!');
+
+      const submitData = {
+        ...createForm,
+        // Convert empty topicId to null to avoid BSON cast errors
+        topicId: createForm.topicId === '' ? null : createForm.topicId,
+        // Convert to UTC before sending
+        publishResultsAt: createForm.publishResultsAt ? new Date(createForm.publishResultsAt).toISOString() : '',
+        dueDate: createForm.dueDate ? new Date(createForm.dueDate).toISOString() : ''
+      };
+
+      if (editAssignment) {
+        await api.put(`/assignments/${editAssignment._id}`, submitData, { skipLoader: true });
+        toast.success('Assignment updated successfully!');
+      } else {
+        await api.post('/assignments', submitData, { skipLoader: true });
+        toast.success('Assignment created successfully!');
+      }
       onClose();
       onSubmitSuccess(); // Callback to refresh assignments in parent component
       setCreateForm({ // Reset form after successful submission
@@ -167,288 +220,430 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
         maxScore: 100,
         assignmentType: 'theory',
         publishResultsAt: '',
-        questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }]
+        questions: [{ questionText: '', options: ['', ''], correctOption: '', markingPreference: 'manual', maxScore: 0 }],
+        published: true
       });
       setIsEvenlyDistributed(false); // Reset checkbox state
       setOverallMaxScoreInput(100); // Reset overall max score input
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating assignment');
+      let msg = error.response?.data?.message || 'Error creating assignment';
+      if (msg.includes('Cast to ObjectId failed') || msg.includes('BSONError')) {
+        msg = 'Invalid data provided. Please check selected values like Classroom or Topic.';
+      } else if (msg.toLowerCase().includes('validation failed')) {
+        msg = 'Missing required fields or invalid formatting.';
+      }
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-        <h3 className="text-xl font-bold mb-4">Create New Assignment</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input
-              type="text"
-              value={createForm.title}
-              onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={createForm.description}
-              onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-              rows="3"
-            />
-          </div>
-          {/* Classroom selection is only shown if classroomId prop is NOT provided */}
-          {!classroomId && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Classroom</label>
-              <select
-                value={createForm.classroomId}
-                onChange={(e) => {
-                  setCreateForm({ ...createForm, classroomId: e.target.value, topicId: '' });
-                }}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
+    <div className="fixed inset-0 bg-slate-900/60  z-[100] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-none max-w-4xl w-full p-8 animate-slide-up border dark:border-slate-800">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white">{editAssignment ? 'Edit Assignment' : 'New Assignment'}</h3>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAIPanel(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold tracking-wider hover:opacity-90 transition-all shadow-none dark:shadow-none active:scale-95"
               >
-                <option value="">Select a classroom</option>
-                {/* Assuming availableTopics has classroom info or we need a separate prop for classrooms */}
-                {/* For now, just show a placeholder, actual classroom fetching needs to be passed down or handled here */}
-                {/* This will be handled in Assignments.jsx, for ClassroomDetail.jsx, classroomId is already passed */}
-                {availableTopics?.length > 0 && availableTopics[0]?.classroomId && (
-                    <option value={availableTopics[0].classroomId._id}>
-                        {availableTopics[0].classroomId.name}
-                    </option>
-                )}
-              </select>
-            </div>
-          )}
-          
-          {availableTopics && availableTopics.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Topic (Optional)</label>
-              <select
-                value={createForm.topicId}
-                onChange={(e) => setCreateForm({ ...createForm, topicId: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="">Select a topic</option>
-                {availableTopics.map(t => (
-                  <option key={t._id} value={t._id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Assignment Type</label>
-            <div className="flex space-x-4">
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio"
-                  name="assignmentType"
-                  value="theory"
-                  checked={createForm.assignmentType === 'theory'}
-                  onChange={(e) => setCreateForm({ ...createForm, assignmentType: e.target.value, questions: [{ questionText: '', markingPreference: 'manual', maxScore: 0 }], publishResultsAt: '' })}
-                />
-                <span className="ml-2">Theory</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio"
-                  name="assignmentType"
-                  value="mcq"
-                  checked={createForm.assignmentType === 'mcq'}
-                  onChange={(e) => setCreateForm({ ...createForm, assignmentType: e.target.value, questions: [{ questionText: '', options: ['', ''], correctOption: '' }] })}
-                />
-                <span className="ml-2">MCQ</span>
-              </label>
+                <Sparkles className="w-4 h-4" />
+                AI Generate
+              </button>
+              <button onClick={onClose} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition text-slate-400 dark:text-slate-500">
+                <X className="w-6 h-6" />
+              </button>
             </div>
           </div>
 
-          {/* Questions Section */}
-          <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold text-gray-800">Questions</h4>
-              {createForm.assignmentType === 'theory' && (
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox"
-                    checked={isEvenlyDistributed}
-                    onChange={(e) => setIsEvenlyDistributed(e.target.checked)}
-                  />
-                  <span className="ml-2">Same Weight Per Question</span>
-                </label>
-              )}
-            </div>
-            {createForm.assignmentType === 'theory' && isEvenlyDistributed && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Overall Max Score (for even distribution)</label>
+          <form onSubmit={(e) => { setIsSubmitting(true); handleSubmit(e); }} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Assignment Title</label>
                 <input
-                  type="number"
-                  value={overallMaxScoreInput}
-                  onChange={(e) => setOverallMaxScoreInput(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  min="1"
+                  type="text"
+                  placeholder="e.g. Mid-term Assessment"
+                  value={createForm.title}
+                  onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+                  className="w-full"
+                  required
                 />
               </div>
-            )}
-            {createForm.questions.map((question, qIndex) => (
-              <div key={qIndex} className="space-y-3 p-4 border rounded-lg bg-white shadow-sm">
+
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Description</label>
+                <textarea
+                  placeholder="Instructions for students..."
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                  className="w-full"
+                  rows="2"
+                />
+              </div>
+
+              {!classroomId && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Question {qIndex + 1} Text</label>
-                  <input
-                    type="text"
-                    value={question.questionText}
-                    onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg"
+                  <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Classroom</label>
+                  <select
+                    value={createForm.classroomId}
+                    onChange={(e) => {
+                      setCreateForm({ ...createForm, classroomId: e.target.value, topicId: '' });
+                    }}
+                    className="w-full"
                     required
-                  />
-                </div>
-
-                {createForm.assignmentType === 'mcq' && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Options</label>
-                    {question.options.map((option, oIndex) => (
-                      <div key={oIndex} className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={option}
-                          onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                          className="flex-1 px-4 py-2 border rounded-lg"
-                          required
-                        />
-                        <input
-                          type="radio"
-                          name={`correctOption-${qIndex}`}
-                          value={option}
-                          checked={question.correctOption === option}
-                          onChange={() => handleCorrectOptionChange(qIndex, option)}
-                          className="form-radio text-green-600"
-                        />
-                        <label className="text-sm text-gray-600">Correct</label>
-                        {question.options.length > 2 && (
-                          <button
-                            type="button"
-                            onClick={() => removeOption(qIndex, oIndex)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => addOption(qIndex)}
-                      className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600"
-                    >
-                      Add Option
-                    </button>
-                  </div>
-                )}
-
-                {createForm.assignmentType === 'theory' && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Marking Preference</label>
-                    <select
-                      value={question.markingPreference}
-                      onChange={(e) => handleMarkingPreferenceChange(qIndex, e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      required
-                    >
-                      <option value="manual">Manual</option>
-                      <option value="ai">AI Marking</option>
-                    </select>
-                    {!isEvenlyDistributed && (
-                      <div className="mt-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Max Score for Q{qIndex + 1}</label>
-                        <input
-                          type="number"
-                          value={question.maxScore}
-                          onChange={(e) => handleQuestionMaxScoreChange(qIndex, e.target.value)}
-                          className="w-full px-4 py-2 border rounded-lg"
-                          min="0"
-                          required
-                        />
-                      </div>
+                  >
+                    <option value="">Select a classroom</option>
+                    {availableTopics?.length > 0 && availableTopics[0]?.classroomId && (
+                      <option value={availableTopics[0].classroomId._id}>
+                        {availableTopics[0].classroomId.name}
+                      </option>
                     )}
-                  </div>
-                )}
+                  </select>
+                </div>
+              )}
 
-                {createForm.questions.length > 1 && (
+              {availableTopics && availableTopics.length > 0 && (
+                <div className={classroomId ? "md:col-span-2" : ""}>
+                  <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Topic (Optional)</label>
+                  <select
+                    value={createForm.topicId}
+                    onChange={(e) => setCreateForm({ ...createForm, topicId: e.target.value })}
+                    className="w-full"
+                  >
+                    <option value="">Select a topic</option>
+                    {availableTopics.map(t => (
+                      <option key={t._id} value={t._id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <label className="flex items-center text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
+                  Assignment Type
+                  <FormFieldHelp content="Theory for essay-style answers. MCQ for auto-graded multiple choice questions." />
+                </label>
+                <div className="flex gap-4 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl w-fit border dark:border-slate-800">
                   <button
                     type="button"
-                    onClick={() => removeQuestion(qIndex)}
-                    className="text-red-600 hover:text-red-800 text-sm"
+                    onClick={() => setCreateForm({ ...createForm, assignmentType: 'theory', questions: [{ questionText: '', markingPreference: 'manual', maxScore: 0 }], publishResultsAt: '' })}
+                    className={`px-6 py-2 rounded-xl font-semibold transition-all ${createForm.assignmentType === 'theory' ? 'bg-white dark:bg-slate-800 text-primary shadow-none' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                   >
-                    Remove Question
+                    Theory
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm({ ...createForm, assignmentType: 'mcq', questions: [{ questionText: '', options: ['', ''], correctOption: '' }] })}
+                    className={`px-6 py-2 rounded-xl font-semibold transition-all ${createForm.assignmentType === 'mcq' ? 'bg-white dark:bg-slate-800 text-primary shadow-none' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                  >
+                    MCQ
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Questions Section */}
+            <div className="space-y-4 border-2 border-gray-200 dark:border-slate-800 p-5 rounded-xl  to-white dark:from-slate-900/50 dark:to-slate-950/50">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+                  <span className="bg-indigo-100 dark:bg-indigo-900/40 text-primary dark:text-primary px-3 py-1 rounded-xl mr-3 text-sm font-extrabold">
+                    {createForm.questions.length}
+                  </span>
+                  Questions
+                </h4>
+                {createForm.assignmentType === 'theory' && (
+                  <label className="inline-flex items-center bg-white dark:bg-slate-800 px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-slate-700 hover:border-primary/30 transition-all cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox h-4 w-4 text-primary rounded bg-transparent border-slate-300"
+                      checked={isEvenlyDistributed}
+                      onChange={(e) => setIsEvenlyDistributed(e.target.checked)}
+                    />
+                    <span className="ml-2 text-sm font-medium text-gray-700 dark:text-slate-300 flex items-center">
+                      Same Weight Per Question
+                      <FormFieldHelp content="Distribute the overall score equally among all questions. Ideal for quick multiple-mark theories." />
+                    </span>
+                  </label>
                 )}
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addQuestion}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center justify-center space-x-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Another Question</span>
-            </button>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date (Optional)</label>
-            <input
-              type="date"
-              value={createForm.dueDate}
-              onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-            />
-          </div>
-          {createForm.assignmentType === 'mcq' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Publish Results At (Optional for MCQ)</label>
-              <input
-                type="datetime-local"
-                value={createForm.publishResultsAt}
-                onChange={(e) => setCreateForm({ ...createForm, publishResultsAt: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
+              {createForm.assignmentType === 'theory' && isEvenlyDistributed && (
+                <div className="mb-4 p-4 bg-primary/10 border-2 border-primary/20 rounded-xl">
+                  <label className="block text-sm font-semibold text-primary mb-2">Overall Max Score (for even distribution)</label>
+                  <input
+                    type="number"
+                    value={overallMaxScoreInput}
+                    onChange={(e) => setOverallMaxScoreInput(parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-3 border-2 border-primary/20 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-semibold text-primary"
+                    min="1"
+                  />
+                </div>
+              )}
+              {createForm.questions.map((question, qIndex) => (
+                <div key={qIndex} className="space-y-4 p-5 border-2 border-gray-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-none hover:shadow-none transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <span className="w-9 h-9 rounded-xl   text-white flex items-center justify-center font-semibold text-sm shadow-none">
+                        {qIndex + 1}
+                      </span>
+                      <h5 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Question {qIndex + 1}</h5>
+                    </div>
+                    {createForm.questions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeQuestion(qIndex)}
+                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold tracking-wide text-gray-500 dark:text-slate-500 mb-2">Question Text</label>
+                    <input
+                      type="text"
+                      value={question.questionText}
+                      onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
+                      placeholder="What is alphabet before any cluster of t"
+                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-medium text-gray-900 dark:text-white bg-transparent placeholder:text-gray-300 dark:placeholder:text-slate-700"
+                      required
+                    />
+                  </div>
+
+                  {createForm.assignmentType === 'mcq' && (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold tracking-wide text-gray-500 dark:text-slate-500">Answer Options</label>
+                        <span className="text-xs text-gray-400 font-medium italic">Select correct answer</span>
+                      </div>
+                      <div className="space-y-2">
+                        {question.options.map((option, oIndex) => {
+                          const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                          const isCorrect = question.correctOption === option;
+
+                          return (
+                            <div
+                              key={oIndex}
+                              className={`flex items-center gap-3 p-3 rounded-xl transition-all border-2 ${isCorrect
+                                ? 'border-green-400 bg-green-50 dark:bg-green-900/10'
+                                : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/20'
+                                }`}
+                            >
+                              {/* Option Label */}
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-sm transition-all ${isCorrect
+                                ? 'bg-success text-white shadow-none'
+                                : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                {optionLabels[oIndex]}
+                              </div>
+
+                              {/* Option Input */}
+                              <input
+                                type="text"
+                                value={option}
+                                onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
+                                placeholder={optionLabels[oIndex]}
+                                className={`flex-1 px-3 py-2 bg-transparent border-none outline-none font-medium focus:ring-0 ${isCorrect ? 'text-green-900 dark:text-green-400' : 'text-gray-800 dark:text-slate-200'
+                                  }`}
+                                required
+                              />
+
+                              {/* Correct Radio Button */}
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name={`correctOption-${qIndex}`}
+                                  value={option}
+                                  checked={isCorrect}
+                                  onChange={() => handleCorrectOptionChange(qIndex, option)}
+                                  className="w-5 h-5 text-green-600 focus:ring-green-500"
+                                />
+                                <label className={`text-sm font-medium ${isCorrect ? 'text-green-700' : 'text-gray-500'}`}>
+                                  Correct
+                                </label>
+                              </div>
+
+                              {/* Remove Option Button */}
+                              {question.options.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeOption(qIndex, oIndex)}
+                                  className="text-rose-400 hover:text-rose-600 text-sm font-medium px-2"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => addOption(qIndex)}
+                        className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2 font-medium text-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Option
+                      </button>
+                    </div>
+                  )}
+
+                  {createForm.assignmentType === 'theory' && (
+                    <div className="space-y-3 pt-2">
+                      <div>
+                        <label className="block text-xs font-semibold tracking-wide text-gray-500 mb-2 flex items-center">
+                          Marking Preference
+                          <FormFieldHelp content="Manual: Teacher grades it. AI Marking: AI grades it automatically based on the question context." />
+                        </label>
+                        <select
+                          value={question.markingPreference}
+                          onChange={(e) => handleMarkingPreferenceChange(qIndex, e.target.value)}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-medium appearance-none cursor-pointer"
+                          required
+                        >
+                          <option value="manual">Manual</option>
+                          <option value="ai">AI Marking</option>
+                        </select>
+                      </div>
+                      {!isEvenlyDistributed && (
+                        <div>
+                          <label className="block text-xs font-semibold tracking-wide text-gray-500 mb-2">Max Score for Q{qIndex + 1}</label>
+                          <input
+                            type="number"
+                            value={question.maxScore}
+                            onChange={(e) => handleQuestionMaxScoreChange(qIndex, e.target.value)}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-semibold text-primary"
+                            min="0"
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="w-full px-4 py-4   text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center space-x-2 font-semibold shadow-none hover:shadow-none"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Another Question</span>
+              </button>
             </div>
-          )}
-          {createForm.assignmentType === 'mcq' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max Score</label>
-              <input
-                type="number"
-                value={createForm.maxScore}
-                onChange={(e) => setCreateForm({ ...createForm, maxScore: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border rounded-lg"
-                min="1"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+              <div>
+                <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Due Date</label>
+                <input
+                  type="date"
+                  value={createForm.dueDate}
+                  onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                  onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
+                  className="w-full cursor-pointer"
+                />
+              </div>
+              {createForm.assignmentType === 'mcq' && (
+                <>
+                  <div>
+                    <label className="flex items-center">
+                      Publish Results At
+                      <FormFieldHelp content="Choose when students will be able to see their final MCQ results and correct answers." />
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={createForm.publishResultsAt}
+                      onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                      onChange={(e) => setCreateForm({ ...createForm, publishResultsAt: e.target.value })}
+                      className="w-full cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 mb-1.5 block">Max Score</label>
+                    <input
+                      type="number"
+                      value={createForm.maxScore}
+                      onChange={(e) => setCreateForm({ ...createForm, maxScore: parseInt(e.target.value) })}
+                      className="w-full"
+                      min="1"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="md:col-span-2 space-y-2 pt-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-semibold text-slate-400 tracking-wide">Visibility Control</span>
+                  <FormFieldHelp content="If off, students will not see this assignment on their dashboard." />
+                </div>
+                <label 
+                  onClick={() => setCreateForm({ ...createForm, published: !createForm.published })}
+                  className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer group ${createForm.published ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
+                >
+                  <div>
+                    <span className={`text-sm font-semibold transition-colors ${createForm.published ? 'text-primary' : 'text-slate-600'}`}>Published</span>
+                    <p className="text-xs text-slate-400 font-medium">Assignment will be visible to students immediately</p>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full transition-colors relative ${createForm.published ? 'bg-primary' : 'bg-slate-300'}`}>
+                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${createForm.published ? 'translate-x-4' : ''}`} />
+                  </div>
+                </label>
+              </div>
             </div>
-          )}
-          <div className="flex space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              Create Assignment
-            </button>
-          </div>
-        </form>
+
+            <div className="flex gap-4 mt-8 pt-4 border-t dark:border-slate-800">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-premium flex-1"
+              >
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editAssignment ? 'Update Assignment' : 'Create Assignment')}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      <AIAssistantPanel
+        isOpen={showAIPanel}
+        onClose={() => setShowAIPanel(false)}
+        allowedModes={['assignment', 'powerpoint']}
+        defaultMode="assignment"
+        prefill={{
+          topicName: createForm.title || '',
+          teacherHint: createForm.description || '',
+          assignmentType: createForm.assignmentType || 'theory',
+          questionCount: createForm.questions.length || 5,
+          className: availableTopics?.[0]?.classroomId?.name || '',
+          subject: availableTopics?.find(t => t._id === createForm.topicId)?.name || ''
+        }}
+        onApplyAssignment={(data) => {
+          const newType = data.questions?.[0]?.options ? 'mcq' : 'theory';
+          setCreateForm(prev => ({
+            ...prev,
+            title: data.title || prev.title,
+            description: data.description || prev.description,
+            assignmentType: newType,
+            questions: (data.questions || []).map(q => newType === 'mcq'
+              ? { questionText: q.questionText, options: q.options || ['', ''], correctOption: q.correctOption || '', markingPreference: 'manual', maxScore: 0 }
+              : { questionText: q.questionText, markingPreference: q.markingPreference || 'manual', maxScore: q.maxScore || 10 }
+            ),
+          }));
+          setShowAIPanel(false);
+        }}
+      />
     </div>
   );
 };

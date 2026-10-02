@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  profilePicture: {
+    type: String,
+    default: null
+  },
   password: {
     type: String,
     required: true,
@@ -29,6 +33,7 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Classroom',
   }],
+  personalTeacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // Referred personal tutor linked to a student
   otp: String, // Field for storing OTP (email verification)
   otpExpires: Date, // Field for OTP expiry time (email verification)
   passwordResetOTP: String, // Field for storing password reset OTP
@@ -36,6 +41,11 @@ const userSchema = new mongoose.Schema({
   isVerified: {
     type: Boolean,
     default: false, // Default to false, user needs to verify email
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
   // New fields for subscriptions
   subscriptionPlan: {
@@ -60,10 +70,109 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  defaultPricingType: {
+    type: String,
+    enum: ['per_lecture', 'per_topic', 'weekly', 'monthly', 'free'],
+    default: 'monthly',
+  },
+  bankDetails: {
+    bankName: String,
+    bankCode: String,
+    accountNumber: String,
+    accountName: String,
+    paystackRecipientCode: String,
+  },
+  payoutPreference: {
+    frequency: {
+      type: String,
+      enum: ['daily', 'weekly', 'monthly'],
+      default: 'weekly',
+    },
+    lastPayoutDate: {
+      type: Date,
+      default: null,
+    },
+  },
+  // Field for storing Google OAuth refresh token for Meet integration
+  googleOAuthRefreshToken: {
+    type: String,
+    default: null,
+  },
+  // Fields for invite-based user creation
+  inviteToken: {
+    type: String,
+    default: null,
+  },
+  inviteTokenExpires: {
+    type: Date,
+    default: null,
+  },
+  isPendingInvite: {
+    type: Boolean,
+    default: false,
+  },
+  loginCount: {
+    type: Number,
+    default: 0,
+  },
+  lastActiveAt: {
+    type: Date,
+    default: null,
+    index: true,
+  },
+  // 2FA fields
+  twoFAEnabled: {
+    type: Boolean,
+    default: function() {
+      // Root admin always has 2FA enabled
+      return this.role === 'root_admin';
+    },
+  },
+  twoFASecret: {
+    type: String,
+    default: null,
+  },
+  twoFAOTP: {
+    type: String,
+    default: null,
+  },
+  twoFAOTPExpires: {
+    type: Date,
+    default: null,
+  },
+  twoFABackupCodes: [{
+    code: String,
+    used: {
+      type: Boolean,
+      default: false,
+    },
+  }],
+  tempLoginToken: {
+    type: String,
+    default: null,
+  },
+  tempLoginTokenExpires: {
+    type: Date,
+    default: null,
+  },
+  expoPushToken: {
+    type: String,
+    default: null,
+  },
+  aiTutorAccess: {
+    type: String,
+    enum: ['inherit', 'enabled', 'disabled'],
+    default: 'inherit',
+  },
+  aiTutorUsage: {
+    usageDate: { type: String, default: null }, // YYYY-MM-DD key for the daily cap
+    count: { type: Number, default: 0 },
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  // Skip password hashing if user is pending invite (no password set yet)
+  if (!this.isModified('password') || this.isPendingInvite) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);

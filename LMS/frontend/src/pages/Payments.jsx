@@ -1,28 +1,40 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { DollarSign, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { formatAmount } from '../utils/currency';
+import { formatDisplayDate } from '../utils/timezone';
 
 const Payments = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const classroomId = searchParams.get('classroomId');
+  const topicId = searchParams.get('topicId');
+  const paramAmount = searchParams.get('amount') ? parseFloat(searchParams.get('amount')) : 0;
+  const type = searchParams.get('type') || 'class_enrollment';
+
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(!!classroomId);
+  const [classroomForPayment, setClassroomForPayment] = useState(null);
+  const [topicForPayment, setTopicForPayment] = useState(null);
+  const [isPaying, setIsPaying] = useState(false);
+  const [payError, setPayError] = useState(null);
 
   useEffect(() => {
     fetchPayments();
     if (classroomId) {
       fetchClassroomForPayment();
+      if (topicId) fetchTopicForPayment();
     }
     // Listen for school selection changes
     const handler = () => fetchPayments();
     window.addEventListener('schoolSelectionChanged', handler);
     return () => window.removeEventListener('schoolSelectionChanged', handler);
-  }, [classroomId]);
+  }, [classroomId, topicId]);
 
   const fetchPayments = async () => {
     try {
@@ -38,105 +50,307 @@ const Payments = () => {
   const fetchClassroomForPayment = async () => {
     try {
       const response = await api.get(`/classrooms/${classroomId}`);
-      // Handle payment flow here
+      setClassroomForPayment(response.data.classroom || null);
+      if (response.data.classroom) setShowPaymentModal(true);
     } catch (error) {
       console.error('Error fetching classroom:', error);
     }
   };
 
-  const handlePayment = async (classroomId, amount) => {
+  const fetchTopicForPayment = async () => {
     try {
-      // Create payment intent
+      // We don't have a direct "get topic" endpoint that is public if it's not nested?
+      // But we can assume we can get it from topics list or assume params are correct.
+      // Actually /topics/:id exists.
+      // But let's just use a simple fetch if possible.
+      // Or just trust the query params if endpoint fails.
+      // Wait, there is no public /topics/:id probably? backend routes usually imply auth.
+      // user is authenticated here.
+      // Let's try to get it from classroom topics if we have classroom.
+      // Or just simpler:
+      setTopicForPayment({ _id: topicId, name: 'Topic Access', price: paramAmount }); // Stub initially
+
+      // Try to fetch real name
+      try {
+        // If we have class data we might find it there
+        // But classrooms/:id fetches topics too
+      } catch (e) { }
+    } catch (error) {
+      console.error('Error fetching topic:', error);
+    }
+  };
+
+  const handlePayment = async (classroomId, amount) => {
+    setPayError(null);
+    setIsPaying(true);
+    try {
+      const usePaystack = !!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || false;
+      if (usePaystack) {
+        // Request server to initialize Paystack transaction
+        const returnUrl = `${window.location.origin}/payments?classroomId=${classroomId}&topicId=${topicId || ''}`;
+        const resp = await api.post('/payments/paystack/initiate', { amount, classroomId, topicId, type, returnUrl });
+        if (resp.data && resp.data.reference) {
+          // load Paystack inline script then open inline
+          await loadPaystackScript();
+          const pubKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+          const payAmount = (import.meta.env.VITE_PAYSTACK_CURRENCY || 'NGN').toLowerCase() === 'ngn' ? Math.round(amount * 100) : Math.round(amount * 100);
+          try {
+            // ensure callback is a plain function (Paystack expects a function reference)
+            function handleCallback(response) {
+              // call async verify but keep this function synchronous for Paystack
+              (async () => {
+                try {
+                  await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(response.reference)}`);
+                  toast.success('Payment successful! You are now enrolled.');
+                  setShowPaymentModal(false);
+                  fetchPayments();
+                  window.location.href = `/classrooms/${classroomId}`;
+                } catch (err) {
+                  setPayError(err.response?.data?.message || err.message || 'Verification failed');
+                } finally {
+                  setIsPaying(false);
+                }
+              })();
+            }
+
+            function handleOnClose() {
+              setIsPaying(false);
+              setPayError('Payment window closed');
+            }
+
+            if (typeof handleCallback !== 'function') throw new Error('Invalid callback');
+
+            if (!user || !user.email) {
+              throw new Error('User email not available. Please log in before paying.');
+            }
+
+            const handler = window.PaystackPop.setup({
+              key: pubKey,
+              email: user.email,
+              amount: payAmount,
+              ref: resp.data.reference,
+              onClose: handleOnClose,
+              callback: handleCallback
+            });
+
+            if (handler && typeof handler.openIframe === 'function') {
+              handler.openIframe();
+            } else if (handler && typeof handler.open === 'function') {
+              // older/newer API variation
+              handler.open();
+            } else {
+              throw new Error('Paystack handler not available');
+            }
+          } catch (setupErr) {
+            console.error('Paystack setup error', setupErr);
+            setPayError(setupErr.message || 'Failed to launch Paystack payment window');
+            setIsPaying(false);
+          }
+          return;
+        }
+        throw new Error('Failed to initialize Paystack payment');
+      }
+
+      // Fallback: existing Stripe flow
       const intentRes = await api.post('/payments/create-intent', {
-        type: 'class_enrollment',
+        type: type,
         classroomId,
+        topicId: topicId || null,
         amount
       });
-
-      // In a real app, you would integrate Stripe Elements here
-      // For demo purposes, we'll simulate payment
       const confirmRes = await api.post('/payments/confirm', {
         paymentIntentId: intentRes.data.paymentIntentId,
-        type: 'class_enrollment',
+        type: type,
         classroomId,
+        topicId: topicId || null,
         amount
       });
 
-      alert('Payment successful! You are now enrolled.');
+      toast.success('Payment successful! You are now enrolled.');
       setShowPaymentModal(false);
       fetchPayments();
       window.location.href = `/classrooms/${classroomId}`;
     } catch (error) {
-      alert(error.response?.data?.message || 'Payment failed');
+      setPayError(error.response?.data?.message || error.message || 'Payment failed');
+      setIsPaying(false);
     }
   };
+
+  const loadPaystackScript = () => {
+    return new Promise((resolve, reject) => {
+      if (window.PaystackPop) return resolve();
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Paystack script'));
+      document.body.appendChild(script);
+    });
+  };
+
+  // After returning from Paystack, Paystack may attach `reference` in the query string.
+  // If present, verify the transaction with the backend.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference');
+    const cbClassroomId = params.get('classroomId') || classroomId;
+    if (reference) {
+      (async () => {
+        try {
+          const verifyRes = await api.get(`/payments/paystack/verify?reference=${encodeURIComponent(reference)}`);
+          toast.success('Payment successful! You are now enrolled.');
+          // clear reference from URL
+          params.delete('reference');
+          window.history.replaceState({}, document.title, window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+          fetchPayments();
+          if (cbClassroomId) window.location.href = `/classrooms/${cbClassroomId}`;
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Payment verification failed');
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-emerald-600" />;
       case 'failed':
         return <XCircle className="w-4 h-4 text-red-600" />;
       case 'pending':
-        return <Clock className="w-4 h-4 text-yellow-600" />;
+        return <Clock className="w-4 h-4 text-amber-600" />;
       default:
         return null;
     }
   };
 
   if (loading) {
-    return <Layout><div className="text-center py-8">Loading...</div></Layout>;
+    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-xs font-semibold tracking-wide text-muted-foreground opacity-50">Loading...</p></div></Layout>;
   }
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Payment History</h2>
+      {/* Payment modal shown when navigating to payments?classroomId=... */}
+      {showPaymentModal && classroomForPayment && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80  p-4">
+          <div className="bg-card w-full max-w-md rounded-xl shadow-none border border-border overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-8">
+                <div className="w-16 h-16 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary mb-6 shadow-none ">
+                  <DollarSign className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
+                  {topicId ? 'Topic Access' : 'Enrollment'}
+                </h3>
+                <p className="text-muted-foreground/80 mb-6 text-sm">
+                  {topicId
+                    ? <span>You're about to purchase access to the topic in <strong className="text-foreground">{classroomForPayment.name}</strong>.</span>
+                    : <span>You're about to enroll in <strong className="text-foreground font-semibold">{classroomForPayment.name}</strong>.</span>
+                  }
+                </p>
+                <div className="bg-muted rounded-xl p-6 mb-8 border border-border/50">
+                  <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-2 opacity-80">Amount Due</div>
+                  <div className="text-4xl font-semibold text-foreground flex items-baseline space-x-2">
+                    <span>{formatAmount(topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0), classroomForPayment.pricing?.currency || 'NGN')}</span>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <button className="flex-1 btn-secondary py-3 text-xs font-semibold tracking-wide" onClick={() => { setShowPaymentModal(false); setClassroomForPayment(null); window.history.replaceState({}, document.title, '/payments'); }}>Cancel</button>
+                  <button
+                    disabled={isPaying}
+                    className="flex-1 btn-premium py-3 text-xs font-semibold tracking-wide"
+                    onClick={() => handlePayment(classroomForPayment._id, topicId ? paramAmount : (classroomForPayment.pricing?.amount || 0))}
+                  >
+                    {isPaying ? 'Processing...' : 'Pay Now'}
+                  </button>
+                </div>
+                {payError && <div className="mt-6 p-4 bg-rose-500/10 text-rose-500 rounded-xl text-xs font-semibold tracking-wider border border-rose-500/20">{payError}</div>}
+             </div>
+          </div>
+        </div>
+      )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class/Topic</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {payments.length > 0 ? (
-                payments.map((payment) => (
-                  <tr key={payment._id}>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(payment.paymentDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {payment.type.replace('_', ' ')}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                      {payment.classroomId?.name || payment.topicId?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      ${payment.amount}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-                        {getStatusIcon(payment.status)}
-                        <span className="ml-1">{payment.status}</span>
-                      </span>
+      <div className="space-y-6 animate-slide-up mt-8">
+        <div className="px-2">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">Payment <span className="text-primary not-italic hidden xs:inline opacity-80">History</span></h2>
+          <p className="text-xs font-semibold text-muted-foreground tracking-wide mt-1 opacity-60">Verified Transaction Activity</p>
+        </div>
+
+        <div className="bg-card  rounded-xl border border-border/50 shadow-none overflow-hidden mt-6 relative group">
+          <div className="absolute top-0 left-0 w-full h-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
+          <div className="overflow-x-auto relative z-10">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead className="bg-muted text-muted-foreground text-xs font-semibold tracking-wide border-b border-border/50">
+                <tr>
+                  <th className="px-8 py-6 w-48">Date / Time</th>
+                  <th className="px-8 py-6">Payer</th>
+                  <th className="px-8 py-6">Type</th>
+                  <th className="px-8 py-6">Class/Topic</th>
+                  <th className="px-8 py-6">Payment Ref</th>
+                  <th className="px-8 py-6 text-right">{user?.role === 'student' ? 'Amount' : 'Total Paid'}</th>
+                  {user?.role !== 'student' && (
+                    <th className="px-8 py-6 text-right">Net Payout</th>
+                  )}
+                  <th className="px-8 py-6 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {payments.length > 0 ? (
+                  payments.map((payment) => (
+                    <tr key={payment._id} className="hover:bg-primary/5 transition-colors group">
+                      <td className="px-8 py-6 text-muted-foreground/80 font-semibold whitespace-nowrap border-r border-border/30">
+                        {formatDisplayDate(payment.paymentDate)}
+                      </td>
+                      <td className="px-8 py-6 font-semibold text-foreground whitespace-nowrap tracking-tight">
+                        {payment.userId?.name || payment.userId?.email || 'Unknown'}
+                      </td>
+                      <td className="px-8 py-6 text-muted-foreground whitespace-nowrap text-xs font-semibold tracking-wide">
+                        {payment.type.replace('_', ' ')}
+                      </td>
+                      <td className="px-8 py-6 font-semibold text-foreground whitespace-nowrap">
+                        {payment.classroomId?.name || payment.topicId?.name || payment.planId?.name || 'N/A'}
+                      </td>
+                      <td className="px-8 py-6 text-xs font-semibold tracking-wide text-muted-foreground/60 whitespace-nowrap">
+                        {payment.paystackReference || payment.stripePaymentId || 'N/A'}
+                      </td>
+                      <td className="px-8 py-6 font-semibold text-foreground text-right whitespace-nowrap text-lg">
+                        {formatAmount(payment.amount, payment.currency || 'NGN')}
+                      </td>
+                      {user?.role !== 'student' && (
+                        <td className="px-8 py-6 font-semibold text-primary text-right whitespace-nowrap text-lg">
+                          {payment.payoutAmount ? formatAmount(payment.payoutAmount, payment.currency || 'NGN') : '---'}
+                        </td>
+                      )}
+                      <td className="px-8 py-6 whitespace-nowrap text-center">
+                        {(() => {
+                          let displayStatus = payment.status;
+                          if (payment.type === 'class_enrollment' && payment.payoutStatus) {
+                            displayStatus = payment.payoutStatus === 'paid' ? 'completed' : 'pending';
+                          }
+                          return (
+                            <span className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold tracking-wide shadow-none transition-all ${displayStatus === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-none' :
+                              displayStatus === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-none' :
+                                displayStatus === 'failed' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-none' :
+                                  'bg-muted text-muted-foreground border border-border/50'
+                              }`}>
+                              {getStatusIcon(displayStatus)}
+                              <span className="ml-2">{displayStatus}</span>
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={user?.role !== 'student' ? "8" : "7"} className="px-8 py-16 text-center text-muted-foreground/40 font-semibold tracking-wide text-xs">
+                      No payment history yet.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                    No payment history yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </Layout>

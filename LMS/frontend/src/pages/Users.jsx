@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import Select from 'react-select';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import {
+  Plus, Edit, Trash2, Search, Loader2, Upload, Download, X,
+  CheckCircle, XCircle, Eye, EyeOff, UserPlus, Users as UsersIcon,
+  FileText, ArrowRight, AlertCircle, Send
+} from 'lucide-react';
 import Layout from '../components/Layout';
+import ConfirmationModal from '../components/ConfirmationModal';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { validateEmail, validatePassword, passwordRequirements } from '../utils/validation';
 
 const Users = () => {
   const { user } = useAuth();
@@ -24,22 +31,43 @@ const Users = () => {
       api.get('/schools?adminId=' + user._id)
         .then(res => setSchools(res.data.schools || []))
         .catch(() => setSchools([]));
+    } else if (user?.role === 'root_admin') {
+      api.get('/schools')
+        .then(res => setSchools(res.data.schools || []))
+        .catch(() => setSchools([]));
     }
   }, [user]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResults, setUploadResults] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     role: 'student'
   });
+  const [uploadStep, setUploadStep] = useState(1); // 1: Upload, 2: Validate, 3: Results
+  const [parsedData, setParsedData] = useState([]);
+  const [validationErrors, setValidationErrors] = useState([]);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
     // Listen for school selection changes from SchoolSwitcher
     const handler = (e) => {
-      // Optionally update selectedSchools if needed
+      try {
+        const newSchools = JSON.parse(localStorage.getItem('selectedSchools')) || [];
+        setSelectedSchools(newSchools);
+      } catch (err) {
+        console.error('Error parsing school selection:', err);
+      }
       fetchUsers();
     };
     window.addEventListener('schoolSelectionChanged', handler);
@@ -51,7 +79,7 @@ const Users = () => {
       setFilteredUsers(users);
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = users.filter(u => 
+      const filtered = users.filter(u =>
         u.name?.toLowerCase().includes(query) ||
         u.email?.toLowerCase().includes(query) ||
         u.role?.toLowerCase().includes(query)
@@ -61,16 +89,24 @@ const Users = () => {
   }, [searchQuery, users]);
 
   const fetchUsers = async () => {
+    if (users.length === 0) setLoading(true);
     try {
       // Teachers see only their enrolled students
       if (user?.role === 'teacher' || user?.role === 'personal_teacher') {
         const response = await api.get('/users/my-students');
-        setUsers(response.data.students);
-        setFilteredUsers(response.data.students);
+        console.log('Fetched my-students:', response.data);
+        const students = response.data.students || [];
+        setUsers(students);
+        setFilteredUsers(students);
       } else {
         // Root admin and school admin see users based on their permissions
         const response = await api.get('/users');
-        let filtered = response.data.users;
+        console.log('Fetched users:', response.data);
+        let filtered = response.data.users || [];
+        if (!Array.isArray(filtered)) {
+          console.error('Users data is not an array:', filtered);
+          filtered = [];
+        }
         if (user?.role === 'school_admin' && selectedSchools.length > 0) {
           filtered = filtered.filter(u => {
             if (Array.isArray(u.schoolId)) {
@@ -79,141 +115,638 @@ const Users = () => {
             return selectedSchools.includes(u.schoolId?._id || u.schoolId);
           });
         }
+        console.log('Setting users with count:', filtered.length);
         setUsers(filtered);
         setFilteredUsers(filtered);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
+  const handleAITutorAccessChange = async (userId, value) => {
     try {
-      const submitData = { ...formData };
-      if (user?.role === 'school_admin') {
-        // If 'All' is selected, assign all school IDs
-        if (submitData.schoolIds && submitData.schoolIds.includes('ALL')) {
-          submitData.schoolIds = schools.map(s => s._id);
-        }
-      }
-      await api.post('/users', submitData);
-      setShowCreateModal(false);
-      setFormData({ name: '', email: '', password: '', role: 'student' });
-      fetchUsers();
-    } catch (error) {
-      alert(error.response?.data?.message || 'Error creating user');
+      await api.put(`/users/${userId}`, { aiTutorAccess: value });
+      toast.success('AI Tutor access updated');
+      setUsers(prev => prev.map(u => u._id === userId ? { ...u, aiTutorAccess: value } : u));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update AI Tutor access');
     }
   };
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-    
+  const handleCreate = async (e) => {
+    e.preventDefault();
+
+    if (!validateEmail(formData.email)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+
+    if (!validatePassword(formData.password)) {
+      toast.error(passwordRequirements);
+      return;
+    }
+
     try {
-      await api.delete(`/users/${userId}`);
+      const submitData = { ...formData };
+      if (['school_admin', 'root_admin'].includes(user?.role)) {
+        let schoolIdToSend = [];
+
+        // If 'All' is selected, assign all school IDs
+        if (submitData.schoolIds && submitData.schoolIds.length > 0) {
+          // Check if all schools are selected (equivalent to 'ALL')
+          const allSelected = submitData.schoolIds.length === schools.length &&
+            schools.every(s => submitData.schoolIds.includes(s._id));
+
+          if (allSelected || submitData.schoolIds.includes('ALL')) {
+            // Send all school IDs as an array
+            schoolIdToSend = schools.map(s => s._id);
+          } else {
+            // Send selected school IDs as array (backend handles arrays)
+            schoolIdToSend = submitData.schoolIds.filter(id => id !== 'ALL');
+          }
+        } else if (user?.role === 'school_admin') {
+          // If no school selected in form, use the selected school from dropdown
+          if (selectedSchools.length > 0) {
+            schoolIdToSend = selectedSchools;
+          } else {
+            setIsCreating(false);
+            toast.error('Please select a school from the header dropdown first');
+            return;
+          }
+        }
+
+        // Send as schoolId (singular) to match backend expectation
+        submitData.schoolId = schoolIdToSend;
+        delete submitData.schoolIds;
+      } else {
+        delete submitData.schoolIds;
+      }
+      await api.post('/users', submitData, { skipLoader: true });
+      toast.success('User created successfully');
+      setShowCreateModal(false);
+      setFormData({ name: '', email: '', password: '', role: 'student', schoolIds: [] });
       fetchUsers();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error deleting user');
+      toast.error(error.response?.data?.message || 'Error creating user');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleBulkUpload = async (e) => {
+    e.preventDefault();
+    if (!csvFile) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadResults(null);
+    setParsedData([]);
+    setValidationErrors([]);
+
+    try {
+      // Parse CSV file
+      const text = await csvFile.text();
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+      const data = [];
+      const errors = [];
+      const emailSet = new Set();
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+
+        const values = lines[i].split(',').map(v => v.trim());
+        const row = {};
+
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+
+        // Basic validation
+        const rowErrors = [];
+
+        if (!row.name) {
+          rowErrors.push('Name is required');
+        }
+
+        if (!row.email) {
+          rowErrors.push('Email is required');
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
+          rowErrors.push('Invalid email format');
+        } else if (emailSet.has(row.email.toLowerCase())) {
+          rowErrors.push('Duplicate email in CSV');
+        } else {
+          emailSet.add(row.email.toLowerCase());
+        }
+
+        // Check if user already exists
+        try {
+          const existingUsers = users.filter(u => u.email.toLowerCase() === row.email.toLowerCase());
+          if (existingUsers.length > 0) {
+            rowErrors.push('User already exists in system');
+          }
+        } catch (err) {
+          // Continue if check fails
+        }
+
+        // Validate role
+        const validRoles = ['student', 'teacher', 'personal_teacher'];
+        if (user?.role === 'root_admin') {
+          validRoles.push('school_admin');
+        }
+
+        if (row.role && !validRoles.includes(row.role)) {
+          rowErrors.push(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+        }
+
+        // Initialize schools as array
+        if (row.school) {
+          row.schools = row.school.split(',').map(s => s.trim()).filter(s => s);
+        } else {
+          row.schools = [];
+        }
+
+        // Validate school - students must have at least one school
+        if (row.role === 'student' || !row.role) {
+          const hasSchool = row.schools && row.schools.length > 0;
+          if (!hasSchool) {
+            rowErrors.push('Students must belong to at least one school');
+          }
+        }
+
+        // Validate schools if provided
+        if (row.schools && row.schools.length > 0) {
+          const invalidSchools = [];
+          const validSchoolIds = [];
+          const validSchoolNames = [];
+
+          row.schools.forEach(schoolName => {
+            if (!schoolName) return;
+
+            if (schoolName === 'ALL') {
+              validSchoolIds.push(...schools.map(s => s._id));
+              validSchoolNames.push(...schools.map(s => s.name));
+            } else {
+              const schoolExists = schools.find(s =>
+                s.name.toLowerCase() === schoolName.toLowerCase() ||
+                s._id === schoolName
+              );
+              if (!schoolExists) {
+                invalidSchools.push(schoolName);
+              } else {
+                validSchoolIds.push(schoolExists._id);
+                validSchoolNames.push(schoolExists.name);
+              }
+            }
+          });
+
+          if (invalidSchools.length > 0) {
+            rowErrors.push(`School(s) not found: ${invalidSchools.join(', ')}`);
+          }
+
+          row.schoolIds = [...new Set(validSchoolIds)];
+          row.schoolNames = [...new Set(validSchoolNames)];
+        }
+
+        data.push({
+          ...row,
+          rowNumber: i + 1,
+          errors: rowErrors,
+          valid: rowErrors.length === 0
+        });
+
+        if (rowErrors.length > 0) {
+          errors.push({
+            row: i + 1,
+            email: row.email || 'N/A',
+            errors: rowErrors
+          });
+        }
+      }
+
+      setParsedData(data);
+      setValidationErrors(errors);
+      setUploadStep(2); // Move to validation step
+
+    } catch (error) {
+      toast.error('Error parsing CSV: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const confirmBulkUpload = async () => {
+    setIsUploading(true);
+    setUploadResults(null);
+
+    try {
+      const validUsers = parsedData.filter(u => u.valid);
+
+      if (validUsers.length === 0) {
+        toast.error('No valid users to upload');
+        setIsUploading(false);
+        return;
+      }
+
+      const formDataToSend = new FormData();
+
+      // Create a new CSV with only valid users, including school IDs
+      const csvContent = 'name,email,role,school,schoolIds\n' +
+        validUsers.map(u => {
+          const schoolNames = u.schools ? u.schools.join(';') : '';
+          const schoolIds = u.schoolIds ? u.schoolIds.join(';') : '';
+          return `${u.name},${u.email},${u.role || 'student'},${schoolNames},${schoolIds}`;
+        }).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      formDataToSend.append('csvFile', blob, 'validated_users.csv');
+      formDataToSend.append('role', 'student'); // Default, will be overridden by CSV
+
+      // For school admin, send their selected schools as default
+      if (user?.role === 'school_admin' && selectedSchools.length > 0) {
+        formDataToSend.append('schoolId', JSON.stringify(selectedSchools));
+      }
+
+      const response = await api.post('/users/bulk-invite', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        skipLoader: true
+      });
+
+      setUploadResults(response.data);
+      setUploadStep(3); // Move to results step
+      toast.success(`Successfully processed ${response.data.successful} users`);
+
+      if (response.data.failed > 0) {
+        toast.error(`${response.data.failed} users failed to process`);
+      }
+
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error uploading CSV');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const csvContent = `name,email,role,school
+John Doe,john@example.com,student,${schools[0]?.name || 'School Name'}
+Jane Smith,jane@example.com,teacher,${schools[0]?.name || 'School Name'}
+Bob Johnson,bob@example.com,student,`;
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_users.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleFieldEdit = (rowIndex, field, value) => {
+    const updatedData = [...parsedData];
+
+    // Handle schools field specially for multi-select
+    if (field === 'schools') {
+      updatedData[rowIndex].schools = value; // value is already an array
+    } else {
+      updatedData[rowIndex][field] = value;
+    }
+
+    // Re-validate the row
+    const row = updatedData[rowIndex];
+    const rowErrors = [];
+    const emailSet = new Set();
+
+    // Collect all other emails for duplicate check
+    parsedData.forEach((r, idx) => {
+      if (idx !== rowIndex && r.email) {
+        emailSet.add(r.email.toLowerCase());
+      }
+    });
+
+    // Validate name
+    if (!row.name || !row.name.trim()) {
+      rowErrors.push('Name is required');
+    }
+
+    // Validate email
+    if (!row.email || !row.email.trim()) {
+      rowErrors.push('Email is required');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
+      rowErrors.push('Invalid email format');
+    } else if (emailSet.has(row.email.toLowerCase())) {
+      rowErrors.push('Duplicate email in CSV');
+    }
+
+    // Check if user already exists
+    const existingUsers = users.filter(u => u.email.toLowerCase() === row.email.toLowerCase());
+    if (existingUsers.length > 0) {
+      rowErrors.push('User already exists in system');
+    }
+
+    // Validate role
+    const validRoles = ['student', 'teacher', 'personal_teacher'];
+    if (user?.role === 'root_admin') {
+      validRoles.push('school_admin');
+    }
+
+    if (row.role && !validRoles.includes(row.role)) {
+      rowErrors.push(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+
+    // Validate school - students must have at least one school
+    if (row.role === 'student') {
+      const hasSchool = row.schools && row.schools.length > 0 && row.schools.some(s => s && s !== '');
+      if (!hasSchool) {
+        rowErrors.push('Students must belong to at least one school');
+      }
+    }
+
+    // Validate schools if provided
+    if (row.schools && row.schools.length > 0) {
+      const invalidSchools = [];
+      const validSchoolIds = [];
+      const validSchoolNames = [];
+
+      row.schools.forEach(schoolName => {
+        if (!schoolName || schoolName === '') return;
+
+        if (schoolName === 'ALL') {
+          // Select all schools
+          validSchoolIds.push(...schools.map(s => s._id));
+          validSchoolNames.push(...schools.map(s => s.name));
+        } else {
+          const schoolExists = schools.find(s =>
+            s.name.toLowerCase() === schoolName.toLowerCase() ||
+            s._id === schoolName
+          );
+          if (!schoolExists) {
+            invalidSchools.push(schoolName);
+          } else {
+            validSchoolIds.push(schoolExists._id);
+            validSchoolNames.push(schoolExists.name);
+          }
+        }
+      });
+
+      if (invalidSchools.length > 0) {
+        rowErrors.push(`School(s) not found: ${invalidSchools.join(', ')}`);
+      }
+
+      row.schoolIds = [...new Set(validSchoolIds)]; // Remove duplicates
+      row.schoolNames = [...new Set(validSchoolNames)];
+    } else {
+      // Clear school data if empty
+      row.schoolIds = [];
+      row.schoolNames = [];
+    }
+
+    updatedData[rowIndex].errors = rowErrors;
+    updatedData[rowIndex].valid = rowErrors.length === 0;
+
+    setParsedData(updatedData);
+
+    // Update validation errors list
+    const newErrors = updatedData
+      .filter(r => !r.valid)
+      .map(r => ({
+        row: r.rowNumber,
+        email: r.email || 'N/A',
+        errors: r.errors
+      }));
+
+    setValidationErrors(newErrors);
+  };
+
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleDelete = (userId) => {
+    setUserToDelete(userId);
+    setShowDeleteModal(true);
+  };
+
+  const exportUsersToCSV = () => {
+    if (filteredUsers.length === 0) {
+      toast.error('No users to export');
+      return;
+    }
+
+    const headers = ['Name', 'Email', 'Role', 'School', 'Status'];
+    const csvRows = filteredUsers.map(u => {
+      let schoolName = '';
+      if (Array.isArray(u.schoolId)) {
+        schoolName = u.schoolId.map(s => s?.name || (schools.find(sch => sch._id === s)?.name || s)).join('; ');
+      } else {
+        schoolName = u.schoolId?.name || schools.find(sch => sch._id === u.schoolId)?.name || u.schoolName || u.schoolId || '';
+      }
+
+      return [
+        u.name,
+        u.email,
+        u.role,
+        `"${schoolName}"`, // Quote school names to handle potential commas
+        u.isActive !== false ? 'Active' : 'Inactive'
+      ].join(',');
+    });
+
+    const csvString = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/users/${userToDelete}`);
+      toast.success('User deleted successfully');
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error deleting user');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const getRoleColor = (role) => {
     switch (role) {
       case 'root_admin':
-        return 'bg-red-100 text-red-800';
+        return 'bg-rose-500/10 text-rose-500 border border-rose-500/20';
       case 'school_admin':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
       case 'teacher':
       case 'personal_teacher':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary/10 text-primary border border-primary/50/20';
       default:
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20';
     }
   };
 
+  const [showModalPassword, setShowModalPassword] = useState(false);
+
   if (loading) {
-    return <Layout><div className="text-center py-8">Loading...</div></Layout>;
+    return <Layout><div className="flex flex-col items-center justify-center min-h-[400px] gap-4"><div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" /><p className="text-xs font-semibold tracking-wide text-muted-foreground opacity-50">Loading...</p></div></Layout>;
   }
 
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {user?.role === 'teacher' || user?.role === 'personal_teacher' 
-              ? 'My Students' 
-              : 'User Management'}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight italic">
+            {user?.role === 'teacher' || user?.role === 'personal_teacher'
+              ? 'Role'
+              : <>User <span className="text-primary not-italic">Directory</span></>}
           </h2>
-          {['root_admin', 'school_admin'].includes(user?.role) && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              onClick={exportUsersToCSV}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-muted text-muted-foreground border border-border rounded-xl hover:bg-muted/80 transition-all font-semibold text-xs tracking-wide shadow-none"
+              title="Export Users"
             >
-              <Plus className="w-4 h-4" />
-              <span>Create User</span>
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
             </button>
-          )}
+            {['root_admin', 'school_admin'].includes(user?.role) && (
+              <>
+                <button
+                  onClick={() => {
+                    const currentSelected = JSON.parse(localStorage.getItem('selectedSchools') || '[]');
+                    if (user?.role === 'school_admin' && currentSelected.length > 0) {
+                      setFormData({
+                        name: '',
+                        email: '',
+                        password: '',
+                        role: 'student',
+                        schoolIds: currentSelected
+                      });
+                    } else {
+                      setFormData({ name: '', email: '', password: '', role: 'student', schoolIds: [] });
+                    }
+                    setShowModalPassword(false);
+                    setShowCreateModal(true);
+                  }}
+                  className="btn-premium px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-none shadow-none"
+                  title="Create User"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Member</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setCsvFile(null);
+                    setUploadResults(null);
+                    setShowBulkUploadModal(true);
+                  }}
+                  className="px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center space-x-2 hover:bg-primary/20 transition-all font-semibold text-xs tracking-wide"
+                  title="Bulk Upload"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span className="hidden sm:inline">Bulk Entry</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Search Bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <input
             type="text"
             placeholder="Search by name, email, or role..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-4 bg-muted border-2 border-border rounded-xl text-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-semibold italic tracking-tight placeholder:opacity-30 placeholder:italic"
           />
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-none overflow-hidden overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Member Name</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Email Identity</th>
                 {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Account Role</th>
                 )}
                 {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">School</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Associated Academy</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 {user?.role === 'root_admin' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">AI Tutor</th>
+                )}
+                <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Status</th>
+                {user?.role === 'root_admin' && (
+                  <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Actions</th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border/40">
               {filteredUsers.map((u) => (
-                <tr key={u._id}>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-800">{u.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
+                <tr key={u._id} className="hover:bg-primary/5 transition-colors group">
+                  <td className="px-6 py-4 text-sm font-semibold text-foreground/80">{u.name}</td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground font-medium">{u.email}</td>
                   {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getRoleColor(u.role)}`}>
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${getRoleColor(u.role)}`}>
                         {u.role.replace('_', ' ')}
                       </span>
                     </td>
                   )}
                   {user?.role !== 'teacher' && user?.role !== 'personal_teacher' && (
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td className="px-6 py-4 text-sm text-muted-foreground/60 font-medium italic">
                       {Array.isArray(u.schoolId)
-                        ? u.schoolId.map(s => s?.name || (schools.find(sch => sch._id === s)?.name || s)).join(', ')
-                        : (u.schoolId?.name || schools.find(sch => sch._id === u.schoolId)?.name || u.schoolName || u.schoolId || '')}
+                        ? u.schoolId.map(s => s?.name || s).join(', ')
+                        : (u.schoolId?.name || u.schoolName || u.schoolId || 'Individual')}
                     </td>
                   )}
-                  <td className="px-6 py-4 text-sm text-green-600">
-                    {u.isActive !== false ? 'Active' : 'Inactive'}
-                  </td>
                   {user?.role === 'root_admin' && (
+                    <td className="px-6 py-4">
+                      <select
+                        value={u.aiTutorAccess || 'inherit'}
+                        onChange={(e) => handleAITutorAccessChange(u._id, e.target.value)}
+                        className="px-2.5 py-1.5 bg-muted border border-border rounded-xl text-xs font-semibold text-foreground outline-none focus:border-primary transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="inherit">Inherit</option>
+                        <option value="enabled">Enabled</option>
+                        <option value="disabled">Disabled</option>
+                      </select>
+                    </td>
+                  )}
+                  <td className="px-6 py-4 text-sm">
+                    {u.isActive !== false ? (
+                        <span className="text-emerald-500 font-semibold text-xs tracking-wide flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-none" />
+                            Active
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground/40 font-semibold text-xs tracking-wide flex items-center gap-1.5">
+                             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20" />
+                            Inactive
+                        </span>
+                    )}
+                  </td>
+                  {(user?.role === 'root_admin' || (user?.role === 'school_admin' && u.createdBy === user._id)) && (
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleDelete(u._id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="p-2 text-muted-foreground/30 hover:text-red-500 transition-colors"
+                        title="Decommission Account"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -225,122 +758,502 @@ const Users = () => {
           </table>
         </div>
         {filteredUsers.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500">
+          <div className="text-center py-12 bg-card rounded-xl border border-border shadow-none">
+            <p className="text-muted-foreground">
               {searchQuery.trim() !== ''
                 ? 'No users found matching your search'
                 : user?.role === 'teacher' || user?.role === 'personal_teacher'
-                ? 'No students enrolled in your classes yet'
-                : 'No users found'}
+                  ? 'No students enrolled in your classes yet'
+                  : 'No users found'}
             </p>
           </div>
         )}
       </div>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 overflow-y-auto" style={{ maxHeight: '90vh' }}>
-            <h3 className="text-xl font-bold mb-4">Create User</h3>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                  minLength="6"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                >
-                  <option value="student">Student</option>
-                  <option value="teacher">Teacher</option>
-                  <option value="personal_teacher">Personal Teacher</option>
-                  {user?.role === 'root_admin' && (
-                    <>
-                      <option value="school_admin">School Admin</option>
-                      <option value="root_admin">Root Admin</option>
-                    </>
-                  )}
-                </select>
-              </div>
-              {user?.role === 'school_admin' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">School(s)</label>
-                  <Select
-                    isMulti
-                    options={[{ value: 'ALL', label: 'All' }, ...schools.map(s => ({ value: s._id, label: s.name }))]}
-                    value={formData.schoolIds && formData.schoolIds.length === schools.length
-                      ? [{ value: 'ALL', label: 'All' }]
-                      : (formData.schoolIds || []).map(id => {
-                          if (id === 'ALL') return { value: 'ALL', label: 'All' };
-                          const school = schools.find(s => s._id === id);
-                          return school ? { value: school._id, label: school.name } : null;
-                        }).filter(Boolean)
-                    }
-                    onChange={selected => {
-                      if (selected.some(opt => opt.value === 'ALL')) {
-                        setFormData({ ...formData, schoolIds: schools.map(s => s._id) });
-                      } else {
-                        setFormData({ ...formData, schoolIds: selected.map(opt => opt.value) });
-                      }
-                    }}
-                    classNamePrefix="react-select"
-                    placeholder="Select school(s)..."
-                  />
-                  <small className="text-gray-500">Select multiple schools or 'All'.</small>
+      {
+        showCreateModal && (
+          <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 md:p-8">
+              <div className="bg-card rounded-xl shadow-none max-w-md w-full flex flex-col overflow-hidden animate-slide-up border border-border">
+                {/* Modal Header */}
+                <div className="p-8 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                      <UserPlus className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-semibold text-foreground leading-tight">Create User</h3>
+                      <p className="text-sm text-muted-foreground font-medium mt-0.5">Add a new member to the system</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all active:scale-95"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
-              )}
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Create
-                </button>
+
+                {/* Modal Body */}
+                <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-card">
+                  <form onSubmit={(e) => { setIsCreating(true); handleCreate(e); }} className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide ml-1">Full Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Isaac Ovie Joseph"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-xl font-semibold text-foreground focus:bg-card focus:border-primary transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide ml-1">Email Address</label>
+                      <input
+                        type="email"
+                        placeholder="email@example.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-xl font-semibold text-foreground focus:bg-card focus:border-primary transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide ml-1">Initial Password</label>
+                      <div className="relative">
+                        <input
+                          type={showModalPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-xl font-semibold text-foreground focus:bg-card focus:border-primary transition-all pr-12"
+                          required
+                          minLength="6"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground"
+                          onClick={() => setShowModalPassword(!showModalPassword)}
+                        >
+                          {showModalPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground tracking-wide ml-1">Account Role</label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        className="w-full px-5 py-4 bg-muted border-2 border-muted rounded-xl font-semibold text-foreground focus:bg-card focus:border-primary transition-all appearance-none"
+                        required
+                      >
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="personal_teacher">Personal Teacher</option>
+                        {user?.role === 'root_admin' && (
+                          <>
+                            <option value="school_admin">School Admin</option>
+                            <option value="root_admin">Root Admin</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    {['school_admin', 'root_admin'].includes(user?.role) && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground tracking-wide ml-1">
+                          Assign to Schools {user?.role === 'root_admin' && '(Optional - leave blank for none)'}
+                        </label>
+                        <Select
+                          isMulti
+                          options={[
+                            { value: 'ALL', label: 'Assign to All Schools' },
+                            ...schools.map(s => ({ value: s._id, label: s.name }))
+                          ]}
+                          value={formData.schoolIds?.map(id => {
+                            const s = schools.find(sch => sch._id === id);
+                            return s ? { value: s._id, label: s.name } : null;
+                          }).filter(Boolean)}
+                          onChange={(selected) => {
+                            if (selected && selected.some(opt => opt.value === 'ALL')) {
+                               setFormData({ ...formData, schoolIds: schools.map(s => s._id) });
+                            } else {
+                               setFormData({ ...formData, schoolIds: selected ? selected.map(opt => opt.value) : [] });
+                            }
+                          }}
+                          className="modern-select"
+                          classNamePrefix="react-select"
+                          placeholder="Search schools..."
+                        />
+                        <p className="text-xs font-semibold text-muted-foreground/30 ml-1">
+                          {user?.role === 'school_admin' && selectedSchools.length > 0
+                            ? `Default: ${schools.find(s => s._id === selectedSchools[0])?.name || 'Current School'}.`
+                            : 'Select one or more schools to grant access.'}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateModal(false)}
+                        className="flex-1 px-6 py-4 rounded-xl border-2 border-border font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-all tracking-wide text-xs"
+                      >
+                        Discard
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isCreating}
+                        className="btn-premium flex-1 py-4 flex items-center justify-center shadow-none shadow-none"
+                      >
+                        {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
+
+      {/* Bulk Upload Modal */}
+      {
+        showBulkUploadModal && (
+          <div className="fixed inset-0 bg-background  z-[100] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 md:p-8">
+              <div className={`bg-card rounded-xl shadow-none ${uploadStep === 2 ? 'max-w-6xl' : 'max-w-2xl'} w-full flex flex-col overflow-hidden animate-slide-up max-h-[95vh] border border-border`}>
+                {/* Modal Header */}
+                <div className="p-8 border-b border-border flex justify-between items-center bg-card sticky top-0 z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                      <UsersIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-semibold text-foreground leading-tight">Bulk Invitation</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map(step => (
+                            <div key={step} className={`w-4 h-1 rounded-full transition-colors ${uploadStep >= step ? 'bg-primary' : 'bg-muted'}`} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowBulkUploadModal(false);
+                      setCsvFile(null);
+                      setUploadStep(1);
+                      setParsedData([]);
+                      setValidationErrors([]);
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all active:scale-95"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-muted">
+                  {/* Step 1: Upload CSV */}
+                  {uploadStep === 1 && (
+                    <div className="space-y-8">
+                      <div className="p-6 bg-primary/5 rounded-xl border border-primary/10 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                          <FileText className="w-24 h-24 text-primary" />
+                        </div>
+                        <p className="text-xs font-semibold text-primary/60 tracking-[0.2em] mb-4">Requirements</p>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-card p-4 rounded-xl shadow-none border border-border">
+                              <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">Required Headers</p>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="px-2 py-1 bg-foreground text-background text-xs font-semibold rounded-xl tracking-wider">name</span>
+                                <span className="px-2 py-1 bg-foreground text-background text-xs font-semibold rounded-xl tracking-wider">email</span>
+                              </div>
+                            </div>
+                            <div className="bg-card p-4 rounded-xl shadow-none border border-border">
+                              <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">Optional Headers</p>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-semibold rounded-xl tracking-wider">role</span>
+                                <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-semibold rounded-xl tracking-wider">school</span>
+                              </div>
+                            </div>
+                          </div>
+                          <ul className="space-y-2">
+                            {[
+                              'Each user receives a unique secure link',
+                              'Links expire automatically after 7 days',
+                              'Existing emails will be skipped'
+                            ].map((text, i) => (
+                              <li key={i} className="flex items-center gap-3 text-sm font-semibold text-foreground/80">
+                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                {text}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-border rounded-xl bg-muted hover:bg-card hover:border-primary transition-all group">
+                        <div className="w-20 h-20 bg-card rounded-xl shadow-none shadow-none flex items-center justify-center text-muted-foreground/30 group-hover:text-primary group-hover:scale-110 transition-all mb-6 border border-border">
+                          <Upload className="w-10 h-10" />
+                        </div>
+                        <h4 className="text-xl font-semibold text-foreground mb-2">Upload Data Source</h4>
+                        <p className="text-sm text-muted-foreground font-medium mb-8">Select a .csv file to begin importing users</p>
+
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={(e) => setCsvFile(e.target.files[0])}
+                            className="hidden"
+                          />
+                          <div className="px-8 py-3 bg-card border-2 border-border rounded-xl font-semibold text-foreground/60 hover:border-primary hover:text-primary transition-all shadow-none">
+                            {csvFile ? csvFile.name : 'Choose CSV File'}
+                          </div>
+                        </label>
+
+                        {csvFile && (
+                          <div className="mt-4 flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20 animate-in zoom-in">
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                            <span className="text-xs font-semibold text-emerald-500 tracking-wide">Ready to Process</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-4 pt-4">
+                        <button
+                          onClick={downloadSampleCSV}
+                          className="flex-1 px-6 py-4 rounded-xl border-2 border-border font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-all tracking-wide text-xs flex items-center justify-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Template
+                        </button>
+                        <button
+                          onClick={handleBulkUpload}
+                          disabled={isUploading || !csvFile}
+                          className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 shadow-none shadow-none disabled:grayscale"
+                        >
+                          {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                            <>
+                              <span>Verify Intelligence</span>
+                              <ArrowRight className="w-5 h-5" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Validation Preview */}
+                  {uploadStep === 2 && (
+                    <div className="space-y-8 animate-in slide-in-from-right duration-500">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-6 bg-muted rounded-xl border border-border text-center">
+                          <p className="text-xs font-semibold text-muted-foreground/40 tracking-[0.2em] mb-1">Total Records</p>
+                          <p className="text-3xl font-semibold text-foreground">{parsedData.length}</p>
+                        </div>
+                        <div className="p-6 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-center">
+                          <p className="text-xs font-semibold text-emerald-500 tracking-[0.2em] mb-1">Pass Check</p>
+                          <p className="text-3xl font-semibold text-emerald-500">{parsedData.filter(u => u.valid).length}</p>
+                        </div>
+                        <div className="p-6 bg-rose-500/10 rounded-xl border border-rose-500/20 text-center">
+                          <p className="text-xs font-semibold text-rose-500 tracking-[0.2em] mb-1">Failed Check</p>
+                          <p className="text-3xl font-semibold text-rose-500">{validationErrors.length}</p>
+                        </div>
+                      </div>
+
+                      {validationErrors.length > 0 && (
+                        <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20 flex items-center gap-3">
+                          <AlertCircle className="w-5 h-5 text-amber-500" />
+                          <p className="text-xs font-semibold text-amber-500 tracking-wide">Records with errors will be skipped automatically during the invite process.</p>
+                        </div>
+                      )}
+
+                      <div className="rounded-xl border border-border overflow-hidden shadow-none bg-card">
+                        <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted">
+                          <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 z-20 bg-muted border-b border-border">
+                              <tr>
+                                {['#', 'Member Name', 'Identity Address', 'Account Role', 'Academy Assignments', 'Verification'].map(h => (
+                                  <th key={h} className="px-6 py-4 text-xs font-semibold text-muted-foreground/60 tracking-[0.2em]">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {parsedData.map((row, idx) => (
+                                <tr key={idx} className={`group hover:bg-muted transition-colors ${!row.valid ? 'bg-rose-500/5' : ''}`}>
+                                  <td className="px-6 py-4 text-xs font-semibold text-muted-foreground/20">{row.rowNumber}</td>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="text"
+                                      value={row.name || ''}
+                                      onChange={(e) => handleFieldEdit(idx, 'name', e.target.value)}
+                                      className="w-full bg-transparent border-none p-0 text-sm font-semibold text-foreground focus:ring-0 placeholder:text-muted-foreground/20"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="email"
+                                      value={row.email || ''}
+                                      onChange={(e) => handleFieldEdit(idx, 'email', e.target.value)}
+                                      className="w-full bg-transparent border-none p-0 text-sm font-semibold text-foreground focus:ring-0 placeholder:text-muted-foreground/20"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <select
+                                      value={row.role || 'student'}
+                                      onChange={(e) => handleFieldEdit(idx, 'role', e.target.value)}
+                                      className="bg-transparent border-none p-0 text-sm font-semibold text-foreground focus:ring-0 appearance-none cursor-pointer"
+                                    >
+                                      <option value="student">Student</option>
+                                      <option value="teacher">Teacher</option>
+                                      <option value="personal_teacher">Personal Teacher</option>
+                                      {user?.role === 'root_admin' && <option value="school_admin">School Admin</option>}
+                                    </select>
+                                  </td>
+                                  <td className="px-6 py-4 min-w-[200px]">
+                                    <Select
+                                      isMulti
+                                      value={row.schools?.map(s => ({ value: s, label: s === 'ALL' ? 'All' : s })) || []}
+                                      onChange={(sel) => handleFieldEdit(idx, 'schools', sel ? sel.map(o => o.value) : [])}
+                                      options={[{ value: 'ALL', label: 'All' }, ...schools.map(s => ({ value: s.name, label: s.name }))]}
+                                      classNamePrefix="react-select"
+                                      className="modern-select"
+                                      styles={{
+                                        control: (base) => ({ ...base, minHeight: '30px', border: 'none', backgroundColor: 'transparent', boxShadow: 'none' }),
+                                        valueContainer: (base) => ({ ...base, padding: '0' }),
+                                        multiValue: (base) => ({ ...base, borderRadius: '4px' }),
+                                        multiValueLabel: (base) => ({ ...base, fontSize: '10px', fontWeight: 'bold' }),
+                                        placeholder: (base) => ({ ...base, fontSize: '10px', color: 'hsl(var(--muted-foreground))' })
+                                      }}
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {row.valid ? (
+                                      <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full w-fit border border-emerald-500/20">
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span className="text-xs font-semibold tracking-wide">Valid</span>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-1.5 text-red-500 bg-red-500/10 px-3 py-1 rounded-full w-fit border border-red-500/20">
+                                          <XCircle className="w-3.5 h-3.5" />
+                                          <span className="text-xs font-semibold tracking-wide">Invalid</span>
+                                        </div>
+                                        <div className="text-xs text-red-500 font-semibold ml-1">{row.errors[0]}</div>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 pt-4 sticky bottom-0 bg-card border-t border-border">
+                        <button
+                          onClick={() => { setUploadStep(1); setParsedData([]); setValidationErrors([]); }}
+                          className="flex-1 px-6 py-4 rounded-xl border-2 border-border font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-all tracking-wide text-xs"
+                        >
+                          Reset Source
+                        </button>
+                        <button
+                          onClick={confirmBulkUpload}
+                          disabled={isUploading || parsedData.filter(u => u.valid).length === 0}
+                          className="flex-[2] btn-premium py-4 flex items-center justify-center gap-3 shadow-none shadow-none disabled:grayscale"
+                        >
+                          {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                            <>
+                              <span>Broadcast {parsedData.filter(u => u.valid).length} Invitations</span>
+                              <Send className="w-5 h-5" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Final Report */}
+                  {uploadStep === 3 && uploadResults && (
+                    <div className="space-y-8 animate-in zoom-in duration-500 text-center py-10">
+                      <div className="relative inline-block">
+                        <div className="w-24 h-24 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-none shadow-none mx-auto relative z-10">
+                          <CheckCircle className="w-12 h-12" />
+                        </div>
+                        <div className="absolute top-0 left-0 w-24 h-24 bg-emerald-500 rounded-xl animate-ping opacity-20" />
+                      </div>
+
+                      <div>
+                        <h4 className="text-3xl font-semibold text-foreground mb-2 italic">Broadcast <span className="text-primary not-italic">Successful</span></h4>
+                        <p className="text-muted-foreground font-medium">Digital invitations are now traversing the network to their final destinations.</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                        <div className="p-6 bg-muted rounded-xl border border-border">
+                          <p className="text-xs font-semibold text-muted-foreground/40 tracking-[0.2em] mb-1">Delivered</p>
+                          <p className="text-3xl font-semibold text-emerald-500">{uploadResults.successful}</p>
+                        </div>
+                        <div className="p-6 bg-muted rounded-xl border border-border">
+                          <p className="text-xs font-semibold text-muted-foreground/40 tracking-[0.2em] mb-1">Bounced</p>
+                          <p className="text-3xl font-semibold text-rose-500">{uploadResults.failed}</p>
+                        </div>
+                      </div>
+
+                      {uploadResults.errors?.length > 0 && (
+                        <div className="max-w-md mx-auto p-6 bg-rose-500/5 rounded-xl border border-rose-500/10 text-left">
+                          <p className="text-xs font-semibold text-rose-500/60 tracking-wide mb-4">Integrity Report</p>
+                          <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin">
+                            {uploadResults.errors.map((err, idx) => (
+                              <div key={idx} className="flex gap-3 text-xs font-semibold text-rose-500 tracking-wider opacity-60">
+                                <span className="opacity-40">#{err.row}</span>
+                                <span>{err.email}: {err.error}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          setShowBulkUploadModal(false);
+                          setCsvFile(null);
+                          setUploadResults(null);
+                          setParsedData([]);
+                          setValidationErrors([]);
+                          setUploadStep(1);
+                        }}
+                        className="w-full btn-premium py-5 text-xl shadow-none shadow-none"
+                      >
+                        Dismiss Report
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      <ConfirmationModal
+        show={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Decommission Account"
+        message="Are you sure you want to decommission this account? This action will immediately revoke all access privileges."
+        confirmText="DECOMMISSION"
+        isLoading={isDeleting}
+      />
     </Layout>
   );
 };
 
 export default Users;
-

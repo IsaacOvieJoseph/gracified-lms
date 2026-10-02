@@ -4,8 +4,34 @@ const { auth, authorize } = require('../middleware/auth');
 const router = express.Router();
 
 // Create a school (root admin or school admin)
+/**
+ * @swagger
+ * /api/schools:
+ *   post:
+ *     summary: Create a new school
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               adminId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: School created
+ */
 router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
+    const User = require('../models/User');
     const { name, adminId: requestedAdminId } = req.body;
     let finalAdminId = req.user._id; // Default to current user for school_admin
 
@@ -15,13 +41,121 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
 
     const school = new School({ name, adminId: finalAdminId });
     await school.save();
+
+    // Update the admin's schoolId array to include the new school
+    if (finalAdminId) {
+      const admin = await User.findById(finalAdminId);
+      if (admin) {
+        // Ensure schoolId is an array
+        if (!admin.schoolId) {
+          admin.schoolId = [];
+        } else if (!Array.isArray(admin.schoolId)) {
+          admin.schoolId = [admin.schoolId];
+        }
+
+        // Add the new school ID if it's not already in the array
+        const schoolIdString = school._id.toString();
+        if (!admin.schoolId.some(id => id.toString() === schoolIdString)) {
+          admin.schoolId.push(school._id);
+          await admin.save();
+        }
+      }
+    }
+
     return res.status(201).json({ message: 'School created successfully', school });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
+// GET PUBLIC SCHOOLS (For Registration lists)
+/**
+ * @swagger
+ * /api/schools/public:
+ *   get:
+ *     summary: Get list of public schools
+ *     tags: [Schools]
+ *     responses:
+ *       200:
+ *         description: List of public schools
+ */
+router.get('/public', async (req, res) => {
+  try {
+    const schools = await School.find().select('_id name');
+    res.json({ schools });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET PUBLIC SCHOOL BY IDENTIFIER (shortCode or ID)
+/**
+ * @swagger
+ * /api/schools/public/{identifier}:
+ *   get:
+ *     summary: Get public details of a school by ID or shortCode
+ *     tags: [Schools]
+ *     parameters:
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School details
+ */
+router.get('/public/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const mongoose = require('mongoose');
+    
+    // Try to find by slug first (most user-friendly)
+    let school = await School.findOne({ slug: identifier.toLowerCase() });
+    
+    // Fall back to shortCode
+    if (!school) {
+      school = await School.findOne({ shortCode: identifier });
+    }
+
+    // Fall back to ID
+    if (!school && mongoose.Types.ObjectId.isValid(identifier)) {
+      school = await School.findById(identifier);
+    }
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found' });
+    }
+
+    // Populate admin info and fetch classrooms
+    const populatedSchool = await School.findById(school._id).populate('adminId', 'name email');
+    const Classroom = require('../models/Classroom');
+    const classrooms = await Classroom.find({ schoolId: school._id, published: true })
+      .populate('teacherId', 'name')
+      .select('name description subject level slug shortCode pricing isPaid');
+
+    res.json({
+      school: populatedSchool,
+      classrooms
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // GET ALL SCHOOLS (Root Admin) or MY SCHOOL (School Admin)
+/**
+ * @swagger
+ * /api/schools:
+ *   get:
+ *     summary: Get schools (Root Admin sees all, School Admin sees theirs)
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of schools
+ */
 router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     let query = {};
@@ -38,7 +172,8 @@ router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) 
     const formatted = schools.map((s) => ({
       _id: s._id,
       name: s.name,
-
+      shortCode: s.shortCode,
+      aiTutorAccess: s.aiTutorAccess || 'inherit',
       admin: s.adminId
         ? { name: s.adminId.name, email: s.adminId.email }
         : null,
@@ -52,6 +187,24 @@ router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) 
 });
 
 // GET SCHOOL BY ID (Authorized)
+/**
+ * @swagger
+ * /api/schools/{id}:
+ *   get:
+ *     summary: Get school by ID
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School details
+ */
 router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, res) => {
   try {
     let query = { _id: req.params.id };
@@ -69,7 +222,9 @@ router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, re
     res.json({
       _id: s._id,
       name: s.name,
-      admin: s.adminId,
+      admin: s.adminId, // Note: This is populated as an object
+      shortCode: s.shortCode,
+      aiTutorAccess: s.aiTutorAccess || 'inherit',
       createdAt: s.createdAt,
     });
   } catch (err) {
@@ -78,7 +233,94 @@ router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, re
   }
 });
 
+// UPDATE SCHOOL (Root Admin edits any; School Admin edits their own)
+/**
+ * @swagger
+ * /api/schools/{id}:
+ *   put:
+ *     summary: Update a school (Root Admin edits any; School Admin edits their own)
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               adminId:
+ *                 type: string
+ *               aiTutorAccess:
+ *                 type: string
+ *                 enum: [inherit, enabled, disabled]
+ *     responses:
+ *       200:
+ *         description: School updated
+ */
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const school = await School.findById(req.params.id);
+    if (!school) return res.status(404).json({ message: "School not found" });
+
+    if (req.user.role === "school_admin") {
+      // School admin can only edit their own school and cannot change AI Tutor access
+      if (!school.adminId || school.adminId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      if (req.body.aiTutorAccess !== undefined) {
+        return res.status(403).json({ message: "Only root admin can change AI Tutor access" });
+      }
+    } else if (req.user.role !== "root_admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (req.body.name !== undefined) school.name = req.body.name;
+
+    if (req.user.role === "root_admin") {
+      if (req.body.adminId !== undefined) school.adminId = req.body.adminId;
+      if (req.body.aiTutorAccess !== undefined) {
+        if (!["inherit", "enabled", "disabled"].includes(req.body.aiTutorAccess)) {
+          return res.status(400).json({ message: "aiTutorAccess must be inherit, enabled or disabled" });
+        }
+        school.aiTutorAccess = req.body.aiTutorAccess;
+      }
+    }
+
+    await school.save();
+    res.json({ message: "School updated successfully", school });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error updating school" });
+  }
+});
+
 // DELETE SCHOOL (Root Admin Only)
+/**
+ * @swagger
+ * /api/schools/{id}:
+ *   delete:
+ *     summary: Delete a school (Root Admin only)
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School deleted
+ */
 router.delete("/:id", auth, authorize('root_admin'), async (req, res) => {
   try {
     const deleted = await School.findByIdAndDelete(req.params.id);
@@ -88,6 +330,52 @@ router.delete("/:id", auth, authorize('root_admin'), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error deleting school" });
+  }
+});
+
+// GET ALL TUTORIAL CENTERS (Root Admin only)
+/**
+ * @swagger
+ * /api/schools/tutorial-centers/all:
+ *   get:
+ *     summary: Get all tutorial centers owned by personal teachers
+ *     tags: [Schools]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of tutorial centers with teacher info
+ */
+router.get("/tutorial-centers/all", auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const Tutorial = require('../models/Tutorial');
+
+    // Get all personal teachers with their tutorial centers
+    const personalTeachers = await User.find({ role: 'personal_teacher' })
+      .populate('tutorialId', 'name classes logoUrl')
+      .select('_id name email tutorialId subscriptionStatus trialEndDate');
+
+    // Format response
+    const tutorialCenters = personalTeachers
+      .filter(teacher => teacher.tutorialId) // Only include teachers with tutorial centers
+      .map((teacher) => ({
+        _id: teacher.tutorialId._id,
+        name: teacher.tutorialId.name,
+        teacherId: teacher._id,
+        teacherName: teacher.name,
+        teacherEmail: teacher.email,
+        classCount: teacher.tutorialId.classes?.length || 0,
+        subscriptionStatus: teacher.subscriptionStatus,
+        trialEndDate: teacher.trialEndDate,
+        logoUrl: teacher.tutorialId.logoUrl,
+        type: 'tutorial_center'
+      }));
+
+    res.json({ tutorialCenters });
+  } catch (error) {
+    console.error("Error loading tutorial centers:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 });
 

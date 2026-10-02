@@ -1,114 +1,297 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Book } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.jpg';
+import { validateEmail } from '../utils/validation';
+import api from '../utils/api';
+import ThemeToggle from '../components/ThemeToggle';
+import SplashScreen from '../components/SplashScreen';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  
+  // 2FA state
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // Intro splash shown on successful login
+  const [showSplash, setShowSplash] = useState(false);
+  const redirectRef = useRef('/dashboard');
+
+  const { login, setAuthData } = useAuth();
   const navigate = useNavigate();
-  useEffect(() => {
-    // Listen for school selection changes
-    const handler = () => {/* reload any school-dependent data here if needed */};
-    window.addEventListener('schoolSelectionChanged', handler);
-    return () => window.removeEventListener('schoolSelectionChanged', handler);
-  }, []);
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
-    // e.preventDefault(); // No longer needed as button type is 'button'
-    console.log('Login.jsx: === handleSubmit initiated ==='); // More prominent log here
+    e.preventDefault();
     setError('');
     setLoading(true);
 
-    console.log('Login.jsx: Attempting to call AuthContext login with:', { email, password });
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await login(email, password);
-      
       if (result.success) {
-        console.log('Login.jsx: Login successful, navigating to dashboard.');
-        navigate('/dashboard');
+        const params = new URLSearchParams(location.search);
+        redirectRef.current = params.get('redirect') || '/dashboard';
+        setShowSplash(true);
+      } else if (result.requiresVerification) {
+        setTempToken(result.tempToken);
+        setShow2FAModal(true);
+        setError('');
       } else if (result.redirectToVerify && result.email) {
-        console.log('Login.jsx: Login requires email verification, navigating to verify-email.');
         navigate('/verify-email', { state: { email: result.email } });
       } else if (result.trialExpired) {
-        console.log('Login.jsx: Trial expired, navigating to subscription management.');
         navigate('/subscription-management', { state: { email: email } });
       } else {
-        console.log('Login.jsx: Login failed with error:', result.message);
         setError(result.message);
       }
     } catch (err) {
-      console.error('Login.jsx: Uncaught error during login process:', err);
       setError(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
-      console.log('Login.jsx: handleSubmit finished. Loading set to false.');
     }
   };
 
-  const handleTestClick = () => {
-    console.log('Login.jsx: Test click handler fired!');
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setError('');
+    setOtpLoading(true);
+    try {
+      const response = await api.post('/auth/verify-2fa-login', { tempToken, otp }, { skipLoader: true });
+      const { token, user, trialExpired, subscriptionExpired } = response.data;
+      
+      const cleanedUser = {
+        ...user,
+        schoolId: user.schoolId || [],
+        tutorialId: user.tutorialId || null,
+      };
+
+      setAuthData(token, cleanedUser, trialExpired, subscriptionExpired);
+
+      const params = new URLSearchParams(location.search);
+      redirectRef.current = params.get('redirect') || '/dashboard';
+      setShowSplash(true);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Verification failed. Please check your code.');
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <Book className="w-16 h-16 mx-auto text-blue-600 mb-4" />
-          <h1 className="text-3xl font-bold text-gray-800">LMS Platform</h1>
-          <p className="text-gray-600 mt-2">Learning Management System - Please log in</p> {/* Minor text change */}
+    <div className="h-screen bg-background text-foreground flex font-inter relative overflow-hidden transition-colors duration-300">
+      {showSplash && <SplashScreen onFinish={() => navigate(redirectRef.current)} />}
+
+      {/* Ambient Background */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full " />
+
+      {/* Left Decoration - Desktop Only */}
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-card border-r border-border relative z-10">
+        <div className="max-w-md text-center">
+          <img src={logo} alt="Gracified" className="w-24 h-24 mx-auto rounded-xl shadow-none mb-8" />
+          <h2 className="text-4xl font-extrabold text-foreground mb-4 tracking-tight">
+            Elevate Your <span className="text-primary italic">Learning Experience</span>
+          </h2>
+          <p className="text-muted-foreground text-lg leading-relaxed">
+            The most intuitive management system for modern educational environments.
+          </p>
+          <div className="mt-12 grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">10k+</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Students</div>
+            </div>
+            <div className="p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl font-semibold text-foreground">99.9%</div>
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground">Uptime</div>
+            </div>
+          </div>
+          <br /><br /><br />
+          <p className="mt-8 text-center text-muted-foreground/60 text-xs font-medium">
+            &copy; {new Date().getFullYear()} Gracified LMS. All rights reserved.
+          </p>
         </div>
-        
-        <form className="space-y-4"> {/* Removed onSubmit from form */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="your@email.com"
-              required
-            />
+      </div>
+
+      {/* Right Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
+        <div className="w-full max-w-lg animate-slide-up">
+          {/* Mobile logo + theme toggle row */}
+          <div className="lg:hidden text-center mb-8 relative">
+            <div className="absolute top-0 right-0">
+              <ThemeToggle />
+            </div>
+            <img src={logo} alt="Gracified" className="w-16 h-16 mx-auto rounded-xl shadow-none mb-4" />
+            <h1 className="text-2xl font-semibold text-foreground">Gracified LMS</h1>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="••••••••"
-              required
-            />
+
+          <div className="card-premium p-10 md:p-14 bg-card max-h-[calc(100vh-4rem)] overflow-y-auto shadow-none relative">
+            {/* Desktop theme toggle */}
+            <div className="hidden lg:flex absolute top-6 right-6">
+              <ThemeToggle />
+            </div>
+
+            <div className="mb-10 text-center lg:text-left">
+              <h1 className="text-3xl font-extrabold text-foreground mb-3 tracking-tight">Welcome back</h1>
+              <p className="text-muted-foreground text-base">Enter your credentials to access your account</p>
+            </div>
+
+            {!show2FAModal ? (
+              <form onSubmit={handleSubmit} className="space-y-7">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Email Address</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-11 bg-muted dark:bg-muted border-border focus:bg-background dark:focus:bg-background"
+                      placeholder="name@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Password</label>
+                    <Link to="/forgot-password" title="Recover password" className="text-xs font-semibold text-primary hover:underline">
+                      Forgot Password?
+                    </Link>
+                  </div>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-11 bg-muted dark:bg-muted border-border focus:bg-background dark:focus:bg-background"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 dark:text-red-400 text-xs font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-premium w-full mt-2"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Sign In</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerify2FA} className="space-y-7 animate-slide-up">
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl text-primary text-sm font-medium mb-6">
+                  A verification code has been sent to your email. Please enter it below to complete sign in.
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-foreground/80 mb-1.5 ml-1">Verification Code (OTP)</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="w-full pl-11 text-center tracking-[0.5em] font-mono text-lg bg-muted dark:bg-muted border-border focus:bg-background dark:focus:bg-background"
+                      placeholder="000000"
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 dark:text-red-400 text-xs font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShow2FAModal(false);
+                      setOtp('');
+                      setError('');
+                    }}
+                    disabled={otpLoading}
+                    className="flex-1 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-semibold rounded-xl transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={otpLoading || otp.length < 6}
+                    className="flex-[2] btn-premium"
+                  >
+                    {otpLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                    ) : (
+                      <>
+                        <span>Verify Code</span>
+                        <ArrowRight className="w-4 h-4 ml-2 inline-block" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link
+                to={`/register?${new URLSearchParams(location.search).toString()}`}
+                className="font-semibold text-primary hover:underline"
+              >
+                Create account
+              </Link>
+            </div>
           </div>
-          
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          
-          <button
-            type="button"
-            onClick={() => { handleTestClick(); handleSubmit(); }} // Call both functions
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-        
-        <p className="mt-4 text-center text-gray-600">
-          <Link to="/forgot-password" className="text-blue-600 hover:underline block mb-2">
-            Forgot Password?
-          </Link>
-          Don't have an account? <Link to="/register" className="text-blue-600 hover:underline">Sign Up</Link>
-        </p>
+        </div>
       </div>
     </div>
   );
 };
 
 export default Login;
-
