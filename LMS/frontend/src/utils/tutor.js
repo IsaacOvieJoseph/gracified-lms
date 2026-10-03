@@ -69,32 +69,79 @@ export const extractAssistIntent = (text) => {
   if (!text || typeof text !== 'string') return null;
   const lower = text.toLowerCase();
 
+  // A message can mention several assets ("create a topic for my JSS1 class").
+  // Find EVERY verb-led keyword match, then pick the actual object of the
+  // request instead of returning the first hit (classroom used to win on the
+  // trailing "... class" destination phrase).
+  const matches = [];
   for (const { type, label, keywords } of ASSIST_TYPES) {
     const kw = keywords.find((k) => lower.includes(k));
     if (!kw) continue;
-
     const kwIndex = lower.indexOf(kw);
     const before = lower.slice(0, kwIndex);
     const verb = ASSIST_VERBS.find((v) => before.includes(v));
     if (!verb) continue;
-
-    let area = lower.slice(kwIndex + kw.length);
-    for (let i = 0; i < 6; i++) {
-      const prev = area;
-      area = area.replace(/^\s+(?:on|about|for|of|covering|with|in|around|me|us|an?|the|some|my|a|that)\s+/i, '');
-      if (area === prev) break;
-    }
-    area = area
-      .replace(/[\s,]*(with|using|covering|that has|that includes|that is about)\b.*$/i, '')
-      .replace(/[?!.,;:]+$/g, '')
-      .trim();
-
-    const countMatch = lower.match(ASSIST_COUNT_RE);
-    const count = countMatch ? Math.min(parseInt(countMatch[1], 10), 30) : null;
-
-    return { type, label, verb, area, count };
+    matches.push({ type, label, kw, kwIndex, verb });
   }
-  return null;
+  if (!matches.length) return null;
+
+  // "class"/"a class" after "for/in/into my … class" is the DESTINATION, not
+  // the asset being created — "create a topic for my JSS1 class" is a topic.
+  // Prefer the content asset over a generic container mention; when both a
+  // real "classroom" and an asset are requested, the earliest keyword wins.
+  const assets = matches.filter((m) => m.type !== 'classroom');
+  const container = matches.find((m) => m.type === 'classroom' && m.kw !== 'classroom');
+  const exactRoom = matches.find((m) => m.type === 'classroom' && m.kw === 'classroom');
+  let best;
+  if (assets.length) {
+    best = assets.reduce((a, b) => (b.kwIndex < a.kwIndex ? b : a));
+    if (exactRoom && exactRoom.kwIndex < best.kwIndex) best = exactRoom;
+  } else {
+    best = container || exactRoom;
+  }
+
+  let area = lower.slice(best.kwIndex + best.kw.length);
+  // Content assets: drop a trailing destination clause ("… for my JSS1 class",
+  // "… for SS2") BEFORE loosening prepositions so the subject survives intact.
+  if (best.type !== 'classroom') {
+    area = area.replace(/\s+(?:for|into|to|in|under)\s+(?:(?:my|our|their|the|a|an)\s+)?(?:[a-z0-9'’ -]*\s?(?:class(?:room)?\b.*|\b(?:jss\d*|ss\d+|sss\d+|js\d+|basic\s?\d+|primary\s?\d+|junior\ssec|senior\ssec|nursery|kindergarten|kg|creche)\b[^,.;]*))$/i, '');
+  }
+  for (let i = 0; i < 6; i++) {
+    const prev = area;
+    area = area.replace(/^\s+(?:on|about|for|of|covering|with|in|around|me|us|an?|the|some|my|a|that)\s+/i, '');
+    if (area === prev) break;
+  }
+  area = area
+    .replace(/[\s,]*(with|using|covering|that has|that includes|that is about)\b.*$/i, '')
+    .replace(/[?!.,;:]+$/g, '')
+    .trim();
+
+  const countMatch = lower.match(ASSIST_COUNT_RE);
+  const count = countMatch ? Math.min(parseInt(countMatch[1], 10), 30) : null;
+
+  return { type: best.type, label: best.label, verb: best.verb, area, count };
 };
 
 export const isAssistRequest = (text) => !!extractAssistIntent(text);
+
+// ── AI intent classifier guard ────────────────────────────────────────────────
+// Gracy's chat tab ALSO asks the backend AI to classify a message when word
+// mapping finds nothing — a "second opinion" for clearly-worded messages the
+// keyword rules miss. This guard short-circuits that AI call for obviously
+// conversational turns (greetings, short replies, question-lead messages) so
+// normal staff Q&A doesn't pay a pointless extra round-trip. It only skips
+// blatant chat; anything else still goes to the classifier.
+const CONVERSATIONAL_RE =
+  /^(hi|hello|hey|yo|thanks|thank you|ok|okay|good\s+(?:morning|afternoon|evening)|bye|see you|gr8|great)\b/i;
+
+const QNA_LEAD_RE =
+  /\b(explain|define|meaning\s+of|what\s+is|what\s+are|what'?s|who|when|where|why\s+(?:is|do|did|can|would)|how\s+(?:do|does|can|is|are|would)|difference\s+between|describe|tell\s+me\s+about|summar[iy]se|give\s+me\s+the\s+answer)\b/i;
+
+export const shouldUseAIIntentClassifier = (text) => {
+  const q = String(text || '').trim();
+  if (!q) return false;
+  if (q.split(/\s+/).length < 3) return false;
+  if (CONVERSATIONAL_RE.test(q)) return false;
+  if (QNA_LEAD_RE.test(q)) return false;
+  return true;
+};

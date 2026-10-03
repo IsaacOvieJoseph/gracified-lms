@@ -127,9 +127,14 @@ function AppContent() {
   useEffect(() => {
     let isMounted = true;
 
+    let isMounted = true;
+
     const prepareApp = async () => {
       try {
         await new Promise((resolve) => setTimeout(resolve, 400));
+        if (isMounted) {
+          setAppReady(true);
+        }
         if (isMounted) {
           setAppReady(true);
         }
@@ -138,10 +143,17 @@ function AppContent() {
         if (isMounted) {
           setAppReady(true);
         }
+        if (isMounted) {
+          setAppReady(true);
+        }
       }
     };
 
     prepareApp();
+
+    return () => {
+      isMounted = false;
+    };
 
     return () => {
       isMounted = false;
@@ -174,14 +186,20 @@ function AppContent() {
     }
   }, [appReady, handleLayoutRootView]);
 
+  useEffect(() => {
+    if (!appReady || !showCustomSplash) return;
+
+    const timer = setTimeout(() => {
+      setShowCustomSplash(false);
+    }, 900);
+
+    return () => clearTimeout(timer);
+  }, [appReady, showCustomSplash]);
+
   if (showCustomSplash) {
     return (
       <GracifiedSplash
         theme={theme.mode === 'dark' ? 'dark' : 'light'}
-        onFinish={() => {
-          setSplashAnimationComplete(true);
-          setShowCustomSplash(false);
-        }}
       />
     );
   }
