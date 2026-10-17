@@ -220,8 +220,8 @@ const Feedbacks = () => {
 
             {/* Request Feedback Modal */}
             {showRequestModal && (
-                <div className="fixed inset-0 bg-slate-900/60  z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-none max-w-md w-full p-8 animate-slide-up">
+                <div className="fixed inset-0 bg-slate-900/60 z-[100] overflow-y-auto p-4 flex items-center justify-center">
+                    <div className="bg-white rounded-xl shadow-none max-w-md w-full p-8 animate-slide-up my-auto">
                         <div className="flex justify-between items-center mb-8">
                             <h3 className="text-2xl font-semibold text-slate-900">Request Feedback</h3>
                             <button onClick={() => setShowRequestModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400">

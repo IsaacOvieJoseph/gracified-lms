@@ -24,6 +24,7 @@ const TopicManagement = () => {
     const [totalDuration, setTotalDuration] = useState('N/A');
     const [currentTopic, setCurrentTopic] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [loadingTopics, setLoadingTopics] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [editingTopic, setEditingTopic] = useState(null);
     const [draggedIndex, setDraggedIndex] = useState(null);
@@ -63,6 +64,8 @@ const TopicManagement = () => {
             fetchTopics();
             fetchCurrentTopic();
             fetchClassroomDetails();
+        } else {
+            setLoadingTopics(false);
         }
     }, [classroomId]);
 
@@ -95,6 +98,7 @@ const TopicManagement = () => {
     }, []);
 
     const fetchTopics = async () => {
+        setLoadingTopics(true);
         try {
             const response = await api.get(`/topics/classroom/${classroomId}`);
             const fetchedTopics = response.data.topics || [];
@@ -119,6 +123,8 @@ const TopicManagement = () => {
             }
         } catch (error) {
             console.error('Error fetching topics:', error);
+        } finally {
+            setLoadingTopics(false);
         }
     };
 
@@ -463,12 +469,16 @@ const TopicManagement = () => {
                         <div className="bg-card border border-border p-4 rounded-xl flex items-center gap-6 shadow-none">
                             <div className="flex flex-col">
                                 <span className="text-xs font-semibold text-muted-foreground opacity-60">Modules</span>
-                                <span className="text-xl font-semibold text-primary">{topics.length}</span>
+                                {loadingTopics
+                                    ? <span className="inline-block w-8 h-6 my-0.5 rounded bg-muted animate-pulse" />
+                                    : <span className="text-xl font-semibold text-primary">{topics.length}</span>}
                             </div>
                             <div className="w-px h-8 bg-border" />
                             <div className="flex flex-col">
                                 <span className="text-xs font-semibold text-muted-foreground opacity-60">Duration</span>
-                                <span className="text-xl font-semibold text-foreground italic">{totalDuration}</span>
+                                {loadingTopics
+                                    ? <span className="inline-block w-16 h-6 my-0.5 rounded bg-muted animate-pulse" />
+                                    : <span className="text-xl font-semibold text-foreground italic">{totalDuration}</span>}
                             </div>
                         </div>
                         <button
@@ -643,7 +653,12 @@ const TopicManagement = () => {
                     {/* Topics List */}
                     <div className="w-full">
                         <div className="space-y-6">
-                            {topics.length === 0 ? (
+                            {loadingTopics ? (
+                                <div className="text-center py-20 bg-card rounded-xl border-2 border-dashed border-border">
+                                    <Loader2 className="w-10 h-10 mx-auto mb-4 text-primary animate-spin" />
+                                    <p className="text-sm font-semibold text-muted-foreground">Loading topics...</p>
+                                </div>
+                            ) : topics.length === 0 ? (
                                 <div className="text-center py-20 bg-card rounded-xl border-2 border-dashed border-border">
                                     <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                                         <Book className="w-10 h-10 text-muted-foreground/30" />

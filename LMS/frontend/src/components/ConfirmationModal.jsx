@@ -18,8 +18,8 @@ const ConfirmationModal = ({
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60  z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-none max-w-sm w-full p-10 text-center relative animate-slide-up overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900/60 z-[100] overflow-y-auto p-4 flex items-center justify-center">
+            <div className="bg-card text-foreground rounded-xl shadow-xl max-w-sm w-full p-8 text-center relative animate-slide-up overflow-hidden my-auto border border-border">
                 <div className="absolute top-0 left-0 w-full h-1.5 /0  /0 opacity-20" />
 
                 <div className={`w-24 h-24 ${iconBg} rounded-xl flex items-center justify-center mx-auto mb-8 shadow-none`}>

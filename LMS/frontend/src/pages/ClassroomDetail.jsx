@@ -299,7 +299,7 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
           ) : isNext ? (
             <Play className="w-5 h-5 text-primary" />
           ) : (
-            <Circle className="w-5 h-5 text-gray-400" />
+            <Circle className="w-5 h-5 text-muted-foreground" />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -453,8 +453,9 @@ function ActionButton({ icon: Icon, label, tone = 'default', onClick, disabled, 
   );
 }
 
-function OverflowMenu({ onEdit, onEnd, onDelete, showDelete }) {
+function OverflowMenu({ onEdit, onEnd, onDelete, showDelete, onLeave, showLeave, onShare }) {
   const [open, setOpen] = useState(false);
+  const [dropdownAlign, setDropdownAlign] = useState('right');
   const ref = useRef(null);
 
   useEffect(() => {
@@ -465,11 +466,36 @@ function OverflowMenu({ onEdit, onEnd, onDelete, showDelete }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const items = [
-    { icon: Pencil, label: 'Edit', color: INK, action: onEdit },
-    { icon: Flag, label: 'End class', color: INK, action: onEnd },
-    ...(showDelete ? [{ icon: Trash2, label: 'Delete', color: ROSE, action: onDelete }] : []),
-  ];
+  useEffect(() => {
+    if (open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      // If the button is close to the left viewport edge (< 180px), align left so the menu expands to the right
+      if (rect.left < 180) {
+        setDropdownAlign('left');
+      } else {
+        setDropdownAlign('right');
+      }
+    }
+  }, [open]);
+
+  const items = [];
+  if (onShare) {
+    items.push({ icon: Share2, label: 'Share class', color: INK, action: onShare });
+  }
+  if (onEdit) {
+    items.push({ icon: Pencil, label: 'Edit', color: INK, action: onEdit });
+  }
+  if (onEnd) {
+    items.push({ icon: Flag, label: 'End class', color: INK, action: onEnd });
+  }
+  if (showDelete && onDelete) {
+    items.push({ icon: Trash2, label: 'Delete', color: ROSE, action: onDelete });
+  }
+  if (showLeave && onLeave) {
+    items.push({ icon: LogOut, label: 'Leave class', color: ROSE, action: onLeave });
+  }
+
+  if (items.length === 0) return null;
 
   return (
     <div className="relative" ref={ref}>
@@ -483,13 +509,13 @@ function OverflowMenu({ onEdit, onEnd, onDelete, showDelete }) {
       </button>
       {open && (
         <div
-          className="absolute right-0 mt-1 z-[60]"
+          className={`absolute ${dropdownAlign === 'left' ? 'left-0' : 'right-0'} top-full mt-1 z-[70]`}
           style={{
             backgroundColor: PAPER,
             border: `1px solid ${HAIRLINE}`,
             borderRadius: 'var(--radius)',
             minWidth: '160px',
-            boxShadow: '0 2px 6px rgba(20,32,46,0.08)',
+            boxShadow: '0 4px 16px rgba(20,32,46,0.12)',
           }}
         >
           {items.map((item, i) => {
@@ -498,7 +524,7 @@ function OverflowMenu({ onEdit, onEnd, onDelete, showDelete }) {
               <button
                 key={item.label}
                 onClick={() => { setOpen(false); item.action && item.action(); }}
-                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-left"
+                className="flex items-center gap-2 w-full px-3.5 py-2.5 text-sm font-medium text-left hover:bg-muted/60 transition-colors"
                 style={{
                   color: item.color,
                   borderBottom: i < items.length - 1 ? `1px solid ${HAIRLINE}` : 'none',
@@ -1513,21 +1539,21 @@ const ClassroomDetail = () => {
       <div className="space-y-6 min-w-0 w-full">
         <div className="bg-card border border-border rounded-sm shadow-none min-w-0">
           {/* Header Row: Title, Actions, Price */}
-          <div className="p-6 flex flex-wrap items-center justify-between gap-4">
-            <div className="min-w-0">
+          <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: classroom.published ? FOREST : SLATE }} />
                 <span className="text-xs font-semibold" style={{ color: classroom.published ? FOREST : SLATE, letterSpacing: '0.02em' }}>
                   {classroom.published ? 'Published' : 'Draft'}
                 </span>
               </div>
-              <h1 className="font-serif text-[28px] font-semibold leading-snug truncate">{classroom.name}</h1>
+              <h1 className="font-serif text-2xl sm:text-[28px] font-semibold leading-snug break-words sm:truncate">{classroom.name}</h1>
               <p className="text-sm mt-1" style={{ color: SLATE }}>
                 {classroom.subject || 'Subject'} &middot; {classroom.level ? `${classroom.level} level` : 'Level'}
               </p>
             </div>
 
-            <div className="flex items-center gap-5 shrink-0 min-w-0">
+            <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-5 w-full sm:w-auto min-w-0 pt-3 sm:pt-0 border-t border-border sm:border-0">
               <div className="flex items-center gap-2 flex-wrap">
                 {canEdit && (
                   <ActionButton
@@ -1537,34 +1563,39 @@ const ClassroomDetail = () => {
                     loading={publishing}
                   />
                 )}
-                {(canEdit || user?.role === 'teacher' || user?.role === 'personal_teacher') && (
-                  <ActionButton
-                    icon={Share2}
-                    label="Share"
-                    onClick={() => {
-                      const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
-                      navigator.clipboard.writeText(shareLink);
-                      toast.success('Link copied!');
-                    }}
-                  />
-                )}
+                <ActionButton
+                  icon={Share2}
+                  label="Share"
+                  onClick={() => {
+                    const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
+                    navigator.clipboard.writeText(shareLink);
+                    toast.success('Link copied!');
+                  }}
+                />
                 <OverflowMenu
-                  onEdit={handleOpenEdit}
-                  onEnd={() => setShowEndClassModal(true)}
+                  onEdit={canEdit ? handleOpenEdit : null}
+                  onEnd={canEdit ? () => setShowEndClassModal(true) : null}
                   onDelete={handleDeleteClassroomClick}
-                  showDelete={user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id)}
+                  showDelete={canEdit && (user?.role === 'root_admin' || isSchoolAdminOfClass || (user?.role === 'personal_teacher' && user?._id === classroom.teacherId?._id))}
+                  onShare={() => {
+                    const shareLink = `${window.location.origin}/c/${classroom.slug || classroom.shortCode || classroom._id}`;
+                    navigator.clipboard.writeText(shareLink);
+                    toast.success('Link copied!');
+                  }}
+                  onLeave={() => setShowLeaveClassModal(true)}
+                  showLeave={isEnrolled && user?.role === 'student'}
                 />
               </div>
 
-              <div style={{ width: '1px', alignSelf: 'stretch' }} className="bg-border" />
+              <div className="hidden sm:block w-px self-stretch bg-border" />
 
-              <div className="text-right">
-                <div className="font-serif text-2xl font-semibold" style={{ color: classroom.isPaid && classroom.pricing?.amount > 0 ? GOLD : FOREST }}>
+              <div className="text-right shrink-0">
+                <div className="font-serif text-xl sm:text-2xl font-semibold" style={{ color: classroom.isPaid && classroom.pricing?.amount > 0 ? GOLD : FOREST }}>
                   {classroom.isPaid && classroom.pricing?.amount > 0
                     ? formatAmount(classroom.pricing?.amount || 0, classroom.pricing?.currency || 'NGN')
                     : 'Free'}
                 </div>
-                <div className="text-xs mt-1" style={{ color: SLATE }}>
+                <div className="text-xs mt-0.5 sm:mt-1" style={{ color: SLATE }}>
                   {classroom.isPaid && classroom.pricing?.amount > 0
                     ? (classroom.pricing?.type === 'per_lecture' ? 'per lecture' : (classroom.pricing?.type || 'paid').replace('_', ' '))
                     : 'no charge'}
@@ -2433,7 +2464,7 @@ const ClassroomDetail = () => {
                           })()
                         ) : (
                           <div className="text-center py-8 text-muted-foreground">
-                            <Book className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <Book className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
                             <p>No topics added yet</p>
                             {canEdit && (
                               <p className="text-sm mt-1">Click "Manage Topics" to create your first topic</p>
@@ -2555,7 +2586,7 @@ const ClassroomDetail = () => {
                                         handleAssignmentPublishToggle(assignment);
                                       }}
                                       disabled={publishingAssignmentId === assignment._id}
-                                      className={`p-1 transition-colors ${assignment.published !== false ? 'text-green-500 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'
+                                      className={`p-1 transition-colors ${assignment.published !== false ? 'text-green-500 hover:text-green-700' : 'text-muted-foreground hover:text-foreground'
                                         }`}
                                       title={assignment.published !== false ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}
                                     >
@@ -2721,7 +2752,7 @@ const ClassroomDetail = () => {
                                         }}
                                         disabled={isPastDue}
                                         className={`px-4 py-2 rounded-xl transition ${isPastDue
-                                          ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
                                           : 'bg-primary text-white hover:bg-primary/90'
                                           }`}
                                       >
@@ -2904,7 +2935,7 @@ const ClassroomDetail = () => {
                               <>
                                 <button
                                   onClick={() => navigate(`/exams/${exam._id}/submissions`)}
-                                  className="px-4 py-2 bg-white text-foreground border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 transition"
+                                  className="px-4 py-2 bg-card text-foreground border border-border rounded-xl text-sm font-semibold hover:bg-muted transition"
                                 >
                                   Submissions
                                 </button>
@@ -2913,7 +2944,7 @@ const ClassroomDetail = () => {
                                     setExamToEdit(exam);
                                     setShowCreateExamModal(true);
                                   }}
-                                  className="p-2.5 bg-yellow-50 text-yellow-600 border border-yellow-100 rounded-xl hover:bg-yellow-100 transition"
+                                  className="p-2.5 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-100 dark:border-yellow-500/20 rounded-xl hover:bg-yellow-100 dark:hover:bg-yellow-500/20 transition"
                                   title="Edit Exam"
                                 >
                                   <Edit className="w-4 h-4" />
@@ -2926,7 +2957,7 @@ const ClassroomDetail = () => {
                                 onClick={() => navigate(`/exam-center/${exam.linkToken}`)}
                                 disabled={isPastDue || !exam.isPublished}
                                 className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${isPastDue || !exam.isPublished
-                                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
                                   : 'bg-primary text-white hover:bg-primary/90 shadow-none  dark:shadow-none'
                                   }`}
                               >
@@ -3336,7 +3367,7 @@ const ClassroomDetail = () => {
           confirmText="End Class"
           confirmButtonColor="bg-primary hover:bg-primary/90"
           icon={Flag}
-          iconBg="bg-indigo-100"
+          iconBg="bg-indigo-100 dark:bg-indigo-500/20"
           iconColor="text-primary"
           isLoading={isEndingClass}
         />
@@ -3345,7 +3376,7 @@ const ClassroomDetail = () => {
         {
           showGoogleAuth && (
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ background: '#fff', padding: 24, borderRadius: 8, minWidth: 320, maxWidth: 400 }}>
+              <div style={{ background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', border: '1px solid hsl(var(--border))', padding: 24, borderRadius: 8, minWidth: 320, maxWidth: 400 }}>
                 <GoogleMeetAuth userId={user?._id} />
                 <button style={{ marginTop: 16 }} onClick={() => setShowGoogleAuth(false)}>Cancel</button>
               </div>

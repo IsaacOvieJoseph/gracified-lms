@@ -243,7 +243,7 @@ const Layout = ({ children }) => {
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-xl shadow-none z-50 overflow-hidden animate-slide-up">
+                <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-slide-up">
                   <div className="p-4 border-b border-border flex justify-between items-center bg-muted">
                     <h4 className="font-semibold text-foreground">Activity</h4>
                     <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-semibold">{unreadCount} New</span>
@@ -286,7 +286,7 @@ const Layout = ({ children }) => {
               </button>
 
               {showProfileDropdown && (
-                <div className="absolute right-0 mt-3 w-56 bg-card border border-border rounded-xl shadow-none z-50 py-2 animate-slide-up">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-lg z-50 py-2 animate-slide-up">
                   <div className="px-4 py-3 border-b border-border/50 mb-1">
                     <p className="text-sm font-semibold text-foreground truncate">{user?.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
