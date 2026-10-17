@@ -144,11 +144,6 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       return res.status(404).json({ message: 'Classroom not found' });
     }
 
-<<<<<<< HEAD
-    const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(classroom);
-    if (!isOwnerSubscriptionValid) {
-      return res.json({ topics: [] }); // Return empty array if subscription expired
-=======
     const settings = await Settings.findOne();
     const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
 
@@ -184,7 +179,6 @@ router.get('/classroom/:classroomId', auth, subscriptionCheck, async (req, res) 
       if (!isEnrolled) {
         return res.status(403).json({ message: 'You are not enrolled in this class.', enrollmentRequired: true });
       }
->>>>>>> main
     }
 
     // Determine if paid topics should be visible
@@ -252,13 +246,6 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
       return res.status(404).json({ message: 'Topic not found' });
     }
 
-<<<<<<< HEAD
-    // Check if classroom owner's subscription is valid
-    if (topic.classroomId) {
-      const isOwnerSubscriptionValid = await isClassroomOwnerSubscriptionValid(topic.classroomId);
-      if (!isOwnerSubscriptionValid) {
-        return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
-=======
     const settings = await Settings.findOne();
     const isCheckingEnabled = settings ? settings.subscriptionCheckingEnabled : true;
 
@@ -298,7 +285,6 @@ router.get('/:id', auth, subscriptionCheck, async (req, res) => {
             return res.status(403).json({ message: 'This topic is not available. The class owner\'s subscription has expired.', subscriptionExpired: true });
           }
         }
->>>>>>> main
       }
     }
 

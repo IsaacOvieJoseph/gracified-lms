@@ -621,6 +621,7 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
         onClose={() => setShowAIPanel(false)}
         allowedModes={['assignment', 'powerpoint']}
         defaultMode="assignment"
+        hideClassField={!!createForm.classroomId}
         prefill={{
           topicName: createForm.title || '',
           teacherHint: createForm.description || '',

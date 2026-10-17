@@ -1,6 +1,13 @@
 const User = require('../models/User');
 const School = require('../models/School');
 
+const getId = (obj) => {
+  if (!obj) return null;
+  if (typeof obj === 'string') return obj;
+  if (obj._id) return obj._id;
+  return obj;
+};
+
 /**
  * Check if a user's subscription is valid (active, pay_as_you_go, or valid trial)
  * @param {Object} user - User object with subscriptionStatus and trialEndDate
@@ -13,7 +20,10 @@ const isSubscriptionValid = (user) => {
 
   if (user.subscriptionStatus === 'trial') {
     // Trial is valid if not expired
-    return !(user.trialEndDate && user.trialEndDate < Date.now());
+    if (user.trialEndDate && user.trialEndDate < Date.now()) {
+      return false;
+    }
+    return true;
   }
 
   // Active or pay_as_you_go subscriptions are valid
@@ -40,13 +50,12 @@ const isClassroomOwnerSubscriptionValid = async (classroom) => {
       // Handle both populated and non-populated schoolId
       if (singleSchool.adminId) {
         // Already populated
-        adminId = singleSchool.adminId._id || singleSchool.adminId;
+        adminId = getId(singleSchool.adminId);
       } else {
         // Not populated, fetch school to get adminId
-        const School = require('../models/School');
-        const school = await School.findById(singleSchool._id || singleSchool);
+        const school = await School.findById(getId(singleSchool));
         if (school && school.adminId) {
-          adminId = school.adminId;
+          adminId = getId(school.adminId);
         }
       }
     }
@@ -59,14 +68,14 @@ const isClassroomOwnerSubscriptionValid = async (classroom) => {
 
   // If classroom doesn't belong to a school, check personal teacher's subscription
   if (classroom.teacherId) {
-    // Handle both populated and non-populated teacherId
     let teacher;
-    if (classroom.teacherId._id || classroom.teacherId.subscriptionStatus) {
-      // Already populated
-      teacher = classroom.teacherId;
+    const teacherRef = classroom.teacherId;
+    // Already populated if it has _id and possibly subscription data
+    if (teacherRef._id || teacherRef.subscriptionStatus || teacherRef.role) {
+      teacher = teacherRef;
     } else {
       // Not populated, fetch it
-      teacher = await User.findById(classroom.teacherId);
+      teacher = await User.findById(getId(teacherRef));
     }
 
     if (teacher && teacher.role === 'personal_teacher') {
@@ -78,75 +87,83 @@ const isClassroomOwnerSubscriptionValid = async (classroom) => {
   return false;
 };
 
+const shouldIncludeClassroomForUser = async (classroom, user) => {
+  if (!user) return false;
+
+  // For root_admin, always show all classrooms
+  if (user.role === 'root_admin') return true;
+
+  // For teachers, always show their own classes (no subscription check)
+  if (user.role === 'teacher' && classroom.teacherId) {
+    const teacherId = getId(classroom.teacherId);
+    if (teacherId && teacherId.toString() === user._id.toString()) {
+      return true;
+    }
+  }
+
+  // For students, always show classes they're enrolled in (no subscription check)
+  if (user.role === 'student') {
+    const enrolledInStudents = classroom.students?.some((studentId) => {
+      const sid = getId(studentId);
+      return sid && sid.toString() === user._id.toString();
+    });
+    const enrolledInUser = user.enrolledClasses?.some((classId) => {
+      const cid = getId(classId);
+      const classroomId = getId(classroom);
+      return cid && classroomId && cid.toString() === classroomId.toString();
+    });
+    if (enrolledInStudents || enrolledInUser) {
+      return true;
+    }
+  }
+
+  // For other users (school_admin, personal_teacher), check subscription
+  const isValid = await isClassroomOwnerSubscriptionValid(classroom);
+  return isValid;
+};
+
 /**
  * Filter classrooms to only include those with valid owner subscriptions
  * @param {Array} classrooms - Array of classroom objects
+ * @param {Object} user - User object making the request
  * @returns {Promise<Array>} - Filtered array of classrooms
  */
-const filterClassroomsBySubscription = async (classrooms) => {
-  const validClassrooms = [];
+const filterClassroomsBySubscription = async (classrooms, user) => {
+  if (!Array.isArray(classrooms)) return [];
 
-  // For root_admin, always show all classrooms
   if (user && user.role === 'root_admin') {
     return classrooms;
   }
 
+  const validClassrooms = [];
   for (const classroom of classrooms) {
-<<<<<<< HEAD
-=======
-    // For teachers, always show their own classes (no subscription check)
-    if (user && user.role === 'teacher' && classroom.teacherId) {
-      const teacherId = classroom.teacherId._id || classroom.teacherId;
-      if (teacherId.toString() === user._id.toString()) {
-        validClassrooms.push(classroom);
-        continue;
-      }
-    }
-
-    // For students, always show classes they're enrolled in (no subscription check)
-    if (user && user.role === 'student') {
-      const isEnrolled = classroom.students?.some(
-        studentId => (studentId._id || studentId).toString() === user._id.toString()
-      ) || user.enrolledClasses?.some(
-        classId => classId.toString() === (classroom._id || classroom).toString()
-      );
-      if (isEnrolled) {
-        validClassrooms.push(classroom);
-        continue;
-      }
-    }
-
-    // For other users (school_admin, personal_teacher, root_admin), check subscription
->>>>>>> main
-    const isValid = await isClassroomOwnerSubscriptionValid(classroom);
-    if (isValid) {
+    const shouldInclude = await shouldIncludeClassroomForUser(classroom, user);
+    if (shouldInclude) {
       validClassrooms.push(classroom);
     }
   }
-
   return validClassrooms;
 };
 
 /**
  * Filter assignments to only include those from classrooms with valid owner subscriptions
  * @param {Array} assignments - Array of assignment objects with populated classroomId
+ * @param {Object} user - User object making the request
  * @returns {Promise<Array>} - Filtered array of assignments
  */
-const filterAssignmentsBySubscription = async (assignments) => {
-  const validAssignments = [];
+const filterAssignmentsBySubscription = async (assignments, user) => {
+  if (!Array.isArray(assignments)) return [];
 
-  // For root_admin, always show all assignments
   if (user && user.role === 'root_admin') {
     return assignments;
   }
 
+  const validAssignments = [];
   for (const assignment of assignments) {
     if (assignment.classroomId) {
-<<<<<<< HEAD
-=======
       // For teachers, always show assignments from their own classes (no subscription check)
       if (user && user.role === 'teacher' && assignment.classroomId.teacherId) {
-        const teacherId = assignment.classroomId.teacherId._id || assignment.classroomId.teacherId;
+        const teacherId = getId(assignment.classroomId.teacherId);
         if (teacherId && teacherId.toString() === user._id.toString()) {
           validAssignments.push(assignment);
           continue;
@@ -154,18 +171,23 @@ const filterAssignmentsBySubscription = async (assignments) => {
       }
 
       // For students, always show assignments from classes they're enrolled in (no subscription check)
-      if (user && user.role === 'student' && assignment.classroomId.students) {
-        const isEnrolled = assignment.classroomId.students.some(
-          studentId => (studentId._id || studentId).toString() === user._id.toString()
-        );
-        if (isEnrolled) {
+      if (user && user.role === 'student') {
+        const enrolledInStudents = assignment.classroomId.students?.some((studentId) => {
+          const sid = getId(studentId);
+          return sid && sid.toString() === user._id.toString();
+        });
+        const enrolledInUser = user.enrolledClasses?.some((classId) => {
+          const cid = getId(classId);
+          const classroomId = getId(assignment.classroomId);
+          return cid && classroomId && cid.toString() === classroomId.toString();
+        });
+        if (enrolledInStudents || enrolledInUser) {
           validAssignments.push(assignment);
           continue;
         }
       }
 
-      // For other users (school_admin, personal_teacher, root_admin), check subscription
->>>>>>> main
+      // For other users (school_admin, personal_teacher), check subscription
       const isValid = await isClassroomOwnerSubscriptionValid(assignment.classroomId);
       if (isValid) {
         validAssignments.push(assignment);
@@ -182,4 +204,3 @@ module.exports = {
   filterClassroomsBySubscription,
   filterAssignmentsBySubscription
 };
-

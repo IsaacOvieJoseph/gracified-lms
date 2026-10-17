@@ -9,9 +9,10 @@ import api from '../utils/api';
 import Markdown from './Markdown';
 import { useLocation } from 'react-router-dom';
 import GracyQuizModal from './GracyQuizModal';
+import GracyComplaintModal from './GracyComplaintModal';
 import GracyGrowth from './GracyGrowth';
 import GracyAssistTab, {
-  MODES, ResultViewer, TaskCards,
+  MODES, ResultViewer, assistIntro,
   ASSIST_FEED, flowStepFilled, flowQuestion, parseAssistInfo, buildAssistPayload, advanceFlowStep, applyStepAnswer,
 } from './GracyAssistTab';
 import { fetchTeacherClasses } from '../utils/gracyPrefill';
@@ -241,7 +242,7 @@ const PracticeSetup = ({ onStartQuiz }) => {
 };
 
 // ── Chat Panel ──────────────────────────────────────────────────────────────
-const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef, isStudent, onPickTask, onNewChat }) => {
+const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, messagesEndRef, onNewChat }) => {
   const inputRef = useRef(null);
 
   // Auto-grow the textarea as long input wraps to multiple lines.
@@ -271,11 +272,6 @@ const ChatPanel = ({ messages, isLoading, onSend, inputValue, setInputValue, mes
             >
               <Plus className="w-3.5 h-3.5" /> New chat
             </button>
-          </div>
-        )}
-        {!isStudent && (
-          <div className="space-y-4">
-            <TaskCards onPick={onPickTask} />
           </div>
         )}
         {messages.map((msg, idx) => (
@@ -398,6 +394,7 @@ const GracyChatInner = ({ user }) => {
 
   // Quiz Modal state
   const [quizModal, setQuizModal] = useState(null); // { quizConfig } | null
+  const [complaintModal, setComplaintModal] = useState(false);
 
   // Conversational Assist flow (non-student chat → in-chat info gathering)
   // { type, collected: {}, stepIndex } | null
@@ -486,12 +483,11 @@ const GracyChatInner = ({ user }) => {
     }
     assistFlow.current = flow;
 
-    const meta = MODES.find((m) => m.key === type);
     const q = flowQuestion(type, flow.stepIndex, flow.collected);
     setIsLoading(false);
     setMessages((prev) => [...prev, {
       role: 'assistant',
-      content: `Happy to help! Let's craft a **${meta?.label || type}** ✨\n\nYou can answer question by question, or **paste in everything at once** — like \`10 MCQ questions on quadratic equations for SS2\` — and I'll take it from there.\n\n${q.text}`,
+      content: `${assistIntro(type)}\n\n${q.text}`,
       suggestedFollowUp: q.chips,
     }]);
   };
@@ -768,6 +764,15 @@ const GracyChatInner = ({ user }) => {
         />
       )}
 
+      {/* Complaint Modal (rendered outside the chat bubble) */}
+      {complaintModal && (
+        <GracyComplaintModal
+          isOpen={complaintModal}
+          onClose={() => setComplaintModal(false)}
+          pageContext={location.pathname}
+        />
+      )}
+
       <div
         className="fixed z-50 pointer-events-none"
         style={{
@@ -802,8 +807,19 @@ const GracyChatInner = ({ user }) => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsOpen(false);
+                  setComplaintModal(true);
                 }}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
+                title="Report an issue"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
                 className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
                 title="Close chat"
               >
@@ -838,8 +854,6 @@ const GracyChatInner = ({ user }) => {
                 inputValue={inputValue}
                 setInputValue={setInputValue}
                 messagesEndRef={messagesEndRef}
-                isStudent={isStudent(user)}
-                onPickTask={(type) => startAssistFlow(type)}
                 onNewChat={handleNewChat}
               />
             )}

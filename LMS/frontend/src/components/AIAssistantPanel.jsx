@@ -317,6 +317,7 @@ const AIAssistantPanel = ({
   allowedModes = ['topic', 'assignment', 'exam', 'powerpoint'],
   defaultMode = 'topic',
   prefill = {},
+  hideClassField = false,
   onApply,
   onApplyTopic,
   onApplyAssignment,
@@ -565,16 +566,18 @@ const AIAssistantPanel = ({
 
           {(mode !== 'topic' && mode !== 'classroom' && mode !== 'qna') && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Class Name">
-                  <input 
-                    className={inputCls} 
-                    list="ai-classnames"
-                    placeholder="e.g. Grade 10-A" 
-                    value={form.className} 
-                    onChange={e => setForm({ ...form, className: e.target.value })} 
-                  />
-                </Field>
+              <div className={`grid gap-4 ${hideClassField ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {!hideClassField && (
+                  <Field label="Class Name">
+                    <input 
+                      className={inputCls} 
+                      list="ai-classnames"
+                      placeholder="e.g. Grade 10-A" 
+                      value={form.className} 
+                      onChange={e => setForm({ ...form, className: e.target.value })} 
+                    />
+                  </Field>
+                )}
                 <Field label="Difficulty Level">
                   <input 
                     className={inputCls} 
@@ -609,14 +612,16 @@ const AIAssistantPanel = ({
             </Field>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Class Name">
-              <input className={inputCls} placeholder="e.g. JSS 2, Grade 10..." value={form.className} onChange={e => setForm({ ...form, className: e.target.value })} />
-            </Field>
-            <Field label="Level">
-              <input className={inputCls} placeholder="e.g. Beginner, Advanced..." value={form.level} onChange={e => setForm({ ...form, level: e.target.value })} />
-            </Field>
-          </div>
+          {(mode === 'topic' || mode === 'classroom' || mode === 'qna') && !hideClassField && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Class Name">
+                <input className={inputCls} placeholder="e.g. JSS 2, Grade 10..." value={form.className} onChange={e => setForm({ ...form, className: e.target.value })} />
+              </Field>
+              <Field label="Level">
+                <input className={inputCls} placeholder="e.g. Beginner, Advanced..." value={form.level} onChange={e => setForm({ ...form, level: e.target.value })} />
+              </Field>
+            </div>
+          )}
 
           {/* Mode-specific fields */}
           {(mode === 'assignment') && (

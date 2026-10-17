@@ -117,10 +117,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setAuthData(null, null);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> main
+
   };
 
   // Refresh user data from backend (for subscription changes, etc)
@@ -142,17 +139,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-<<<<<<< HEAD
-    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout, refreshUser }}>
-=======
-  };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, setAuthData, logout }}>
->>>>>>> eceb7819e4bc22c80ca171cfb3ad5028f7d16f90
-=======
     <AuthContext.Provider value={{ user, loading, login, setAuthData, logout, refreshUser, platformSettings, refreshSettings: fetchSettings }}>
->>>>>>> main
+
       {children}
     </AuthContext.Provider>
   );

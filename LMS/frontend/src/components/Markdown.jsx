@@ -25,8 +25,6 @@ const cls = {
   a: 'text-primary dark:text-violet-400 underline underline-offset-2 decoration-violet-300 dark:decoration-violet-700 hover:text-violet-800 dark:hover:text-violet-300 transition-colors',
 };
 
-const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
 const Text = ({ children, inline }) => {
   const content = String(children);
   const tokens = [];
@@ -64,13 +62,13 @@ const Text = ({ children, inline }) => {
   }
 
   const renderToken = (t, i) => {
-    if (typeof t === 'string') return <MathText key={i} text={escapeHtml(t)} />;
+    if (typeof t === 'string') return <MathText key={i} text={t} />;
     switch (t.type) {
       case 'strong': return <strong key={i} className={cls.strong}><Text>{t.value}</Text></strong>;
       case 'bolditalic': return <strong key={i} className={cls.strong}><em className={cls.em}><Text>{t.value}</Text></em></strong>;
       case 'em': return <em key={i} className={cls.em}><Text>{t.value}</Text></em>;
       case 'del': return <del key={i} className={cls.del}><Text>{t.value}</Text></del>;
-      case 'code': return <code key={i} className={cls.code}>{escapeHtml(t.value)}</code>;
+      case 'code': return <code key={i} className={cls.code}>{t.value}</code>;
       case 'link': return <a key={i} href={t.extra?.[0]} target="_blank" rel="noreferrer" className={cls.a}><Text>{t.value}</Text>{t.extra?.[0] && <span className="ml-0.5 text-xs">↗</span>}</a>;
       case 'img': return <img key={i} src={t.extra?.[0]} alt={t.value} className="my-2 max-w-full rounded-xl" />;
       default: return null;
@@ -173,7 +171,7 @@ const Markdown = ({ children }) => {
             return <ul key={b.key} className={cls.ul}>{b.props.items.map((it, k) => <li key={k} className={cls.li}><Text>{it}</Text></li>)}</ul>;
           case 'blockquote': return <blockquote key={b.key} className={cls.blockquote}><Markdown>{b.props.text}</Markdown></blockquote>;
           case 'hr': return <hr key={b.key} className={cls.hr} />;
-          case 'pre': return <pre key={b.key} className={cls.pre}><code>{escapeHtml(b.props.text)}</code></pre>;
+          case 'pre': return <pre key={b.key} className={cls.pre}><code>{b.props.text}</code></pre>;
           case 'table':
             return (
               <div key={b.key} className="mb-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">

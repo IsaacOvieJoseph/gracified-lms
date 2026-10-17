@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MessageSquare, ChevronDown, ChevronUp, Plus, Loader2, X } from 'lucide-react';
+import { Star, MessageSquare, ChevronDown, ChevronUp, Plus, Loader2, X, AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
+
 import Layout from '../components/Layout';
 import { formatDisplayDate } from '../utils/timezone';
 import { toast } from 'react-hot-toast';
 
 const Feedbacks = () => {
     const [feedbacks, setFeedbacks] = useState([]);
+    const [complaints, setComplaints] = useState([]);
+    const [activeTab, setActiveTab] = useState('feedbacks');
     const [loading, setLoading] = useState(true);
     const [openFeedbackId, setOpenFeedbackId] = useState(null);
 
@@ -23,12 +26,19 @@ const Feedbacks = () => {
                 setFeedbacks(res.data.feedbacks);
             } catch (error) {
                 console.error('Error fetching feedbacks:', error);
-            } finally {
-                setLoading(false);
             }
         };
 
-        fetchFeedbacks();
+        const fetchComplaints = async () => {
+            try {
+                const res = await api.get('/complaints');
+                setComplaints(res.data.complaints || []);
+            } catch (error) {
+                console.error('Error fetching complaints:', error);
+            }
+        };
+
+        Promise.all([fetchFeedbacks(), fetchComplaints()]).finally(() => setLoading(false));
     }, []);
 
     const toggleFeedback = (id) => {
@@ -87,55 +97,72 @@ const Feedbacks = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-none overflow-hidden">
-                    {feedbacks.length > 0 ? (
-                        <div className="divide-y divide-gray-100">
-                            {feedbacks.map((fb) => (
-                                <div key={fb._id} className="border-b last:border-b-0">
-                                    <div
-                                        onClick={() => toggleFeedback(fb._id)}
-                                        className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition"
-                                    >
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-gray-900">
-                                                    {fb.type === 'platform' ? 'Platform Feedback' : (fb.classroomName || 'Classroom Feedback')}
-                                                </h3>
-                                                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${fb.type === 'platform' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                    {fb.type || 'Classroom'}
-                                                </span>
-                                            </div>
-                                            <div className="text-sm text-gray-500 mt-1">
-                                                From: <span className="font-medium">{fb.studentId?.name || 'Deleted User'}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center space-x-1">
-                                                {renderStars(fb.rating)}
-                                            </div>
-                                            {openFeedbackId === fb._id ? (
-                                                <ChevronUp className="w-5 h-5 text-gray-400" />
-                                            ) : (
-                                                <ChevronDown className="w-5 h-5 text-gray-400" />
-                                            )}
-                                        </div>
-                                    </div>
+                <div className="flex gap-2 bg-white rounded-xl p-1 shadow-none w-fit mb-2">
+                    <button
+                        onClick={() => setActiveTab('feedbacks')}
+                        className={activeTab === 'feedbacks' ? 'px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium' : 'px-4 py-2 rounded-lg text-gray-600 text-sm font-medium'}
+                    >
+                        Feedbacks ({feedbacks.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('complaints')}
+                        className={activeTab === 'complaints' ? 'px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium' : 'px-4 py-2 rounded-lg text-gray-600 text-sm font-medium'}
+                    >
+                        Complaints ({complaints.length})
+                    </button>
+                </div>
 
-                                    {/* Accordion Content */}
-                                    {openFeedbackId === fb._id && (
-                                        <div className="px-4 pb-4 bg-gray-50/50">
-                                            <div className="pt-2 border-t border-gray-100">
-                                                <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mb-3 mt-2">
-                                                    <div>
-                                                        Submitted: {formatDisplayDate(fb.submittedAt)}
-                                                    </div>
-                                                    {fb.teacherId && (
-                                                        <div>
-                                                            Teacher: {fb.teacherId.name}
-                                                        </div>
-                                                    )}
+                {activeTab === 'feedbacks' && (
+                    <div className="bg-white rounded-xl shadow-none overflow-hidden">
+                        {feedbacks.length > 0 ? (
+                            <div className="divide-y divide-gray-100">
+                                {feedbacks.map((fb) => (
+                                    <div key={fb._id} className="border-b last:border-b-0">
+                                        <div
+                                            onClick={() => toggleFeedback(fb._id)}
+                                            className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition"
+                                        >
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-semibold text-gray-900">
+                                                        {fb.type === 'platform' ? 'Platform Feedback' : (fb.classroomName || 'Classroom Feedback')}
+                                                    </h3>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${fb.type === 'platform' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        {fb.type || 'Classroom'}
+                                                    </span>
                                                 </div>
-                                                {fb.title && <div className="text-sm font-medium text-gray-700 mb-2">Prompt: "{fb.title}"</div>}
+                                                <div className="text-sm text-gray-500 mt-1">
+                                                    From: <span className="font-medium">{fb.studentId?.name || 'Deleted User'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center space-x-1">
+                                                    {renderStars(fb.rating)}
+                                                </div>
+                                                {openFeedbackId === fb._id ? (
+                                                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                                                ) : (
+                                                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Accordion Content */}
+                                        {openFeedbackId === fb._id && (
+                                            <div className="px-4 pb-4 bg-gray-50/50">
+                                                <div className="pt-2 border-t border-gray-100">
+                                                    <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mb-3 mt-2">
+                                                        <div>
+                                                            Submitted: {formatDisplayDate(fb.submittedAt)}
+                                                        </div>
+                                                        {fb.teacherId && (
+                                                            <div>
+                                                                Teacher: {fb.teacherId.name}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {fb.title && <div className="text-sm font-medium text-gray-700 mb-2">Prompt: "{fb.title}"</div>}
+                                                </div>
                                                 {fb.comment ? (
                                                     <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-none">
                                                         <p className="text-gray-700 text-sm leading-relaxed">"{fb.comment}"</p>
@@ -144,18 +171,51 @@ const Feedbacks = () => {
                                                     <p className="text-gray-400 text-sm italic">No written comment provided.</p>
                                                 )}
                                             </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-12 text-center text-gray-500">
+                                <MessageSquare className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                <p>No feedbacks submitted yet.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'complaints' && (
+                    <div className="bg-white rounded-xl shadow-none overflow-hidden">
+                        {complaints.length > 0 ? (
+                            <div className="divide-y divide-gray-100">
+                                {complaints.map((comp) => (
+                                    <div key={comp._id} className="p-4 border-b last:border-b-0">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                                                    <h3 className="font-semibold text-gray-900">{comp.subject}</h3>
+                                                    <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-700">{comp.category}</span>
+                                                </div>
+                                                <div className="text-sm text-gray-500 mb-2">
+                                                    From: <span className="font-medium">{comp.userName} ({comp.userEmail})</span> • {comp.userRole} • {formatDisplayDate(comp.createdAt)}
+                                                </div>
+                                                <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-xl">{comp.description}</div>
+                                                {comp.pageContext && <div className="text-xs text-gray-500 mt-2">Page: {comp.pageContext}</div>}
+                                                {comp.adminNotes && <div className="text-sm text-gray-600 mt-2 bg-blue-50 p-2 rounded">Admin Notes: {comp.adminNotes}</div>}
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="p-12 text-center text-gray-500">
-                            <MessageSquare className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                            <p>No feedback received yet.</p>
-                        </div>
-                    )}
-                </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-12 text-center text-gray-500">
+                                <AlertTriangle className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                <p>No complaints submitted yet.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Request Feedback Modal */}

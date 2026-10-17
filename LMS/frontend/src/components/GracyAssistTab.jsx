@@ -24,6 +24,29 @@ const MODES = [
 // (optional, skippable) topic. Assignment / exam / slides end with one extras
 // question. Users may also paste ALL details in one message — the parser
 // extracts counts/types/duration, and Gracy only asks for what's missing.
+// A concrete, task-appropriate example of a "paste it all at once" request.
+// Used in the intro copy so the sample always matches the chosen task.
+const ASSIST_EXAMPLES = {
+  classroom: 'an SS2 Biology class on cell division',
+  topic: 'photosynthesis for SS1 Biology',
+  syllabus: 'a full-term syllabus for SS2 Chemistry',
+  assignment: 'a 10-question assignment on fractions for SS1',
+  exam: 'a 60-minute exam on cell division for SS2',
+  slides: '10 slides on the water cycle for SS2',
+  qna: 'What is the difference between mitosis and meiosis?',
+};
+
+// Intro line shown when a task flow begins. Q&A has no multi-field paste step,
+// so it gets its own short prompt.
+const assistIntro = (type) => {
+  const label = MODES.find((m) => m.key === type)?.label || type;
+  if (type === 'qna') {
+    return "Happy to help! Ask your **question** and I'll explain it thoroughly. ✨";
+  }
+  const example = ASSIST_EXAMPLES[type] || ASSIST_EXAMPLES.assignment;
+  return `Happy to help! Let's craft a **${label}** ✨\n\nYou can answer question by question, or **paste in everything at once** — like \`${example}\` — and I'll take it from there.`;
+};
+
 const ASSIST_FEED = {
   classroom: ['subject', 'topicName'],
   topic: ['subject', 'topicName', 'pickClass'],
@@ -547,11 +570,10 @@ const GracyAssistTab = ({ prefill }) => {
     const f = { type, collected: seed, stepIndex: 0 };
     setFlow(f);
     setConvo([]);
-    const meta = MODES.find((m) => m.key === type);
     const q = flowQuestion(type, 0, seed);
     setConvo([{
       role: 'assistant',
-      content: `Happy to help! Let's craft a **${meta?.label || type}** ✨\n\nYou can answer question by question, or **paste in everything at once** — like \`10 MCQ questions on quadratic equations for SS2\` — and I'll take it from there.\n\n${q.text}`,
+      content: `${assistIntro(type)}\n\n${q.text}`,
       chips: q.chips,
     }]);
     if (inputRef.current) inputRef.current.focus();
@@ -756,4 +778,4 @@ const GracyAssistTab = ({ prefill }) => {
 
 export default GracyAssistTab;
 // Shared pieces used by the Gracy chat (task cards + conversational flow)
-export { MODES, ResultViewer, copyToClipboard, TaskCards, ASSIST_TASKS, TASK_TONES, ASSIST_FEED, flowStepFilled, flowQuestion, parseAssistInfo, buildAssistPayload, advanceFlowStep, applyStepAnswer };
+export { MODES, ResultViewer, copyToClipboard, TaskCards, ASSIST_TASKS, TASK_TONES, ASSIST_FEED, flowStepFilled, flowQuestion, parseAssistInfo, buildAssistPayload, advanceFlowStep, applyStepAnswer, assistIntro };

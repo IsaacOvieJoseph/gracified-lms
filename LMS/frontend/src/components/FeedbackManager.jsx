@@ -104,10 +104,10 @@ const FeedbackManager = () => {
                         </div>
                     )}
 
-                    <h3 className="text-3xl font-semibold text-white mb-2">
-                        {isPlatform ? 'Share Thoughts' : 'Class Ended'}
+                    <h3 className="text-3xl font-semibold mb-2">
+                        {isPlatform ? "Share Your Thought" : 'Class Ended'}
                     </h3>
-                    <p className="text-white/80 text-sm px-6 leading-relaxed">
+                    <p className="text/80 text-sm px-6 leading-relaxed">
                         {isPlatform
                             ? (currentRequest.title || 'How is your experience with our platform?')
                             : <span>The classroom <span className="font-semibold text-white whitespace-nowrap">{currentRequest.classroomName || currentRequest.classroomId?.name}</span> has ended.</span>

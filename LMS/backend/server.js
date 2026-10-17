@@ -134,6 +134,8 @@ app.use('/api/qna', require('./routes/qna'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/tutor-requests', require('./routes/tutorRequests'));
 app.use('/api/scripts', require('./routes/scripts'));
+app.use('/api/complaints', require('./routes/complaints'));
+app.use('/api/feedbacks', require('./routes/classrooms'));
 
 // Swagger Documentation
 const { swaggerUi, specs } = require('./config/swagger');

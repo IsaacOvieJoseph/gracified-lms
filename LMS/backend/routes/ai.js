@@ -85,9 +85,60 @@ const callAI = async (prompt, opts = {}) => {
     return callGroq(prompt, temperature);
 };
 
+// LLMs frequently emit raw control characters (literal newlines, tabs, etc.) inside
+// JSON string values, which is invalid JSON and throws "Bad control character in
+// string literal". Escape them, but only while inside a string literal, so that
+// structural whitespace between tokens is preserved.
+const escapeControlCharsInStrings = (text) => {
+    let out = '';
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (!inString) {
+            if (ch === '"') inString = true;
+            out += ch;
+            continue;
+        }
+        if (escaped) {
+            escaped = false;
+            out += ch;
+            continue;
+        }
+        if (ch === '\\') {
+            escaped = true;
+            out += ch;
+            continue;
+        }
+        if (ch === '"') {
+            inString = false;
+            out += ch;
+            continue;
+        }
+        const code = ch.charCodeAt(0);
+        if (code < 0x20) {
+            switch (ch) {
+                case '\n': out += '\\n'; break;
+                case '\r': out += '\\r'; break;
+                case '\t': out += '\\t'; break;
+                case '\b': out += '\\b'; break;
+                case '\f': out += '\\f'; break;
+                default: out += '\\u' + code.toString(16).padStart(4, '0');
+            }
+            continue;
+        }
+        out += ch;
+    }
+    return out;
+};
+
 const parseJSON = (text) => {
     const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    return JSON.parse(cleaned);
+    try {
+        return JSON.parse(cleaned);
+    } catch (_) {
+        return JSON.parse(escapeControlCharsInStrings(cleaned));
+    }
 };
 
 // ─── AI Tutor (student self-learning) access control ──────────────────────────
