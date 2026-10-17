@@ -415,15 +415,15 @@ const TopicCardWithVideo = ({ topic, isCurrent, isDone, isNext, isPending }) => 
 
 
 // ─── Flat record card primitives (ClassRecord design language) ──────────────
-const INK = '#14202E';
-const NAVY = '#1D3557';
-const SLATE = '#5B6B7C';
-const HAIRLINE = '#DDE3E9';
-const PAPER = '#FFFFFF';
-const PANEL = '#F7F8FA';
-const GOLD = '#A9791F';
-const FOREST = '#2F6E4E';
-const ROSE = '#A23B2E';
+const INK = 'hsl(var(--foreground))';
+const NAVY = 'hsl(var(--primary))';
+const SLATE = 'hsl(var(--muted-foreground))';
+const HAIRLINE = 'hsl(var(--border))';
+const PAPER = 'hsl(var(--card))';
+const PANEL = 'hsl(var(--muted))';
+const GOLD = 'hsl(var(--gold))';
+const FOREST = 'hsl(var(--success))';
+const ROSE = 'hsl(var(--danger))';
 
 const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: 'var(--radius)' };
 const outlineActionStyle = { backgroundColor: PAPER, color: INK, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' };
@@ -431,7 +431,7 @@ const outlineActionStyle = { backgroundColor: PAPER, color: INK, border: `1px so
 function ActionButton({ icon: Icon, label, tone = 'default', onClick, disabled, loading }) {
   const tones = {
     default: { color: INK, border: HAIRLINE, bg: PAPER },
-    danger: { color: ROSE, border: '#EBD3CE', bg: '#FCF5F3' },
+    danger: { color: ROSE, border: 'hsl(var(--danger) / 0.35)', bg: 'hsl(var(--danger) / 0.1)' },
     solid: { color: PAPER, border: INK, bg: INK },
   };
   const t = tones[tone];
@@ -2307,8 +2307,8 @@ const ClassroomDetail = () => {
             <div className="w-20 h-20 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-6">
               <CreditCard className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="text-3xl font-semibold text-slate-900 mb-4 tracking-tight">Weekly Subscription Expired</h3>
-            <p className="text-slate-600 mb-8 max-w-md mx-auto font-medium">
+            <h3 className="text-3xl font-semibold text-foreground mb-4 tracking-tight">Weekly Subscription Expired</h3>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto font-medium">
               This classroom requires a sustaining fee of <span className="text-primary font-semibold">{formatAmount(classroom?.pricing?.amount || 0)}</span> every 7 days. Please pay to continue accessing your course materials.
             </p>
             <button
@@ -2432,7 +2432,7 @@ const ClassroomDetail = () => {
 
                           })()
                         ) : (
-                          <div className="text-center py-8 text-gray-500">
+                          <div className="text-center py-8 text-muted-foreground">
                             <Book className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                             <p>No topics added yet</p>
                             {canEdit && (
@@ -2614,7 +2614,7 @@ const ClassroomDetail = () => {
                                 </div>
 
                                 {user?.role === 'student' && isGraded && submission && (assignment.assignmentType === 'theory' || (assignment.assignmentType === 'mcq' && (!assignment.publishResultsAt || new Date() >= new Date(assignment.publishResultsAt)))) && (
-                                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                                  <div className="bg-muted rounded-xl p-4 mb-4">
                                     <div className="flex items-center space-x-2 mb-2">
                                       <CheckCircle className="w-5 h-5 text-green-600" />
                                       <span className="font-semibold">
@@ -2622,12 +2622,12 @@ const ClassroomDetail = () => {
                                       </span>
                                     </div>
                                     {submission.feedback && (
-                                      <p className="text-gray-700 mt-2">Feedback: {submission.feedback}</p>
+                                      <p className="text-foreground mt-2">Feedback: {submission.feedback}</p>
                                     )}
                                     <div className="mt-4 border-t pt-4">
-                                      <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
+                                      <h5 className="font-semibold text-foreground mb-2">Your Submission:</h5>
                                       {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
-                                        <ul className="list-disc list-inside text-gray-700">
+                                        <ul className="list-disc list-inside text-foreground">
                                           {assignment.questions && assignment.questions.map((q, qIndex) => {
                                             const questionGrade = submission.questionScores?.find(qs => qs.questionIndex === qIndex);
                                             return (
@@ -2646,7 +2646,7 @@ const ClassroomDetail = () => {
                                         </ul>
                                       )}
                                       {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
-                                        <ul className="list-disc list-inside text-gray-700">
+                                        <ul className="list-disc list-inside text-foreground">
                                           {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
                                               <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
@@ -2666,7 +2666,7 @@ const ClassroomDetail = () => {
 
                                 {/* Student View: Submitted but not graded, or MCQ graded but results not published yet */}
                                 {user?.role === 'student' && isSubmitted && (!isGraded || (assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt))) && (
-                                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                                  <div className="bg-muted rounded-xl p-4 mb-4">
                                     <p className="font-semibold text-blue-600">
                                       {isGraded && assignment.assignmentType === 'mcq' && assignment.publishResultsAt && new Date() < new Date(assignment.publishResultsAt)
                                         ? `Results for this MCQ assignment will be published on ${new Date(assignment.publishResultsAt).toLocaleString()}.`
@@ -2674,9 +2674,9 @@ const ClassroomDetail = () => {
                                       }
                                     </p>
                                     <div className="mt-4 border-t pt-4">
-                                      <h5 className="font-semibold text-gray-700 mb-2">Your Submission:</h5>
+                                      <h5 className="font-semibold text-foreground mb-2">Your Submission:</h5>
                                       {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
-                                        <ul className="list-disc list-inside text-gray-700">
+                                        <ul className="list-disc list-inside text-foreground">
                                           {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
                                               <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
@@ -2686,10 +2686,10 @@ const ClassroomDetail = () => {
                                         </ul>
                                       )}
                                       {assignment.assignmentType === 'theory' && submission.answers && !Array.isArray(submission.answers) && (
-                                        <p className="text-gray-700">{submission.answers}</p>
+                                        <p className="text-foreground">{submission.answers}</p>
                                       )}
                                       {assignment.assignmentType === 'mcq' && submission.answers && Array.isArray(submission.answers) && (
-                                        <ul className="list-disc list-inside text-gray-700">
+                                        <ul className="list-disc list-inside text-foreground">
                                           {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
                                               <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
@@ -2839,7 +2839,7 @@ const ClassroomDetail = () => {
                         );
                       })
                     ) : (
-                      <p className="text-gray-500 text-center py-4">No assignments for this classroom yet</p>
+                      <p className="text-muted-foreground text-center py-4">No assignments for this classroom yet</p>
                     )}
                   </div>
                 </div>
@@ -2904,7 +2904,7 @@ const ClassroomDetail = () => {
                               <>
                                 <button
                                   onClick={() => navigate(`/exams/${exam._id}/submissions`)}
-                                  className="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 transition"
+                                  className="px-4 py-2 bg-white text-foreground border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 transition"
                                 >
                                   Submissions
                                 </button>
@@ -3322,10 +3322,10 @@ const ClassroomDetail = () => {
           title="End Classroom?"
           message={
             <div>
-              <p className="text-gray-500 text-center mb-4 text-sm">
+              <p className="text-muted-foreground text-center mb-4 text-sm">
                 Are you sure? This action will:
               </p>
-              <ul className="list-disc list-inside text-sm text-gray-500 mb-2 space-y-1 text-left">
+              <ul className="list-disc list-inside text-sm text-muted-foreground mb-2 space-y-1 text-left">
                 <li>Remove all students</li>
                 <li>Unpublish assignments & clear deadlines</li>
                 <li>Reset all topic progress</li>

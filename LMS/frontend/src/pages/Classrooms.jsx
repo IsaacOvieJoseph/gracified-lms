@@ -35,15 +35,15 @@ const defaultSubjects = [
   'Literature', 'Art', 'Music', 'Physical Education'
 ];
 
-const INK = '#14202E';
-const NAVY = '#1D3557';
-const SLATE = '#5B6B7C';
-const HAIRLINE = '#DDE3E9';
-const PAPER = '#FFFFFF';
-const PANEL = '#F7F8FA';
-const GOLD = '#A9791F';
-const FOREST = '#2F6E4E';
-const ROSE = '#A23B2E';
+const INK = 'hsl(var(--foreground))';
+const NAVY = 'hsl(var(--primary))';
+const SLATE = 'hsl(var(--muted-foreground))';
+const HAIRLINE = 'hsl(var(--border))';
+const PAPER = 'hsl(var(--card))';
+const PANEL = 'hsl(var(--muted))';
+const GOLD = 'hsl(var(--gold))';
+const FOREST = 'hsl(var(--success))';
+const ROSE = 'hsl(var(--danger))';
 
 const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: 'var(--radius)' };
 
@@ -431,10 +431,10 @@ const Classrooms = () => {
           <div className="flex items-start justify-between gap-3">
             <h3 className="flex-1 font-serif text-[19px] font-semibold leading-snug min-w-0" style={{ color: INK }}>
               {classroom.name}
-              {isNew && <span className="ml-2 text-[10px] font-sans align-middle px-1.5 py-0.5 tracking-wide" style={{ color: '#B7791F', border: '1px solid #EAD8BC', backgroundColor: '#FBF4E8', borderRadius: 'var(--radius)' }}>New</span>}
+              {isNew && <span className="ml-2 text-[10px] font-sans align-middle px-1.5 py-0.5 tracking-wide" style={{ color: GOLD, border: '1px solid hsl(var(--gold) / 0.35)', backgroundColor: 'hsl(var(--gold) / 0.12)', borderRadius: 'var(--radius)' }}>New</span>}
             </h3>
             {isFree ? (
-              <span className="text-xs font-semibold px-2 py-1 shrink-0 whitespace-nowrap" style={{ color: FOREST, border: `1px solid #CFE3D6`, backgroundColor: '#F2F8F4', borderRadius: 'var(--radius)' }}>
+              <span className="text-xs font-semibold px-2 py-1 shrink-0 whitespace-nowrap" style={{ color: FOREST, border: `1px solid hsl(var(--success) / 0.35)`, backgroundColor: 'hsl(var(--success) / 0.12)', borderRadius: 'var(--radius)' }}>
                 Free
               </span>
             ) : (
@@ -470,7 +470,7 @@ const Classrooms = () => {
                 onClick={() => handlePublishToggle(classroom._id, classroom.published)}
                 title={classroom.published ? 'Unpublish' : 'Publish'}
                 className="flex items-center justify-center w-8 h-8"
-                style={{ border: `1px solid ${classroom.published ? '#CFE3D6' : HAIRLINE}`, borderRadius: 'var(--radius)' }}
+                style={{ border: `1px solid ${classroom.published ? 'hsl(var(--success) / 0.5)' : HAIRLINE}`, borderRadius: 'var(--radius)' }}
                 aria-label={classroom.published ? 'Unpublish class' : 'Publish class'}
               >
                 {publishingClassId === classroom._id
@@ -482,7 +482,7 @@ const Classrooms = () => {
               <button
                 onClick={(e) => handleDeleteClick(classroom._id, e)}
                 className="flex items-center justify-center w-8 h-8"
-                style={{ border: '1px solid #EBD3CE', borderRadius: 'var(--radius)' }}
+                style={{ border: '1px solid hsl(var(--danger) / 0.4)', borderRadius: 'var(--radius)' }}
                 aria-label="Delete class"
               >
                 <Trash2 size={14} style={{ color: ROSE }} />

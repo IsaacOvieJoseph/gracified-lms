@@ -43,7 +43,7 @@ const GracyComplaintModal = ({ isOpen, onClose, pageContext }) => {
         <div className="bg-primary p-4 flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
-            <h3 className="font-semibold">Submit a Complaint</h3>
+            <h3 className="font-semibold text-white">Submit a Complaint</h3>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-lg">
             <X className="w-5 h-5" />
