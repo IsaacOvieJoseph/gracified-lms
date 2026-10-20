@@ -45,8 +45,11 @@ require('react-native-gesture-handler');
 // the module root (before the app root mounts). When the app is backgrounded or
 // closed, FCM/OS renders the notification payload automatically; this handler is
 // required to exist even for data-only messages.
-const messaging = require('@react-native-firebase/messaging').default;
-messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+const {
+  getMessaging,
+  setBackgroundMessageHandler,
+} = require('@react-native-firebase/messaging');
+setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
   // No-op for notification messages (handled by the OS). Add data-only
   // handling here if you send messages without a `notification` payload.
 });

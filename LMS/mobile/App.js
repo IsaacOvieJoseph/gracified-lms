@@ -43,7 +43,14 @@ import 'react-native-gesture-handler';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as Device from 'expo-device';
-import messaging from '@react-native-firebase/messaging';
+import {
+  AuthorizationStatus,
+  getMessaging,
+  getToken,
+  onMessage,
+  onTokenRefresh,
+  requestPermission,
+} from '@react-native-firebase/messaging';
 import * as SplashScreen from 'expo-splash-screen';
 import { PermissionsAndroid, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -57,6 +64,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import GracifiedSplash from './components/GracifiedSplash';
 
 export const navigationRef = createNavigationContainerRef();
+const messagingInstance = getMessaging();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -94,7 +102,7 @@ function AppContent() {
   useEffect(() => {
     // Foreground messages. The OS shows banners automatically when the app is
     // backgrounded/closed; in the foreground we rely on the in-app list.
-    const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
+    const unsubscribeForeground = onMessage(messagingInstance, async (remoteMessage) => {
       // Intentionally lightweight — push content is also persisted to the
       // in-app notifications list via the API. Add an in-app banner here if
       // you want foreground popups.
@@ -113,10 +121,10 @@ function AppContent() {
         let enabled = true;
 
         if (Platform.OS === 'ios') {
-          const authStatus = await messaging().requestPermission();
+          const authStatus = await requestPermission(messagingInstance);
           enabled =
-            authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-            authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+            authStatus === AuthorizationStatus.AUTHORIZED ||
+            authStatus === AuthorizationStatus.PROVISIONAL;
         } else if (Platform.OS === 'android' && Platform.Version >= 33) {
           // Android 13+ requires the runtime POST_NOTIFICATIONS permission.
           const result = await PermissionsAndroid.request(
@@ -127,7 +135,7 @@ function AppContent() {
 
         if (!enabled) return;
 
-        const token = await messaging().getToken();
+        const token = await getToken(messagingInstance);
         if (!token) return;
 
         const storedToken = await AsyncStorage.getItem('fcmToken');
@@ -142,7 +150,7 @@ function AppContent() {
     registerPushToken();
 
     // Keep the backend in sync when FCM rotates the token.
-    const unsubscribeTokenRefresh = messaging().onTokenRefresh(async (token) => {
+    const unsubscribeTokenRefresh = onTokenRefresh(messagingInstance, async (token) => {
       try {
         await saveToken(token);
       } catch (error) {
