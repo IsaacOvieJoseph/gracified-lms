@@ -56,7 +56,7 @@ const sendToTokens = async (userId, tokens, title, body, data) => {
   if (!tokens.length) return;
   try {
     const messages = tokens.map((token) => buildMessage(token, title, body, data));
-    const response = await messaging().sendEachForMulticast({ messages });
+    const response = await messaging().sendEach(messages);
     const invalid = collectInvalidTokens(response, tokens);
     if (invalid.length) await pruneTokens(userId, invalid);
   } catch (error) {
