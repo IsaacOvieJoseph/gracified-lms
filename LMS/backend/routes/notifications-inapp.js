@@ -18,7 +18,17 @@ const router = express.Router();
  */
 router.get('/', auth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user._id })
+    const query = { userId: req.user._id };
+
+    // Complaints should only be visible to root_admin (submitters still receive receipt confirmation)
+    if (req.user.role !== 'root_admin') {
+      query.$or = [
+        { type: { $ne: 'complaint' } },
+        { type: 'complaint', message: { $not: /^New .* complaint from/ } }
+      ];
+    }
+
+    const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .limit(20); // Limit to latest 20 notifications
 

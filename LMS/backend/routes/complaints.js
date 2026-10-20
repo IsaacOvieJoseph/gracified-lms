@@ -50,7 +50,7 @@ const sendComplaintNotification = async (complaint) => {
 // In-app notifications: alert admins and confirm receipt to the submitter.
 const createComplaintNotifications = async (complaint) => {
     try {
-        const admins = await User.find({ role: { $in: ['root_admin', 'school_admin'] } }).select('_id');
+        const admins = await User.find({ role: 'root_admin' }).select('_id');
 
         if (admins.length) {
             await Notification.insertMany(admins.map((a) => ({
@@ -104,7 +104,7 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
-router.get('/', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
+router.get('/', auth, authorize('root_admin'), async (req, res) => {
     try {
         const complaints = await Complaint.find()
             .populate('resolvedBy', 'name email')
@@ -125,7 +125,7 @@ router.get('/my', auth, async (req, res) => {
     }
 });
 
-router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, res) => {
+router.put('/:id', auth, authorize('root_admin'), async (req, res) => {
     try {
         const { status, adminNotes } = req.body;
         const complaint = await Complaint.findById(req.params.id);

@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Star, MessageSquare, ChevronDown, ChevronUp, Plus, Loader2, X, AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
-
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { formatDisplayDate } from '../utils/timezone';
 import { toast } from 'react-hot-toast';
 
 const Feedbacks = () => {
+    const { user } = useAuth();
+
+    if (user && user.role !== 'root_admin') {
+        return <Navigate to="/dashboard" replace />;
+    }
+
     const [feedbacks, setFeedbacks] = useState([]);
     const [complaints, setComplaints] = useState([]);
     const [activeTab, setActiveTab] = useState('feedbacks');
