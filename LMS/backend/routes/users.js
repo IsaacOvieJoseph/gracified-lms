@@ -9,7 +9,28 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const router = express.Router();
 
-router.post('/expo-token', auth, async (req, res) => {
+const updatePushToken = async (req, res) => {
+  try {
+    const { token, platform } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.addPushToken(token, platform);
+    await user.save();
+
+    res.json({ message: 'Push token updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const removePushToken = async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) {
@@ -21,14 +42,19 @@ router.post('/expo-token', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.expoPushToken = token;
+    user.removePushToken(token);
     await user.save();
 
-    res.json({ message: 'Expo push token updated successfully' });
+    res.json({ message: 'Push token removed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-});
+};
+
+router.post('/push-token', auth, updatePushToken);
+router.delete('/push-token', auth, removePushToken);
+// Legacy alias retained for older app builds that still call /expo-token.
+router.post('/expo-token', auth, updatePushToken);
 
 // Configure multer for CSV upload
 const upload = multer({
@@ -561,6 +587,15 @@ router.put('/:id', auth, authorize('root_admin', 'school_admin'), async (req, re
       }
       if (!['inherit', 'enabled', 'disabled'].includes(req.body.aiTutorAccess)) {
         return res.status(400).json({ message: 'aiTutorAccess must be inherit, enabled or disabled' });
+      }
+    }
+
+    if (req.body.allowOwnAIModels !== undefined) {
+      if (req.user.role !== 'root_admin') {
+        return res.status(403).json({ message: 'Only root admin can change own AI model access' });
+      }
+      if (typeof req.body.allowOwnAIModels !== 'boolean') {
+        return res.status(400).json({ message: 'allowOwnAIModels must be a boolean' });
       }
     }
 

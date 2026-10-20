@@ -279,6 +279,198 @@ The built files will be in `frontend/dist/`
 - `VITE_API_URL` - Backend API URL
  - `VITE_PAYSTACK_PUBLIC_KEY` - Paystack public key for inline widget (optional)
 
+## AI Assistant & MCP Integration
+
+The platform ships two related features that turn the LMS into an AI assistant hub:
+
+1. **Per-user AI provider connections** — every user can connect their *own* model
+   provider (OpenRouter key, or Google/Gemini via OAuth), so AI work is billed to
+   them, not the platform. Users without a connection fall back to the
+   platform's server-side provider.
+2. **MCP (Model Context Protocol) server** — a standards OAuth 2.1 authorization
+   server + Streamable HTTP transport, so Claude, ChatGPT, Cursor or any MCP
+   client can read a student's classes/topics/progress, draft content in drafts,
+   and (after explicit per-action confirmation) create or update content.
+
+### Setup — add these to `backend/.env`
+
+```env
+# ── Required ───────────────────────────────────────────────────────────────
+# Master key used to encrypt per-user provider secrets (AES-256-GCM, 32 bytes).
+# Generate one with:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# If unset it is derived from JWT_SECRET (fine for dev; if you change JWT_SECRET
+# later, already-stored secrets become unreadable, so set this early).
+AI_SECRET_ENCRYPTION_KEY=
+
+# Public origin of the BACKEND (no trailing slash), e.g. https://api.yourschool.com
+# Used to build the MCP OAuth issuer URL and the default MCP resource URL.
+PUBLIC_BASE_URL=
+
+# Public origin of the FRONTEND (no trailing slash). Used for the MCP consent
+# redirect, Google OAuth callback and email links. Defaults to http://localhost:3000
+FRONTEND_URL=
+
+# ── Platform AI provider (server-side key; used when a user has no connection)
+# ── Default platform provider is Groq; switch via Platform Settings UI.
+GEMINI_API_KEY=
+GROQ_API_KEY=
+GEMINI_MODEL=                 # optional, default gemini-2.0-flash
+GROQ_MODEL=                   # optional
+
+# ── Bring-your-own Gemini (optional) ─────────────────────────────────────────
+# Lets users sign in with their Google account to use their own Gemini quota.
+# Google Cloud Console: create an OAuth 2.0 client "Web application" and add an
+# authorized redirect URI of <FRONTEND_URL>/profile
+#   (dev frontend: http://localhost:5173/profile).
+GEMINI_OAUTH_CLIENT_ID=
+GEMINI_OAUTH_CLIENT_SECRET=
+
+# ── MCP (optional, with safe defaults) ───────────────────────────────────────
+# Canonical MCP endpoint URL a client connects to. Defaults to
+# PUBLIC_BASE_URL/mcp, then BASE_URL/mcp, then http://localhost:5000/mcp.
+MCP_RESOURCE_URL=
+
+# Allow MCP clients (Claude/ChatGPT/Cursor) to self-register via RFC 7591 DCR.
+# OFF by default. DCR-exposed clients get read + draft scopes only.
+MCP_ALLOW_DYNAMIC_REGISTRATION=true
+# Give DCR-registered clients mcp:write too (otherwise only read/draft).
+MCP_ALLOW_DCR_WRITE=true
+
+# Overrides for the dev-client seed script (section below).
+MCP_DEV_CLIENT_ID=
+MCP_DEV_CLIENT_NAME=
+MCP_DEV_CLIENT_URI=
+MCP_DEV_REDIRECT_URIS=
+```
+
+### Seed a development MCP client
+
+The MCP authorization server refuses every token request until a client exists.
+For local development, register one:
+
+```bash
+cd backend
+node scripts/seedMcpDevClient.js
+```
+
+This is idempotent. It stores only the SHA-256 of the secret and prints the
+plaintext `CLIENT_ID` / `CLIENT_SECRET` once — paste them into your test client.
+To control the redirect URIs the client may use:
+
+```bash
+MCP_DEV_REDIRECT_URIS="http://127.0.0.1:5173/callback,http://127.0.0.1:3000/callback" node scripts/seedMcpDevClient.js
+```
+
+For real third-party clients (Claude Desktop, ChatGPT, Cursor), prefer **dynamic
+registration** (`MCP_ALLOW_DYNAMIC_REGISTRATION=true`): the client presents its
+own accurate redirect URI and is granted read + draft scopes. A pre-registered
+client only works when its exact redirect URI is registered here — matching is
+deliberately exact, never prefix-based.
+
+### AI access control (precedence global → school → user)
+
+- Any explicit **"disabled"** at any level wins; explicit "enabled" only counts
+  when nothing above it is disabled. Administrators can therefore switch AI off
+  and it takes effect immediately.
+- **Global (Platform Settings UI):** `activeAIProvider` (groq | gemini),
+  `studentAIEnabled` (student access off by default), `studentAIDailyLimit`
+  (1-1000, default 20). Staff-wide disable (`staffAIEnabled`) is not yet exposed
+  in the UI — set it directly in the `Settings` collection if needed.
+- **School:** `School.aiTutorAccess` = `'enabled' | 'disabled'` (per school).
+- **User:** user's `aiTutorAccess` on their own account; students additionally
+  have a daily interaction meter (`aiTutorUsage`).
+- All AI surfaces — the `generate-*` REST routes **and** every MCP tool — go
+  through this one gate (`utils/aiAccess.js`).
+
+### User guide — connect your own AI provider (Profile page)
+
+**Profile → AI Connection:**
+
+| Action | What happens |
+| --- | --- |
+| **Connect Google** | Opens Google OAuth. Google redirects back to your Profile page and the backend stores the refresh token (encrypted, bound to your account ID). AI requests use **your** Gemini quota. |
+| **Add OpenRouter key** | Paste a key from openrouter.ai/keys; optional model override. Requests bill your OpenRouter account. |
+| **Disconnect** | Deletes the stored secret; requests fall back to the platform provider. |
+
+Editors see key material as `••••1234`; the full key never leaves the server, and
+at-rest it is AES-256-GCM sealed with a context bound to your user ID.
+
+### User guide — connect an assistant (Claude / ChatGPT / Cursor)
+
+1. Sign in to the LMS normally (the MCP session binds to your login).
+2. In your assistant/MCP client, add the server URL — the **resource URL**
+   (e.g. `https://api.yourschool.com/mcp`).
+3. The client performs the OAuth 2.1 flow: it opens the browser, you land on
+   **Consent** at `FRONTEND_URL/mcp-consent`, and approve a scope set:
+
+   | Scope | Grants |
+   | --- | --- |
+   | `mcp:read` | Read your classes, topics, assignments and progress. |
+   | `mcp:draft` | Draft study material and teaching content using AI. |
+   | `mcp:write` | Create and update content in your classes. |
+
+4. Your client stores the token. Every later call is scoped by **what you
+   approved** (a client can never self-widen) and by **your role** (students see
+   read/draft tools only; write tools are for staff).
+5. Write-scoped tools are further protected by a **confirmation gate**: the
+   assistant can create content only after you approve a one-time confirmation
+   prompt in the profile/consent surface. Every draft and every write is written
+   to the MCP audit log.
+6. **Manage your connections** at Profile → Connected Assistants: see what has
+   access, and revoke any client instantly (revocation kills its refresh token).
+
+### Client configuration examples
+
+```jsonc
+// Claude Desktop — claude_desktop_config.json
+{
+  "mcpServers": {
+    "gracy-lms": { "url": "https://api.yourschool.com/mcp" }
+  }
+}
+```
+
+```bash
+# Claude Code (CLI)
+claude mcp add gracy --transport http https://api.yourschool.com/mcp
+```
+
+ChatGPT and Cursor accept the same server URL from their "connect MCP server"
+menus. The client discovers everything else via RFC-style metadata — it never
+needs redirect URIs or client credentials from you (DCR provides them).
+
+### MCP endpoints (discovery is fully automatic)
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /.well-known/oauth-protected-resource/mcp` | Protected Resource Metadata (RFC 9728) |
+| `GET /.well-known/oauth-authorization-server` | Authorisation Server Metadata (RFC 8414) |
+| `GET /api/mcp/oauth/authorize` | Authorization endpoint (PKCE S256 only) |
+| `POST /api/mcp/oauth/token` | Token endpoint (audience-bound access tokens, 1 h) |
+| `POST /api/mcp/oauth/revoke` | Revocation (RFC 7009) |
+| `POST /api/mcp/oauth/register` | Dynamic client registration (RFC 7591, off unless enabled) |
+| `POST /api/mcp/oauth/consent-intent` / `GET|POST /api/mcp/oauth/consent` | Consent screen backing |
+| `GET|POST /mcp` | Streamable HTTP transport (JSON-RPC `tools/list`, `tools/call`, …) |
+
+### Security invariants (do not weaken)
+
+- PKCE with `S256` is mandatory; the implicit flow does not exist.
+- Access tokens are audience-bound to this server's resource URL and verified
+  against it — a token minted here is not replayable elsewhere.
+- Scope granted = scope shown on consent (a client cannot ask wider later).
+- Redirect URIs match **exactly**; unregistered redirects are refused without
+  redirecting. Client ID docs (CIMD) are fetched through the SSRF guard.
+- Codes are single-use and expire in 10 minutes; refresh tokens last 30 days and
+  are invalidated on revoke or disconnect.
+
+### Testing
+
+```bash
+cd backend
+npm test          # runs node --test tests/ (142 tests, no DB required)
+```
+
 ## Security Notes
 
 - Change JWT_SECRET in production

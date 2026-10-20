@@ -40,6 +40,17 @@ if (typeof rootGlobal.DOMRect === 'undefined') {
 }
 
 require('react-native-gesture-handler');
+
+// Firebase Cloud Messaging — background message handler. Must be registered at
+// the module root (before the app root mounts). When the app is backgrounded or
+// closed, FCM/OS renders the notification payload automatically; this handler is
+// required to exist even for data-only messages.
+const messaging = require('@react-native-firebase/messaging').default;
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  // No-op for notification messages (handled by the OS). Add data-only
+  // handling here if you send messages without a `notification` payload.
+});
+
 const { registerRootComponent } = require('expo');
 const App = require('./App').default;
 registerRootComponent(App);

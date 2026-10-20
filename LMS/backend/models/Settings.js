@@ -34,6 +34,13 @@ const settingsSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    staffAIEnabled: {
+        type: Boolean,
+        // Staff have had AI by default, so the default stays true. This exists so
+        // a root admin can switch AI off for teachers and school admins globally
+        // without editing every account.
+        default: true
+    },
     studentAIDailyLimit: {
         type: Number,
         default: 20,

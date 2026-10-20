@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ConfirmationModal from "../components/ConfirmationModal";
+import ShareModal from "../components/ShareModal";
 import { Plus, Pencil, Trash2, ArrowUpDown, Loader2, X, Share2, Award } from "lucide-react";
 
 const CreateSchoolModal = ({ open, onClose, onCreated }) => {
@@ -121,6 +122,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
     name: "",
     adminId: "",
     aiTutorAccess: "inherit",
+    allowOwnAIModels: false,
   });
   const [admins, setAdmins] = useState([]);
 
@@ -130,6 +132,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
         name: school.name,
         adminId: school.admin?._id || "",
         aiTutorAccess: school.aiTutorAccess || "inherit",
+        allowOwnAIModels: Boolean(school.allowOwnAIModels),
       });
     }
   }, [school]);
@@ -149,6 +152,7 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
       if (user.role === 'root_admin') {
         payload.adminId = form.adminId;
         payload.aiTutorAccess = form.aiTutorAccess;
+        payload.allowOwnAIModels = form.allowOwnAIModels;
       } else if (user.role === 'school_admin') {
         payload.adminId = user._id;
       }
@@ -232,6 +236,28 @@ const EditSchoolModal = ({ open, onClose, school, onUpdated }) => {
               </div>
             )}
 
+            {user?.role === 'root_admin' && (
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground tracking-[0.2em] mb-2 block">Own AI Models (BYO Provider)</label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.allowOwnAIModels}
+                  onClick={() => setForm({ ...form, allowOwnAIModels: !form.allowOwnAIModels })}
+                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none ${form.allowOwnAIModels ? 'bg-primary' : 'bg-muted border border-border'
+                    }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${form.allowOwnAIModels ? 'translate-x-7' : 'translate-x-1'
+                      }`}
+                  />
+                </button>
+                <p className="text-[11px] text-muted-foreground/60 font-medium mt-2">
+                  When {form.allowOwnAIModels ? 'on' : 'off'}, staff at this school {form.allowOwnAIModels ? 'can' : 'cannot'} connect their own Google Gemini or OpenRouter provider from their Profile (MCP).
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-4 pt-4">
               <button
                 type="button"
@@ -270,6 +296,7 @@ export default function SchoolsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [schoolToDelete, setSchoolToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [shareTarget, setShareTarget] = useState(null);
 
   const canManage = ["root_admin", "school_admin"].includes(user?.role);
   const canCreateSchool = ["root_admin", "school_admin"].includes(user?.role);
@@ -361,14 +388,7 @@ export default function SchoolsPage() {
   };
 
   const handleShare = (inst) => {
-    let url;
-    if (inst.type === 'school') {
-      url = `${window.location.origin}/s/${inst.slug || inst.shortCode || inst._id}`;
-    } else {
-      url = `${window.location.origin}/tutorial-center/${inst._id}`;
-    }
-    navigator.clipboard.writeText(url);
-    toast.success('Portal link copied!');
+    setShareTarget(inst);
   };
 
   const handleManageSubscription = (inst) => {
@@ -419,7 +439,7 @@ export default function SchoolsPage() {
               className="btn-premium px-8 py-3 rounded-xl flex items-center gap-3 shadow-none"
             >
               <Plus className="w-5 h-5" />
-              <span className="font-semibold text-xs tracking-wide">Establish Establishment</span>
+              <span className="font-semibold text-xs tracking-wide">Add School</span>
             </button>
           )}
         </div>
@@ -457,7 +477,7 @@ export default function SchoolsPage() {
                 </tr>
               ) : sortedSchools.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-20 text-muted-foreground/30 font-semibold italic tracking-wide">No establishments found</td>
+                  <td colSpan="6" className="text-center py-20 text-muted-foreground/30 font-semibold italic tracking-wide">No School Found</td>
                 </tr>
               ) : (
                 sortedSchools.map((inst) => (
@@ -556,6 +576,17 @@ export default function SchoolsPage() {
         message="Are you sure you want to delete this school? This action will permanently remove all associated users and data."
         confirmText="DECOMMISSION"
         isLoading={isDeleting}
+      />
+
+      <ShareModal
+        show={!!shareTarget}
+        onClose={() => setShareTarget(null)}
+        shareUrl={shareTarget ? (shareTarget.type === 'school'
+          ? `${window.location.origin}/s/${shareTarget.slug || shareTarget.shortCode || shareTarget._id}`
+          : `${window.location.origin}/tutorial-center/${shareTarget._id}`) : ''}
+        shareText={shareTarget ? `Join ${shareTarget.name} on Gracified LMS` : ''}
+        title={shareTarget?.type === 'school' ? 'Share this school' : 'Share this tutorial center'}
+        subtitle="Invite people to explore this portal"
       />
     </Layout>
   );

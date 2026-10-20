@@ -9,14 +9,20 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.isaac_joseph.gracifiedlmsmobile",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/favicon_adaptive.png",
         "backgroundColor": "#0F172A"
       },
-      "package": "com.isaac_joseph.gracifiedlmsmobile"
+      "package": "com.isaac_joseph.gracifiedlmsmobile",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "extra": {
       "eas": {
@@ -24,6 +30,8 @@
       }
     },
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       "expo-font",
       "expo-sharing",
       [

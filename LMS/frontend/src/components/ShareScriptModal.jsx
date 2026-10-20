@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { X, Copy, Check, Save, Settings, Clock, Shield, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, Copy, Check, Save, Settings, Clock, Shield, AlertCircle, RefreshCw, QrCode, Link2, Facebook, Twitter, MessageCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, studentId, selectedSubmissionIds = [] }) => {
@@ -201,7 +201,46 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                     </div>
                                     <p className="text-xs text-muted-foreground leading-relaxed ml-1 flex items-start gap-1.5 mt-1">
                                         <AlertCircle className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
-                                        <span>Anyone with this link can request access. An OTP will be emailed to your authorized school/exam owner.</span>
+                                        <div className="flex flex-col items-center mb-4">
+                                        <img
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=6&data=${encodeURIComponent(shareUrl)}`}
+                                            alt="QR code for this link"
+                                            className="w-36 h-36 rounded-xl border border-slate-200 dark:border-slate-800 bg-white p-2"
+                                        />
+                                        <p className="mt-2 text-xs font-semibold tracking-wide text-muted-foreground/60 text-center">Scan to open</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                        <a
+                                            href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex flex-col items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/40 transition-all"
+                                        >
+                                            <MessageCircle className="w-4 h-4 text-emerald-500" />
+                                            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">WhatsApp</span>
+                                        </a>
+                                        <a
+                                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex flex-col items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/40 transition-all"
+                                        >
+                                            <Facebook className="w-4 h-4 text-blue-500" />
+                                            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">Facebook</span>
+                                        </a>
+                                        <a
+                                            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex flex-col items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/40 transition-all"
+                                        >
+                                            <Twitter className="w-4 h-4 text-sky-500" />
+                                            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">Twitter/X</span>
+                                        </a>
+                                    </div>
+
+                                    <span>Anyone with this link can request access. An OTP will be emailed to your authorized school/exam owner.</span>
                                     </p>
                                 </div>
 

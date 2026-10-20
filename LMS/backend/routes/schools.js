@@ -174,6 +174,7 @@ router.get("/", auth, authorize('root_admin', 'school_admin'), async (req, res) 
       name: s.name,
       shortCode: s.shortCode,
       aiTutorAccess: s.aiTutorAccess || 'inherit',
+      allowOwnAIModels: Boolean(s.allowOwnAIModels),
       admin: s.adminId
         ? { name: s.adminId.name, email: s.adminId.email }
         : null,
@@ -225,6 +226,7 @@ router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, re
       admin: s.adminId, // Note: This is populated as an object
       shortCode: s.shortCode,
       aiTutorAccess: s.aiTutorAccess || 'inherit',
+      allowOwnAIModels: Boolean(s.allowOwnAIModels),
       createdAt: s.createdAt,
     });
   } catch (err) {
@@ -261,6 +263,8 @@ router.get("/:id", auth, authorize('root_admin', 'school_admin'), async (req, re
  *               aiTutorAccess:
  *                 type: string
  *                 enum: [inherit, enabled, disabled]
+ *               allowOwnAIModels:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: School updated
@@ -278,6 +282,9 @@ router.put("/:id", auth, async (req, res) => {
       if (req.body.aiTutorAccess !== undefined) {
         return res.status(403).json({ message: "Only root admin can change AI Tutor access" });
       }
+      if (req.body.allowOwnAIModels !== undefined) {
+        return res.status(403).json({ message: "Only root admin can change own AI model access" });
+      }
     } else if (req.user.role !== "root_admin") {
       return res.status(403).json({ message: "Access denied" });
     }
@@ -291,6 +298,9 @@ router.put("/:id", auth, async (req, res) => {
           return res.status(400).json({ message: "aiTutorAccess must be inherit, enabled or disabled" });
         }
         school.aiTutorAccess = req.body.aiTutorAccess;
+      }
+      if (req.body.allowOwnAIModels !== undefined) {
+        school.allowOwnAIModels = Boolean(req.body.allowOwnAIModels);
       }
     }
 

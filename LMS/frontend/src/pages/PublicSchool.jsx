@@ -9,6 +9,7 @@ import {
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
+import ShareModal from '../components/ShareModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -19,6 +20,7 @@ const PublicSchool = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     const fetchSchool = async () => {
@@ -37,9 +39,7 @@ const PublicSchool = () => {
   }, [identifier]);
 
   const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success('School portal link copied!');
+    setShowShareModal(true);
   };
 
   if (loading) {
@@ -326,6 +326,14 @@ const PublicSchool = () => {
           </p>
         </div>
       </footer>
+      <ShareModal
+        show={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={window.location.href}
+        shareText={`Join ${school.name} on Gracified LMS`}
+        title="Share this school"
+        subtitle="Invite people to explore this portal"
+      />
     </div>
   );
 };

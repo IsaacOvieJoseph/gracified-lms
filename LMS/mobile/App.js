@@ -43,8 +43,9 @@ import 'react-native-gesture-handler';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import messaging from '@react-native-firebase/messaging';
 import * as SplashScreen from 'expo-splash-screen';
+import { PermissionsAndroid, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
@@ -77,15 +78,11 @@ const linking = {
   },
 };
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Foreground push handling: FCM delivers messages to onMessage() when the app
+// is in the foreground. Unlike Expo, there is no built-in banner renderer here
+// (notifications module was merged into messaging), so we surface foreground
+// notifications via the in-app Notifications screen (fetched from the API).
+// Background/closed-app banners are rendered automatically by the OS/FCM.
 
 function AppContent() {
   const { user } = useAuth();
@@ -95,38 +92,71 @@ function AppContent() {
   const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
 
   useEffect(() => {
+    // Foreground messages. The OS shows banners automatically when the app is
+    // backgrounded/closed; in the foreground we rely on the in-app list.
+    const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
+      // Intentionally lightweight — push content is also persisted to the
+      // in-app notifications list via the API. Add an in-app banner here if
+      // you want foreground popups.
+    });
+
+    const saveToken = async (token) => {
+      const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+      await api.post('/users/push-token', { token, platform });
+      await AsyncStorage.setItem('fcmToken', token);
+    };
+
     const registerPushToken = async () => {
       if (!user || !Device.isDevice) return;
 
       try {
-        const storedToken = await AsyncStorage.getItem('pushToken');
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
+        let enabled = true;
 
-        if (existingStatus !== 'granted') {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
+        if (Platform.OS === 'ios') {
+          const authStatus = await messaging().requestPermission();
+          enabled =
+            authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+            authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        } else if (Platform.OS === 'android' && Platform.Version >= 33) {
+          // Android 13+ requires the runtime POST_NOTIFICATIONS permission.
+          const result = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+          );
+          enabled = result === PermissionsAndroid.RESULTS.GRANTED;
         }
 
-        if (finalStatus !== 'granted') return;
+        if (!enabled) return;
 
-        const tokenData = await Notifications.getExpoPushTokenAsync();
-        const token = tokenData?.data;
-        if (!token || token === storedToken) return;
+        const token = await messaging().getToken();
+        if (!token) return;
 
-        await api.post('/users/expo-token', { token });
-        await AsyncStorage.setItem('pushToken', token);
+        const storedToken = await AsyncStorage.getItem('fcmToken');
+        if (token !== storedToken) {
+          await saveToken(token);
+        }
       } catch (error) {
-        console.log('Push registration failed:', error.message);
+        console.log('FCM registration failed:', error.message);
       }
     };
 
     registerPushToken();
+
+    // Keep the backend in sync when FCM rotates the token.
+    const unsubscribeTokenRefresh = messaging().onTokenRefresh(async (token) => {
+      try {
+        await saveToken(token);
+      } catch (error) {
+        console.log('FCM token refresh failed:', error.message);
+      }
+    });
+
+    return () => {
+      unsubscribeForeground();
+      unsubscribeTokenRefresh();
+    };
   }, [user]);
 
   useEffect(() => {
-    let isMounted = true;
-
     let isMounted = true;
 
     const prepareApp = async () => {
@@ -135,14 +165,8 @@ function AppContent() {
         if (isMounted) {
           setAppReady(true);
         }
-        if (isMounted) {
-          setAppReady(true);
-        }
       } catch (error) {
         console.log('App bootstrap failed:', error.message);
-        if (isMounted) {
-          setAppReady(true);
-        }
         if (isMounted) {
           setAppReady(true);
         }
@@ -150,10 +174,6 @@ function AppContent() {
     };
 
     prepareApp();
-
-    return () => {
-      isMounted = false;
-    };
 
     return () => {
       isMounted = false;

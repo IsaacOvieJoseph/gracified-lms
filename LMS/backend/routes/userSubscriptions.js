@@ -32,6 +32,74 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// Look up a user's current subscription on their behalf (Root Admin only)
+/**
+ * @swagger
+ * /api/user-subscriptions/lookup:
+ *   get:
+ *     summary: Look up a school admin's or personal teacher's current subscription (Root Admin)
+ *     tags: [User Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: email
+ *         schema: { type: string }
+ *       - in: query
+ *         name: schoolId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: personalTeacherId
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Target user and current subscription
+ */
+router.get('/lookup', auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const { userId, email, schoolId, personalTeacherId } = req.query;
+
+    // Resolve the target using the same identifiers as /assign.
+    let targetUser = null;
+    if (userId || personalTeacherId) {
+      targetUser = await User.findById(userId || personalTeacherId);
+    } else if (email) {
+      targetUser = await User.findOne({ email: String(email).toLowerCase().trim() });
+    } else if (schoolId) {
+      const School = require('../models/School');
+      const school = await School.findById(schoolId).select('adminId');
+      if (school && school.adminId) {
+        targetUser = await User.findById(school.adminId);
+      }
+    }
+
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Target user not found' });
+    }
+
+    const subscription = await UserSubscription.findOne({ userId: targetUser._id }).populate('planId');
+    const endDate =
+      subscription?.endDate || targetUser.subscriptionEndDate || targetUser.trialEndDate || null;
+
+    res.json({
+      target: {
+        _id: targetUser._id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role
+      },
+      status: targetUser.subscriptionStatus || subscription?.status || null,
+      endDate,
+      subscription: subscription || null
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get all user subscriptions (Admin only)
 /**
  * @swagger
@@ -121,6 +189,129 @@ router.post('/', auth, authorize('root_admin', 'school_admin'), async (req, res)
     await user.save();
 
     res.status(200).json({ subscription: userSubscription });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Assign a plan to a user on their behalf (Root Admin only)
+/**
+ * @swagger
+ * /api/user-subscriptions/assign:
+ *   post:
+ *     summary: Assign a subscription plan to a school admin or personal teacher (Root Admin)
+ *     tags: [User Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - planId
+ *             properties:
+ *               planId:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               schoolId:
+ *                 type: string
+ *               personalTeacherId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Plan assigned to the target user
+ */
+router.post('/assign', auth, authorize('root_admin'), async (req, res) => {
+  try {
+    const { planId, userId, email, schoolId, personalTeacherId } = req.body;
+
+    if (!planId) {
+      return res.status(400).json({ message: 'planId is required' });
+    }
+
+    const plan = await SubscriptionPlan.findById(planId);
+    if (!plan) {
+      return res.status(404).json({ message: 'Subscription plan not found' });
+    }
+
+    // Resolve the target user from whichever identifier the caller supplied.
+    // A school's subscription belongs to its admin, a tutorial center's to its
+    // personal teacher.
+    let targetUser = null;
+    if (userId || personalTeacherId) {
+      targetUser = await User.findById(userId || personalTeacherId);
+    } else if (email) {
+      targetUser = await User.findOne({ email: String(email).toLowerCase().trim() });
+    } else if (schoolId) {
+      const School = require('../models/School');
+      const school = await School.findById(schoolId).select('adminId');
+      if (school && school.adminId) {
+        targetUser = await User.findById(school.adminId);
+      }
+    }
+
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Target user not found' });
+    }
+
+    // Only the roles that require a subscription can be assigned one.
+    if (!['school_admin', 'personal_teacher'].includes(targetUser.role)) {
+      return res.status(400).json({
+        message: 'Only school admins and personal teachers can be assigned a subscription'
+      });
+    }
+
+    const startDate = new Date();
+    let endDate = null;
+    let status;
+    if (plan.planType === 'pay_as_you_go') {
+      status = 'pay_as_you_go';
+    } else if (plan.planType === 'trial') {
+      status = 'trial';
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + (plan.durationDays || 30));
+    } else {
+      status = 'active';
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + (plan.durationDays || 30));
+    }
+
+    await UserSubscription.findOneAndUpdate(
+      { userId: targetUser._id },
+      {
+        planId: plan._id,
+        status,
+        startDate,
+        endDate,
+        paymentId: null,
+        stripeSubscriptionId: 'assigned_by_admin'
+      },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    targetUser.subscriptionPlan = plan._id;
+    targetUser.subscriptionStatus = status;
+    targetUser.subscriptionStartDate = startDate;
+    targetUser.subscriptionEndDate = endDate;
+    await targetUser.save();
+
+    res.status(200).json({
+      message: `Assigned ${plan.name} to ${targetUser.name || targetUser.email}`,
+      target: {
+        _id: targetUser._id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role
+      },
+      status,
+      startDate,
+      endDate
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

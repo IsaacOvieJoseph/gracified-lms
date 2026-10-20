@@ -1437,10 +1437,10 @@ router.put('/profile', auth, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-// Update user's Expo push token
+// Update user's push token (FCM). Accepts { token, platform }.
 router.post('/expo-push-token', auth, async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, platform } = req.body;
     if (!token) {
       return res.status(400).json({ message: 'Token is required' });
     }
@@ -1448,9 +1448,9 @@ router.post('/expo-push-token', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    user.expoPushToken = token;
+    user.addPushToken(token, platform);
     await user.save();
-    res.json({ message: 'Expo push token updated successfully' });
+    res.json({ message: 'Push token updated successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

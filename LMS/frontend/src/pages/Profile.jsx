@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { User, CreditCard, Save, Camera, Lock, Building, Upload, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
+import AIConnectionSection from '../components/profile/AIConnectionSection';
+import MCPConnectionsSection from '../components/profile/MCPConnectionsSection';
 
 const Profile = () => {
     const { user, setAuthData } = useAuth(); // Use setAuthData to update user
@@ -415,6 +417,12 @@ const Profile = () => {
                                 </div>
                             </div>
                         )}
+
+                        {/* AI Provider Connection Section */}
+                        <AIConnectionSection />
+
+                        {/* Connected MCP Assistants */}
+                        <MCPConnectionsSection />
 
                         {/* Bank Details Section */}
                         {canEditBankDetails && (

@@ -1,0 +1,1 @@
+﻿          ? `System Alert: New Subscription ${planName ? `(${planName})` : ''} of â‚¦${payment.amount} ${payment.currency || 'NGN'} from ${payerUser?.name || 'user'}.`

@@ -155,14 +155,27 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
-  expoPushToken: {
-    type: String,
-    default: null,
-  },
+  pushTokens: [{
+    token: { type: String, required: true },
+    platform: {
+      type: String,
+      enum: ['android', 'ios', 'web', 'unknown'],
+      default: 'unknown',
+    },
+    createdAt: { type: Date, default: Date.now },
+  }],
   aiTutorAccess: {
     type: String,
     enum: ['inherit', 'enabled', 'disabled'],
     default: 'inherit',
+  },
+  // Root-admin controlled switch: whether this account may connect their OWN
+  // AI model provider (BYO Gemini / OpenRouter). For personal teachers (who
+  // belong to no School) this is the authoritative flag. For school staff it
+  // is ignored in favour of School.allowOwnAIModels.
+  allowOwnAIModels: {
+    type: Boolean,
+    default: false,
   },
   aiTutorUsage: {
     usageDate: { type: String, default: null }, // YYYY-MM-DD key for the daily cap
@@ -182,6 +195,29 @@ userSchema.pre('save', async function (next) {
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+userSchema.methods.addPushToken = function (token, platform = 'unknown') {
+  const normalizedPlatform = ['android', 'ios', 'web'].includes(platform)
+    ? platform
+    : 'unknown';
+  const existing = this.pushTokens.find((entry) => entry.token === token);
+  if (existing) {
+    existing.platform = normalizedPlatform;
+    existing.createdAt = new Date();
+  } else {
+    this.pushTokens.push({
+      token,
+      platform: normalizedPlatform,
+      createdAt: new Date(),
+    });
+  }
+  return this;
+};
+
+userSchema.methods.removePushToken = function (token) {
+  this.pushTokens = this.pushTokens.filter((entry) => entry.token !== token);
+  return this;
 };
 
 const User = mongoose.model('User', userSchema);

@@ -3144,7 +3144,7 @@ const ClassroomDetail = () => {
             <div className="flex min-h-full items-center justify-center p-4">
               <div className="bg-card border border-border rounded-xl w-full max-w-md p-8 shadow-none animate-in zoom-in-95 duration-300">
                 <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-xl font-semibold tracking-tight text-foreground">Deploy Candidates</h3>
+                  <h3 className="text-xl font-semibold tracking-tight text-foreground">Enrol Students</h3>
                   <button onClick={() => setShowAddStudentModal(false)} className="p-2 hover:bg-muted rounded-xl transition text-muted-foreground"><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={handleAddStudent} className="space-y-6">
@@ -3155,7 +3155,7 @@ const ClassroomDetail = () => {
                       onChange={(e) => setSelectedStudentId(e.target.value)}
                       className="w-full bg-muted border-2 border-border p-4 rounded-xl font-semibold text-foreground outline-none focus:border-primary transition-all appearance-none"
                     >
-                      <option value="" disabled className="bg-card">Awaiting Selection...</option>
+                      <option value="" disabled className="bg-card">Select student(s)...</option>
                       {availableStudents.map(student => (
                         <option key={student._id} value={student._id} className="bg-card">{student.name} ({student.email})</option>
                       ))}
@@ -3179,7 +3179,7 @@ const ClassroomDetail = () => {
                       disabled={!selectedStudentId || availableStudents.length === 0 || isAddingStudent}
                       className="btn-premium flex-1"
                     >
-                      {isAddingStudent ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'CONFIRM ENROLLMENT'}
+                      {isAddingStudent ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Enroll'}
                     </button>
                   </div>
                 </form>
@@ -3290,7 +3290,7 @@ const ClassroomDetail = () => {
                       {isProcessingPayment ? (
                         <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                       ) : (
-                        'INITIATE PROTOCOL'
+                        'Make Payment'
                       )}
                     </button>
                   </div>

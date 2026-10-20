@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1069453591011",
+    "project_id": "gracified-lms-c9c2f",
+    "storage_bucket": "gracified-lms-c9c2f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1069453591011:android:77338fbf8479f44f88e0d6",
+        "android_client_info": {
+          "package_name": "com.isaac_joseph.gracifiedlmsmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCP1Ds1S4XFrGxTmmM4JQGSV-n9oKxSBk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

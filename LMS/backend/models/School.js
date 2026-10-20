@@ -36,6 +36,14 @@ const schoolSchema = new mongoose.Schema({
     enum: ['inherit', 'enabled', 'disabled'],
     default: 'inherit'
   },
+  // Root-admin controlled switch: whether staff at this school may connect
+  // their OWN AI model provider (BYO Gemini / OpenRouter) instead of the
+  // platform's shared provider. Off by default so new schools are not given
+  // self-serve BYO access until an admin opts them in.
+  allowOwnAIModels: {
+    type: Boolean,
+    default: false
+  },
 }, { timestamps: true });
 
 // Generate unique shortCode and slug before saving

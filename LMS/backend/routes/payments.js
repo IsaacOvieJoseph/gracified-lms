@@ -45,7 +45,7 @@ async function calculatePayoutBreakdown(amount) {
 }
 
 // Helper: notify recipients (in-app + email notify)
-async function notifyRecipients({ payerUser, payment, classroom }) {
+async function notifyRecipients({ payerUser, payment, classroom, plan }) {
   try {
     const recipients = [];
 
@@ -93,13 +93,19 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
       const isSubscription = payment.type === 'subscription';
 
       if (role === 'root_admin') {
-        const typeLabel = payment.type === 'topic_access' ? 'Topic Purchase' : (payment.type === 'lecture_access' ? 'Lecture Access' : 'Class Enrollment');
-        message = `System Alert: ${isSubscription ? 'New Subscription' : typeLabel} of ${payment.amount} ${payment.currency || 'NGN'} from ${payerUser?.name || 'user'}.`;
+        const typeLabel = payment.type === 'topic_access' ? 'Topic Purchase' : (payment.type === 'lecture_access' ? 'Lecture Access' : (isSubscription ? 'New Subscription' : 'Class Enrollment'));
+        const planName = isSubscription && plan ? plan.name : '';
+        message = isSubscription
+          ? `System Alert: New Subscription ${planName ? `(${planName})` : ''} of ₦${payment.amount} ${payment.currency || 'NGN'} from ${payerUser?.name || 'user'}.`
+          : `System Alert: ${typeLabel} of ₦${payment.amount} ${payment.currency || 'NGN'} from ${payerUser?.name || 'user'}.`;
       } else if (role === 'school_admin' || role === 'personal_teacher') {
         if (String(user._id) === String(payerUser?._id)) {
           // They are the ones who paid (for subscription or potentially admin-student enrollment?)
-          message = `Payment Successful: Your ${payment.type.replace('_', ' ')} is now active. Total Paid: ${payment.amount} ${payment.currency || 'NGN'}.`;
-          type = 'subscription_success';
+          const planName = isSubscription && plan ? plan.name : '';
+          message = isSubscription
+            ? `Payment Successful: Your subscription${planName ? ` to ${planName}` : ''} is now active. Total Paid: ₦${payment.amount} ${payment.currency || 'NGN'}.`
+            : `Payment Successful: Your ${payment.type.replace('_', ' ')} is now active. Total Paid: ₦${payment.amount} ${payment.currency || 'NGN'}.`;
+          type = isSubscription ? 'subscription_success' : 'payment_success';
         } else {
           // Someone else paid for their class
           if (payment.type === 'topic_access') {
@@ -124,13 +130,19 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
           message = `Topic Access: You have successfully purchased access to ${payment.metadata?.get?.('allTopics') === 'true' ? 'all topics' : 'the topic'} in "${classroom?.name || 'the class'}". Total Paid: ₦${payment.amount}.`;
         } else if (payment.type === 'lecture_access') {
           message = `Lecture Access: You have successfully paid for the lecture in "${classroom?.name || 'the class'}". You can now join.`;
+        } else if (isSubscription) {
+          const planName = plan ? plan.name : (payment.planId ? 'Subscription Plan' : 'Subscription');
+          message = `Subscription Successful: Your subscription to ${planName} is now active. Total Paid: ₦${payment.amount} ${payment.currency || 'NGN'}.`;
         } else {
           message = `Enrollment Successful: You have successfully enrolled in "${classroom?.name || 'the class'}". Total Paid: ₦${payment.amount}.`;
         }
         type = 'payment_success';
       } else {
         // Fallback for any other payer role
-        message = `Payment Successful: ${payment.type.replace('_', ' ')} completed. Amount: ${payment.amount} ${payment.currency || 'NGN'}.`;
+        const planName = isSubscription && plan ? plan.name : '';
+        message = isSubscription
+          ? `Subscription Successful: Your subscription${planName ? ` to ${planName}` : ''} is now active. Amount: ₦${payment.amount} ${payment.currency || 'NGN'}.`
+          : `Payment Successful: ${payment.type.replace('_', ' ')} completed. Amount: ₦${payment.amount} ${payment.currency || 'NGN'}.`;
         type = 'payment_success';
       }
 
@@ -165,6 +177,7 @@ async function notifyRecipients({ payerUser, payment, classroom }) {
                 ['Date', `${new Date().toLocaleDateString()} (GMT)`],
                 ['Type', payment.type.replace('_', ' ').toUpperCase()],
                 ...(classroom ? [['Class', classroom.name]] : []),
+                ...(isSubscription && plan ? [['Subscription Plan', plan.name]] : []),
                 ['Reference', payment.paystackReference || payment.stripePaymentId || 'N/A']
               ])}
               ${emailText('Thank you for choosing Gracified LMS. You can view your invoice in your dashboard.')}
@@ -434,7 +447,7 @@ router.get('/paystack/verify', auth, async (req, res) => {
       // notify admins
       try {
         const payerUser = await User.findById(req.user._id).select('email name _id');
-        await notifyRecipients({ payerUser, payment, classroom: null });
+        await notifyRecipients({ payerUser, payment, classroom: null, plan });
       } catch (notifyErr) {
         console.error('Error notifying recipients after subscription verify:', notifyErr.message);
       }
@@ -620,7 +633,7 @@ router.post('/paystack/webhook', express.raw({ type: 'application/json' }), asyn
         // notify admins
         try {
           const payerUser = await User.findById(userId).select('email name _id');
-          await notifyRecipients({ payerUser, payment, classroom: null });
+          await notifyRecipients({ payerUser, payment, classroom: null, plan });
         } catch (notifyErr) {
           console.error('Error notifying recipients after subscription verify (webhook):', notifyErr.message);
         }
@@ -867,7 +880,7 @@ router.post('/free-subscription', auth, async (req, res) => {
     // notify admins
     try {
       const payerUser = await User.findById(req.user._id).select('email name _id');
-      await notifyRecipients({ payerUser, payment, classroom: null });
+      await notifyRecipients({ payerUser, payment, classroom: null, plan });
     } catch (notifyErr) {
       console.error('Error notifying admins for free sub:', notifyErr.message);
     }

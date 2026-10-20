@@ -123,7 +123,7 @@ function emailMeta(rows) {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:3px 0;">
         <tr>
           <td style="color:${SLATE}; font-weight:600; padding:2px 12px 2px 0; white-space:normal; vertical-align:top;">${k}</td>
-          <td style="color:${INK}; text-align:right; font-weight:600; vertical-align:top; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word;">${v}</td>
+          <td style="color:${INK}; text-align:right; font-weight:600; vertical-align:top; word-break:break-word; overflow-wrap:break-word; max-width:100%;">${v}</td>
         </tr>
       </table>`;
   }).join('');
@@ -206,6 +206,8 @@ function wrapEmail(content, customLogoUrl = null) {
     <body style="margin:0; padding:0;">
       <div class="email-outer" style="background:${SOFT}; padding:32px 16px; font-family:${SANS}; color:${INK};">
         <div class="email-card" style="max-width:600px; margin:0 auto; background:${PAPER}; border:1px solid ${HAIRLINE}; border-radius:12px; overflow:hidden; box-shadow:0 1px 2px rgba(20,32,46,0.04), 0 10px 28px -18px rgba(20,32,46,0.18);">
+      <div style="background:${SOFT}; padding:32px 16px; font-family:${SANS}; color:${INK};">
+        <div style="max-width:680px; margin:0 auto; background:${PAPER}; border:1px solid ${HAIRLINE}; border-radius:12px; overflow:hidden; box-shadow:0 1px 2px rgba(20,32,46,0.04), 0 10px 28px -18px rgba(20,32,46,0.18);">
           <div style="height:4px; background:${NAVY};"></div>
 
           <div class="email-header" style="text-align:center; padding:34px 20px 22px; border-bottom:1px solid ${HAIRLINE};">
@@ -215,6 +217,7 @@ function wrapEmail(content, customLogoUrl = null) {
 
           <div class="email-body" style="padding:34px 40px 26px; min-height:240px; color:${INK}; font-size:15px; line-height:1.7;">
             ${stripped}
+   
           </div>
 
           <div class="email-footer" style="padding:28px 20px; background:${PANEL}; border-top:1px solid ${HAIRLINE}; text-align:center;">

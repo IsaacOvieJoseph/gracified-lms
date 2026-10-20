@@ -137,6 +137,16 @@ const Users = () => {
     }
   };
 
+  const handleOwnAIModelsChange = async (userId, value) => {
+    try {
+      await api.put(`/users/${userId}`, { allowOwnAIModels: value });
+      toast.success(value ? 'Own AI models enabled' : 'Own AI models disabled');
+      setUsers(prev => prev.map(u => u._id === userId ? { ...u, allowOwnAIModels: value } : u));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update own AI model access');
+    }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
 
@@ -689,6 +699,9 @@ Bob Johnson,bob@example.com,student,`;
                 {user?.role === 'root_admin' && (
                   <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">AI Tutor</th>
                 )}
+                {user?.role === 'root_admin' && (
+                  <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Own AI</th>
+                )}
                 <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Status</th>
                 {user?.role === 'root_admin' && (
                   <th className="px-6 py-4 text-left text-xs font-semibold tracking-[0.2em] whitespace-nowrap">Actions</th>
@@ -726,6 +739,36 @@ Bob Johnson,bob@example.com,student,`;
                         <option value="enabled">Enabled</option>
                         <option value="disabled">Disabled</option>
                       </select>
+                    </td>
+                  )}
+                  {user?.role === 'root_admin' && (
+                    <td className="px-6 py-4">
+                      {u.role === 'personal_teacher' ? (
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={Boolean(u.allowOwnAIModels)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOwnAIModelsChange(u._id, !u.allowOwnAIModels);
+                          }}
+                          title={u.allowOwnAIModels ? 'Own AI models enabled' : 'Own AI models disabled'}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${u.allowOwnAIModels ? 'bg-primary' : 'bg-muted border border-border'
+                            }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${u.allowOwnAIModels ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                          />
+                        </button>
+                      ) : (
+                        <span
+                          className="text-xs text-muted-foreground/50 font-medium italic"
+                          title="Controlled by the academy's toggle"
+                        >
+                          Via academy
+                        </span>
+                      )}
                     </td>
                   )}
                   <td className="px-6 py-4 text-sm">

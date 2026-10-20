@@ -46,7 +46,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    try {
+      const fcmToken = await AsyncStorage.getItem('fcmToken');
+      if (fcmToken) {
+        await api.delete('/users/push-token', { data: { token: fcmToken } });
+      }
+    } catch (error) {
+      // Best-effort cleanup — ignore failures on sign-out.
+    }
     await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('fcmToken');
     setToken(null);
     setUser(null);
   };

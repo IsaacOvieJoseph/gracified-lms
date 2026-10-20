@@ -69,6 +69,33 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Every AI call costs real money on the deployment's API key, and the MCP
+// transport lets third-party clients drive AI generation for a connected user.
+// Without a limiter a single runaway client can drain the quota.
+//
+// This is mounted before the route-level `auth` middleware, so it can only key
+// on IP. That is the correct layer for cost protection: it caps volumetric abuse
+// regardless of who is calling. Per-user throttling is handled separately and
+// more precisely by the student daily quota in utils/aiAccess.
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  message: { message: 'Too many AI requests, please slow down and try again shortly' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// MCP carries a burst of tool calls per user turn, so it gets its own, looser
+// budget — kept separate from aiLimiter so a burst of cheap reads cannot
+// exhaust the generation budget.
+const mcpLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 240,
+  message: { message: 'Too many MCP requests, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
 const allowedOrigins = [
   process.env.FRONTEND_URL,
@@ -91,6 +118,14 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
+
+// The MCP endpoint gets a much smaller body limit than the rest of the API. A
+// tool call is a JSON-RPC envelope of ids and short strings; nothing legitimate
+// approaches megabytes. This has to be registered *before* the global parser
+// below, because body-parser skips any request it has already parsed, so a
+// later 50mb limit cannot loosen a body this one has already rejected.
+app.use('/mcp', express.json({ limit: '256kb' }));
+
 app.use(express.json({ limit: '50mb' })); // Increased limit for AI generation and uploads
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -131,11 +166,50 @@ app.use('/api/google-auth', googleAuthRouter);
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/exams', require('./routes/exams'));
 app.use('/api/qna', require('./routes/qna'));
-app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ai', aiLimiter, require('./routes/ai'));
+app.use('/api/ai-connections', aiLimiter, require('./routes/aiConnections'));
 app.use('/api/tutor-requests', require('./routes/tutorRequests'));
 app.use('/api/scripts', require('./routes/scripts'));
 app.use('/api/complaints', require('./routes/complaints'));
 app.use('/api/feedbacks', require('./routes/classrooms'));
+
+// ─── MCP ─────────────────────────────────────────────────────────────────────
+// The authorization server is mounted twice on purpose. Its metadata documents
+// live at the root of the public base URL, because RFC 8414 and RFC 9728 both fix
+// those discovery paths relative to the issuer and resource, not under /api.
+// A client that reads /.well-known/oauth-authorization-server and never finds it
+// cannot start the flow at all. The interactive endpoints are namespaced under
+// /api like the rest of the API.
+const mcpOAuthRouter = require('./routes/mcpOAuth');
+
+// Prefix rather than a fixed allowlist: RFC 8414 puts authorization-server
+// metadata at a path-suffixed URL derived from the issuer, and the issuer has a
+// path here, so the exact set of valid locations depends on configuration. The
+// prefix is still a hard gate — the router only defines the metadata documents,
+// and anything else under it falls through untouched.
+app.use((req, res, next) => {
+  if (req.path.startsWith('/.well-known/oauth-')) return mcpOAuthRouter(req, res, next);
+  next();
+});
+
+// A school can sit behind a single NAT address, so this is keyed on IP but sized
+// for many users sharing one: the flow involves a handful of round trips per
+// connection, and access tokens last an hour, so refresh volume is low.
+const mcpOAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  message: { error: 'slow_down', error_description: 'Too many OAuth requests, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/mcp/oauth', mcpOAuthLimiter, mcpOAuthRouter);
+
+// The resource itself. Mounted on all methods so the transport's own GET/DELETE
+// handlers (session termination, method-not-allowed) are reachable rather than
+// falling through to a bare Express 404. Limited separately from AI generation
+// because a single user turn legitimately produces a burst of tool calls.
+app.use('/mcp', mcpLimiter, require('./routes/mcp'));
 
 // Swagger Documentation
 const { swaggerUi, specs } = require('./config/swagger');

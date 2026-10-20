@@ -1,13 +1,15 @@
 const express = require('express');
 const { auth } = require('../middleware/auth');
 const Settings = require('../models/Settings');
-const School = require('../models/School');
-const Tutorial = require('../models/Tutorial');
 const TutorSession = require('../models/TutorSession');
-const PptxGenJS = require('pptxgenjs');
-const fs = require('fs');
-const path = require('path');
 const { examResultsArePublic } = require('../utils/answerKey');
+const { buildPresentationPptx } = require('../utils/pptx');
+const { resolveProvider } = require('../utils/aiProviders');
+const {
+    resolveAIAccess,
+    requireAIAccess,
+    requireAIReadAccess,
+} = require('../utils/aiAccess');
 const router = express.Router();
 
 // ─── Provider helpers ─────────────────────────────────────────────────────────
@@ -130,6 +132,20 @@ const escapeControlCharsInStrings = (text) => {
         out += ch;
     }
     return out;
+
+// ─── Central call dispatcher ──────────────────────────────────────────────────
+const callAI = async (prompt, user, options = {}) => {
+    // Resolves to the user's own connected provider when they have one,
+    // otherwise the deployment's. Whether AI is allowed at all is decided earlier
+    // by requireAIAccess on each route, so this is never a way around an
+    // administrator's kill switch.
+    const target = user || options.user;
+    if (!target) {
+        throw new Error('callAI requires the requesting user so their own provider can be used');
+    }
+    const resolved = await resolveProvider(target);
+    return resolved.complete(prompt, options);
+};
 };
 
 const parseJSON = (text) => {
@@ -154,73 +170,25 @@ const NO_CODEBASE_HINT =
     'infrastructure, or its mobile/web application implementation. Answer strictly at the level of the ' +
     'subject matter and user-facing product features, as if the product is a single integrated service.';
 
-const resolveStudentAIAccess = async (user) => {
-    const settings = await Settings.findOne();
-    const dailyLimit = Math.min(1000, Math.max(1, parseInt(settings?.studentAIDailyLimit) || 20));
-
-    // Staff (teachers, school/root admins, personal teachers) get AI Assistant access
-    // by default. They can still be turned off via their own account override.
-    if (user.role !== 'student') {
-        let enabled = true;
-        if (user.aiTutorAccess === 'disabled') enabled = false;
-        if (user.aiTutorAccess === 'enabled') enabled = true;
-        return { enabled, dailyLimit };
-    }
-
-    let enabled = !!settings?.studentAIEnabled;
-
-    // School override (uses the student's first school)
-    if (user.schoolId && user.schoolId.length > 0) {
-        try {
-            const school = await School.findById(user.schoolId[0]);
-            if (school && school.aiTutorAccess === 'enabled') enabled = true;
-            if (school && school.aiTutorAccess === 'disabled') enabled = false;
-        } catch (_) { /* ignore school lookup errors */ }
-    }
-
-    // Student override (highest priority)
-    if (user.aiTutorAccess === 'enabled') enabled = true;
-    if (user.aiTutorAccess === 'disabled') enabled = false;
-
-    return { enabled, dailyLimit };
-};
+// Access resolution lives in utils/aiAccess so that these REST routes and the
+// MCP tools can never drift apart. Kept as a named delegate because the tutor
+// call sites below reference it directly.
+const resolveStudentAIAccess = resolveAIAccess;
 
 const getTutorUsage = (user) => {
     const usage = user.aiTutorUsage || {};
     return usage.usageDate === todayKey() ? (usage.count || 0) : 0;
 };
 
-// Enabled-only gate (reads: access, history)
-const requireStudentAITutor = async (req, res, next) => {
-    try {
-        const access = await resolveStudentAIAccess(req.user);
-        if (!access.enabled) {
-            return res.status(403).json({ message: 'AI Tutor is not enabled for your account. Contact your academy administrator.' });
-        }
-        req.aiTutor = { access, usedToday: getTutorUsage(req.user) };
-        next();
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// Full gate (AI-consuming endpoints): enabled + daily quota
-const requireStudentAI = async (req, res, next) => {
-    try {
-        const access = await resolveStudentAIAccess(req.user);
-        if (!access.enabled) {
-            return res.status(403).json({ message: 'AI Tutor is not enabled for your account. Contact your academy administrator.' });
-        }
-        const usedToday = getTutorUsage(req.user);
-        if (usedToday >= access.dailyLimit) {
-            return res.status(429).json({ message: `You have reached today's AI Tutor limit (${access.dailyLimit} interactions). Try again tomorrow.` });
-        }
-        req.aiTutor = { access, usedToday };
-        next();
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
+// Both gates delegate to utils/aiAccess. requireAIReadAccess only checks
+// enablement; requireAIAccess additionally enforces the student daily quota.
+// Neither is where quota is spent; that stays in consumeTutorQuota, called by
+// the handlers after a successful generation so failed calls are not billed.
+const requireStudentAITutor = requireAIReadAccess();
+// Student-facing AI routes check the quota but do not spend it: spending stays
+// in consumeTutorQuota, which runs only after a response has been produced, so
+// a failed or blocked generation does not cost the student a question.
+const requireStudentAI = requireAIAccess();
 
 const consumeTutorQuota = async (user) => {
     const key = todayKey();
@@ -232,21 +200,32 @@ const consumeTutorQuota = async (user) => {
 };
 
 // ─── GET /api/ai/provider ─────────────────────────────────────────────────────
-// Returns the currently active AI provider (public — frontend can display it)
+// Reveals which provider serves the deployment, so it requires a session. This
+// route previously ran unauthenticated, which let anyone probe the platform's
+// provider configuration.
 /**
  * @swagger
  * /api/ai/provider:
  *   get:
  *     summary: Get the currently active AI provider (Groq or Gemini)
  *     tags: [AI Services]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: AI provider details
  */
-router.get('/provider', async (req, res) => {
+router.get('/provider', auth, async (req, res) => {
     try {
-        const settings = await Settings.findOne();
-        res.json({ provider: settings?.activeAIProvider || 'groq' });
+        const access = await resolveStudentAIAccess(req.user);
+        if (!access.enabled) {
+            return res.status(403).json({ message: 'AI features are disabled for your account.', code: 'AI_DISABLED' });
+        }
+        const settings = await Settings.findOne().lean();
+        res.json({
+            provider: settings?.activeAIProvider || 'groq',
+            aiEnabled: access.enabled,
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -394,7 +373,7 @@ Message: ${text}`;
  *       200:
  *         description: Topic generated
  */
-router.post('/generate-topic', auth, async (req, res) => {
+router.post('/generate-topic', auth, requireAIAccess(), async (req, res) => {
     try {
         const { className, subject, level, teacherHint } = req.body;
         if (!subject) return res.status(400).json({ message: 'subject is required' });
@@ -415,7 +394,7 @@ Return ONLY this JSON structure:
 }
 Duration mode can be "day", "week", or "month".`;
 
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, topic: result });
     } catch (err) {
@@ -449,7 +428,7 @@ Duration mode can be "day", "week", or "month".`;
  *       200:
  *         description: Assignment generated
  */
-router.post('/generate-assignment', auth, async (req, res) => {
+router.post('/generate-assignment', auth, requireAIAccess(), async (req, res) => {
     try {
         const { className, topicName, subject, level, assignmentType, questionCount, teacherHint } = req.body;
         if (!topicName && !subject) return res.status(400).json({ message: 'topicName or subject is required' });
@@ -494,7 +473,7 @@ Teacher notes: "${teacherHint || 'None'}"
 Return ONLY this JSON structure:
 ${type === 'mcq' ? mcqSchema : theorySchema}`;
 
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, assignment: result });
     } catch (err) {
@@ -528,7 +507,7 @@ ${type === 'mcq' ? mcqSchema : theorySchema}`;
  *       200:
  *         description: Exam generated
  */
-router.post('/generate-exam', auth, async (req, res) => {
+router.post('/generate-exam', auth, requireAIAccess(), async (req, res) => {
     try {
         const { className, topicName, subject, level, questionCount, duration, teacherHint, examType } = req.body;
         if (!topicName && !subject) return res.status(400).json({ message: 'topicName or subject is required' });
@@ -589,7 +568,7 @@ Examples:
 Return ONLY this JSON structure:
 ${type === 'mcq' ? mcqSchema : theorySchema}`;
 
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, exam: result });
     } catch (err) {
@@ -620,7 +599,7 @@ ${type === 'mcq' ? mcqSchema : theorySchema}`;
  *       200:
  *         description: Classroom details generated
  */
-router.post('/generate-classroom', auth, async (req, res) => {
+router.post('/generate-classroom', auth, requireAIAccess(), async (req, res) => {
     try {
         const { subject, level, className, teacherHint } = req.body;
         const prompt = `Generate details for a new school classroom/course.
@@ -635,7 +614,7 @@ Return ONLY this JSON structure:
   "description": "Engaging 2-3 paragraph description of the course",
   "learningOutcomes": "List of 5-8 key outcomes, separated by commas"
 }`;
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, classroom: result });
     } catch (err) {
@@ -669,7 +648,7 @@ Return ONLY this JSON structure:
  *       200:
  *         description: Answer generated
  */
-router.post('/qna-assistant', auth, async (req, res) => {
+router.post('/qna-assistant', auth, requireAIAccess(), async (req, res) => {
     try {
         if (req.user.role === 'student') {
             return res.status(403).json({ message: 'AI Q&A is not available to students. Use the AI Tutor instead.' });
@@ -685,7 +664,7 @@ Return ONLY this JSON structure:
   "answer": "Markdown formatted detailed answer",
   "suggestedFollowUp": ["Question 1", "Question 2"]
 }`;
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, qna: result });
     } catch (err) {
@@ -715,7 +694,7 @@ Return ONLY this JSON structure:
  *       200:
  *         description: Syllabus generated
  */
-router.post('/generate-syllabus', auth, async (req, res) => {
+router.post('/generate-syllabus', auth, requireAIAccess(), async (req, res) => {
     try {
         const { className, subject, level, description, outcomes, teacherHint } = req.body;
         const prompt = `Generate a comprehensive syllabus (list of topics) for a school course.
@@ -739,7 +718,7 @@ Return ONLY a JSON object with this exact structure:
 }
 Provide between 5 and 10 topics that form a logical learning progression. Duration mode can be "day", "week", or "month".`;
 
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, syllabus: result });
     } catch (err) {
@@ -773,7 +752,7 @@ Provide between 5 and 10 topics that form a logical learning progression. Durati
  *       200:
  *         description: PPT outline generated
  */
-router.post('/generate-powerpoint', auth, async (req, res) => {
+router.post('/generate-powerpoint', auth, requireAIAccess(), async (req, res) => {
     try {
         const { topicName, className, subject, level, slideCount, teacherHint } = req.body;
         if (!topicName && !subject) return res.status(400).json({ message: 'topicName or subject is required' });
@@ -812,7 +791,7 @@ Return ONLY this JSON structure:
 }
 Slide types: "title" (first only), "content", "activity", "summary", "quiz".`;
 
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, presentation: result });
     } catch (err) {
@@ -848,238 +827,19 @@ Slide types: "title" (first only), "content", "activity", "summary", "quiz".`;
  *               type: string
  *               format: binary
  */
-router.post('/download-powerpoint', auth, async (req, res) => {
+router.post('/download-powerpoint', auth, requireAIAccess(), async (req, res) => {
     try {
         const { presentation } = req.body;
         if (!presentation || !presentation.slides) {
             return res.status(400).json({ message: 'No presentation data provided' });
         }
 
-        // Fetch School/Tutorial Logo and convert to base64
-        let logoData = null;
-        try {
-            let logoUrl = null;
-            if (req.user.role === 'personal_teacher' && req.user.tutorialId) {
-                const tut = await Tutorial.findById(req.user.tutorialId);
-                logoUrl = tut?.logoUrl;
-            } else if (req.user.schoolId && req.user.schoolId.length > 0) {
-                const school = await School.findById(req.user.schoolId[0]);
-                logoUrl = school?.logoUrl;
-            }
+        // The deck itself is built in utils/pptx.js, which the MCP slide-deck tool
+        // also calls, so a file downloaded from here and one handed to an assistant
+        // are produced by identical code.
+        const { buffer, fileName, mimeType } = await buildPresentationPptx(presentation, { user: req.user });
 
-            if (logoUrl) {
-                // Try local file first (fastest)
-                const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-                const cleanRelPath = logoUrl.startsWith('http') 
-                    ? logoUrl.replace(baseUrl, '').replace(/^\/+/, '')
-                    : logoUrl.replace(/\\/g, '/').replace(/^\/+/, '');
-                
-                const absPath = path.join(__dirname, '..', cleanRelPath);
-                
-                if (fs.existsSync(absPath)) {
-                    const buffer = fs.readFileSync(absPath);
-                    let ext = path.extname(absPath).toLowerCase().replace('.', '') || 'png';
-                    if (ext === 'jpg') ext = 'jpeg';
-                    logoData = `data:image/${ext};base64,${buffer.toString('base64')}`;
-                } else if (logoUrl.startsWith('https')) {
-                    // Try fetching via axios ONLY for https to avoid crashing pptxgenjs
-                    try {
-                        const axios = require('axios');
-                        const response = await axios.get(logoUrl, { responseType: 'arraybuffer', timeout: 5000 });
-                        const buffer = Buffer.from(response.data, 'binary');
-                        const contentType = response.headers['content-type'] || 'image/png';
-                        logoData = `data:${contentType};base64,${buffer.toString('base64')}`;
-                    } catch (fetchErr) {
-                        console.warn('Could not fetch remote logo, skipping:', fetchErr.message);
-                    }
-                } else if (logoUrl.startsWith('http:')) {
-                    console.warn('[PPT] Skipping insecure http logo to prevent crash');
-                    logoData = null;
-                }
-            }
-        } catch (logoErr) {
-            console.error('Logo processing error for PPT:', logoErr.message);
-        }
-
-        const pptx = new PptxGenJS();
-        pptx.layout = 'LAYOUT_16x9';
-        pptx.author = 'Gracified LMS AI';
-        pptx.subject = presentation.presentationTitle || 'Lesson';
-        pptx.title = presentation.presentationTitle || 'Lesson';
-
-        // Theme colors
-        const THEME = {
-            PRIMARY: '4F46E5',    // indigo-600
-            ACCENT: '7C3AED',     // violet-600
-            DARK: '1E1B4B',       // very dark indigo
-            WHITE: 'FFFFFF',
-            LIGHT: 'EEF2FF',      // indigo-50
-            MUTED: '6B7280',
-        };
-
-        presentation.slides.forEach((slide, idx) => {
-            const pptSlide = pptx.addSlide();
-
-            if (slide.type === 'title' || idx === 0) {
-                // ── Title slide ───────────────────────────────────────────────
-                // Background gradient-like fill
-                pptSlide.background = { color: THEME.DARK };
-
-                // Decorative accent bar
-                pptSlide.addShape(pptx.ShapeType.rect, {
-                    x: 0, y: 4.5, w: '100%', h: 0.08,
-                    fill: { color: THEME.PRIMARY },
-                    line: { type: 'none' }
-                });
-
-                // Decorative large circle (top-right)
-                pptSlide.addShape(pptx.ShapeType.ellipse, {
-                    x: 7.5, y: -1.5, w: 3, h: 3,
-                    fill: { color: THEME.PRIMARY, transparency: 70 },
-                    line: { type: 'none' }
-                });
-
-                pptSlide.addText(presentation.presentationTitle || slide.title || '', {
-                    x: 0.8, y: 1.5, w: 8.4, h: 1.5,
-                    fontSize: 36, bold: true, color: THEME.WHITE,
-                    fontFace: 'Calibri',
-                    align: 'left', valign: 'middle',
-                    breakLine: false,
-                });
-
-                if (presentation.subtitle) {
-                    pptSlide.addText(presentation.subtitle, {
-                        x: 0.8, y: 3.1, w: 7, h: 0.6,
-                        fontSize: 16, color: 'A5B4FC',
-                        fontFace: 'Calibri', align: 'left',
-                    });
-                }
-
-                if (slide.speakerNotes) {
-                    pptSlide.addNotes(slide.speakerNotes);
-                }
-
-            } else if (slide.type === 'summary' || slide.type === 'quiz') {
-                // ── Summary / Quiz slide ──────────────────────────────────────
-                pptSlide.background = { color: THEME.LIGHT };
-
-                pptSlide.addShape(pptx.ShapeType.rect, {
-                    x: 0, y: 0, w: '100%', h: 1.1,
-                    fill: { color: THEME.PRIMARY },
-                    line: { type: 'none' }
-                });
-
-                pptSlide.addText(slide.title || '', {
-                    x: 0.4, y: 0.1, w: 9.2, h: 0.9,
-                    fontSize: 24, bold: true, color: THEME.WHITE,
-                    fontFace: 'Calibri', valign: 'middle',
-                });
-
-                if (slide.bulletPoints?.length) {
-                    const rows = slide.bulletPoints.map(bp => ([
-                        { text: bp, options: { fontSize: 14, color: THEME.DARK, fontFace: 'Calibri', margin: [4, 4, 4, 4] } }
-                    ]));
-                    pptSlide.addTable(rows, {
-                        x: 0.6, y: 1.3, w: 8.8,
-                        fill: { color: THEME.WHITE },
-                        border: { type: 'none' },
-                        rowH: 0.45,
-                    });
-                }
-
-                if (slide.speakerNotes) pptSlide.addNotes(slide.speakerNotes);
-
-            } else {
-                // ── Regular content slide ─────────────────────────────────────
-                pptSlide.background = { color: THEME.WHITE };
-
-                // Left accent bar
-                pptSlide.addShape(pptx.ShapeType.rect, {
-                    x: 0, y: 0, w: 0.15, h: '100%',
-                    fill: { color: THEME.PRIMARY },
-                    line: { type: 'none' }
-                });
-
-                // Header band
-                pptSlide.addShape(pptx.ShapeType.rect, {
-                    x: 0.15, y: 0, w: '100%', h: 1.05,
-                    fill: { color: THEME.LIGHT },
-                    line: { type: 'none' }
-                });
-
-                // Slide number badge
-                pptSlide.addText(`${slide.slideNumber || idx + 1}`, {
-                    x: 9.0, y: 4.8, w: 0.5, h: 0.3,
-                    fontSize: 9, color: THEME.MUTED, align: 'right',
-                    fontFace: 'Calibri',
-                });
-
-                // Title
-                pptSlide.addText(slide.title || '', {
-                    x: 0.5, y: 0.1, w: 9.0, h: 0.85,
-                    fontSize: 22, bold: true, color: THEME.PRIMARY,
-                    fontFace: 'Calibri', valign: 'middle',
-                });
-
-                // Bullet points
-                if (slide.bulletPoints?.length) {
-                    const bulletText = slide.bulletPoints.map(bp => ({
-                        text: bp,
-                        options: { bullet: { type: 'bullet', indent: 10 }, fontSize: 14, color: THEME.DARK, paraSpaceAfter: 6 }
-                    }));
-                    pptSlide.addText(bulletText, {
-                        x: 0.5, y: 1.2, w: 9.0, h: 3.4,
-                        fontFace: 'Calibri', valign: 'top',
-                        wrap: true,
-                    });
-                }
-
-                if (slide.speakerNotes) pptSlide.addNotes(slide.speakerNotes);
-            }
-
-            // ── Footer (All slides) ──────────────────────────────────────────
-            // Background bar for footer
-            pptSlide.addShape(pptx.ShapeType.rect, {
-                x: 0, y: 5.2, w: '100%', h: 0.4,
-                fill: { color: THEME.LIGHT },
-                line: { type: 'none' }
-            });
-
-            // Logo
-            if (logoData) {
-                pptSlide.addImage({
-                    data: logoData.startsWith('data:') ? logoData : undefined,
-                    path: !logoData.startsWith('data:') ? logoData : undefined,
-                    x: 0.2, y: 5.25, w: 0.3, h: 0.3
-                });
-            }
-
-            // Branding text
-            pptSlide.addText('Generated on Gracified LMS', {
-                x: logoData ? 0.6 : 0.2, y: 5.2, w: 5, h: 0.4,
-                fontSize: 8, color: THEME.MUTED,
-                fontFace: 'Calibri', italic: true,
-                valign: 'middle',
-            });
-
-            // Page number (redundant but nice)
-            pptSlide.addText(`${idx + 1}`, {
-                x: 9.3, y: 5.2, w: 0.5, h: 0.4,
-                fontSize: 8, color: THEME.MUTED,
-                fontFace: 'Calibri', align: 'right',
-                valign: 'middle',
-            });
-        });
-
-        const fileName = `${(presentation.presentationTitle || 'Presentation').replace(/[^a-z0-9]/gi, '_')}.pptx`;
-        console.log(`[PPT] Generating ${fileName} with ${presentation.slides.length} slides...`);
-
-        // Write to buffer and stream to response
-        const output = await pptx.write({ outputType: 'nodebuffer' });
-        const buffer = Buffer.from(output);
-        console.log(`[PPT] Generated buffer size: ${buffer.length} bytes`);
-
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+        res.setHeader('Content-Type', mimeType);
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.setHeader('Content-Length', buffer.length);
         res.send(buffer);
@@ -1115,7 +875,7 @@ router.post('/download-powerpoint', auth, async (req, res) => {
  *       200:
  *         description: Email generated
  */
-router.post('/generate-marketing-email', auth, async (req, res) => {
+router.post('/generate-marketing-email', auth, requireAIAccess(), async (req, res) => {
     try {
         const { prompt, kind } = req.body;
         if (!prompt) return res.status(400).json({ message: 'prompt is required' });
@@ -1132,7 +892,7 @@ IMPORTANT: Provide well-formatted HTML suitable for an email body. Do not includ
 Return ONLY this JSON structure:
 ${schema}`;
 
-        const raw = await callAI(fullPrompt);
+        const raw = await callAI(fullPrompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, email: result });
     } catch (err) {
@@ -1165,7 +925,7 @@ ${schema}`;
  *       200:
  *         description: Campaign generated
  */
-router.post('/generate-marketing-campaign', auth, async (req, res) => {
+router.post('/generate-marketing-campaign', auth, requireAIAccess(), async (req, res) => {
     try {
         const { prompt, numSteps } = req.body;
         if (!prompt) return res.status(400).json({ message: 'prompt is required' });
@@ -1192,7 +952,7 @@ IMPORTANT: Provide exactly ${stepsCount} email objects in the "emails" array. Th
 Return ONLY this JSON structure:
 ${schema}`;
 
-        const raw = await callAI(fullPrompt);
+        const raw = await callAI(fullPrompt, req.user);
         const result = parseJSON(raw);
         res.json({ success: true, campaign: result });
     } catch (err) {
@@ -1270,7 +1030,7 @@ Return ONLY this JSON structure:
   "suggestedFollowUp": ["Question 1", "Question 2"]
 }`;
 
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const result = parseJSON(raw);
 
         // Persist to the student's session for that topic (or explicit session)
@@ -1412,7 +1172,7 @@ Return ONLY this JSON structure:
 }
 IMPORTANT: correctOption must be the exact text of one of the options. Provide an explanation for every question.`;
 
-        const raw = await callAI(prompt);
+        const raw = await callAI(prompt, req.user);
         const parsed = parseJSON(raw);
         const quiz = {
             title: parsed.title || 'Practice Quiz',
@@ -1550,7 +1310,7 @@ Return ONLY this JSON structure:
 {
   "summary": "Feedback summary with suggestions"
 }`;
-            const raw = await callAI(feedbackPrompt);
+            const raw = await callAI(feedbackPrompt, req.user);
             const parsed = parseJSON(raw);
             if (parsed.summary) summaryFeedback = parsed.summary;
         } catch (err) {
@@ -1658,7 +1418,7 @@ Return ONLY this JSON structure:
   "summary": "Growth summary",
   "nextStep": "One concrete next step"
 }`;
-            const raw = await callAI(progressPrompt);
+            const raw = await callAI(progressPrompt, req.user);
             const parsed = parseJSON(raw);
             summary = parsed.summary || '';
             nextStep = parsed.nextStep || '';

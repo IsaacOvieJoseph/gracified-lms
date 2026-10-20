@@ -34,6 +34,7 @@ import ExamCenter from './pages/ExamCenter';
 import ExamSubmissions from './pages/ExamSubmissions';
 import ExamSubmissionDetail from './pages/ExamSubmissionDetail';
 import Profile from './pages/Profile';
+import MCPConsent from './pages/MCPConsent';
 import Landing from './pages/Landing';
 import Catalog from './pages/Catalog';
 import QnACenter from './pages/QnACenter';
@@ -326,6 +327,17 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <Profile />
+          </PrivateRoute>
+        }
+      />
+      {/* OAuth approval screen for third-party assistants. Private because it can
+          mint a consent intent, which is what binds the approval to the signed-in
+          user. */}
+      <Route
+        path="/mcp-consent"
+        element={
+          <PrivateRoute>
+            <MCPConsent />
           </PrivateRoute>
         }
       />

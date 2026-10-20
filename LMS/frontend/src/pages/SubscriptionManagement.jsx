@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api'; // Use our configured API instance
 import { useAuth } from '../context/AuthContext';
 import { formatAmount } from '../utils/currency';
-import { LogOut } from 'lucide-react';
+import { LogOut, CheckCircle, Loader2 } from 'lucide-react';
 
 const SubscriptionManagement = () => {
   const [plans, setPlans] = useState([]);
@@ -15,11 +15,25 @@ const SubscriptionManagement = () => {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [defaultPricingType, setDefaultPricingType] = useState('monthly');
   const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [targetSub, setTargetSub] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, refreshUser } = useAuth();
 
   const userEmail = location.state?.email || user?.email;
+
+  // When a root admin arrives from School/School management they pass a target
+  // (school or tutorial center). In that case they assign a plan to the target
+  // user rather than subscribing themselves.
+  const isRootAdmin = user?.role === 'root_admin';
+  const manageState = location.state || {};
+  const manageTarget = {
+    schoolId: manageState.schoolId,
+    personalTeacherId: manageState.personalTeacherId,
+    email: manageState.email,
+    label: manageState.schoolName || manageState.tutorialCenterName || manageState.email,
+  };
+  const isManaging = isRootAdmin && Boolean(manageTarget.schoolId || manageTarget.personalTeacherId || manageTarget.email);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -39,6 +53,26 @@ const SubscriptionManagement = () => {
     window.addEventListener('schoolSelectionChanged', handler);
     return () => window.removeEventListener('schoolSelectionChanged', handler);
   }, []);
+
+  // In manage mode, load the target's current subscription so its end date can
+  // be shown (the root admin is not the subscriber).
+  useEffect(() => {
+    if (!isManaging) return;
+    const fetchTargetSub = async () => {
+      try {
+        const params = {};
+        if (manageTarget.schoolId) params.schoolId = manageTarget.schoolId;
+        if (manageTarget.personalTeacherId) params.personalTeacherId = manageTarget.personalTeacherId;
+        if (manageTarget.email) params.email = manageTarget.email;
+        const resp = await api.get('/user-subscriptions/lookup', { params });
+        setTargetSub(resp.data);
+      } catch (err) {
+        // Non-fatal: the page still works without the current plan.
+        console.error('Failed to load target subscription:', err);
+      }
+    };
+    fetchTargetSub();
+  }, [isManaging]);
 
   const handleSelectPlan = (plan) => {
     setSelectedPlan(plan);
@@ -169,6 +203,31 @@ const SubscriptionManagement = () => {
     }
   };
 
+  const handleAssignPlan = async () => {
+    if (!selectedPlan) {
+      setError('Please select a plan.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const resp = await api.post('/user-subscriptions/assign', {
+        planId: selectedPlan._id,
+        ...(manageTarget.schoolId ? { schoolId: manageTarget.schoolId } : {}),
+        ...(manageTarget.personalTeacherId ? { personalTeacherId: manageTarget.personalTeacherId } : {}),
+        ...(manageTarget.email ? { email: manageTarget.email } : {}),
+      });
+
+      toast.success(resp.data?.message || 'Plan assigned successfully.');
+      navigate('/schools');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to assign plan');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSavePricingPreference = async () => {
     setUpdatingProfile(true);
     try {
@@ -202,9 +261,22 @@ const SubscriptionManagement = () => {
   // Check if the current user is a School Admin or Personal Teacher
   const isEligibleRole = user && (user.role === 'school_admin' || user.role === 'personal_teacher');
 
-  if (!isEligibleRole) {
+  // Root admins acting on a target (school admin / personal teacher) may use this page.
+  if (!isEligibleRole && !isManaging) {
     return <div className="min-h-screen flex items-center justify-center text-red-500">Access Denied: Only School Admins and Personal Teachers require subscriptions.</div>;
   }
+
+  // End-date banner: always show the active/last subscription's end date — the
+  // target's in manage mode, the signed-in user's otherwise.
+  const displayStatus = isManaging ? targetSub?.status : user?.subscriptionStatus;
+  const displayEnd = isManaging
+    ? targetSub?.endDate
+    : (user?.subscriptionEndDate || user?.trialEndDate || null);
+  const displaySubject = isManaging ? (manageTarget.label || 'This account') : 'Your';
+  const displayPlanWord = displayStatus === 'trial' ? 'free trial' : 'subscription';
+  const endTimestamp = displayEnd ? new Date(displayEnd).getTime() : NaN;
+  const hasEnd = !Number.isNaN(endTimestamp);
+  const endInFuture = hasEnd && endTimestamp > Date.now();
 
   return (
     <div className="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -225,35 +297,32 @@ const SubscriptionManagement = () => {
         </div>
 
         <div className="text-center mb-16 relative z-10">
-          <h2 className="text-4xl sm:text-5xl font-semibold text-slate-900 mb-4 tracking-tight">Choose Your Plan</h2>
+          <h2 className="text-4xl sm:text-5xl font-semibold text-slate-900 mb-4 tracking-tight">
+            {isManaging ? 'Manage Subscription' : 'Choose Your Plan'}
+          </h2>
           <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto leading-relaxed">
-            Select the perfect subscription to power your educational institution. Scale as you grow.
+            {isManaging
+              ? `Assign a plan for ${manageTarget.label || 'this account'}. The plan activates immediately with no payment.`
+              : 'Select the perfect subscription to power your educational institution. Scale as you grow.'}
           </p>
         </div>
 
-        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() &&
-          !['student', 'teacher'].includes(user.role) && (
-            <div className="max-w-xl mx-auto mb-10 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-4 animate-bounce">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-none flex items-center justify-center text-primary">
+        {hasEnd && (
+          <div className={`max-w-xl mx-auto mb-10 p-4 rounded-xl flex items-center gap-4 ${endInFuture ? 'bg-primary/10 border border-primary/20 animate-bounce' : 'bg-red-50 border border-red-100 animate-pulse'}`}>
+            <div className={`w-12 h-12 bg-white rounded-xl shadow-none flex items-center justify-center ${endInFuture ? 'text-primary' : 'text-red-500'}`}>
+              {endInFuture ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <p className="text-primary font-semibold text-sm">
-                Your free trial ends on <span className="underline decoration-indigo-300 decoration-2">{new Date(user.trialEndDate).toLocaleDateString()}</span>. Enjoy the full experience!
-              </p>
-            </div>
-          )}
-
-        {user?.trialEndDate && user.subscriptionStatus === 'trial' && new Date(user.trialEndDate) <= Date.now() &&
-          !['student', 'teacher'].includes(user.role) && (
-            <div className="max-w-xl mx-auto mb-10 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-4 animate-pulse">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-none flex items-center justify-center text-red-500">
+              ) : (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              </div>
-              <p className="text-red-900 font-semibold text-sm tracking-tight">
-                Your free trial has expired! Select a plan to regain full access.
-              </p>
+              )}
             </div>
-          )}
+            <p className={`font-semibold text-sm ${endInFuture ? 'text-primary' : 'text-red-900 tracking-tight'}`}>
+              {displaySubject} {displayPlanWord} {endInFuture ? 'ends on' : 'ended on'}{' '}
+              <span className="underline decoration-indigo-300 decoration-2">{new Date(displayEnd).toLocaleDateString()}</span>
+              {endInFuture ? '. Enjoy the full experience!' : '! Select a plan to regain full access.'}
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="max-w-md mx-auto mb-8 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-center font-semibold text-sm">
@@ -321,24 +390,24 @@ const SubscriptionManagement = () => {
 
         <div className="max-w-2xl mx-auto space-y-6">
           <button
-            onClick={handleSubscribe}
+            onClick={isManaging ? handleAssignPlan : handleSubscribe}
             disabled={submitting || !selectedPlan}
             className="w-full py-5 bg-primary text-white font-semibold text-xl rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-none active:scale-[0.98] flex items-center justify-center gap-3"
           >
             {submitting ? (
               <>
                 <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                <span>Processing Payment...</span>
+                <span>{isManaging ? 'Assigning Plan...' : 'Processing Payment...'}</span>
               </>
             ) : (
               <>
-                <span>Complete Subscription</span>
+                <span>{isManaging ? 'Assign Plan' : 'Complete Subscription'}</span>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               </>
             )}
           </button>
 
-          {user?.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
+          {!isManaging && user?.subscriptionStatus === 'trial' && new Date(user.trialEndDate) > Date.now() && (
             <p className="text-center">
               <button
                 onClick={handleSkipTrial}
