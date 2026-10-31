@@ -167,7 +167,9 @@ Payment requirements:
 
 - In-app notifications with read/unread state and entity links.
 - Email notifications through configured transactional email providers.
-- Push notifications on supported mobile devices.
+- Push notifications on supported mobile devices delivered through Firebase Cloud Messaging (FCM), storing one token per device so a user can receive pushes on multiple devices.
+- Android pushes use the high-importance `gracified_default` channel. Foreground messages are rendered as heads-up banners; background and closed-app messages are displayed by the OS.
+- Android 13+ requires the runtime `POST_NOTIFICATIONS` permission, requested on first sign-in.
 - Class reminders, assignment reminders, assignment results, payment confirmations, enrollment events, publication events, topic progression, and payout notifications.
 
 ## 5. Platform experience
@@ -201,9 +203,10 @@ Mobile-specific requirements:
 
 ### Mobile
 
-- Expo SDK 54, React Native 0.81, React Navigation.
+- Expo SDK 57, React Native 0.86, Expo dev client, React Navigation.
 - AsyncStorage for persisted session data.
-- Expo Image Picker, Notifications, File System, Sharing, Status Bar, and WebView integrations.
+- Firebase Cloud Messaging (`@react-native-firebase/app`, `@react-native-firebase/messaging`) for push delivery, with Notifee rendering foreground heads-up banners.
+- Expo Image Picker, File System, Sharing, Status Bar, and WebView integrations.
 - Shared role, theme, API, date, and link utilities.
 
 ### Backend
@@ -233,6 +236,8 @@ The API is mounted under `/api` and uses JSON responses with bearer authenticati
 POST   /api/auth/register
 POST   /api/auth/login
 GET    /api/auth/me
+POST   /api/users/push-token
+DELETE /api/users/push-token
 
 GET    /api/classrooms
 GET    /api/classrooms/:id
@@ -353,11 +358,17 @@ PAYSTACK_SECRET_KEY=<secret>
 SMTP_HOST=<smtp host>
 SMTP_USER=<smtp user>
 SMTP_PASS=<smtp password>
+FIREBASE_PROJECT_ID=<firebase project id>
+FIREBASE_CLIENT_EMAIL=<service account email>
+FIREBASE_PRIVATE_KEY=<service account private key; literal \n allowed>
+# Alternatively: FIREBASE_SERVICE_ACCOUNT=<raw or base64-encoded JSON>
 EXPO_PUBLIC_API_URL=<api url for mobile>
 VITE_API_URL=<api url for web>
 ```
 
 Local development runs the backend, frontend, and mobile clients independently. The mobile client must use a LAN-reachable API URL when running on a physical device and an emulator-compatible URL when running on Android emulator.
+
+Push notifications require a Firebase project. The backend authenticates with a service account through `FIREBASE_SERVICE_ACCOUNT` (raw or base64 JSON) or the `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` trio. The mobile client reads `mobile/google-services.json` (Android) and `mobile/GoogleService-Info.plist` (iOS); because these are native configuration files, adding or changing them requires a new development or production build — Expo Go cannot load them.
 
 ## 12. Release acceptance checklist
 

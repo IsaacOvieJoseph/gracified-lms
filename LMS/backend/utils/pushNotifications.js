@@ -20,7 +20,10 @@ const buildMessage = (token, title, body, data) => ({
   data: buildData(data),
   android: {
     priority: 'high',
-    notification: { sound: 'default' },
+    notification: {
+      sound: 'default',
+      channelId: 'gracified_default',
+    },
   },
   apns: {
     payload: { aps: { sound: 'default' } },
@@ -58,6 +61,17 @@ const sendToTokens = async (userId, tokens, title, body, data) => {
     const messages = tokens.map((token) => buildMessage(token, title, body, data));
     const response = await messaging().sendEach(messages);
     const invalid = collectInvalidTokens(response, tokens);
+    if (response.failureCount > 0) {
+      const failures = (response.responses || [])
+        .filter((r) => !r.success)
+        .map((r) => r.error?.code || r.error?.message || 'unknown error');
+      console.warn(
+        `FCM send for user ${userId}: ${response.successCount} sent, ${response.failureCount} failed`,
+        failures
+      );
+    } else {
+      console.log(`FCM send for user ${userId}: ${response.successCount} sent`);
+    }
     if (invalid.length) await pruneTokens(userId, invalid);
   } catch (error) {
     console.error('FCM send error:', error?.message || error);

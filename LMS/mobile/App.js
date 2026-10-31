@@ -45,12 +45,15 @@ import { StatusBar } from 'expo-status-bar';
 import * as Device from 'expo-device';
 import {
   AuthorizationStatus,
+  getInitialNotification,
   getMessaging,
   getToken,
   onMessage,
+  onNotificationOpenedApp,
   onTokenRefresh,
   requestPermission,
 } from '@react-native-firebase/messaging';
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { PermissionsAndroid, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -65,6 +68,32 @@ import GracifiedSplash from './components/GracifiedSplash';
 
 export const navigationRef = createNavigationContainerRef();
 const messagingInstance = getMessaging();
+
+const PUSH_CHANNEL_ID = 'gracified_default';
+
+async function ensurePushChannel() {
+  try {
+    await notifee.createChannel({
+      id: PUSH_CHANNEL_ID,
+      name: 'General Notifications',
+      importance: AndroidImportance.HIGH,
+    });
+  } catch (error) {
+    console.log('Failed to create notification channel:', error.message);
+  }
+}
+
+let initialNotificationHandled = false;
+
+function openNotifications(attempt = 0) {
+  if (navigationRef.isReady()) {
+    navigationRef.navigate('Notifications');
+    return;
+  }
+  if (attempt < 10) {
+    setTimeout(() => openNotifications(attempt + 1), 300);
+  }
+}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -86,11 +115,9 @@ const linking = {
   },
 };
 
-// Foreground push handling: FCM delivers messages to onMessage() when the app
-// is in the foreground. Unlike Expo, there is no built-in banner renderer here
-// (notifications module was merged into messaging), so we surface foreground
-// notifications via the in-app Notifications screen (fetched from the API).
-// Background/closed-app banners are rendered automatically by the OS/FCM.
+// Push notifications use Firebase Cloud Messaging. Foreground messages are
+// rendered as heads-up banners via Notifee; background/closed-app banners are
+// rendered automatically by the OS from the notification payload.
 
 function AppContent() {
   const { user } = useAuth();
@@ -100,12 +127,28 @@ function AppContent() {
   const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
 
   useEffect(() => {
-    // Foreground messages. The OS shows banners automatically when the app is
-    // backgrounded/closed; in the foreground we rely on the in-app list.
+    ensurePushChannel();
+
+    // Foreground messages: FCM does not auto-display while the app is open, so
+    // render a heads-up banner ourselves via Notifee. Background/closed-app
+    // banners are handled automatically by the OS from the notification payload.
     const unsubscribeForeground = onMessage(messagingInstance, async (remoteMessage) => {
-      // Intentionally lightweight — push content is also persisted to the
-      // in-app notifications list via the API. Add an in-app banner here if
-      // you want foreground popups.
+      const { notification, data } = remoteMessage;
+      if (!notification) return;
+      try {
+        await ensurePushChannel();
+        await notifee.displayNotification({
+          title: notification.title || 'Gracified LMS',
+          body: notification.body || '',
+          data: data || {},
+          android: {
+            channelId: PUSH_CHANNEL_ID,
+            pressAction: { id: 'default', launchActivity: 'default' },
+          },
+        });
+      } catch (error) {
+        console.log('Foreground notification display failed:', error.message);
+      }
     });
 
     const saveToken = async (token) => {
@@ -158,9 +201,30 @@ function AppContent() {
       }
     });
 
+    // Tapping a push opens the in-app Notifications screen.
+    const unsubscribeOpened = onNotificationOpenedApp(messagingInstance, () => {
+      openNotifications();
+    });
+
+    if (!initialNotificationHandled) {
+      initialNotificationHandled = true;
+      getInitialNotification(messagingInstance)
+        .then((remoteMessage) => {
+          if (remoteMessage) openNotifications();
+        })
+        .catch(() => {});
+    }
+
+    // Foreground Notifee banners: handle the tap.
+    const unsubscribeNotifee = notifee.onForegroundEvent(({ type }) => {
+      if (type === EventType.PRESS) openNotifications();
+    });
+
     return () => {
       unsubscribeForeground();
       unsubscribeTokenRefresh();
+      unsubscribeOpened();
+      unsubscribeNotifee();
     };
   }, [user]);
 

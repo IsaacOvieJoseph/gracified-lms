@@ -15,7 +15,7 @@ Legend: `[ ]` = pending, `[x]` = done.
 - [ ] Enroll in Apple Developer Program ($99/yr) — https://developer.apple.com/programs
 - [ ] Host a privacy policy at a public URL (required by both stores)
 - [ ] Set a support/contact email shown on both stores
-- [ ] Choose app category (Educat ion) and complete content-rating questionnaire
+- [ ] Choose app category (Education) and complete content-rating questionnaire
 
 ## B. Backend & Server
 
