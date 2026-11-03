@@ -1,42 +1,44 @@
 ID,Category,Action,Priority,Status,Owner,Notes
 1,A. Developer Accounts & Legal,Create Google Play Developer account ($25 one-time),High,Pending,You,https://play.google.com/console
 2,A. Developer Accounts & Legal,Enroll in Apple Developer Program ($99/yr),High,Pending,You,https://developer.apple.com/programs
-3,A. Developer Accounts & Legal,Host a privacy policy at a public URL,High,Pending,You,Required by both stores; cover emails names photos and push tokens
-4,A. Developer Accounts & Legal,Set a support/contact email shown on both stores,Medium,Pending,You,
+3,A. Developer Accounts & Legal,Host a privacy policy at a public URL,High,Done,You,Web app serves /privacy and /terms (e.g. https://gracified-lms.vercel.app/privacy)
+4,A. Developer Accounts & Legal,Set a support/contact email shown on both stores,Medium,Pending,You,"gracifiedlms@gmail.com is defined in frontend/src/pages/Legal.jsx; enter it in Play Console and App Store Connect"
 5,A. Developer Accounts & Legal,Choose app category (Education) and complete content-rating questionnaire,Medium,Pending,You,
-6,B. Backend & Server,Point EXPO_PUBLIC_API_URL to the deployed Render HTTPS URL via EAS secret,High,Pending,Dev,Not hardcoded so platform migration stays easy
+6,B. Backend & Server,Point EXPO_PUBLIC_API_URL to the deployed Render HTTPS URL via EAS secret,High,Pending,Dev,"Local mobile/.env still points to http://10.216.82.171/api (LAN HTTP); store builds need the Render HTTPS URL"
 7,B. Backend & Server,Confirm Render instance stays awake (always-on plan) to avoid launch timeouts,High,Pending,You,Render free tier sleeps on inactivity
-8,B. Backend & Server,Verify /users/expo-token endpoint and push sending from production backend,High,Pending,Dev,See mobile/App.js push registration
-9,B. Backend & Server,Keep the API URL as an env var for seamless platform migration,Medium,Pending,Dev,You plan to change hosting later
-10,C. App Config (app.json),Add iOS bundleIdentifier (e.g. com.isaac_joseph.gracifiedlmsmobile),High,Pending,Dev,Currently missing; mandatory for App Store
-11,C. App Config (app.json),Verify Android package matches Play Console registration,High,Pending,You,Cannot change after first upload
-12,C. App Config (app.json),Set a real 1024x1024 app icon (validate assets/icon.png),High,Pending,Dev,Current adaptive icon uses favicon.png
-13,C. App Config (app.json),Add iOS infoPlist NSCameraUsageDescription and NSPhotoLibraryUsageDescription,High,Pending,Dev,expo-image-picker requires usage strings
-14,C. App Config (app.json),Configure expo-notifications plugin (icon color sounds),Medium,Pending,Dev,
-15,C. App Config (app.json),Configure expo-splash-screen plugin and verify splash sizes,Medium,Pending,Dev,Splash assets exist in gracified-expo-splash
-16,C. App Config (app.json),Confirm version/buildNumber auto-increment via appVersionSource remote,Low,Pending,Dev,eas.json already set
-17,D. Push Notifications,Create Firebase project and add google-services.json to EAS credentials,High,Pending,You+Dev,Required for standalone Android push (Expo Go will not work)
-18,D. Push Notifications,Upload an APNs key to EAS for iOS,High,Pending,You,Requires Apple Developer account
-19,D. Push Notifications,Test push on a standalone Android build,High,Pending,Dev,
-20,D. Push Notifications,Test push on iOS via TestFlight,High,Pending,Dev,
-21,E. Build & Signing,Run `eas login` and verify EAS project ID matches dashboard,High,Pending,You,Project ID 0023c05d-2ea5-4700-9fc2-1907c85914b9
-22,E. Build & Signing,Generate Android keystore + Play App Signing key via EAS,High,Pending,Dev,
-23,E. Build & Signing,Generate iOS distribution certificate + provisioning profile,High,Pending,Dev,
-24,E. Build & Signing,Build production Android (AAB) with eas build -p android,High,Pending,Dev,eas build -p android --profile production
-25,E. Build & Signing,Build production iOS with eas build -p ios,High,Pending,Dev,eas build -p ios --profile production
-26,F. Testing Before Submit,Install production build on real Android and iOS devices,High,Pending,You,
-27,F. Testing Before Submit,Test auth (login/signup) roles and dashboard,High,Pending,Dev,
-28,F. Testing Before Submit,Test image picker permission prompts end-to-end,Medium,Pending,Dev,
-29,F. Testing Before Submit,Test the payment flow (Paystack checkout) end-to-end,High,Pending,Dev,Also review policy implications (see H)
-30,G. Store Listing Assets,Google Play screenshots (2-8 phone),High,Pending,You,
-31,G. Store Listing Assets,Google Play feature graphic 1024x500 and high-res icon 512x512,Medium,Pending,You,
-32,G. Store Listing Assets,App Store screenshots 6.7 and 6.5/5.5 inches (+ optional app preview),High,Pending,You,
-33,G. Store Listing Assets,Write short and full descriptions,Medium,Pending,You,
-34,G. Store Listing Assets,Complete Play Data Safety form + App Store privacy nutrition labels,High,Pending,You,
-35,H. Policy / Compliance,Move purchases off the app to the website (locked state in-app) for store compliance,Done,You,Payments now out-of-band on the website; no purchase UI or links remain in the app
-36,H. Policy / Compliance,Confirm Google Play Payments policy for paid digital classrooms,Done,You,Resolved via website-only purchases; app shows locked state until access granted
-37,H. Policy / Compliance,Review Play Families + COPPA/GDPR-K rules if minors use the app,Medium,Pending,You,
-38,I. Submission & Launch,Upload AAB to Play Console internal testing track,High,Pending,You+eas submit,
-39,I. Submission & Launch,Upload .ipa to TestFlight,High,Pending,You,
-40,I. Submission & Launch,Address review feedback,High,Pending,You,
-41,I. Submission & Launch,Promote to production track on both stores,High,Pending,You,
+8,B. Backend & Server,Confirm push-token endpoints exist,High,Done,Dev,"POST/DELETE /users/push-token with legacy POST /users/expo-token alias in backend/routes/users.js"
+9,B. Backend & Server,Verify push delivery works end-to-end from the production backend,High,Pending,Dev,
+10,B. Backend & Server,Keep the API URL as an env var for seamless platform migration,Medium,Done,Dev,"EXPO_PUBLIC_API_URL (API) and EXPO_PUBLIC_FRONTEND_URL (links)"
+11,C. App Config (app.json),Add iOS bundleIdentifier,High,Done,Dev,com.isaac_joseph.gracifiedlmsmobile
+12,C. App Config (app.json),Verify Android package matches Play Console registration,High,Pending,You,"Set to com.isaac_joseph.gracifiedlmsmobile; cannot change after first upload"
+13,C. App Config (app.json),Set a real 1024x1024 app icon,High,Pending,Dev,"assets/icon.png is 1055x833 and app.json has no top-level icon; favicon_adaptive.png is 1024x1024 but only used as Android adaptive foreground"
+14,C. App Config (app.json),Add iOS infoPlist NSCameraUsageDescription and NSPhotoLibraryUsageDescription,High,Pending,Dev,"Not present in app.json; verify whether the expo-image-picker config plugin adds usable defaults after prebuild"
+15,C. App Config (app.json),Configure notification icon color and sound for Firebase Messaging/Notifee,Medium,Pending,Dev,"expo-notifications is not installed; App.js creates the Android channel but sets no small icon/color/sound"
+16,C. App Config (app.json),Configure expo-splash-screen plugin and verify splash sizes,Medium,Done,Dev,Light/dark images configured in app.json (2048x2048 assets)
+17,C. App Config (app.json),Confirm version/buildNumber auto-increment via appVersionSource remote,Low,Done,Dev,"appVersionSource: remote and production autoIncrement: true in eas.json"
+18,D. Push Notifications,Create Firebase project and add Android google-services.json,High,Done,You+Dev,"Checked in at mobile/google-services.json; package matches and file is referenced in app.json"
+19,D. Push Notifications,Replace placeholder iOS GoogleService-Info.plist,High,Pending,You+Dev,"GOOGLE_APP_ID is all zeros (1:1069453591011:ios:0000000000000000000000); register a real iOS app in Firebase and download the real plist"
+20,D. Push Notifications,Upload an APNs key to EAS for iOS,High,Pending,You,Requires Apple Developer account
+21,D. Push Notifications,Test push on a standalone Android build,High,Pending,Dev,Expo Go will not work
+22,D. Push Notifications,Test push on iOS via TestFlight,High,Pending,Dev,
+23,E. Build & Signing,Confirm the EAS project ID is configured,High,Done,Dev,"app.json project ID matches the checklist and eas.json exists; still run eas login to confirm dashboard access"
+24,E. Build & Signing,Generate Android keystore + Play App Signing key via EAS,High,Pending,Dev,
+25,E. Build & Signing,Generate iOS distribution certificate + provisioning profile,High,Pending,Dev,
+26,E. Build & Signing,Build production Android (AAB) with eas build -p android,High,Pending,Dev,eas build -p android --profile production
+27,E. Build & Signing,Build production iOS with eas build -p ios,High,Pending,Dev,eas build -p ios --profile production
+28,F. Testing Before Submit,Install production build on real Android and iOS devices,High,Pending,You,
+29,F. Testing Before Submit,Test auth (login/signup) roles and dashboard,High,Pending,Dev,
+30,F. Testing Before Submit,Test image picker permission prompts end-to-end,Medium,Pending,Dev,
+31,F. Testing Before Submit,Test paid-content locked state and out-of-band purchase flow,High,Pending,Dev,"In-app checkout was removed; verify locked content website redirect and payment history rendering"
+32,G. Store Listing Assets,Google Play screenshots (2-8 phone),High,Pending,You,
+33,G. Store Listing Assets,Google Play feature graphic 1024x500 and high-res icon 512x512,Medium,Pending,You,
+34,G. Store Listing Assets,App Store screenshots 6.7 and 6.5/5.5 inches (+ optional app preview),High,Pending,You,
+35,G. Store Listing Assets,Write short and full descriptions,Medium,Pending,You,
+36,G. Store Listing Assets,Complete Play Data Safety form + App Store privacy nutrition labels,High,Pending,You,
+37,H. Policy / Compliance,Move purchases off the app to the website (locked state in-app) for store compliance,High,Done,You,Payments now out-of-band on the website; no purchase UI or links remain in the app
+38,H. Policy / Compliance,Confirm Google Play Payments policy for paid digital classrooms,High,Done,You,Resolved via website-only purchases; app shows locked state until access granted
+39,H. Policy / Compliance,Review Play Families + COPPA/GDPR-K rules if minors use the app,Medium,Pending,You,
+40,I. Submission & Launch,Upload AAB to Play Console internal testing track,High,Pending,You+eas submit,
+41,I. Submission & Launch,Upload .ipa to TestFlight,High,Pending,You,
+42,I. Submission & Launch,Address review feedback,High,Pending,You,
+43,I. Submission & Launch,Promote to production track on both stores,High,Pending,You,

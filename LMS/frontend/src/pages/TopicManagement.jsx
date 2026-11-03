@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
-    X, Plus, Trash2, Loader2, CheckCircle, Clock, Circle, Play, Flag, Book, 
-    Pencil, GripVertical, RotateCcw, Video, Upload, AlertCircle, 
-    ChevronDown, ChevronUp, ArrowLeft, Link as LinkIcon, Sparkles, BookOpen, Layers, Zap, Lock,
+    X, Plus, Trash2, Loader2, CheckCircle, Clock, Play, Book,
+    Pencil, GripVertical, RotateCcw, Video, Upload, AlertCircle,
+    ChevronDown, ChevronUp, ArrowLeft, Link as LinkIcon, Sparkles, Layers, Lock,
     School
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -14,6 +14,56 @@ import { useAuth } from '../context/AuthContext';
 import FormFieldHelp from '../components/FormFieldHelp';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import { consumeGracyPrefill } from '../utils/gracyPrefill';
+
+// ─── Flat record card primitives (ClassRecord design language) ──────────────
+const INK = 'hsl(var(--foreground))';
+const NAVY = 'hsl(var(--primary))';
+const SLATE = 'hsl(var(--muted-foreground))';
+const HAIRLINE = 'hsl(var(--border))';
+const PAPER = 'hsl(var(--card))';
+const PANEL = 'hsl(var(--muted))';
+const GOLD = 'hsl(var(--gold))';
+const FOREST = 'hsl(var(--success))';
+const ROSE = 'hsl(var(--danger))';
+
+const primaryActionStyle = { backgroundColor: NAVY, color: PAPER, borderRadius: 'var(--radius)' };
+const outlineActionStyle = { backgroundColor: PAPER, color: INK, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' };
+
+function RecordField({ icon: Icon, label, children, borderRight }) {
+    return (
+        <div className={`flex items-start gap-3 px-5 py-4 min-w-0 ${borderRight ? 'sm:border-r sm:border-border' : ''}`}>
+            <Icon size={17} strokeWidth={1.75} style={{ color: SLATE, marginTop: 2 }} />
+            <div className="min-w-0">
+                <div className="text-xs" style={{ color: SLATE }}>{label}</div>
+                <div className="text-sm font-semibold mt-0.5 break-words" style={{ color: INK }}>{children}</div>
+            </div>
+        </div>
+    );
+}
+
+function IconAction({ icon: Icon, label, onClick, tone = 'default', disabled, loading }) {
+    const tones = {
+        default: { color: INK, border: HAIRLINE },
+        primary: { color: NAVY, border: 'hsl(var(--primary) / 0.35)' },
+        success: { color: FOREST, border: 'hsl(var(--success) / 0.35)' },
+        warning: { color: GOLD, border: 'hsl(var(--gold) / 0.35)' },
+        danger: { color: ROSE, border: 'hsl(var(--danger) / 0.35)' },
+    };
+    const t = tones[tone] || tones.default;
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            title={label}
+            aria-label={label}
+            className="flex items-center justify-center w-9 h-9 transition-colors hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ border: `1px solid ${t.border}`, backgroundColor: PAPER, color: t.color, borderRadius: 'var(--radius)' }}
+        >
+            {loading ? <Loader2 size={15} className="animate-spin" /> : <Icon size={15} strokeWidth={2} />}
+        </button>
+    );
+}
 
 const TopicManagement = () => {
     const { id: classroomId } = useParams();
@@ -444,123 +494,133 @@ const TopicManagement = () => {
 
     return (
         <Layout>
-            <div className="max-w-6xl mx-auto px-4 py-8">
+            <div className="flex flex-col gap-6">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-                    <div className="flex items-center gap-5 w-full md:w-auto">
-                        <button 
-                            onClick={() => navigate(`/classrooms/${classroomId}`)}
-                            className="w-14 h-14 flex items-center justify-center bg-card border border-border text-muted-foreground rounded-xl hover:bg-primary hover:text-white transition-all shadow-none active:scale-95"
-                        >
-                            <ArrowLeft className="w-6 h-6" />
-                        </button>
-                        <div>
-                            <p className="text-xs font-semibold tracking-[0.3em] text-primary mb-1">Curriculum Builder</p>
-                            <h1 className="text-4xl font-semibold text-foreground italic tracking-tight">Manage Topics</h1>
-                            {classroom && (
-                                <p className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
-                                    <School className="w-3 h-3" /> {classroom.name}
-                                </p>
-                            )}
+                <div style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}` }}>
+                    <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
+                        <div className="flex items-start gap-4 min-w-0">
+                            <button
+                                onClick={() => navigate(`/classrooms/${classroomId}`)}
+                                className="flex items-center justify-center w-9 h-9 shrink-0 transition-colors hover:bg-muted"
+                                style={outlineActionStyle}
+                                aria-label="Back to classroom"
+                            >
+                                <ArrowLeft size={15} style={{ color: INK }} />
+                            </button>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <School size={13} style={{ color: SLATE }} />
+                                    <span className="text-xs font-semibold truncate" style={{ color: SLATE }}>
+                                        {classroom?.name || 'Classroom'}
+                                    </span>
+                                </div>
+                                <h1 className="font-serif text-[26px] font-semibold leading-tight" style={{ color: INK }}>Manage topics</h1>
+                                <p className="text-sm mt-1" style={{ color: SLATE }}>Build, order and publish the syllabus for this class.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                onClick={() => setShowAIPanel(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
+                                style={outlineActionStyle}
+                                title="AI Syllabus Assistant"
+                            >
+                                <Sparkles size={15} style={{ color: NAVY }} />
+                                <span className="hidden sm:inline">Generate topics</span>
+                                <span className="sm:hidden">AI</span>
+                            </button>
+                            <button
+                                onClick={() => { resetForm(); setShowCreateForm(true); }}
+                                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+                                style={primaryActionStyle}
+                            >
+                                <Plus size={16} />
+                                Add topic
+                            </button>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="bg-card border border-border p-4 rounded-xl flex items-center gap-6 shadow-none">
-                            <div className="flex flex-col">
-                                <span className="text-xs font-semibold text-muted-foreground opacity-60">Modules</span>
-                                {loadingTopics
-                                    ? <span className="inline-block w-8 h-6 my-0.5 rounded bg-muted animate-pulse" />
-                                    : <span className="text-xl font-semibold text-primary">{topics.length}</span>}
-                            </div>
-                            <div className="w-px h-8 bg-border" />
-                            <div className="flex flex-col">
-                                <span className="text-xs font-semibold text-muted-foreground opacity-60">Duration</span>
-                                {loadingTopics
-                                    ? <span className="inline-block w-16 h-6 my-0.5 rounded bg-muted animate-pulse" />
-                                    : <span className="text-xl font-semibold text-foreground italic">{totalDuration}</span>}
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowAIPanel(true)}
-                            className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-xl flex items-center justify-center shadow-none shadow-none hover:scale-105 transition-all active:scale-95"
-                            title="AI Syllabus Assistant"
-                        >
-                            <Sparkles className="w-6 h-6" />
-                        </button>
-                        <button
-                            onClick={() => { resetForm(); setShowCreateForm(true); }}
-                            className="h-14 px-6 bg-primary text-white rounded-xl flex items-center gap-3 shadow-none shadow-none hover:scale-105 transition-all active:scale-95 font-semibold tracking-wide text-xs"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Add Topic
-                        </button>
+                    <div className="grid grid-cols-2 sm:grid-cols-3" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+                        <RecordField icon={Layers} label="Modules" borderRight>
+                            {loadingTopics
+                                ? <span className="inline-block w-8 h-5 rounded bg-muted animate-pulse" />
+                                : topics.length}
+                        </RecordField>
+                        <RecordField icon={Clock} label="Total duration" borderRight>
+                            {loadingTopics
+                                ? <span className="inline-block w-16 h-5 rounded bg-muted animate-pulse" />
+                                : totalDuration}
+                        </RecordField>
+                        <RecordField icon={Play} label="Current topic">
+                            {currentTopic?.name || 'None active'}
+                        </RecordField>
                     </div>
                 </div>
 
-                <div className="max-w-4xl mx-auto">
+                <div className="w-full">
                     {/* Creation/Editing Form Modal */}
                     {showCreateForm && (
-                        <div className="fixed inset-0 bg-slate-900/80  z-[100] flex items-center justify-center p-4 overflow-y-auto py-10">
-                            <div className="bg-card rounded-xl p-10 shadow-none border border-border w-full max-w-2xl relative animate-in fade-in zoom-in duration-300">
-                                <button 
-                                    onClick={resetForm}
-                                    className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-danger/90 hover:text-white transition-all active:scale-95 z-10"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-
-                                <div className="flex items-center gap-5 mb-10">
-                                    <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0 shadow-none">
-                                        {editingTopic ? <Pencil className="w-7 h-7" /> : <Plus className="w-8 h-8" />}
-                                    </div>
+                        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100] flex items-start justify-center p-4 overflow-y-auto py-10">
+                            <div className="w-full max-w-2xl relative animate-in fade-in zoom-in-95 duration-200" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+                                <div className="flex items-start justify-between gap-4 px-6 py-5" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
                                     <div>
-                                        <h3 className="text-2xl font-semibold text-foreground tracking-tight italic mb-1">
-                                            {editingTopic ? 'Edit Module' : 'New Module'}
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground font-semibold tracking-[0.2em] opacity-50">Building your journey</p>
+                                        <h2 className="font-serif text-[22px] font-semibold" style={{ color: INK }}>
+                                            {editingTopic ? 'Edit topic' : 'New topic'}
+                                        </h2>
+                                        <p className="text-sm mt-1" style={{ color: SLATE }}>
+                                            {editingTopic ? 'Update the details of this syllabus module.' : 'Add a module to this class syllabus.'}
+                                        </p>
                                     </div>
+                                    <button
+                                        onClick={resetForm}
+                                        className="flex items-center justify-center w-9 h-9 shrink-0 transition-colors hover:bg-muted"
+                                        style={outlineActionStyle}
+                                        aria-label="Close"
+                                    >
+                                        <X size={16} style={{ color: INK }} />
+                                    </button>
                                 </div>
 
-                                <form onSubmit={handleSubmit} className="space-y-6">
+                                <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
                                     <div>
-                                        <label className="text-xs font-semibold text-muted-foreground mb-3 block tracking-wide italic opacity-60">Topic Name</label>
+                                        <label className="text-xs font-semibold tracking-wide">Topic name</label>
                                         <input
                                             type="text"
                                             placeholder="e.g. Introduction to Calculus"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            className="w-full px-5 py-4 rounded-xl bg-muted border-2 border-border focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-foreground font-semibold italic tracking-tight placeholder:opacity-30 placeholder:italic"
+                                            className="w-full"
                                             required
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-semibold text-muted-foreground mb-2 block">Description</label>
+                                        <label className="text-xs font-semibold tracking-wide">Description</label>
                                         <textarea
                                             placeholder="What will students learn in this topic?"
                                             value={formData.description}
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                            className="w-full"
                                             rows="3"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-semibold text-muted-foreground mb-2 block">Lesson Outline</label>
+                                        <label className="text-xs font-semibold tracking-wide">Lesson outline</label>
                                         <textarea
                                             placeholder="Briefly outline the lessons..."
                                             value={formData.lessonsOutline}
                                             onChange={(e) => setFormData({ ...formData, lessonsOutline: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                            className="w-full"
                                             rows="3"
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-semibold text-muted-foreground mb-2 flex items-center">
-                                                Duration Mode
+                                            <label className="text-xs font-semibold tracking-wide flex items-center">
+                                                Duration mode
                                                 <FormFieldHelp content="Choose a time unit (Days, Weeks, Months) to estimate the duration of this topic." />
                                             </label>
                                             <select
@@ -569,9 +629,9 @@ const TopicManagement = () => {
                                                     ...formData,
                                                     duration: { ...formData.duration, mode: e.target.value }
                                                 })}
-                                                className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                                className="w-full"
                                             >
-                                                <option value="not_sure">Not Sure</option>
+                                                <option value="not_sure">Not sure</option>
                                                 <option value="day">Day(s)</option>
                                                 <option value="week">Week(s)</option>
                                                 <option value="month">Month(s)</option>
@@ -579,7 +639,7 @@ const TopicManagement = () => {
                                         </div>
 
                                         <div>
-                                            <label className="text-sm font-semibold text-muted-foreground mb-2 block">Value</label>
+                                            <label className="text-xs font-semibold tracking-wide">Value</label>
                                             <input
                                                 type="number"
                                                 min="1"
@@ -588,40 +648,37 @@ const TopicManagement = () => {
                                                     ...formData,
                                                     duration: { ...formData.duration, value: parseInt(e.target.value) || 1 }
                                                 })}
-                                                className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                                className="w-full disabled:opacity-50"
                                                 disabled={formData.duration.mode === 'not_sure'}
                                             />
                                         </div>
                                     </div>
 
                                     {showPaidTopics && (
-                                        <div className="pt-2">
-                                            <div className="flex items-center gap-6 p-4 bg-muted rounded-xl border border-border">
-                                                <label className="flex items-center gap-3 mb-0 ml-0 cursor-pointer">
-                                                    <div className={`w-10 h-6 flex items-center p-1 rounded-full transition-colors ${formData.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="hidden"
-                                                            checked={formData.isPaid}
-                                                            onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
-                                                        />
-                                                        <div className={`bg-card w-4 h-4 rounded-full shadow-none transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
-                                                    </div>
-                                                    <span className="font-semibold text-foreground flex items-center">
-                                                        Paid Topic
+                                        <div className="pt-1">
+                                            <div className="flex flex-wrap items-center gap-4 p-4" style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+                                                <label
+                                                    onClick={() => setFormData({ ...formData, isPaid: !formData.isPaid })}
+                                                    className="flex items-center justify-between gap-4 cursor-pointer mb-0 ml-0 flex-1 min-w-[180px]"
+                                                >
+                                                    <span className="text-sm font-semibold flex items-center" style={{ color: INK }}>
+                                                        Paid topic
                                                         <FormFieldHelp content="If enabled, students must pay an individual fee to unlock this topic and its materials." />
                                                     </span>
+                                                    <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${formData.isPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.isPaid ? 'translate-x-4' : ''}`} />
+                                                    </div>
                                                 </label>
                                                 {formData.isPaid && (
-                                                    <div className="flex-1 flex items-center gap-2">
-                                                        <span className="font-semibold text-muted-foreground">₦</span>
+                                                    <div className="flex items-center gap-2 min-w-[140px]">
+                                                        <span className="text-sm font-semibold" style={{ color: SLATE }}>₦</span>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             value={formData.price}
                                                             onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                                                             placeholder="Price"
-                                                            className="flex-1 px-3 py-1.5 rounded-xl bg-card border border-border text-foreground"
+                                                            className="flex-1"
                                                         />
                                                     </div>
                                                 )}
@@ -629,20 +686,22 @@ const TopicManagement = () => {
                                         </div>
                                     )}
 
-                                    <div className="flex gap-4 pt-6">
+                                    <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="flex-1 px-6 py-4 rounded-xl border-2 border-border font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition-all active:scale-95"
+                                            className="flex-1 px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
+                                            style={outlineActionStyle}
                                         >
-                                            CANCEL
+                                            Cancel
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={loading}
-                                            className="btn-premium flex-1 py-4 flex items-center justify-center text-xs"
+                                            className="flex-1 px-5 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-60"
+                                            style={primaryActionStyle}
                                         >
-                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingTopic ? 'UPDATE' : 'CREATE')}
+                                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingTopic ? 'Save changes' : 'Create topic')}
                                         </button>
                                     </div>
                                 </form>
@@ -652,19 +711,19 @@ const TopicManagement = () => {
 
                     {/* Topics List */}
                     <div className="w-full">
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {loadingTopics ? (
-                                <div className="text-center py-20 bg-card rounded-xl border-2 border-dashed border-border">
-                                    <Loader2 className="w-10 h-10 mx-auto mb-4 text-primary animate-spin" />
-                                    <p className="text-sm font-semibold text-muted-foreground">Loading topics...</p>
+                                <div className="text-center py-16" style={{ backgroundColor: PAPER, border: `1px dashed ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+                                    <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin" style={{ color: NAVY }} />
+                                    <p className="text-sm" style={{ color: SLATE }}>Loading topics...</p>
                                 </div>
                             ) : topics.length === 0 ? (
-                                <div className="text-center py-20 bg-card rounded-xl border-2 border-dashed border-border">
-                                    <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <Book className="w-10 h-10 text-muted-foreground/30" />
+                                <div className="text-center py-16" style={{ backgroundColor: PAPER, border: `1px dashed ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+                                    <div className="w-14 h-14 flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: PANEL, borderRadius: 'var(--radius)' }}>
+                                        <Book size={24} style={{ color: SLATE, opacity: 0.5 }} />
                                     </div>
-                                    <h4 className="text-xl font-semibold text-foreground mb-2">No topics yet</h4>
-                                    <p className="text-muted-foreground">Create your first topic to get started with the curriculum!</p>
+                                    <h3 className="font-serif text-[20px] font-semibold" style={{ color: INK }}>No topics yet</h3>
+                                    <p className="text-sm mt-1" style={{ color: SLATE }}>Create your first topic to get started with the curriculum.</p>
                                 </div>
                             ) : (
                                 topics.map((topic, index) => {
@@ -674,11 +733,13 @@ const TopicManagement = () => {
                                     const hasVideos = recordedVideos.length > 0;
                                     const isUploadingThis = uploadingVideo && videoUploadTopicId === topic._id;
                                     const isShowingUrlInput = showUrlInput === topic._id;
+                                    const nodeColor = isCurrent ? NAVY : isDone ? FOREST : PANEL;
+                                    const nodeText = isCurrent || isDone ? PAPER : SLATE;
 
                                     return (
                                         <div
                                             key={topic._id}
-                                            className={`relative pl-12 pb-12 last:pb-0 transition-all duration-300 ${draggedIndex === index ? 'opacity-30 scale-95' : 'opacity-100'}`}
+                                            className={`relative pl-14 pb-1 last:pb-0 transition-all duration-300 ${draggedIndex === index ? 'opacity-40' : 'opacity-100'}`}
                                             draggable
                                             onDragStart={(e) => handleDragStart(e, index)}
                                             onDragOver={(e) => handleDragOver(e, index)}
@@ -687,79 +748,99 @@ const TopicManagement = () => {
                                         >
                                             {/* Timeline Line */}
                                             {index !== topics.length - 1 && (
-                                                <div className="absolute left-[23px] top-12 bottom-0 w-1 bg-gradient-to-b from-primary/20 to-transparent" />
+                                                <div className="absolute left-[19px] top-12 bottom-0 w-px" style={{ backgroundColor: HAIRLINE }} />
                                             )}
 
                                             {/* Timeline Node */}
-                                            <div className={`absolute left-0 top-1 w-12 h-12 rounded-xl flex items-center justify-center z-10 border-4 border-card transition-all ${isCurrent ? 'bg-primary text-white scale-110 shadow-none shadow-none' : isDone ? 'bg-success text-white' : 'bg-muted text-muted-foreground'}`}>
-                                                {isDone ? <CheckCircle className="w-6 h-6" /> : <span className="font-semibold italic">{index + 1}</span>}
+                                            <div
+                                                className="absolute left-0 top-4 w-10 h-10 flex items-center justify-center z-10"
+                                                style={{
+                                                    backgroundColor: nodeColor,
+                                                    color: nodeText,
+                                                    border: `1px solid ${isCurrent ? NAVY : isDone ? FOREST : HAIRLINE}`,
+                                                    borderRadius: 'var(--radius)',
+                                                }}
+                                            >
+                                                {isDone ? <CheckCircle size={18} /> : <span className="text-sm font-semibold">{index + 1}</span>}
                                             </div>
 
-                                            <div className={`bg-card border-2 rounded-xl p-8 transition-all group shadow-none ${isCurrent ? 'border-primary shadow-none shadow-none' : isDone ? 'border-emerald-500/20 opacity-80' : 'border-border hover:border-primary/20 hover:shadow-none hover:shadow-none'}`}>
+                                            <div className="overflow-hidden group" style={{ backgroundColor: PAPER, border: `1px solid ${isCurrent ? 'hsl(var(--primary) / 0.5)' : HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+                                                <div style={{ height: '3px', backgroundColor: isCurrent ? NAVY : isDone ? FOREST : HAIRLINE }} />
                                                 {/* Topic Header */}
-                                                <div className="flex items-start justify-between gap-4 mb-8">
-                                                    <div className="flex items-start gap-4 flex-1">
-                                                        <div className="mt-1 text-muted-foreground/30 cursor-grab active:cursor-grabbing flex-shrink-0 group-hover:text-primary transition-colors">
-                                                            <GripVertical className="w-6 h-6" />
+                                                <div className="flex items-start justify-between gap-4 px-5 py-4" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+                                                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                        <div className="mt-1 cursor-grab active:cursor-grabbing flex-shrink-0 transition-colors" style={{ color: SLATE }}>
+                                                            <GripVertical size={16} />
                                                         </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center flex-wrap gap-2 mb-3">
-                                                                <h4 className="text-xl font-semibold text-foreground italic tracking-tight">{topic.name}</h4>
-                                                                {isCurrent && <span className="px-3 py-1 bg-primary text-white rounded-xl text-[8px] font-semibold tracking-wide shadow-none shadow-none">Active Lesson</span>}
-                                                                {isDone && <span className="px-3 py-1 bg-success text-white rounded-xl text-[8px] font-semibold tracking-wide shadow-none shadow-none">Done</span>}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                                                                <h3 className="font-serif text-[18px] font-semibold leading-snug" style={{ color: INK }}>{topic.name}</h3>
+                                                                {isCurrent && (
+                                                                    <span className="text-[10px] font-semibold px-2 py-0.5" style={{ color: PAPER, backgroundColor: NAVY, borderRadius: 'var(--radius)' }}>Active</span>
+                                                                )}
+                                                                {isDone && (
+                                                                    <span className="text-[10px] font-semibold px-2 py-0.5" style={{ color: FOREST, border: '1px solid hsl(var(--success) / 0.35)', backgroundColor: 'hsl(var(--success) / 0.12)', borderRadius: 'var(--radius)' }}>Completed</span>
+                                                                )}
                                                                 {hasVideos && (
-                                                                    <span className="px-3 py-1 bg-muted border border-border text-foreground rounded-xl text-[8px] font-semibold tracking-wide flex items-center gap-1.5">
-                                                                        <Video className="w-2.5 h-2.5 text-primary" /> {recordedVideos.length} Assets
+                                                                    <span className="text-[10px] font-semibold px-2 py-0.5 flex items-center gap-1" style={{ color: SLATE, border: `1px solid ${HAIRLINE}`, backgroundColor: PANEL, borderRadius: 'var(--radius)' }}>
+                                                                        <Video size={11} /> {recordedVideos.length} video{recordedVideos.length !== 1 ? 's' : ''}
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <p className="text-muted-foreground text-xs mb-4 line-clamp-2 italic font-semibold tracking-wide opacity-60 leading-relaxed">"{topic.description}"</p>
-                                                            <div className="flex items-center gap-5 text-xs font-semibold text-muted-foreground tracking-[0.2em] italic">
-                                                                <span className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-primary" /> {getDurationText(topic.duration)}</span>
-                                                                {topic.isPaid && <span className="text-emerald-500 flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20"><AlertCircle className="w-3.5 h-3.5" /> ₦{topic.price}</span>}
+                                                            {topic.description && (
+                                                                <p className="text-sm line-clamp-2 mb-3 leading-relaxed" style={{ color: SLATE }}>{topic.description}</p>
+                                                            )}
+                                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs" style={{ color: SLATE }}>
+                                                                <span className="flex items-center gap-1.5"><Clock size={13} /> {getDurationText(topic.duration)}</span>
+                                                                {topic.isPaid && (
+                                                                    <span className="flex items-center gap-1.5 px-2 py-0.5 font-semibold" style={{ color: GOLD, border: '1px solid hsl(var(--gold) / 0.35)', backgroundColor: 'hsl(var(--gold) / 0.12)', borderRadius: 'var(--radius)' }}>
+                                                                        <AlertCircle size={12} /> ₦{topic.price}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1.5 shrink-0">
                                                         {topic.status === 'pending' && (
-                                                            <button onClick={() => handleActivate(topic._id)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition" title="Activate Topic"><Play className="w-5 h-5 fill-current" /></button>
+                                                            <IconAction icon={Play} label="Activate topic" tone="primary" onClick={() => handleActivate(topic._id)} />
                                                         )}
                                                         {isCurrent && (
-                                                            <button onClick={() => handleComplete(topic._id)} className="p-2.5 text-emerald-600 hover:bg-success/90/10 rounded-xl transition" title="Mark Complete"><CheckCircle className="w-5 h-5" /></button>
+                                                            <IconAction icon={CheckCircle} label="Mark complete" tone="success" onClick={() => handleComplete(topic._id)} />
                                                         )}
                                                         {isDone && (
-                                                            <button onClick={() => handleReactivate(topic._id)} className="p-2.5 text-orange-600 hover:bg-orange-500/10 rounded-xl transition" title="Reactivate"><RotateCcw className="w-5 h-5" /></button>
+                                                            <IconAction icon={RotateCcw} label="Reset topic" tone="warning" onClick={() => handleReactivate(topic._id)} />
                                                         )}
-                                                        <button onClick={() => openEditForm(topic)} className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition"><Pencil className="w-5 h-5" /></button>
-                                                        <button onClick={() => handleDelete(topic._id)} className="p-2.5 text-red-600 hover:bg-danger/90/10 rounded-xl transition"><Trash2 className="w-5 h-5" /></button>
+                                                        <IconAction icon={Pencil} label="Edit topic" onClick={() => openEditForm(topic)} />
+                                                        <IconAction icon={Trash2} label="Delete topic" tone="danger" onClick={() => handleDelete(topic._id)} />
                                                     </div>
                                                 </div>
 
                                                 {/* Video Management Section */}
-                                                <div className="bg-muted rounded-xl p-6 border border-border">
-                                                    <div className="flex items-center justify-between mb-6">
-                                                        <h5 className="text-xs font-semibold tracking-[0.2em] text-muted-foreground/40">Lecture Videos</h5>
-                                                        <div className="flex items-center gap-2">
-                                                            <button 
+                                                <div className="px-5 py-4" style={{ backgroundColor: PANEL }}>
+                                                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                                        <h5 className="text-xs font-semibold tracking-wide" style={{ color: SLATE }}>Lecture videos</h5>
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <button
                                                                 onClick={() => setShowUrlInput(isShowingUrlInput ? null : topic._id)}
-                                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wider transition-all ${isShowingUrlInput ? 'bg-primary text-white' : 'bg-card text-primary border border-primary/20 hover:bg-primary/5'}`}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-muted"
+                                                                style={isShowingUrlInput ? primaryActionStyle : outlineActionStyle}
                                                             >
-                                                                <LinkIcon className="w-3 h-3" />
+                                                                <LinkIcon size={12} />
                                                                 External URL
                                                                 <FormFieldHelp content="Attach videos from external platforms like YouTube or Google Drive." />
                                                             </button>
 
                                                             {/* Premium Upload logic */}
                                                             {(() => {
-                                                                const isPremium = user?.role === 'root_admin' || 
+                                                                const isPremium = user?.role === 'root_admin' ||
                                                                                   user?.subscriptionPlan?.name === 'Premium';
-                                                                
+
                                                                 if (isPremium) {
                                                                     return (
-                                                                        <label className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border text-foreground/60 rounded-xl text-xs font-semibold tracking-wider cursor-pointer hover:bg-muted transition-all">
-                                                                            <Upload className="w-3 h-3 text-primary" />
-                                                                            Upload File
+                                                                        <label className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors hover:bg-muted" style={outlineActionStyle}>
+                                                                            <Upload size={12} style={{ color: NAVY }} />
+                                                                            Upload file
                                                                             <FormFieldHelp content="Securely upload video files directly to our cloud storage." />
                                                                             <input
                                                                                 type="file"
@@ -772,16 +853,17 @@ const TopicManagement = () => {
                                                                     );
                                                                 } else {
                                                                     return (
-                                                                        <div 
-                                                                            className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border text-muted-foreground/40 rounded-xl text-xs font-semibold tracking-wider cursor-not-allowed group relative"
+                                                                        <div
+                                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold cursor-not-allowed group/premium relative"
+                                                                            style={{ color: SLATE, border: `1px solid ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: 'var(--radius)' }}
                                                                             title="File upload is a Premium feature"
                                                                         >
-                                                                            <Lock className="w-3 h-3" />
-                                                                            Upload File
-                                                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none font-semibold tracking-wide">
-                                                                                Premium Plan Required
+                                                                            <Lock size={12} />
+                                                                            Upload file
+                                                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] py-1 px-2 rounded opacity-0 group-hover/premium:opacity-100 transition whitespace-nowrap pointer-events-none" style={{ backgroundColor: INK, color: PAPER }}>
+                                                                                Premium plan required
                                                                             </div>
-                                                                            <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
+                                                                            <Sparkles size={12} style={{ color: GOLD }} />
                                                                         </div>
                                                                     );
                                                                 }
@@ -791,19 +873,20 @@ const TopicManagement = () => {
 
                                                     {/* URL Input Form */}
                                                     {isShowingUrlInput && (
-                                                        <div className="mb-6 p-4 bg-muted rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
-                                                            <div className="flex gap-2">
+                                                        <div className="mb-4 p-3 animate-in slide-in-from-top-2" style={{ backgroundColor: PAPER, border: `1px solid hsl(var(--primary) / 0.3)`, borderRadius: 'var(--radius)' }}>
+                                                            <div className="flex flex-col sm:flex-row gap-2">
                                                                 <input
                                                                     type="url"
                                                                     placeholder="Paste video URL (YouTube, Drive, etc.)"
                                                                     value={videoUrl}
                                                                     onChange={(e) => setVideoUrl(e.target.value)}
-                                                                    className="flex-1 px-4 py-2 rounded-xl bg-card border border-border text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                                                                    className="flex-1"
                                                                 />
-                                                                <button 
+                                                                <button
                                                                     onClick={() => handleAddVideoUrl(topic._id)}
                                                                     disabled={!videoUrl || uploadingVideo}
-                                                                    className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+                                                                    className="px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                                                                    style={primaryActionStyle}
                                                                 >
                                                                     Add
                                                                 </button>
@@ -812,65 +895,69 @@ const TopicManagement = () => {
                                                     )}
 
                                                     {isUploadingThis && (
-                                                        <div className="mb-6 space-y-2">
-                                                            <div className="flex justify-between text-xs font-semibold text-primary">
+                                                        <div className="mb-4 space-y-2">
+                                                            <div className="flex justify-between text-xs font-semibold" style={{ color: NAVY }}>
                                                                 <span>Uploading...</span>
                                                                 <span>{uploadProgress}%</span>
                                                             </div>
-                                                            <div className="w-full h-1.5 bg-primary/10 rounded-full overflow-hidden">
-                                                                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                                            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'hsl(var(--primary) / 0.15)' }}>
+                                                                <div className="h-full transition-all duration-300" style={{ width: `${uploadProgress}%`, backgroundColor: NAVY }} />
                                                             </div>
                                                         </div>
                                                     )}
 
                                                     {hasVideos ? (
-                                                        <div className="space-y-3">
+                                                        <div className="space-y-2">
                                                             {[...recordedVideos].sort((a,b) => (a.order||0) - (b.order||0)).map((vid, vIdx, arr) => {
                                                                 const isRemoving = removingVideoId === `${topic._id}-${vid._id}`;
                                                                 return (
-                                                                    <div key={vid._id} className="flex items-center gap-4 bg-card p-3 rounded-xl border border-border group/vid">
-                                                                        <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground font-semibold text-xs">
+                                                                    <div key={vid._id} className="flex items-center gap-3 p-2.5 group/vid" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+                                                                        <div className="w-8 h-8 flex items-center justify-center text-xs font-semibold shrink-0" style={{ backgroundColor: PANEL, color: SLATE, borderRadius: 'var(--radius)' }}>
                                                                             {vIdx + 1}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
                                                                             <div className="flex items-center gap-2">
-                                                                                <span className="text-sm font-semibold text-foreground truncate">{vid.label}</span>
-                                                                                {vid.videoType === 'url' ? (
-                                                                                    <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[8px] font-semibold tracking-wide">URL</span>
-                                                                                ) : (
-                                                                                    <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[8px] font-semibold tracking-wide">FILE</span>
-                                                                                )}
+                                                                                <span className="text-sm font-semibold truncate" style={{ color: INK }}>{vid.label}</span>
+                                                                                <span className="px-1.5 py-0.5 text-[9px] font-semibold tracking-wide shrink-0" style={vid.videoType === 'url' ? { color: SLATE, backgroundColor: PANEL, borderRadius: 'var(--radius)' } : { color: NAVY, backgroundColor: 'hsl(var(--primary) / 0.1)', borderRadius: 'var(--radius)' }}>
+                                                                                    {vid.videoType === 'url' ? 'URL' : 'FILE'}
+                                                                                </span>
                                                                             </div>
-                                                                            <p className="text-xs text-muted-foreground truncate mt-0.5">{vid.originalName || vid.url}</p>
+                                                                            <p className="text-xs truncate mt-0.5" style={{ color: SLATE }}>{vid.originalName || vid.url}</p>
                                                                         </div>
-                                                                        <div className="flex items-center gap-1 opacity-0 group-hover/vid:opacity-100 transition-opacity">
-                                                                            <button 
+                                                                        <div className="flex items-center gap-0.5 opacity-60 sm:opacity-0 group-hover/vid:opacity-100 transition-opacity">
+                                                                            <button
                                                                                 disabled={vIdx === 0}
                                                                                 onClick={() => {
                                                                                     const newOrder = arr.map(v => v._id);
                                                                                     [newOrder[vIdx], newOrder[vIdx-1]] = [newOrder[vIdx-1], newOrder[vIdx]];
                                                                                     handleReorderVideos(topic._id, newOrder);
                                                                                 }}
-                                                                                className="p-1.5 hover:bg-muted rounded-xl text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
+                                                                                className="p-1.5 transition-colors hover:bg-muted disabled:opacity-20"
+                                                                                style={{ color: SLATE, borderRadius: 'var(--radius)' }}
+                                                                                aria-label="Move video up"
                                                                             >
-                                                                                <ChevronUp className="w-4 h-4" />
+                                                                                <ChevronUp size={15} />
                                                                             </button>
-                                                                            <button 
+                                                                            <button
                                                                                 disabled={vIdx === arr.length - 1}
                                                                                 onClick={() => {
                                                                                     const newOrder = arr.map(v => v._id);
                                                                                     [newOrder[vIdx], newOrder[vIdx+1]] = [newOrder[vIdx+1], newOrder[vIdx]];
                                                                                     handleReorderVideos(topic._id, newOrder);
                                                                                 }}
-                                                                                className="p-1.5 hover:bg-muted rounded-xl text-muted-foreground hover:text-primary transition-colors disabled:opacity-10"
+                                                                                className="p-1.5 transition-colors hover:bg-muted disabled:opacity-20"
+                                                                                style={{ color: SLATE, borderRadius: 'var(--radius)' }}
+                                                                                aria-label="Move video down"
                                                                             >
-                                                                                <ChevronDown className="w-4 h-4" />
+                                                                                <ChevronDown size={15} />
                                                                             </button>
-                                                                            <button 
+                                                                            <button
                                                                                 onClick={() => handleRemoveVideo(topic._id, vid._id)}
-                                                                                className="p-1.5 hover:bg-danger/90/10 rounded-xl text-muted-foreground hover:text-red-500 transition-colors"
+                                                                                className="p-1.5 transition-colors hover:bg-muted"
+                                                                                style={{ color: ROSE, borderRadius: 'var(--radius)' }}
+                                                                                aria-label="Remove video"
                                                                             >
-                                                                                {isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                                                {isRemoving ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -878,9 +965,9 @@ const TopicManagement = () => {
                                                             })}
                                                         </div>
                                                     ) : (
-                                                        <div className="py-8 text-center border-2 border-dashed border-border rounded-xl bg-card">
-                                                            <Video className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
-                                                            <p className="text-xs font-semibold text-muted-foreground/40 tracking-wider">No lectures attached</p>
+                                                        <div className="py-6 text-center" style={{ border: `1px dashed ${HAIRLINE}`, backgroundColor: PAPER, borderRadius: 'var(--radius)' }}>
+                                                            <Video size={18} className="mx-auto mb-1.5" style={{ color: SLATE, opacity: 0.4 }} />
+                                                            <p className="text-xs" style={{ color: SLATE }}>No lectures attached</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -896,18 +983,18 @@ const TopicManagement = () => {
 
             {/* Progression Modal */}
             {showProgressionModal && (
-                <div className="fixed inset-0 bg-background  flex items-center justify-center p-4 z-[110]">
-                    <div className="bg-card rounded-xl shadow-none max-w-md w-full p-10 animate-slide-up text-center border border-border">
-                        <div className="w-20 h-20 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-6">
-                            <CheckCircle className="w-10 h-10 text-emerald-500" />
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+                    <div className="max-w-md w-full p-8 animate-slide-up text-center" style={{ backgroundColor: PAPER, border: `1px solid ${HAIRLINE}`, borderRadius: 'var(--radius)' }}>
+                        <div className="w-14 h-14 flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'hsl(var(--success) / 0.12)', borderRadius: 'var(--radius)' }}>
+                            <CheckCircle size={28} style={{ color: FOREST }} />
                         </div>
-                        <h3 className="text-2xl font-semibold text-foreground mb-2">Topic Complete!</h3>
-                        <p className="text-muted-foreground font-medium mb-8">
-                            Should the next topic <span className="text-primary font-semibold">"{nextTopic?.name}"</span> be activated immediately?
+                        <h3 className="font-serif text-[22px] font-semibold mb-2" style={{ color: INK }}>Topic complete</h3>
+                        <p className="text-sm mb-7 leading-relaxed" style={{ color: SLATE }}>
+                            Should the next topic <span className="font-semibold" style={{ color: NAVY }}>&ldquo;{nextTopic?.name}&rdquo;</span> be activated immediately?
                         </p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <button onClick={() => completeTopic(topicToComplete, true)} className="py-4 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition shadow-none shadow-none">Yes, Activate</button>
-                            <button onClick={() => completeTopic(topicToComplete, false)} className="py-4 bg-muted text-muted-foreground rounded-xl font-semibold hover:bg-muted/80 transition">Not Yet</button>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button onClick={() => completeTopic(topicToComplete, true)} className="py-2.5 text-sm font-semibold transition-opacity hover:opacity-90" style={primaryActionStyle}>Yes, activate</button>
+                            <button onClick={() => completeTopic(topicToComplete, false)} className="py-2.5 text-sm font-semibold transition-colors hover:bg-muted" style={outlineActionStyle}>Not yet</button>
                         </div>
                     </div>
                 </div>
