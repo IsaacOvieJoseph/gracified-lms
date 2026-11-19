@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { io } from 'socket.io-client';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Paintbrush, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut, Video, VideoOff, Users, ChevronDown, Pencil, Moon, Sun } from 'lucide-react';
+import { Undo, Redo, Square, Circle as CircleIcon, Type, Eraser, MousePointer, Trash2, Lock, Unlock, Download, Eye, EyeOff, Hand, Mic, MicOff, Volume2, VolumeX, LogOut, Video, VideoOff, Users, ChevronDown, Pencil, Moon, Sun } from 'lucide-react';
 import VoiceControls from './VoiceControls';
 import toast from 'react-hot-toast';
 
@@ -722,11 +722,21 @@ export default function Whiteboard() {
     }
   }
 
+  const handlePan = (e) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const { clientX, clientY, scrollTop, scrollLeft } = panStartRef.current;
+    container.scrollTop = scrollTop - (e.clientY - clientY);
+    container.scrollLeft = scrollLeft - (e.clientX - clientX);
+  };
+
   const handlePointerDown = (e) => {
-    // Permission check using REFS for current state
+    // Panning is navigation, so it remains available to users who cannot draw.
     const currentAllowed = allowedDrawersRef.current;
     const canDraw = isTeacher || currentAllowed.has(socketRef.current?.id);
-    if (!canDraw) return;
+    if (!canDraw && tool !== 'hand') return;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
 
     // If we were typing text, commit it before starting a new action
     if (textInput.visible) {
@@ -742,11 +752,9 @@ export default function Whiteboard() {
       redoStackRef.current = []; // any new draw clears the redo stack
     } else if (tool === 'hand') {
       setIsPanning(true);
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       panStartRef.current = {
-        clientX,
-        clientY,
+        clientX: e.clientX,
+        clientY: e.clientY,
         scrollTop: containerRef.current.scrollTop,
         scrollLeft: containerRef.current.scrollLeft
       };
@@ -867,6 +875,9 @@ export default function Whiteboard() {
     }
   };
   const handlePointerUp = (e) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     if (tool === 'hand') {
       setIsPanning(false);
       return;
@@ -1315,7 +1326,7 @@ export default function Whiteboard() {
         {[
           { id: 'hand',    icon: <Hand className="w-4 h-4" />,         label: 'Pan'    },
           { id: 'pointer', icon: <MousePointer className="w-4 h-4" />, label: 'Point'  },
-          { id: 'pen',     icon: <Paintbrush className="w-4 h-4" />,   label: 'Pen'    },
+          { id: 'pen',     icon: <Pencil className="w-4 h-4" />,       label: 'Pen'    },
           { id: 'eraser',  icon: <Eraser className="w-4 h-4" />,       label: 'Erase'  },
           { id: 'rect',    icon: <Square className="w-4 h-4" />,       label: 'Rect'   },
           { id: 'circle',  icon: <CircleIcon className="w-4 h-4" />,   label: 'Circle' },
@@ -1580,7 +1591,7 @@ export default function Whiteboard() {
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         />
         {/* Overlay canvas for shape previews */}
         <canvas ref={overlayRef} style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', width: '100%', height: `${canvasHeightRef.current}px` }} />
