@@ -159,7 +159,7 @@ const GracyQuizModal = ({ quizConfig, onClose, onNewQuiz }) => {
                     <div key={qIndex} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-none">
                       <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4 flex gap-3">
                         <span className="text-slate-400 select-none">{qIndex + 1}.</span>
-                        <span><MathText text={q.questionText} /></span>
+                        <div><Markdown>{q.questionText}</Markdown></div>
                       </h3>
                       
                       <div className="space-y-3 pl-7">

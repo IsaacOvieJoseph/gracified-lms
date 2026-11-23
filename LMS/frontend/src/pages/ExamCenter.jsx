@@ -31,6 +31,7 @@ import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import gracifiedLogo from '../assets/logo.jpg';
 import MathText from '../components/MathText';
+import Markdown from '../components/Markdown';
 
 const ExamCenter = () => {
     const { token } = useParams();
@@ -568,7 +569,7 @@ const ExamCenter = () => {
                                             <div className="flex items-start justify-between gap-4 mb-4">
                                                 <div className="flex-1">
                                                     <span className="text-xs font-semibold text-primary tracking-wide block mb-1">Question {idx + 1}</span>
-                                                    <h4 className="font-semibold text-foreground text-lg leading-snug"><MathText text={q.questionText} /></h4>
+                                                    <div className="font-semibold text-foreground text-lg leading-snug"><Markdown>{q.questionText}</Markdown></div>
                                                 </div>
                                                 <div className={`flex-shrink-0 px-3 py-1 rounded-full flex items-center space-x-2 ${isCorrect ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                                                     {isCorrect ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
@@ -667,9 +668,9 @@ const ExamCenter = () => {
                                     </span>
                                 </div>
 
-                                <h3 className="text-xl md:text-3xl font-semibold text-foreground mb-8 leading-tight tracking-tight">
-                                    <MathText text={currentQuestion?.questionText} />
-                                </h3>
+                                <div className="text-xl md:text-3xl font-semibold text-foreground mb-8 leading-tight tracking-tight">
+                                    <Markdown>{currentQuestion?.questionText}</Markdown>
+                                </div>
 
                                 <div className="flex-1">
                                     {currentQuestion?.questionType === 'mcq' ? (

@@ -10,6 +10,7 @@ import OTPInput from '../components/OTPInput';
 import ThemeToggle from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import { formatDisplayDate } from '../utils/timezone';
+import Markdown from '../components/Markdown';
 
 // Use a clean axios instance to bypass default auth interceptors (which redirect on 401)
 const publicApi = axios.create({
@@ -918,7 +919,7 @@ const ScriptSharePage = () => {
                                         {index + 1}
                                     </span>
                                     <div>
-                                        <p className={`font-semibold ${cardText} text-sm leading-relaxed`}>{question.questionText}</p>
+                                        <div className={`font-semibold ${cardText} text-sm leading-relaxed`}><Markdown>{question.questionText}</Markdown></div>
                                         <span className={`text-xs font-semibold ${cardSubText} tracking-wide mt-1 block`}>Maximum Points: {question.maxScore || 10}</span>
                                     </div>
                                 </div>

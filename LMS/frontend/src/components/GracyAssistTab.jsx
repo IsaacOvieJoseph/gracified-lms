@@ -514,7 +514,7 @@ const ResultViewer = ({ mode, result, prefillMeta }) => {
         <div className="max-h-44 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
           {questions.slice(0, 5).map((q, i) => (
             <div key={i} className="bg-white dark:bg-slate-800/70 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Q{i + 1}: <MathText text={q.questionText} /></p>
+              <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Q{i + 1}: <Markdown>{q.questionText}</Markdown></div>
               {q.options?.length > 0 && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Options: {q.options.map((opt, idx) => <span key={idx}>{idx > 0 && ' / '}<MathText text={opt} /></span>)}</p>}
             </div>
           ))}

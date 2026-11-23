@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
+import Markdown from '../components/Markdown';
 
 const ExamSubmissionDetail = () => {
     const { id } = useParams();
@@ -210,7 +211,7 @@ const ExamSubmissionDetail = () => {
                                 <div className="p-8 space-y-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-semibold text-muted-foreground tracking-wide">Question Statement</label>
-                                        <p className="text-lg font-semibold text-foreground leading-snug">{question.questionText}</p>
+                                        <div className="text-lg font-semibold text-foreground leading-snug"><Markdown>{question.questionText}</Markdown></div>
                                     </div>
 
                                     <div className="space-y-4">

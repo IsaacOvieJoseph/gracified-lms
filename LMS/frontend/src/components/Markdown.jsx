@@ -25,6 +25,16 @@ const cls = {
   a: 'text-primary dark:text-violet-400 underline underline-offset-2 decoration-violet-300 dark:decoration-violet-700 hover:text-violet-800 dark:hover:text-violet-300 transition-colors',
 };
 
+const isSafeUrl = (value, allowMailto = false) => {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    const url = new URL(value, 'https://markdown.local');
+    return url.protocol === 'https:' || url.protocol === 'http:' || (allowMailto && url.protocol === 'mailto:');
+  } catch {
+    return false;
+  }
+};
+
 const Text = ({ children, inline }) => {
   const content = String(children);
   const tokens = [];
@@ -69,8 +79,14 @@ const Text = ({ children, inline }) => {
       case 'em': return <em key={i} className={cls.em}><Text>{t.value}</Text></em>;
       case 'del': return <del key={i} className={cls.del}><Text>{t.value}</Text></del>;
       case 'code': return <code key={i} className={cls.code}>{t.value}</code>;
-      case 'link': return <a key={i} href={t.extra?.[0]} target="_blank" rel="noreferrer" className={cls.a}><Text>{t.value}</Text>{t.extra?.[0] && <span className="ml-0.5 text-xs">↗</span>}</a>;
-      case 'img': return <img key={i} src={t.extra?.[0]} alt={t.value} className="my-2 max-w-full rounded-xl" />;
+      case 'link':
+        return isSafeUrl(t.extra?.[0], true)
+          ? <a key={i} href={t.extra[0]} target="_blank" rel="noreferrer" className={cls.a}><Text>{t.value}</Text><span className="ml-0.5 text-xs">↗</span></a>
+          : <Text key={i}>{t.value}</Text>;
+      case 'img':
+        return isSafeUrl(t.extra?.[0])
+          ? <img key={i} src={t.extra[0]} alt={t.value} className="my-2 max-w-full rounded-xl" />
+          : null;
       default: return null;
     }
   };

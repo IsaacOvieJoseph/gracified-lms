@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Markdown from './Markdown';
 
 const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) => {
   const questions = (Array.isArray(assignment.questions) ? assignment.questions : []).map((q) => {
@@ -61,7 +62,7 @@ const SubmitAssignmentModal = ({ assignment, onClose, onSubmit, isSubmitting }) 
             {questions.map((question, qIndex) => (
               <div key={qIndex} className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                 <p className="font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-tight leading-snug text-lg">Question {qIndex + 1}</p>
-                <div className="text-slate-600 dark:text-slate-400 mb-4 whitespace-pre-wrap">{question.questionText}</div>
+                <div className="mb-4"><Markdown>{question.questionText}</Markdown></div>
 
                 {isMcq && question.options.length > 0 && (
                   <div className="grid grid-cols-1 gap-3">

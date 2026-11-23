@@ -159,7 +159,7 @@ const ResultViewer = ({ mode, result, onApply, onDownloadPptx, downloadingPptx }
         <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
           {questions.slice(0, 5).map((q, i) => (
             <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Q{i + 1}: <MathText text={q.questionText} /></p>
+              <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Q{i + 1}: <Markdown>{q.questionText}</Markdown></div>
               {q.options && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Options: {q.options.map((opt, idx) => <span key={idx}>{idx > 0 && ' / '}<MathText text={opt} /></span>)}</p>}
             </div>
           ))}

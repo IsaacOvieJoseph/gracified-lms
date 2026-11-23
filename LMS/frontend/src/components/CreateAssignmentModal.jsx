@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { toLocalISOString } from '../utils/timezone';
 import FormFieldHelp from './FormFieldHelp';
 import AIAssistantPanel from './AIAssistantPanel';
+import MarkdownEditor from './MarkdownEditor';
 
 const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, availableTopics, editAssignment, aiPrefill }) => {
   const [createForm, setCreateForm] = useState({
@@ -406,13 +407,12 @@ const CreateAssignmentModal = ({ show, onClose, onSubmitSuccess, classroomId, av
 
                   <div>
                     <label className="block text-xs font-semibold tracking-wide text-gray-500 dark:text-slate-500 mb-2">Question Text</label>
-                    <input
-                      type="text"
+                    <MarkdownEditor
                       value={question.questionText}
-                      onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
-                      placeholder="What is alphabet before any cluster of t"
-                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-primary/50 font-medium text-gray-900 dark:text-white bg-transparent placeholder:text-gray-300 dark:placeholder:text-slate-700"
+                      onChange={(value) => handleQuestionTextChange(qIndex, value)}
+                      placeholder="Write the question. Use the toolbar to format text, lists, and headings."
                       required
+                      rows={4}
                     />
                   </div>
 

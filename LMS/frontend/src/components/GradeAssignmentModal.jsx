@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { CheckCircle, X, Award, FileText, Send, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Markdown from './Markdown';
 
 const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignment, submissionToGrade }) => {
   const [questionGrades, setQuestionGrades] = useState([]); // Array of { questionIndex, score, feedback }
@@ -100,10 +101,10 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
                 <div className="space-y-4">
                   {(selectedAssignment.questions || []).map((q, qIndex) => (
                     <div key={qIndex} className="bg-white dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-none transition-all hover:border-primary/20 dark:hover:border-indigo-900/50">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-3 leading-relaxed">
+                      <div className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-200">
                         <span className="text-indigo-200 mr-2">#{qIndex + 1}</span>
-                        {q.questionText}
-                      </p>
+                        <Markdown>{q.questionText}</Markdown>
+                      </div>
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-xl border border-primary/20 w-fit">
                         <span className="text-xs font-semibold tracking-wide text-primary">Response:</span>
                         <span className="text-sm font-semibold text-primary">{submissionToGrade.answers[qIndex]}</span>
@@ -142,7 +143,7 @@ const GradeAssignmentModal = ({ show, onClose, onSubmitSuccess, selectedAssignme
                           <span className="w-10 h-10 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center font-semibold text-sm shadow-none">
                             {qIndex + 1}
                           </span>
-                          <p className="font-semibold text-slate-900 dark:text-white text-lg leading-tight mt-1.5">{question.questionText}</p>
+                          <div className="mt-1.5 text-lg font-semibold leading-tight text-slate-900 dark:text-white"><Markdown>{question.questionText}</Markdown></div>
                         </div>
 
                         <div className="mb-8 p-6 bg-slate-900 dark:bg-black rounded-xl border border-slate-800 relative group overflow-hidden">

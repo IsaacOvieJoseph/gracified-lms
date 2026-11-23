@@ -21,6 +21,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import QnABoardManagement from '../components/QnABoardManagement';
 import CreateExamModal from '../components/CreateExamModal';
 import { consumeGracyPrefill } from '../utils/gracyPrefill';
+import Markdown from '../components/Markdown';
 
 // subjectOptions converted to dynamic state inside component
 
@@ -2665,7 +2666,7 @@ const ClassroomDetail = () => {
                                             const questionGrade = submission.questionScores?.find(qs => qs.questionIndex === qIndex);
                                             return (
                                               <li key={qIndex}>
-                                                <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
+                                                <strong>Q{qIndex + 1}:</strong> <Markdown>{q.questionText}</Markdown><br />
                                                 Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span><br />
                                                 {questionGrade && (
                                                   <span className="ml-2 text-sm font-medium text-green-600">
@@ -2682,7 +2683,7 @@ const ClassroomDetail = () => {
                                         <ul className="list-disc list-inside text-foreground">
                                           {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
-                                              <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
+                                              <strong>Q{qIndex + 1}:</strong> <Markdown>{q.questionText}</Markdown><br />
                                               Your Answer: {submission.answers[qIndex]}
                                               {q.correctOption && (
                                                 <span className={`ml-2 text-sm font-medium ${submission.answers[qIndex] === q.correctOption ? 'text-green-600' : 'text-red-600'}`}>
@@ -2712,7 +2713,7 @@ const ClassroomDetail = () => {
                                         <ul className="list-disc list-inside text-foreground">
                                           {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
-                                              <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
+                                              <strong>Q{qIndex + 1}:</strong> <Markdown>{q.questionText}</Markdown><br />
                                               Your Answer: <span className="whitespace-pre-wrap">{submission.answers[qIndex]}</span>
                                             </li>
                                           ))}
@@ -2725,7 +2726,7 @@ const ClassroomDetail = () => {
                                         <ul className="list-disc list-inside text-foreground">
                                           {(assignment.questions || []).map((q, qIndex) => (
                                             <li key={qIndex}>
-                                              <strong>Q{qIndex + 1}:</strong> {q.questionText}<br />
+                                              <strong>Q{qIndex + 1}:</strong> <Markdown>{q.questionText}</Markdown><br />
                                               Your Answer: {submission.answers[qIndex]}
                                             </li>
                                           ))}

@@ -13,6 +13,7 @@ import { Edit, Trash2, X, Loader2, Share2 } from 'lucide-react';
 import { formatDisplayDate } from '../utils/timezone';
 import ShareScriptModal from '../components/ShareScriptModal';
 import { consumeGracyPrefill } from '../utils/gracyPrefill';
+import Markdown from '../components/Markdown';
 
 const Assignments = () => {
   const { user, loading: userLoading } = useAuth();
@@ -580,7 +581,7 @@ const Assignments = () => {
                                   return (
                                     <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
                                       <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-2 opacity-40">Question {qIndex + 1}</p>
-                                      <p className="text-sm font-semibold text-foreground mb-3">{q.questionText}</p>
+                                      <div className="mb-3 text-sm font-semibold text-foreground"><Markdown>{q.questionText}</Markdown></div>
                                       <div className="p-4 bg-muted rounded-xl border border-border mb-3">
                                          <p className="text-sm text-foreground/70 italic whitespace-pre-wrap">{submission.answers[qIndex]}</p>
                                       </div>
@@ -601,7 +602,7 @@ const Assignments = () => {
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {(assignment.questions || []).map((q, qIndex) => (
                                   <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
-                                    <p className="text-xs font-semibold text-foreground mb-3">{q.questionText}</p>
+                                    <div className="mb-3 text-xs font-semibold text-foreground"><Markdown>{q.questionText}</Markdown></div>
                                     <div className="flex flex-wrap items-center gap-2">
                                        <span className="text-xs font-semibold text-primary tracking-wide bg-primary/10 px-3 py-1 rounded-xl border border-primary/20">Input: {submission.answers[qIndex]}</span>
                                        {q.correctOption && (
@@ -635,7 +636,7 @@ const Assignments = () => {
                                   {(assignment.questions || []).map((q, qIndex) => (
                                     <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5">
                                       <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-1 opacity-40">Objective {qIndex + 1}</p>
-                                      <p className="text-sm font-semibold text-foreground mb-2">{q.questionText}</p>
+                                      <div className="mb-2 text-sm font-semibold text-foreground"><Markdown>{q.questionText}</Markdown></div>
                                       <div className="p-3 bg-muted rounded-xl border border-border/10">
                                          <p className="text-sm text-foreground/70 italic whitespace-pre-wrap">{submission.answers[qIndex]}</p>
                                       </div>
@@ -650,7 +651,7 @@ const Assignments = () => {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   {(assignment.questions || []).map((q, qIndex) => (
                                     <div key={qIndex} className="bg-card p-4 rounded-xl border border-border/5 flex items-center justify-between">
-                                      <span className="text-xs font-semibold text-foreground truncate mr-2">{q.questionText}</span>
+                                      <div className="mr-2 min-w-0 flex-1 truncate text-xs font-semibold text-foreground"><Markdown>{q.questionText}</Markdown></div>
                                       <span className="text-xs font-semibold text-primary tracking-wide bg-primary/5 px-3 py-1 rounded-full border border-primary/20 whitespace-nowrap">Opt {submission.answers[qIndex]}</span>
                                     </div>
                                   ))}

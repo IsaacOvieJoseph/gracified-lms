@@ -6,6 +6,8 @@ import AIAssistantPanel from '../components/AIAssistantPanel';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout'; // Or we can use a minimalist layout like ExamCenter
+import Markdown from '../components/Markdown';
+import MarkdownEditor from '../components/MarkdownEditor';
 
 const QnACenter = () => {
     const { token } = useParams();
@@ -211,22 +213,25 @@ const QnACenter = () => {
                                 <label htmlFor="stayAnonymous" className="text-sm font-medium text-gray-700 cursor-pointer">Stay anonymous</label>
                             </div>
                         )}
-                        <div className="relative">
-                            <textarea
+                        <div>
+                            <MarkdownEditor
                                 required
-                                rows="3"
+                                rows={3}
                                 value={newQuestion}
-                                onChange={e => setNewQuestion(e.target.value)}
-                                placeholder="What's on your mind?"
-                                className="w-full border-gray-300 rounded-xl shadow-none focus:ring-indigo-500 focus:border-primary/50 resize-none pr-16"
+                                onChange={setNewQuestion}
+                                placeholder="What's on your mind? Use the toolbar to format your question."
+                                className="resize-y"
                             />
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="absolute bottom-3 right-3 bg-primary text-white p-2.5 rounded-xl hover:bg-primary/90 disabled:opacity-50 transition drop-shadow-none"
-                            >
-                                <Send className="w-5 h-5 text-white transform translate-x-px -translate-y-px" />
-                            </button>
+                            <div className="mt-3 flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="bg-primary text-white p-2.5 rounded-xl hover:bg-primary/90 disabled:opacity-50 transition drop-shadow-none"
+                                    aria-label="Post question"
+                                >
+                                    <Send className="w-5 h-5 text-white transform translate-x-px -translate-y-px" />
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -271,7 +276,7 @@ const QnACenter = () => {
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-start justify-between">
-                                            <p className="text-gray-900 text-lg leading-snug whitespace-pre-wrap">{q.text}</p>
+                                            <div className="text-gray-900 text-lg leading-snug"><Markdown>{q.text}</Markdown></div>
                                             {q.isAnswered && (
                                                 <span className="shrink-0 flex items-center text-xs md:text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-xl ml-4">
                                                     <CheckCircle className="w-3.5 h-3.5 mr-1" /> Answered

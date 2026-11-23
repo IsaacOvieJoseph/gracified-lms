@@ -22,7 +22,7 @@ import api from '../utils/api';
 import FormFieldHelp from '../components/FormFieldHelp';
 import AIAssistantPanel from '../components/AIAssistantPanel';
 import { Sparkles } from 'lucide-react';
-import MathText from '../components/MathText';
+import MarkdownEditor from '../components/MarkdownEditor';
 import { consumeGracyPrefill } from '../utils/gracyPrefill';
 
 const ExamCreator = () => {
@@ -444,20 +444,14 @@ const ExamCreator = () => {
                                         <div className="flex flex-col md:flex-row md:items-center gap-6">
                                             <div className="flex-1 space-y-2">
                                                 <label className="text-xs font-semibold tracking-wide text-muted-foreground">Question Statement</label>
-                                                <input
-                                                    type="text"
+                                                <MarkdownEditor
                                                     required
-                                                    placeholder="Type your question here..."
+                                                    rows={4}
                                                     value={q.questionText}
-                                                    onChange={(e) => handleQuestionChange(qIndex, 'questionText', e.target.value)}
-                                                    className="w-full px-0 py-2 bg-transparent border-b-2 border-border focus:border-primary transition-all font-semibold text-lg text-foreground placeholder:text-muted-foreground/20 outline-none"
+                                                    onChange={(value) => handleQuestionChange(qIndex, 'questionText', value)}
+                                                    placeholder="Write the question and format it with the toolbar."
+                                                    className="bg-muted"
                                                 />
-                                                {q.questionText?.match(/\\\(|\\\[|\$\$/) && (
-                                                    <div className="mt-2 p-3 bg-primary/5 rounded-xl border border-primary/10 text-sm">
-                                                        <span className="text-xs font-semibold text-primary/40 block mb-1">Live Math Preview</span>
-                                                        <MathText text={q.questionText} />
-                                                    </div>
-                                                )}
                                             </div>
                                             <div className="w-full md:w-32 space-y-2">
                                                 <label className="text-xs font-semibold tracking-wide text-muted-foreground flex items-center">

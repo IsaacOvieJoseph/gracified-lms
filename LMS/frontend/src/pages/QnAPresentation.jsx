@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { ChevronLeft, ChevronRight, CheckCircle, XCircle, LayoutGrid, Monitor, PlayCircle, ThumbsUp, User, Sun, Moon } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import Markdown from '../components/Markdown';
 
 const QnAPresentation = () => {
     const { token } = useParams();
@@ -157,7 +158,7 @@ const QnAPresentation = () => {
                                             <span className={`flex items-center text-xs font-semibold px-1.5 py-0.5 rounded ${isDark ? 'text-primary bg-sky-900/30' : 'text-primary bg-sky-100'}`}><ThumbsUp className="w-3 h-3 mr-1" /> {q.upvotes.length}</span>
                                         </div>
                                     </div>
-                                    <p className="text-sm line-clamp-2 leading-relaxed">{q.text}</p>
+                                    <div className="text-sm line-clamp-2 leading-relaxed"><Markdown>{q.text}</Markdown></div>
                                 </div>
                             ))
                         )}
@@ -230,10 +231,10 @@ const QnAPresentation = () => {
                                      style={{ maxHeight: 'min(75vh, 800px)', minHeight: '300px' }}>
                                     
                                     <div className="flex-1 overflow-y-auto pr-2 mb-6 custom-scrollbar scroll-smooth">
-                                        <p className={`${getFontSizeClass(currentQuestion.text)} font-medium leading-tight ${textPrimary} text-center md:text-left selection:bg-primary/30`} 
-                                           style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-                                            "{currentQuestion.text}"
-                                        </p>
+                                        <div className={`${getFontSizeClass(currentQuestion.text)} font-medium leading-tight ${textPrimary} text-center md:text-left selection:bg-primary/30 [&_p]:!text-[length:inherit] [&_p]:!leading-[inherit]`}
+                                             style={{ wordBreak: 'break-word' }}>
+                                            <Markdown>{currentQuestion.text}</Markdown>
+                                        </div>
                                     </div>
 
                                     <div className="mt-auto pt-6 border-t border-slate-200/10 flex flex-wrap sm:flex-nowrap justify-between items-center gap-6">

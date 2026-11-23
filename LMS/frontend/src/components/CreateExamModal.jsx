@@ -7,6 +7,7 @@ import {
 import { toast } from 'react-hot-toast';
 import FormFieldHelp from './FormFieldHelp';
 import AIAssistantPanel from './AIAssistantPanel';
+import MarkdownEditor from './MarkdownEditor';
 
 const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classrooms = [], editExam, aiPrefill }) => {
     const [loading, setLoading] = useState(false);
@@ -301,13 +302,12 @@ const CreateExamModal = ({ show, onClose, onSubmitSuccess, classroomId, classroo
                                             <div className="grid md:grid-cols-4 gap-4">
                                                 <div className="md:col-span-2 space-y-1">
                                                     <label className="text-xs font-semibold tracking-wide text-muted-foreground px-1">Question Statement</label>
-                                                    <input
-                                                        type="text"
+                                                    <MarkdownEditor
                                                         required
+                                                        rows={4}
                                                         value={q.questionText}
-                                                        onChange={(e) => handleQuestionChange(qIndex, 'questionText', e.target.value)}
-                                                        placeholder="Type question..."
-                                                        className="w-full bg-muted border-none rounded-xl p-3 font-semibold text-sm outline-none focus:ring-1 ring-primary"
+                                                        onChange={(value) => handleQuestionChange(qIndex, 'questionText', value)}
+                                                        placeholder="Write the question and format it with the toolbar."
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
