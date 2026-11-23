@@ -348,9 +348,15 @@ const Classrooms = () => {
 
       const submitData = {
         ...formData,
+        capacity: Number(formData.capacity) || 30,
+        pricing: {
+          ...formData.pricing,
+          amount: Number(formData.pricing.amount) || 0
+        },
         isPaid: formData.isPaid && formData.pricing?.amount > 0,
         publicAccess: {
           ...formData.publicAccess,
+          durationValue: Number(formData.publicAccess.durationValue) || 1,
           allowGuestAccess: formData.classFormat !== 'classroom' && formData.publicAccess.allowGuestAccess,
           endsAt: formData.publicAccess.startsAt
             ? new Date(new Date(formData.publicAccess.startsAt).getTime() + Number(formData.publicAccess.durationValue || 1) * (formData.publicAccess.durationUnit === 'weeks' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString()
@@ -755,7 +761,7 @@ const Classrooms = () => {
                         <input
                           type="number"
                           value={formData.capacity}
-                          onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 30 })}
+                          onChange={e => setFormData({ ...formData, capacity: e.target.value })}
                           onWheel={(e) => e.target.blur()}
                           className="w-full pl-4 pr-4 py-3 bg-card border-2 border-border rounded-xl focus:border-primary transition-all outline-none font-semibold text-foreground"
                           min="1"
@@ -845,7 +851,7 @@ const Classrooms = () => {
                          <input
                            type="number"
                            value={formData.pricing.amount}
-                           onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: parseFloat(e.target.value) || 0 } })}
+                           onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing, amount: e.target.value } })}
                            onWheel={(e) => e.target.blur()}
                            className="w-full h-[60px] bg-muted border-2 border-border rounded-xl focus:border-primary focus:bg-card transition-all outline-none px-4 font-semibold text-foreground"
                            min="0"

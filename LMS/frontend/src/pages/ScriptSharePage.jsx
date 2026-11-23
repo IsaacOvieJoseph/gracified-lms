@@ -312,7 +312,8 @@ const ScriptSharePage = () => {
         for (const qg of gradingState.questionGrades) {
             const questionIndex = script?.type === 'exam' ? qg.index : qg.questionIndex;
             const maxScore = script?.questions[questionIndex]?.maxScore || 10;
-            if (qg.score < 0 || qg.score > maxScore) {
+            const score = Number(qg.score);
+            if (qg.score === '' || !Number.isFinite(score) || score < 0 || score > maxScore) {
                 toast.error(`Question ${questionIndex + 1} score must be between 0 and ${maxScore}`);
                 return false;
             }
@@ -979,7 +980,8 @@ const ScriptSharePage = () => {
                                                 <input
                                                     type="number"
                                                     value={currentGradeItem.score}
-                                                    onChange={(e) => handleGradeFieldChange(index, 'score', Math.min(question.maxScore || 10, Math.max(0, parseInt(e.target.value) || 0)))}
+                                                    onChange={(e) => handleGradeFieldChange(index, 'score', e.target.value)}
+                                                    onWheel={(e) => e.currentTarget.blur()}
                                                     className={`w-full ${inputBg} border ${panelBorder} focus:border-primary focus:ring-primary/20 ${inputText} ${caret} rounded-xl text-sm font-semibold pr-12 ${placeholder}`}
                                                     min="0"
                                                     max={question.maxScore || 10}
