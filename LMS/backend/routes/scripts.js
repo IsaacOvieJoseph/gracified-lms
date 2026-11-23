@@ -958,13 +958,31 @@ router.patch('/session/:accessToken/grade', async (req, res) => {
         const { gradingData } = req.body;
         if (!gradingData) return res.status(400).json({ message: 'gradingData is required' });
 
+        if (Array.isArray(gradingData.candidates)) {
+            if (!session.submissionRefs || session.submissionRefs.length < 2) {
+                return res.status(400).json({ message: 'Candidate grading batches require a group session' });
+            }
+            const allowedRefs = new Set(session.submissionRefs);
+            if (gradingData.candidates.some(candidate => !allowedRefs.has(candidate.submissionRef))) {
+                return res.status(400).json({ message: 'Grading data contains a submission outside this session' });
+            }
+            session.gradingSnapshot = {
+                ...(session.gradingSnapshot || {}),
+                ...Object.fromEntries(gradingData.candidates.map(candidate => [candidate.submissionRef, candidate]))
+            };
+            await session.save();
+            return res.json({ message: 'Grading progress saved', savedAt: new Date() });
+        }
+
         // Determine which submission this grading snapshot belongs to
         const targetRef = gradingData.submissionRef || session.submissionRef || (session.submissionRefs?.[0] || null);
         if (!targetRef) return res.status(400).json({ message: 'submissionRef is required for grade snapshots' });
 
         if (session.submissionRefs && session.submissionRefs.length > 1) {
-            session.gradingSnapshot = session.gradingSnapshot || {};
-            session.gradingSnapshot[targetRef] = gradingData;
+            session.gradingSnapshot = {
+                ...(session.gradingSnapshot || {}),
+                [targetRef]: gradingData
+            };
         } else {
             session.gradingSnapshot = gradingData;
         }
@@ -1002,11 +1020,98 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
         }
 
         const { gradingData } = req.body;
-        const dataToApply = gradingData || session.gradingSnapshot;
+        const savedCandidates = session.submissionRefs?.length > 1 && session.gradingSnapshot
+            ? session.submissionRefs.map(ref => session.gradingSnapshot[ref])
+            : [];
+        const dataToApply = gradingData || (
+            savedCandidates.length > 0 && savedCandidates.every(Boolean)
+                ? { candidates: savedCandidates }
+                : session.gradingSnapshot
+        );
         if (!dataToApply) return res.status(400).json({ message: 'No grading data to finalize' });
+
+        if (Array.isArray(dataToApply.candidates)) {
+            if (!session.submissionRefs || session.submissionRefs.length < 2) {
+                return res.status(400).json({ message: 'Candidate grading batches require a group session' });
+            }
+
+            const candidates = dataToApply.candidates;
+            const allowedRefs = new Set(session.submissionRefs);
+            const candidateRefs = new Set(candidates.map(candidate => candidate.submissionRef));
+            if (
+                candidates.length !== session.submissionRefs.length
+                || candidateRefs.size !== candidates.length
+                || candidates.some(candidate => !allowedRefs.has(candidate.submissionRef))
+                || session.submissionRefs.some(ref => !candidateRefs.has(ref))
+            ) {
+                return res.status(400).json({ message: 'Finalize requires grading data for every submission in this session' });
+            }
+
+            if (session.submissionType === 'exam') {
+                const submissions = await ExamSubmission.find({ _id: { $in: session.submissionRefs } });
+                if (submissions.length !== session.submissionRefs.length) {
+                    return res.status(404).json({ message: 'One or more submissions were not found' });
+                }
+                const submissionByRef = new Map(submissions.map(submission => [submission._id.toString(), submission]));
+                candidates.forEach(candidate => {
+                    const submission = submissionByRef.get(candidate.submissionRef);
+                    if (Array.isArray(candidate.questionGrades)) {
+                        candidate.questionGrades.forEach(grade => {
+                            const answer = submission.answers.find(item => item.questionIndex === grade.index);
+                            if (answer) answer.score = grade.score;
+                        });
+                        submission.totalScore = submission.answers.reduce((total, answer) => total + (answer.score || 0), 0);
+                        submission.status = 'graded';
+                    }
+                });
+                await Promise.all(submissions.map(submission => submission.save()));
+            } else {
+                const assignmentIds = new Set(session.submissionRefs.map(ref => ref.split(':')[0]));
+                if (assignmentIds.size !== 1) {
+                    return res.status(400).json({ message: 'All assignment submissions must belong to one assignment' });
+                }
+                const assignment = await Assignment.findById([...assignmentIds][0]);
+                if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+                for (const candidate of candidates) {
+                    const [, studentId] = candidate.submissionRef.split(':');
+                    const submission = assignment.submissions.find(item => item.studentId.toString() === studentId);
+                    if (!submission) return res.status(404).json({ message: 'One or more submissions were not found' });
+                    if (candidate.score !== undefined) submission.score = candidate.score;
+                    if (candidate.feedback !== undefined) submission.feedback = candidate.feedback;
+                    if (Array.isArray(candidate.questionScores)) submission.questionScores = candidate.questionScores;
+                    submission.status = 'graded';
+                }
+                await assignment.save();
+            }
+
+            const savedAt = new Date();
+            session.gradingSnapshot = Object.fromEntries(candidates.map(candidate => [candidate.submissionRef, candidate]));
+            session.savedSubmissions = session.submissionRefs.map(submissionRef => ({ submissionRef, savedAt }));
+            session.status = 'saved';
+            session.savedAt = savedAt;
+            await session.save();
+            return res.json({ message: 'All candidate grades finalized successfully', savedAt });
+        }
 
         const targetRef = gradingData?.submissionRef || session.submissionRef || (session.submissionRefs?.[0] || null);
         if (!targetRef) return res.status(400).json({ message: 'submissionRef is required to finalize grading' });
+
+        if (session.submissionRefs && session.submissionRefs.length > 1) {
+            session.gradingSnapshot = {
+                ...(session.gradingSnapshot || {}),
+                [targetRef]: dataToApply
+            };
+            session.savedSubmissions = session.savedSubmissions || [];
+            session.savedSubmissions = session.savedSubmissions.filter(item => item.submissionRef !== targetRef);
+            session.savedSubmissions.push({ submissionRef: targetRef, savedAt: new Date() });
+            session.savedAt = new Date();
+            await session.save();
+            return res.json({
+                message: 'Candidate grading finalized. You may continue grading other scripts.',
+                savedAt: session.savedAt,
+                submissionRef: targetRef
+            });
+        }
 
         // Apply to real submission
         if (session.submissionType === 'exam') {
@@ -1037,16 +1142,6 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
             if (Array.isArray(questionScores)) submission.questionScores = questionScores;
             submission.status = 'graded';
             await assignment.save();
-        }
-
-        if (session.submissionRefs && session.submissionRefs.length > 1) {
-            session.gradingSnapshot = session.gradingSnapshot || {};
-            session.gradingSnapshot[targetRef] = dataToApply;
-            session.savedSubmissions = session.savedSubmissions || [];
-            session.savedSubmissions.push({ submissionRef: targetRef, savedAt: new Date() });
-            session.savedAt = new Date();
-            await session.save();
-            return res.json({ message: 'Candidate grading finalized. You may continue grading other scripts.', savedAt: session.savedAt, submissionRef: targetRef });
         }
 
         session.gradingSnapshot = dataToApply;

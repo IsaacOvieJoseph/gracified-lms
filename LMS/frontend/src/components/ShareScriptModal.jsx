@@ -138,7 +138,7 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
 
     return (
         <div className="fixed inset-0 bg-slate-900/60  z-[100] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-none max-w-md w-full p-8 relative animate-slide-up overflow-hidden text-slate-800 dark:text-slate-200">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-none max-h-[85vh] max-w-md w-full overflow-y-auto overscroll-contain p-6 relative animate-slide-up text-slate-800 dark:text-slate-200">
                 <div className="absolute top-0 left-0 w-full h-1.5  from-primary/0 via-primary to-primary/0 opacity-20" />
                 
                 <div className="flex justify-between items-center mb-6">
@@ -201,16 +201,19 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                     </div>
                                     <p className="text-xs text-muted-foreground leading-relaxed ml-1 flex items-start gap-1.5 mt-1">
                                         <AlertCircle className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
-                                        <div className="flex flex-col items-center mb-4">
+                                        <span>Anyone with this link can request access. An OTP will be emailed to your authorized school/exam owner.</span>
+                                    </p>
+
+                                    <div className="flex w-full flex-col items-center mb-4">
                                         <img
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=6&data=${encodeURIComponent(shareUrl)}`}
                                             alt="QR code for this link"
-                                            className="w-36 h-36 rounded-xl border border-slate-200 dark:border-slate-800 bg-white p-2"
+                                            className="w-36 h-36 shrink-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white p-2"
                                         />
                                         <p className="mt-2 text-xs font-semibold tracking-wide text-muted-foreground/60 text-center">Scan to open</p>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                    <div className="grid w-full grid-cols-3 gap-2 mb-4">
                                         <a
                                             href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`}
                                             target="_blank"
@@ -240,8 +243,6 @@ const ShareScriptModal = ({ show, onClose, parentId, parentType, submissionId, s
                                         </a>
                                     </div>
 
-                                    <span>Anyone with this link can request access. An OTP will be emailed to your authorized school/exam owner.</span>
-                                    </p>
                                 </div>
 
                                 {/* Configure settings form */}

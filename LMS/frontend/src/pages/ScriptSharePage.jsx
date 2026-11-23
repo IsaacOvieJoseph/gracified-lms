@@ -308,8 +308,8 @@ const ScriptSharePage = () => {
     };
 
     // Check if entered scores are valid
-    const validateScores = () => {
-        for (const qg of questionGrades) {
+    const validateGradingState = (gradingState) => {
+        for (const qg of gradingState.questionGrades) {
             const questionIndex = script?.type === 'exam' ? qg.index : qg.questionIndex;
             const maxScore = script?.questions[questionIndex]?.maxScore || 10;
             if (qg.score < 0 || qg.score > maxScore) {
@@ -320,37 +320,63 @@ const ScriptSharePage = () => {
         return true;
     };
 
-    // Build the grading payload based on script type
-    const buildGradingPayload = () => {
+    const validateScores = () => {
+        if (!validateGradingState({ questionGrades })) return false;
+        if (script?.submissions?.length > 1) {
+            return script.submissions.every(submission => {
+                if (submission.submissionRef === selectedSubmissionRef) return true;
+                const gradingState = candidateGradeDrafts[submission.submissionRef]
+                    || buildInitialGradingState(script, submission);
+                return validateGradingState(gradingState);
+            });
+        }
+        return true;
+    };
+
+    const buildCandidateGradingData = (submissionRef, gradingState) => {
         if (script?.type === 'exam') {
             return {
-                gradingData: {
-                    questionGrades: questionGrades.map(qg => ({
-                        index: qg.index,
-                        score: Number(qg.score)
-                    })),
-                    feedback: overallFeedback
-                    ,
-                    submissionRef: selectedSubmissionRef || script?.submissionRef
-                }
-            };
-        } else {
-            // Assignment
-            const totalScore = questionGrades.reduce((sum, qg) => sum + Number(qg.score), 0);
-            return {
-                gradingData: {
-                    score: totalScore,
-                    feedback: overallFeedback,
-                    questionScores: questionGrades.map(qg => ({
-                        questionIndex: qg.questionIndex,
-                        score: Number(qg.score),
-                        feedback: qg.feedback
-                    }))
-                    ,
-                    submissionRef: selectedSubmissionRef || script?.submissionRef
-                }
+                questionGrades: gradingState.questionGrades.map(qg => ({
+                    index: qg.index,
+                    score: Number(qg.score)
+                })),
+                feedback: gradingState.overallFeedback,
+                submissionRef
             };
         }
+
+        const totalScore = gradingState.questionGrades.reduce((sum, qg) => sum + Number(qg.score), 0);
+        return {
+            score: totalScore,
+            feedback: gradingState.overallFeedback,
+            questionScores: gradingState.questionGrades.map(qg => ({
+                questionIndex: qg.questionIndex,
+                score: Number(qg.score),
+                feedback: qg.feedback
+            })),
+            submissionRef
+        };
+    };
+
+    // Build the grading payload from every candidate draft in a group session.
+    const buildGradingPayload = () => {
+        if (script?.submissions?.length > 1) {
+            const candidates = script.submissions.map(submission => {
+                const gradingState = submission.submissionRef === selectedSubmissionRef
+                    ? { questionGrades, overallFeedback }
+                    : candidateGradeDrafts[submission.submissionRef] || buildInitialGradingState(script, submission);
+                return buildCandidateGradingData(submission.submissionRef, gradingState);
+            });
+            return { gradingData: { candidates } };
+        }
+
+        const gradingState = { questionGrades, overallFeedback };
+        return {
+            gradingData: buildCandidateGradingData(
+                selectedSubmissionRef || script?.submissionRef,
+                gradingState
+            )
+        };
     };
 
     // 6. Save Draft grading
@@ -363,8 +389,6 @@ const ScriptSharePage = () => {
             if (!isAutoSave) {
                 toast.success('Grading draft saved successfully!');
             }
-            // Refresh session data to reflect saved snapshot and updated scores for this candidate
-            if (accessToken) await fetchScriptSession(accessToken);
             if (isAutoSave) {
                 toast.success('Progress auto-saved before access expiry.');
             }
@@ -384,7 +408,7 @@ const ScriptSharePage = () => {
         }
     }, [pageState, timeRemainingMs, savingDraft, finalizing]);
 
-    // 7. Finalize Grading (Write to actual DB and expire access)
+    // 7. Finalize grading and close the access session.
     const handleFinalizeGrading = async () => {
         if (!validateScores()) return;
         if (!window.confirm('Are you sure you want to finalize? This will submit the grades to the student record and end your active session.')) return;
@@ -392,19 +416,11 @@ const ScriptSharePage = () => {
         setFinalizing(true);
         try {
             const payload = buildGradingPayload();
-            const res = await publicApi.post(`/scripts/session/${accessToken}/finalize`, payload);
-            // If group session, backend returns submissionRef and keeps session active
-            if (res.data && res.data.submissionRef && script?.submissions?.length > 1) {
-                toast.success('Candidate grading finalized. You may continue grading other scripts.');
-                // Refresh session so UI shows updated scores
-                if (accessToken) await fetchScriptSession(accessToken);
-            } else {
-                // Single submission finalize ends the session
-                sessionStorage.removeItem(`script_access_${shareToken}`);
-                if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-                setPageState('SAVED');
-                toast.success('Grading finalized and applied to student records!');
-            }
+            await publicApi.post(`/scripts/session/${accessToken}/finalize`, payload);
+            sessionStorage.removeItem(`script_access_${shareToken}`);
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+            setPageState('SAVED');
+            toast.success('Grading finalized and applied to student records!');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to finalize grading. Session may have expired.');
             if (error.response?.status === 410) setPageState('EXPIRED');
