@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  X, Copy, CheckCircle2, QrCode, Link2, Share2, Download
+  X, Copy, CheckCircle2, QrCode, Link2, Share2, Download,
+  Facebook, Twitter, MessageCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -18,6 +19,7 @@ const ShareModal = ({
   if (!show || !shareUrl) return null;
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(shareUrl)}`;
+  const socialShareText = [shareText, shareUrl].filter(Boolean).join('\n');
 
   const fetchQrImage = async () => {
     const response = await fetch(qrCodeUrl);
@@ -152,6 +154,39 @@ const ShareModal = ({
             <Download className="w-4 h-4" />
             <span className="text-xs font-semibold tracking-wide">Download</span>
           </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(socialShareText)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Share link on WhatsApp"
+            className="flex flex-col items-center gap-2 p-3 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+          >
+            <MessageCircle className="w-5 h-5 text-emerald-500" />
+            <span className="text-xs font-semibold tracking-wide text-muted-foreground">WhatsApp</span>
+          </a>
+          <a
+            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Share link on Facebook"
+            className="flex flex-col items-center gap-2 p-3 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+          >
+            <Facebook className="w-5 h-5 text-blue-500" />
+            <span className="text-xs font-semibold tracking-wide text-muted-foreground">Facebook</span>
+          </a>
+          <a
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Share link on X"
+            className="flex flex-col items-center gap-2 p-3 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+          >
+            <Twitter className="w-5 h-5 text-sky-500" />
+            <span className="text-xs font-semibold tracking-wide text-muted-foreground">X</span>
+          </a>
         </div>
       </div>
     </div>
