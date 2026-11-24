@@ -703,13 +703,17 @@ const ScriptSharePage = () => {
                     </div>
                 </div>
 
-            {isCandidatePanelOpen && script?.submissions?.length > 1 && (
+            {isCandidatePanelOpen && (script?.submissions?.length > 1 || isGrader) && (
                 <div className="fixed inset-0 z-50 flex justify-start bg-slate-950/90 sm:hidden">
                     <div className={`${cardBg} border ${border} rounded-r-[2rem] w-full max-w-xs h-full p-4 overflow-y-auto shadow-none`}> 
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <p className={`text-xs font-semibold tracking-wide ${cardSubText}`}>Shared Candidates</p>
-                                <h2 className={`text-sm font-semibold ${cardText} mt-2`}>{script.submissions.length} candidates</h2>
+                                <p className={`text-xs font-semibold tracking-wide ${cardSubText}`}>
+                                    {script?.submissions?.length > 1 ? 'Shared Candidates' : 'Grading Actions'}
+                                </p>
+                                {script?.submissions?.length > 1 && (
+                                    <h2 className={`text-sm font-semibold ${cardText} mt-2`}>{script.submissions.length} candidates</h2>
+                                )}
                             </div>
                             <button
                                 type="button"
@@ -772,7 +776,7 @@ const ScriptSharePage = () => {
                             </div>
                         </div>
                         <div className="space-y-3 max-h-[calc(100vh-22rem)] overflow-y-auto">
-                            {script.submissions.map((submission) => {
+                            {(script?.submissions || []).map((submission) => {
                                 const isActive = submission.submissionRef === selectedSubmissionRef;
                                 const displayName = submission.candidateName || submission.candidateEmail || 'Anonymous';
                                 const initial = displayName?.charAt(0)?.toUpperCase() || 'A';

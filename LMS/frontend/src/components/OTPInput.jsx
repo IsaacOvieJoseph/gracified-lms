@@ -4,8 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 const OTPInput = ({ length = 6, value = '', onChange }) => {
     const { theme } = useTheme();
     const otpInputClass = theme === 'dark'
-        ? 'h-12 min-w-0 max-w-12 flex-1 sm:h-14 text-center text-xl sm:text-2xl font-semibold border border-slate-700 rounded-xl focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-none bg-slate-950 text-slate-100'
-        : 'h-12 min-w-0 max-w-12 flex-1 sm:h-14 text-center text-xl sm:text-2xl font-semibold border border-slate-300 rounded-xl focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-none bg-white text-slate-900';
+        ? 'h-12 w-full min-w-0 px-0 sm:h-14 text-center text-lg sm:text-2xl leading-none font-mono font-semibold border border-slate-700 rounded-xl focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-none bg-slate-950 text-slate-100'
+        : 'h-12 w-full min-w-0 px-0 sm:h-14 text-center text-lg sm:text-2xl leading-none font-mono font-semibold border border-slate-300 rounded-xl focus:border-primary focus:ring-primary/20 outline-none transition-all shadow-none bg-white text-slate-900';
     const inputsRef = useRef([]);
 
     useEffect(() => {
@@ -63,7 +63,7 @@ const OTPInput = ({ length = 6, value = '', onChange }) => {
     };
 
     return (
-        <div className="flex w-full max-w-full justify-center gap-1 sm:gap-2" onPaste={handlePaste}>
+        <div className="grid w-full max-w-full grid-cols-6 gap-1.5 sm:gap-2" onPaste={handlePaste}>
             {Array.from({ length }, (_, index) => (
                 <input
                     key={index}

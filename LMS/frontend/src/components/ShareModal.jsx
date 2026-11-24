@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  X, Copy, CheckCircle2, QrCode, Link2, 
-  Facebook, Twitter, MessageCircle 
+  X, Copy, CheckCircle2, QrCode, Link2, Share2, Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -14,11 +13,70 @@ const ShareModal = ({
   subtitle = 'Invite people to join'
 }) => {
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   if (!show || !shareUrl) return null;
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(shareUrl)}`;
-  const socialShareText = [shareText, shareUrl, `QR code: ${qrCodeUrl}`].filter(Boolean).join('\n');
+
+  const fetchQrImage = async () => {
+    const response = await fetch(qrCodeUrl);
+    if (!response.ok) throw new Error('Could not load the QR image');
+    return response.blob();
+  };
+
+  const downloadQrImage = (imageBlob) => {
+    const objectUrl = URL.createObjectURL(imageBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = objectUrl;
+    downloadLink.download = 'gracified-qr-code.png';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  };
+
+  const handleShareQrImage = async () => {
+    setSharing(true);
+    try {
+      const imageBlob = await fetchQrImage();
+      const qrFile = new File([imageBlob], 'gracified-qr-code.png', {
+        type: imageBlob.type || 'image/png'
+      });
+      const shareData = {
+        files: [qrFile],
+        title,
+        text: [shareText, shareUrl].filter(Boolean).join('\n'),
+        url: shareUrl
+      };
+
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [qrFile] }))) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      downloadQrImage(imageBlob);
+      toast('QR image downloaded. Attach it in your sharing app and include the link.');
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        toast.error(error.message || 'Could not share the QR image');
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleDownloadQrImage = async () => {
+    setSharing(true);
+    try {
+      downloadQrImage(await fetchQrImage());
+      toast.success('QR image downloaded');
+    } catch (error) {
+      toast.error(error.message || 'Could not download the QR image');
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -73,34 +131,27 @@ const ShareModal = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(socialShareText)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleShareQrImage}
+            disabled={sharing}
+            className="flex flex-1 items-center justify-center gap-2 p-3 bg-primary text-white rounded-xl border border-primary hover:bg-primary/90 transition-all disabled:opacity-60"
           >
-            <MessageCircle className="w-5 h-5 text-emerald-500" />
-            <span className="text-xs font-semibold tracking-wide text-muted-foreground">WhatsApp</span>
-          </a>
-          <a
-            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(socialShareText)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+            <Share2 className="w-4 h-4" />
+            <span className="text-xs font-semibold tracking-wide">{sharing ? 'Preparing image...' : 'Share QR image'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadQrImage}
+            disabled={sharing}
+            aria-label="Download QR image"
+            title="Download the QR image"
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-muted/40 text-muted-foreground rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all disabled:opacity-60"
           >
-            <Facebook className="w-5 h-5 text-blue-500" />
-            <span className="text-xs font-semibold tracking-wide text-muted-foreground">Facebook</span>
-          </a>
-          <a
-            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}${shareText ? '\n' : ''}QR code: ${qrCodeUrl}`)}&url=${encodeURIComponent(shareUrl)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
-          >
-            <Twitter className="w-5 h-5 text-sky-500" />
-            <span className="text-xs font-semibold tracking-wide text-muted-foreground">Twitter / X</span>
-          </a>
+            <Download className="w-4 h-4" />
+            <span className="text-xs font-semibold tracking-wide">Download</span>
+          </button>
         </div>
       </div>
     </div>
