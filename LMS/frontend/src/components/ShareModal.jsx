@@ -17,6 +17,9 @@ const ShareModal = ({
 
   if (!show || !shareUrl) return null;
 
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(shareUrl)}`;
+  const socialShareText = [shareText, shareUrl, `QR code: ${qrCodeUrl}`].filter(Boolean).join('\n');
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -51,7 +54,7 @@ const ShareModal = ({
 
         <div className="flex flex-col items-center mb-6">
           <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(shareUrl)}`}
+            src={qrCodeUrl}
             alt="QR code for this link"
             className="w-44 h-44 rounded-xl border border-border bg-white p-2"
           />
@@ -72,7 +75,7 @@ const ShareModal = ({
 
         <div className="grid grid-cols-3 gap-3">
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(`${shareText ? `${shareText} ` : ''}${shareUrl}`)}`}
+            href={`https://wa.me/?text=${encodeURIComponent(socialShareText)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
@@ -81,7 +84,7 @@ const ShareModal = ({
             <span className="text-xs font-semibold tracking-wide text-muted-foreground">WhatsApp</span>
           </a>
           <a
-            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(socialShareText)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
@@ -90,7 +93,7 @@ const ShareModal = ({
             <span className="text-xs font-semibold tracking-wide text-muted-foreground">Facebook</span>
           </a>
           <a
-            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}${shareText ? '\n' : ''}QR code: ${qrCodeUrl}`)}&url=${encodeURIComponent(shareUrl)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-2 p-4 bg-muted/40 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"

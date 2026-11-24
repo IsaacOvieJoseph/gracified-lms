@@ -40,35 +40,36 @@ const Text = ({ children, inline }) => {
   const tokens = [];
   let out = content;
   const patterns = [
-    { test: /^!\[([^\]]*)\]\(([^)]+)\)/, type: 'img' },
-    { test: /^\[([^\]]+)\]\(([^)]+)\)/, type: 'link' },
-    { test: /^`([^`]+)`/, type: 'code' },
-    { test: /^\*\*\*([^*]+)\*\*\*|^___([^_]+)___/, type: 'bolditalic' },
-    { test: /^\*\*([^*]+)\*\*|^__([^_]+)__/, type: 'strong' },
-    { test: /^\*([^*]+)\*|^_([^_]+)_/, type: 'em' },
-    { test: /^~~([^~]+)~~/, type: 'del' },
+    { test: /!\[([^\]]*)\]\(([^)]+)\)/, type: 'img' },
+    { test: /\[([^\]]+)\]\(([^)]+)\)/, type: 'link' },
+    { test: /`([^`]+)`/, type: 'code' },
+    { test: /\*\*\*([^*]+)\*\*\*|___([^_]+)___/, type: 'bolditalic' },
+    { test: /\*\*([^*]+)\*\*|__([^_]+)__/, type: 'strong' },
+    { test: /\*([^*]+)\*|_([^_]+)_/, type: 'em' },
+    { test: /~~([^~]+)~~/, type: 'del' },
   ];
 
-  const next = (re, type) => {
-    const m = out.match(re);
-    if (!m) return false;
-    const before = out.slice(0, m.index);
-    if (before) tokens.push(before);
-    const value = (m[1] || m[2] || '');
-    const extra = m.slice(2);
-    tokens.push({ type, value, extra });
-    out = out.slice(m.index + m[0].length);
-    return true;
-  };
-
   while (out.length) {
-    let matched = false;
+    let nextMatch = null;
     for (const p of patterns) {
-      if (next(p.test, p.type)) { matched = true; break; }
+      const match = p.test.exec(out);
+      if (match && (!nextMatch || match.index < nextMatch.match.index)) {
+        nextMatch = { match, type: p.type };
+      }
     }
-    if (matched) continue;
-    tokens.push(out.slice(0, 1));
-    out = out.slice(1);
+    if (!nextMatch) {
+      tokens.push(out);
+      break;
+    }
+
+    const { match, type } = nextMatch;
+    if (match.index > 0) tokens.push(out.slice(0, match.index));
+    tokens.push({
+      type,
+      value: match[1] || match[2] || '',
+      extra: match.slice(2)
+    });
+    out = out.slice(match.index + match[0].length);
   }
 
   const renderToken = (t, i) => {
@@ -179,7 +180,10 @@ const Markdown = ({ children }) => {
             const H = `h${b.props.level}`;
             return <H key={b.key} className={cls[`h${b.props.level}`]}>{parseInline(b.props.text, 't')}</H>;
           }
-          case 'p': return <p key={b.key} className={cls.p}>{parseInline(b.props.text, 't')}</p>;
+          case 'p': {
+            const Paragraph = /(?:\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\])/.test(b.props.text) ? 'div' : 'p';
+            return <Paragraph key={b.key} className={cls.p}>{parseInline(b.props.text, 't')}</Paragraph>;
+          }
           case 'list':
             if (b.props.ordered) {
               return <ol key={b.key} className={cls.ol}>{b.props.items.map((it, k) => <li key={k} className={cls.li}><Text>{it}</Text></li>)}</ol>;

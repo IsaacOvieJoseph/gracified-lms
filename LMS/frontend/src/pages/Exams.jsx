@@ -7,7 +7,6 @@ import {
     Globe,
     Lock,
     Eye,
-    Copy,
     Share2,
     Play,
     Plus,
@@ -26,6 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatDisplayDate } from '../utils/timezone';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ShareModal from '../components/ShareModal';
 
 const Exams = () => {
     const { user } = useAuth();
@@ -36,6 +36,7 @@ const Exams = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [examToDelete, setExamToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [examToShare, setExamToShare] = useState(null);
 
     useEffect(() => {
         fetchExams();
@@ -74,12 +75,9 @@ const Exams = () => {
         }
     };
 
-    const copyLink = (exam) => {
-        const identifier = exam.linkToken || exam._id;
-        const link = `${window.location.origin}/exam-center/${identifier}`;
-        navigator.clipboard.writeText(link);
-        toast.success('Exam link copied to clipboard!');
-    };
+    const examShareUrl = examToShare
+        ? `${window.location.origin}/exam-center/${examToShare.linkToken || examToShare._id}`
+        : '';
 
     const filteredExams = exams.filter(e =>
         e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -275,9 +273,10 @@ const Exams = () => {
                                                     ) : (
                                                         <>
                                                             <button
-                                                                onClick={() => copyLink(exam)}
+                                                                onClick={() => setExamToShare(exam)}
                                                                 className="p-2.5 text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50"
-                                                                title="Copy Link"
+                                                                title="Share Exam"
+                                                                aria-label={`Share ${exam.title}`}
                                                             >
                                                                 <Share2 className="w-5 h-5" />
                                                             </button>
@@ -345,6 +344,14 @@ const Exams = () => {
                     confirmText="Delete"
                     confirmButtonColor="bg-rose-600 hover:bg-danger/90 font-semibold tracking-wide text-xs"
                     isLoading={isDeleting}
+                />
+                <ShareModal
+                    show={Boolean(examToShare)}
+                    onClose={() => setExamToShare(null)}
+                    shareUrl={examShareUrl}
+                    shareText={examToShare ? `Take the exam: ${examToShare.title}` : ''}
+                    title={examToShare ? `Share ${examToShare.title}` : 'Share exam'}
+                    subtitle="Share the exam link or scan its QR code"
                 />
             </div>
         </Layout>
