@@ -56,11 +56,14 @@ const ExamCenter = () => {
     const [submissionStatus, setSubmissionStatus] = useState(null);
     const [showAccessModal, setShowAccessModal] = useState(false);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [showTabSwitchWarning, setShowTabSwitchWarning] = useState(false);
     const [mobileMapExpanded, setMobileMapExpanded] = useState(false);
     const [accessError, setAccessError] = useState('');
     const timerRef = useRef(null);
     const submissionIdRef = useRef(null);
     const answersRef = useRef({});
+    const tabSwitchCountRef = useRef(0);
+    const submissionInFlightRef = useRef(false);
     const STORAGE_KEY = `exam_state_${token}`;
 
     // Sync submissionId and answers to refs to avoid stale closures in timer
@@ -76,6 +79,33 @@ const ExamCenter = () => {
         fetchExamInfo();
         return () => clearInterval(timerRef.current);
     }, [token]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (
+                document.visibilityState !== 'hidden'
+                || !started
+                || finished
+                || isPreview
+                || !submissionIdRef.current
+                || submissionInFlightRef.current
+            ) {
+                return;
+            }
+
+            tabSwitchCountRef.current += 1;
+            if (tabSwitchCountRef.current === 1) {
+                setShowTabSwitchWarning(true);
+                return;
+            }
+
+            toast.error('You switched away from the exam a second time. Your attempt is being submitted.');
+            submitExam(true, 'tab-switch');
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [started, finished, isPreview]);
 
     // Restore persisted exam state on mount (if any)
     useEffect(() => {
@@ -187,12 +217,14 @@ const ExamCenter = () => {
         }, 1000);
     };
 
-    const submitExam = async (isAuto = false) => {
+    const submitExam = async (isAuto = false, autoSubmitReason = 'time') => {
+        if (submissionInFlightRef.current || finished) return;
         if (!isAuto && !showSubmitModal) {
             setShowSubmitModal(true);
             return;
         }
 
+        submissionInFlightRef.current = true;
         setShowSubmitModal(false);
         setLoading(true);
         clearInterval(timerRef.current);
@@ -215,9 +247,14 @@ const ExamCenter = () => {
             if (typeof window !== 'undefined') {
                 window.localStorage.removeItem(STORAGE_KEY);
             }
-            if (isAuto) toast.error('Time expired! Your exam has been auto-submitted.');
+            if (isAuto && autoSubmitReason === 'tab-switch') {
+                toast.error('Your exam was auto-submitted after switching away twice.');
+            } else if (isAuto) {
+                toast.error('Time expired! Your exam has been auto-submitted.');
+            }
             else toast.success('Exam submitted successfully!');
         } catch (error) {
+            submissionInFlightRef.current = false;
             toast.error('Failed to submit exam. Please contact support.');
         } finally {
             setLoading(false);
@@ -788,6 +825,38 @@ const ExamCenter = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Tab-switch warning */}
+            {showTabSwitchWarning && !finished && (
+                <div
+                    className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="tab-switch-warning-title"
+                    aria-describedby="tab-switch-warning-description"
+                >
+                    <div className="w-full max-w-md rounded-xl border border-amber-500/30 bg-card p-6 text-center text-foreground shadow-2xl sm:p-8">
+                        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500">
+                            <AlertCircle className="h-8 w-8" />
+                        </div>
+                        <h2 id="tab-switch-warning-title" className="text-xl font-semibold tracking-tight">
+                            Please stay on the exam
+                        </h2>
+                        <p id="tab-switch-warning-description" className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                            You switched away from the exam tab. Switching away again will automatically submit your attempt.
+                            Acknowledge this warning to continue.
+                        </p>
+                        <button
+                            type="button"
+                            autoFocus
+                            onClick={() => setShowTabSwitchWarning(false)}
+                            className="mt-6 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                            I Understand — Continue Exam
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Access Denied Modal */}
             {showAccessModal && (
