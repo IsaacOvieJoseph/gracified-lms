@@ -509,6 +509,9 @@ router.get('/share/:shareToken', async (req, res) => {
     try {
         const session = await ScriptAccessSession.findOne({ shareToken: req.params.shareToken });
         if (!session) return res.status(404).json({ message: 'Share link is invalid or has expired' });
+        if (session.status === 'saved') {
+            return res.status(410).json({ message: 'This share link has already been finalized.' });
+        }
 
         let title = '';
         let candidateName = '';
@@ -620,6 +623,9 @@ router.post('/share/:shareToken/request-access', async (req, res) => {
 
         const session = await ScriptAccessSession.findOne({ shareToken: req.params.shareToken });
         if (!session) return res.status(404).json({ message: 'Share link is invalid' });
+        if (session.status === 'saved') {
+            return res.status(410).json({ message: 'This share link has already been finalized.' });
+        }
 
         // If already active with a valid token, don't generate a new OTP
         if (session.status === 'active' && session.accessTokenExpiresAt > new Date()) {
@@ -707,6 +713,12 @@ router.post('/share/:shareToken/verify-otp', async (req, res) => {
 
         const session = await ScriptAccessSession.findOne({ shareToken: req.params.shareToken });
         if (!session) return res.status(404).json({ message: 'Share link is invalid' });
+        if (session.status === 'saved') {
+            return res.status(410).json({ message: 'This share link has already been finalized.' });
+        }
+        if (session.status !== 'pending_otp') {
+            return res.status(400).json({ message: 'No access request is pending for this link. Please request access first.' });
+        }
 
         if (!session.otpHash || !session.otpExpiresAt) {
             return res.status(400).json({ message: 'No access request is pending for this link. Please request access first.' });
@@ -1048,6 +1060,9 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
             }
 
             if (session.submissionType === 'exam') {
+                if (candidates.some(candidate => !Array.isArray(candidate.questionGrades))) {
+                    return res.status(400).json({ message: 'Question grades are required for every exam submission' });
+                }
                 const submissions = await ExamSubmission.find({ _id: { $in: session.submissionRefs } });
                 if (submissions.length !== session.submissionRefs.length) {
                     return res.status(404).json({ message: 'One or more submissions were not found' });
@@ -1055,17 +1070,22 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
                 const submissionByRef = new Map(submissions.map(submission => [submission._id.toString(), submission]));
                 candidates.forEach(candidate => {
                     const submission = submissionByRef.get(candidate.submissionRef);
-                    if (Array.isArray(candidate.questionGrades)) {
-                        candidate.questionGrades.forEach(grade => {
-                            const answer = submission.answers.find(item => item.questionIndex === grade.index);
-                            if (answer) answer.score = grade.score;
-                        });
-                        submission.totalScore = submission.answers.reduce((total, answer) => total + (answer.score || 0), 0);
-                        submission.status = 'graded';
-                    }
+                    candidate.questionGrades.forEach(grade => {
+                        const answer = submission.answers.find(item => item.questionIndex === grade.index);
+                        if (answer) {
+                            answer.score = grade.score;
+                        } else {
+                            submission.answers.push({ questionIndex: grade.index, answer: null, score: grade.score });
+                        }
+                    });
+                    submission.totalScore = submission.answers.reduce((total, answer) => total + (answer.score || 0), 0);
+                    submission.status = 'graded';
                 });
                 await Promise.all(submissions.map(submission => submission.save()));
             } else {
+                if (candidates.some(candidate => !Number.isFinite(candidate.score) || !Array.isArray(candidate.questionScores))) {
+                    return res.status(400).json({ message: 'A score and question grades are required for every assignment submission' });
+                }
                 const assignmentIds = new Set(session.submissionRefs.map(ref => ref.split(':')[0]));
                 if (assignmentIds.size !== 1) {
                     return res.status(400).json({ message: 'All assignment submissions must belong to one assignment' });
@@ -1089,6 +1109,10 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
             session.savedSubmissions = session.submissionRefs.map(submissionRef => ({ submissionRef, savedAt }));
             session.status = 'saved';
             session.savedAt = savedAt;
+            session.accessToken = undefined;
+            session.accessTokenExpiresAt = undefined;
+            session.otpHash = undefined;
+            session.otpExpiresAt = undefined;
             await session.save();
             return res.json({ message: 'All candidate grades finalized successfully', savedAt });
         }
@@ -1097,19 +1121,8 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
         if (!targetRef) return res.status(400).json({ message: 'submissionRef is required to finalize grading' });
 
         if (session.submissionRefs && session.submissionRefs.length > 1) {
-            session.gradingSnapshot = {
-                ...(session.gradingSnapshot || {}),
-                [targetRef]: dataToApply
-            };
-            session.savedSubmissions = session.savedSubmissions || [];
-            session.savedSubmissions = session.savedSubmissions.filter(item => item.submissionRef !== targetRef);
-            session.savedSubmissions.push({ submissionRef: targetRef, savedAt: new Date() });
-            session.savedAt = new Date();
-            await session.save();
-            return res.json({
-                message: 'Candidate grading finalized. You may continue grading other scripts.',
-                savedAt: session.savedAt,
-                submissionRef: targetRef
+            return res.status(400).json({
+                message: 'Finalize requires grading data for every submission in this session.'
             });
         }
 
@@ -1119,15 +1132,20 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
             if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
             const { questionGrades, feedback } = dataToApply;
-            if (Array.isArray(questionGrades)) {
-                questionGrades.forEach(grade => {
-                    const ans = submission.answers.find(a => a.questionIndex === grade.index);
-                    if (ans) ans.score = grade.score;
-                });
-                submission.totalScore = submission.answers.reduce((acc, a) => acc + (a.score || 0), 0);
-                submission.status = 'graded';
-                await submission.save();
+            if (!Array.isArray(questionGrades)) {
+                return res.status(400).json({ message: 'Question grades are required to finalize this exam submission' });
             }
+            questionGrades.forEach(grade => {
+                const answer = submission.answers.find(item => item.questionIndex === grade.index);
+                if (answer) {
+                    answer.score = grade.score;
+                } else {
+                    submission.answers.push({ questionIndex: grade.index, answer: null, score: grade.score });
+                }
+            });
+            submission.totalScore = submission.answers.reduce((total, answer) => total + (answer.score || 0), 0);
+            submission.status = 'graded';
+            await submission.save();
         } else {
             const [assignmentId, studentId] = targetRef.split(':');
             const assignment = await Assignment.findById(assignmentId);
@@ -1137,6 +1155,9 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
             if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
             const { score, feedback, questionScores } = dataToApply;
+            if (!Number.isFinite(score) || !Array.isArray(questionScores)) {
+                return res.status(400).json({ message: 'A score and question grades are required to finalize this assignment submission' });
+            }
             if (score !== undefined) submission.score = score;
             if (feedback !== undefined) submission.feedback = feedback;
             if (Array.isArray(questionScores)) submission.questionScores = questionScores;
@@ -1147,6 +1168,10 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
         session.gradingSnapshot = dataToApply;
         session.status = 'saved';
         session.savedAt = new Date();
+        session.accessToken = undefined;
+        session.accessTokenExpiresAt = undefined;
+        session.otpHash = undefined;
+        session.otpExpiresAt = undefined;
         await session.save();
 
         res.json({ message: 'Grading finalized and saved successfully', savedAt: session.savedAt });

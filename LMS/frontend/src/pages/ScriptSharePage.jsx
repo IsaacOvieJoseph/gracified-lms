@@ -420,6 +420,7 @@ const ScriptSharePage = () => {
             const payload = buildGradingPayload();
             await publicApi.post(`/scripts/session/${accessToken}/finalize`, payload);
             sessionStorage.removeItem(`script_access_${shareToken}`);
+            setAccessToken('');
             if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
             setPageState('SAVED');
             toast.success('Grading finalized and applied to student records!');
