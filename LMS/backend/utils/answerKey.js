@@ -59,11 +59,14 @@ const sanitizeExam = (exam) => {
 // Whether an exam's results are viewable right now: explicitly published, no
 // scheduled release time (defaults to immediate release), or the scheduled
 // release time has passed.
-const examResultsArePublic = (exam, now = new Date()) =>
-  !!exam &&
-  (exam.resultsPublished ||
+const examResultsArePublic = (exam, now = new Date()) => {
+  if (!exam) return false;
+  const hasTheory = (exam.questions || []).some((question) => question.questionType === 'theory');
+  if (hasTheory) return !!exam.resultsPublished;
+  return exam.resultsPublished ||
     !exam.resultPublishTime ||
-    new Date(exam.resultPublishTime) <= now);
+    new Date(exam.resultPublishTime) <= now;
+};
 
 module.exports = {
   isNonStudent,

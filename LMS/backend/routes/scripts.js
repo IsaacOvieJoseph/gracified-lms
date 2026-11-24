@@ -14,6 +14,7 @@ const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const School = require('../models/School');
 const Classroom = require('../models/Classroom');
+const { processPendingExamResults } = require('../utils/examNotificationHelper');
 
 const router = express.Router();
 
@@ -99,6 +100,15 @@ function createShareSlug(baseText) {
         .slice(0, 40);
     const suffix = Math.floor(1000 + Math.random() * 9000);
     return `${safe}-${suffix}`;
+}
+
+async function dispatchPublishedExamResults(examId) {
+    try {
+        return await processPendingExamResults(examId);
+    } catch (error) {
+        console.error(`[ExamResults] Failed to process published results for exam ${examId}:`, error.message);
+        return { processed: 0, failed: 1 };
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -668,7 +678,8 @@ router.post('/share/:shareToken/request-access', async (req, res) => {
         session.notifiedAuthorityIds = authorities.map(a => a._id);
         await session.save();
 
-        // Send OTP email to each authority
+        // Email delivery can be slow; the OTP is already persisted, so do not
+        // keep the requester waiting for the email provider to respond.
         const otpEmailHtml = `
             ${emailHeading('Script Access Request')}
             ${emailText(`Someone is requesting <strong>${session.accessType}</strong> access to an answer script.`)}
@@ -683,17 +694,23 @@ router.post('/share/:shareToken/request-access', async (req, res) => {
             ${emailNote('If you did not expect this request, please ignore this email. The OTP will expire automatically.')}
         `;
 
-        for (const authority of authorities) {
-            await sendEmail({
+        void Promise.allSettled(authorities.map(authority =>
+            sendEmail({
                 to: authority.email,
                 subject: `Script Access Request — ${requesterName} wants ${session.accessType} access`,
                 html: otpEmailHtml,
                 isSystemEmail: true
-            }).catch(err => console.error(`Failed to send OTP to ${authority.email}:`, err.message));
-        }
+            })
+        )).then(results => {
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`Failed to send OTP to ${authorities[index].email}:`, result.reason?.message || result.reason);
+                }
+            });
+        });
 
         res.json({
-            message: `Access request sent. The exam authority has been notified and will provide you with an OTP if approved.`,
+            message: 'Access request received. The authority notification is being sent; enter the OTP after the authority provides it.',
             otpExpiresAt
         });
     } catch (err) {
@@ -835,6 +852,7 @@ router.get('/session/:accessToken', async (req, res) => {
                         submittedAt: sub.submittedAt,
                         status: sub.status,
                         totalScore: sub.totalScore,
+                        overallFeedback: sub.overallFeedback,
                         answers: sub.answers,
                         gradingSnapshot: session.gradingSnapshot?.[sub._id.toString()] || null
                     })),
@@ -858,6 +876,7 @@ router.get('/session/:accessToken', async (req, res) => {
                     submittedAt: submission.submittedAt,
                     status: submission.status,
                     totalScore: submission.totalScore,
+                    overallFeedback: submission.overallFeedback,
                     questions: examDetail.questions,
                     answers: submission.answers,
                     submissionRef: submission._id.toString(),
@@ -1074,10 +1093,17 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
                         const answer = submission.answers.find(item => item.questionIndex === grade.index);
                         if (answer) {
                             answer.score = grade.score;
+                            if (grade.feedback !== undefined) answer.feedback = grade.feedback;
                         } else {
-                            submission.answers.push({ questionIndex: grade.index, answer: null, score: grade.score });
+                            submission.answers.push({
+                                questionIndex: grade.index,
+                                answer: null,
+                                score: grade.score,
+                                feedback: grade.feedback || ''
+                            });
                         }
                     });
+                    submission.overallFeedback = candidate.feedback || '';
                     submission.totalScore = submission.answers.reduce((total, answer) => total + (answer.score || 0), 0);
                     submission.status = 'graded';
                 });
@@ -1114,7 +1140,14 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
             session.otpHash = undefined;
             session.otpExpiresAt = undefined;
             await session.save();
-            return res.json({ message: 'All candidate grades finalized successfully', savedAt });
+            const emailResults = session.submissionType === 'exam'
+                ? await dispatchPublishedExamResults(session.parentId)
+                : null;
+            return res.json({
+                message: 'All candidate grades finalized successfully',
+                savedAt,
+                ...(emailResults && { emailResults })
+            });
         }
 
         const targetRef = gradingData?.submissionRef || session.submissionRef || (session.submissionRefs?.[0] || null);
@@ -1139,11 +1172,18 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
                 const answer = submission.answers.find(item => item.questionIndex === grade.index);
                 if (answer) {
                     answer.score = grade.score;
+                    if (grade.feedback !== undefined) answer.feedback = grade.feedback;
                 } else {
-                    submission.answers.push({ questionIndex: grade.index, answer: null, score: grade.score });
+                    submission.answers.push({
+                        questionIndex: grade.index,
+                        answer: null,
+                        score: grade.score,
+                        feedback: grade.feedback || ''
+                    });
                 }
             });
             submission.totalScore = submission.answers.reduce((total, answer) => total + (answer.score || 0), 0);
+            submission.overallFeedback = feedback || '';
             submission.status = 'graded';
             await submission.save();
         } else {
@@ -1174,7 +1214,14 @@ router.post('/session/:accessToken/finalize', async (req, res) => {
         session.otpExpiresAt = undefined;
         await session.save();
 
-        res.json({ message: 'Grading finalized and saved successfully', savedAt: session.savedAt });
+        const emailResults = session.submissionType === 'exam'
+            ? await dispatchPublishedExamResults(session.parentId)
+            : null;
+        res.json({
+            message: 'Grading finalized and saved successfully',
+            savedAt: session.savedAt,
+            ...(emailResults && { emailResults })
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

@@ -15,7 +15,8 @@ import Markdown from '../components/Markdown';
 // Use a clean axios instance to bypass default auth interceptors (which redirect on 401)
 const publicApi = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 30000
 });
 
 const ScriptSharePage = () => {
@@ -182,7 +183,11 @@ const ScriptSharePage = () => {
             setPageState('VERIFY_OTP');
             toast.success('Access requested. OTP has been sent to the authority.');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to request access');
+            toast.error(
+                error.code === 'ECONNABORTED'
+                    ? 'The access request is taking too long. Please check with the authority before trying again.'
+                    : error.response?.data?.message || 'Failed to request access'
+            );
         } finally {
             setLoading(false);
         }
@@ -229,12 +234,12 @@ const ScriptSharePage = () => {
                 return {
                     index: qIndex,
                     score: snapshotAns?.score ?? (submittedAns?.score || 0),
-                    feedback: ''
+                    feedback: snapshotAns?.feedback ?? submittedAns?.feedback ?? ''
                 };
             });
             return {
                 questionGrades,
-                overallFeedback: snapshot?.feedback || ''
+                overallFeedback: snapshot?.feedback ?? activeSubmission?.overallFeedback ?? scriptData.overallFeedback ?? ''
             };
         }
 
@@ -340,7 +345,8 @@ const ScriptSharePage = () => {
             return {
                 questionGrades: gradingState.questionGrades.map(qg => ({
                     index: qg.index,
-                    score: Number(qg.score)
+                    score: Number(qg.score),
+                    feedback: qg.feedback || ''
                 })),
                 feedback: gradingState.overallFeedback,
                 submissionRef

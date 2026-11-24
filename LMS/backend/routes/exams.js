@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const School = require('../models/School');
 const Tutorial = require('../models/Tutorial');
 const { isNonStudent, stripCorrectOption, sanitizeExam, examResultsArePublic } = require('../utils/answerKey');
+const { processPendingExamResults, sendExamResultEmail } = require('../utils/examNotificationHelper');
 const router = express.Router();
 
 // Helper to check school access
@@ -461,11 +462,13 @@ router.get('/public/:token', async (req, res) => {
 
         if (existingSubmissionId && (submissionStatus === 'submitted' || submissionStatus === 'graded')) {
             const submission = await ExamSubmission.findById(existingSubmissionId);
+            const resultReady = submission.status === 'graded' && resultsArePublic;
             resultData = {
-                score: resultsArePublic ? submission.totalScore : null,
+                score: resultReady ? submission.totalScore : null,
                 status: submission.status,
-                answers: resultsArePublic ? submission.answers : null, // Show breakdown only if published
-                submittedAt: submission.submittedAt
+                answers: resultReady ? submission.answers : null, // Show breakdown only if published and graded
+                submittedAt: submission.submittedAt,
+                overallFeedback: resultReady ? submission.overallFeedback : null
             };
         }
 
@@ -716,7 +719,7 @@ router.post('/submissions/:id/submit', async (req, res) => {
 
         if (emailTo) {
             try {
-                const resultsArePublic = examResultsArePublic(exam);
+                const resultsArePublic = submission.status === 'graded' && examResultsArePublic(exam);
 
                 let emailHtml = '';
                 if (resultsArePublic) {
@@ -743,8 +746,8 @@ router.post('/submissions/:id/submit', async (req, res) => {
                         ${emailText(`Hello <strong>${submission.candidateName || 'Student'}</strong>,`)}
                         ${emailText(`Your assessment for <strong>"${exam.title}"</strong> has been successfully received.`)}
                         ${emailPanel(`
-                            <p style="margin:0;"><strong>Status:</strong> Received / Pending Result Release</p>
-                            <p style="margin:4px 0 0; color:#5B6B7C;">Results will be sent to you once they are officially released on ${new Date(exam.resultPublishTime).toLocaleString()}.</p>
+                            <p style="margin:0;"><strong>Status:</strong> Received / Pending Grading or Result Release</p>
+                            <p style="margin:4px 0 0; color:#5B6B7C;">Your result and examiner feedback will be sent once grading is complete and results are published.</p>
                         `, { accent: NAVY })}
                     `;
                 }
@@ -770,7 +773,7 @@ router.post('/submissions/:id/submit', async (req, res) => {
             }
         }
 
-        const resultsArePublic = examResultsArePublic(exam);
+        const resultsArePublic = submission.status === 'graded' && examResultsArePublic(exam);
         res.json({
             message: 'Exam submitted successfully',
             status: submission.status,
@@ -814,6 +817,33 @@ router.get('/:id/submissions', auth, authorize('root_admin', 'school_admin', 'te
 
         const submissions = await ExamSubmission.find({ examId: req.params.id }).populate('studentId', 'name email').sort({ submittedAt: -1 });
         res.json(submissions);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.post('/:id/publish-results', auth, authorize('root_admin', 'school_admin', 'teacher', 'personal_teacher'), async (req, res) => {
+    try {
+        const exam = await Exam.findById(req.params.id);
+        if (!exam) return res.status(404).json({ message: 'Exam not found' });
+
+        const allowed = await canAccessExam(req.user, exam);
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
+        if (!exam.questions.some(question => question.questionType === 'theory')) {
+            return res.status(400).json({ message: 'Manual result publishing is only available for exams containing theory questions' });
+        }
+
+        exam.resultsPublished = true;
+        exam.resultPublishTime = new Date();
+        await exam.save();
+
+        const emailResults = await processPendingExamResults(exam._id);
+        res.json({
+            message: 'Exam results published',
+            resultsPublished: true,
+            emailsSent: emailResults.processed,
+            emailsFailed: emailResults.failed
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -901,54 +931,45 @@ router.patch('/submissions/detail/:id/grade', auth, authorize('root_admin', 'sch
         const allowed = await canAccessExam(req.user, exam);
         if (!allowed) return res.status(403).json({ message: 'Access denied' });
 
-        const { questionGrades } = req.body; // Array of { index, score }
+        const { questionGrades, overallFeedback } = req.body;
+        if (!Array.isArray(questionGrades)) {
+            return res.status(400).json({ message: 'questionGrades must be an array' });
+        }
 
         questionGrades.forEach(grade => {
-            const ans = submission.answers.find(a => a.questionIndex === grade.index);
-            if (ans) {
-                ans.score = grade.score;
+            let answer = submission.answers.find(item => item.questionIndex === grade.index);
+            if (!answer) {
+                answer = { questionIndex: grade.index, answer: null, score: 0, feedback: '' };
+                submission.answers.push(answer);
             }
+            answer.score = grade.score;
+            if (grade.feedback !== undefined) answer.feedback = grade.feedback;
         });
 
         // Recalculate total
-        submission.totalScore = submission.answers.reduce((acc, curr) => acc + curr.score, 0);
+        submission.totalScore = submission.answers.reduce((acc, curr) => acc + (curr.score || 0), 0);
+        if (overallFeedback !== undefined) submission.overallFeedback = overallFeedback;
         submission.status = 'graded';
         await submission.save();
 
-        // Send Email notification (Updated Score)
-        const emailTo = submission.candidateEmail || (submission.studentId ? (await mongoose.model('User').findById(submission.studentId))?.email : null);
-
-        if (emailTo) {
+        let emailSent = false;
+        if (examResultsArePublic(exam)) {
             try {
-                const resultsArePublic = examResultsArePublic(exam);
-
-                if (resultsArePublic) {
-                    const maxPossible = exam.questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);
-                    const percentage = Math.round((submission.totalScore / maxPossible) * 100);
-
-                    await sendEmail({
-                        to: emailTo,
-                        subject: `Updated Exam Result: ${exam.title}`,
-                        classroomId: exam.classId,
-                        schoolId: exam.schoolId,
-                        html: `
-                            ${emailHeading('Exam Grading Complete')}
-                            ${emailText(`Hello <strong>${submission.candidateName || 'Student'}</strong>,`)}
-                            ${emailText(`Your assessment for <strong>"${exam.title}"</strong> has been reviewed and graded by the examiner.`)}
-                            ${emailResultHero({ eyebrow: 'Final Score', value: `${percentage}%`, meta: `${submission.totalScore} / ${maxPossible} Points`, tone: NAVY })}
-                            ${emailText('Thank you for your patience.')}
-                        `
-                    });
-
-                    submission.emailSent = true;
-                    await submission.save();
-                }
+                emailSent = await sendExamResultEmail(submission, exam);
             } catch (err) {
                 console.error('Failed to send updated result email:', err.message);
             }
         }
 
-        res.json({ message: 'Grading updated and student notified', submission });
+        res.json({
+            message: emailSent
+                ? 'Grades and feedback saved; the updated result email was sent'
+                : examResultsArePublic(exam)
+                    ? 'Grades and feedback saved; result email could not be sent'
+                    : 'Grades and feedback saved. Publish exam results to notify the participant.',
+            emailSent,
+            submission
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

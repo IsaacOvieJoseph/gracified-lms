@@ -242,9 +242,9 @@ function wrapEmail(content, customLogoUrl = null) {
 
 /**
  * Helper to send transactional email via Brevo
- * @param {Object} options - { to, subject, html, classroomId, userId, schoolId, tutorialId, isSystemEmail }
+ * @param {Object} options - { to, subject, html, attachments, classroomId, userId, schoolId, tutorialId, isSystemEmail }
  */
-async function sendEmail({ to, subject, html, classroomId, userId, schoolId, tutorialId, isSystemEmail = false }) {
+async function sendEmail({ to, subject, html, attachments, classroomId, userId, schoolId, tutorialId, isSystemEmail = false }) {
   let customLogoUrl = null;
 
   try {
@@ -324,6 +324,12 @@ async function sendEmail({ to, subject, html, classroomId, userId, schoolId, tut
   sendSmtpEmail.to = receivers;
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.htmlContent = finalHtml;
+  if (attachments?.length) {
+    sendSmtpEmail.attachment = attachments.map(({ name, content }) => ({
+      name,
+      content: Buffer.isBuffer(content) ? content.toString('base64') : content
+    }));
+  }
 
   try {
     const result = await brevoEmailApi.sendTransacEmail(sendSmtpEmail);

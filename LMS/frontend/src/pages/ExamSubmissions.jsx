@@ -13,7 +13,9 @@ import {
     Download,
     UserCheck,
     BarChart,
-    Share2
+    Share2,
+    Send,
+    CheckCircle2
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -34,6 +36,7 @@ const ExamSubmissions = () => {
     const [showShareModal, setShowShareModal] = useState(false);
     const [selectedShareSubmission, setSelectedShareSubmission] = useState(null);
     const [selectedShareSubmissionIds, setSelectedShareSubmissionIds] = useState([]);
+    const [publishingResults, setPublishingResults] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -52,6 +55,28 @@ const ExamSubmissions = () => {
             navigate('/exams');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePublishResults = async () => {
+        if (!window.confirm('Publish the exam results now? Participants with graded submissions will be able to view their results and receive their feedback PDF by email.')) {
+            return;
+        }
+
+        setPublishingResults(true);
+        try {
+            const response = await api.post(`/exams/${id}/publish-results`);
+            const { emailsSent = 0, emailsFailed = 0 } = response.data;
+            toast.success(
+                emailsFailed
+                    ? `Results published. ${emailsSent} result emails sent; ${emailsFailed} failed and will be retried automatically.`
+                    : `Results published. ${emailsSent} result emails sent.`
+            );
+            await fetchData();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to publish exam results');
+        } finally {
+            setPublishingResults(false);
         }
     };
 
@@ -333,6 +358,17 @@ const ExamSubmissions = () => {
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
+                        {hasTheory && (
+                            <button
+                                type="button"
+                                onClick={handlePublishResults}
+                                disabled={publishingResults || exam?.resultsPublished}
+                                className={`flex-1 md:flex-none flex items-center justify-center space-x-2 px-5 py-3 rounded-xl font-semibold text-xs tracking-wide transition-all disabled:cursor-not-allowed disabled:opacity-60 ${exam?.resultsPublished ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-primary text-white hover:bg-primary/90'}`}
+                            >
+                                {exam?.resultsPublished ? <CheckCircle2 className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                                <span>{publishingResults ? 'Publishing...' : exam?.resultsPublished ? 'Results Published' : 'Publish Results'}</span>
+                            </button>
+                        )}
                         <button
                             onClick={exportToCSV}
                             className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-card border border-border rounded-xl font-semibold text-xs tracking-wide text-muted-foreground hover:bg-muted transition-all shadow-none"

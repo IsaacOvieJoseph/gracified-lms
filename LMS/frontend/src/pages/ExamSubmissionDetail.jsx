@@ -24,6 +24,8 @@ const ExamSubmissionDetail = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [theoryGrades, setTheoryGrades] = useState({});
+    const [questionFeedback, setQuestionFeedback] = useState({});
+    const [overallFeedback, setOverallFeedback] = useState('');
 
     useEffect(() => {
         fetchSubmission();
@@ -36,13 +38,17 @@ const ExamSubmissionDetail = () => {
 
             // Initialize theory grades state
             const initialGrades = {};
+            const initialFeedback = {};
             response.data.answers.forEach(ans => {
                 const question = response.data.examId.questions[ans.questionIndex];
                 if (question?.questionType === 'theory') {
                     initialGrades[ans.questionIndex] = ans.score;
+                    initialFeedback[ans.questionIndex] = ans.feedback || '';
                 }
             });
             setTheoryGrades(initialGrades);
+            setQuestionFeedback(initialFeedback);
+            setOverallFeedback(response.data.overallFeedback || '');
         } catch (error) {
             toast.error('Failed to fetch submission details');
             navigate('/exams');
@@ -56,12 +62,16 @@ const ExamSubmissionDetail = () => {
         try {
             const questionGrades = Object.entries(theoryGrades).map(([index, score]) => ({
                 index: parseInt(index),
-                score: parseFloat(score)
+                score: parseFloat(score),
+                feedback: questionFeedback[index] || ''
             }));
 
-            await api.patch(`/exams/submissions/detail/${id}/grade`, { questionGrades });
-            toast.success('Grades updated and student notified');
-            fetchSubmission();
+            const response = await api.patch(`/exams/submissions/detail/${id}/grade`, {
+                questionGrades,
+                overallFeedback
+            });
+            toast.success(response.data.message);
+            await fetchSubmission();
         } catch (error) {
             toast.error('Failed to update grades');
         } finally {
@@ -109,7 +119,7 @@ const ExamSubmissionDetail = () => {
                         className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-none  disabled:opacity-50"
                     >
                         {saving ? <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" /> : <Save className="w-5 h-5" />}
-                        <span>Save Changes & Notify</span>
+                        <span>Save Grading</span>
                     </button>
                 </div>
 
@@ -136,7 +146,7 @@ const ExamSubmissionDetail = () => {
                                 <div className="flex items-center pt-1">
                                     {submission.status === 'graded' ? (
                                         <span className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-xs font-semibold tracking-wide flex items-center">
-                                            <CheckCircle2 className="w-3 h-3 mr-1" /> Graded & Published
+                                        <CheckCircle2 className="w-3 h-3 mr-1" /> {exam.resultsPublished ? 'Graded & Published' : 'Graded — Awaiting Publication'}
                                         </span>
                                     ) : exam.questions.some(q => q.questionType === 'theory') ? (
                                         <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold tracking-wide flex items-center">
@@ -232,11 +242,42 @@ const ExamSubmissionDetail = () => {
                                             </div>
                                         )}
                                     </div>
+                                    {isTheory && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-semibold text-muted-foreground tracking-wide">
+                                                Examiner feedback for this response
+                                            </label>
+                                            <textarea
+                                                rows={3}
+                                                value={questionFeedback[ans.questionIndex] || ''}
+                                                onChange={(event) => setQuestionFeedback({
+                                                    ...questionFeedback,
+                                                    [ans.questionIndex]: event.target.value
+                                                })}
+                                                placeholder="Add feedback for the candidate..."
+                                                className="w-full rounded-xl border border-border bg-background p-4 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
+
+                <section className="space-y-3 rounded-xl border border-border bg-card p-6">
+                    <label htmlFor="overall-exam-feedback" className="text-sm font-semibold text-foreground">
+                        Overall examiner comment
+                    </label>
+                    <textarea
+                        id="overall-exam-feedback"
+                        rows={4}
+                        value={overallFeedback}
+                        onChange={(event) => setOverallFeedback(event.target.value)}
+                        placeholder="Add an overall comment for the candidate..."
+                        className="w-full rounded-xl border border-border bg-background p-4 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                </section>
             </div>
         </Layout>
     );

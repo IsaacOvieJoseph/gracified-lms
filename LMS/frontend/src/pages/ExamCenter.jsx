@@ -552,8 +552,10 @@ const ExamCenter = () => {
     // --- Final/Result Screen ---
     if (finished) {
         const totalPossible = questions.reduce((acc, q) => acc + (q.maxScore || 1), 0);
-        const resultsHidden = !(exam?.resultsPublished || !exam?.resultPublishTime || new Date(exam.resultPublishTime) <= new Date()) ||
-            (questions.some(q => q.questionType === 'theory') && submissionStatus !== 'graded');
+        const hasTheory = questions.some(question => question.questionType === 'theory');
+        const resultsHidden = hasTheory
+            ? !exam?.resultsPublished || submissionStatus !== 'graded'
+            : !(exam?.resultsPublished || !exam?.resultPublishTime || new Date(exam.resultPublishTime) <= new Date());
 
         return (
             <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6 overflow-y-auto">
@@ -584,8 +586,10 @@ const ExamCenter = () => {
                             <div className="py-4 md:py-6">
                                 <div className="text-xl md:text-2xl font-semibold text-primary mb-2 tracking-tight">Result Restricted</div>
                                 <p className="text-xs md:text-xs font-semibold text-muted-foreground/60 tracking-wide leading-relaxed">
-                                    {questions.some(q => q.questionType === 'theory') && submissionStatus !== 'graded'
-                                        ? "Manual grading in progress. Please check back later."
+                                    {hasTheory
+                                        ? submissionStatus !== 'graded'
+                                            ? 'Manual grading is in progress. Please check back later.'
+                                            : 'Your result is ready and will be available after the examiner publishes results.'
                                         : `Results will be released on ${new Date(exam.resultPublishTime).toLocaleString()}`}
                                 </p>
                             </div>
@@ -596,6 +600,12 @@ const ExamCenter = () => {
                     {!resultsHidden && exam?.resultData?.answers && (
                         <div className="mt-12 text-left space-y-8">
                             <h3 className="text-2xl font-semibold text-foreground border-b-2 border-border pb-4 tracking-tight">Detailed Breakdown</h3>
+                            {exam.resultData.overallFeedback && (
+                                <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Overall examiner comment</h4>
+                                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{exam.resultData.overallFeedback}</p>
+                                </div>
+                            )}
                             <div className="space-y-6">
                                 {questions.map((q, idx) => {
                                     const studentAns = exam.resultData.answers.find(a => a.questionIndex === idx);
@@ -626,6 +636,12 @@ const ExamCenter = () => {
                                                     </div>
                                                 )}
                                             </div>
+                                            {studentAns?.feedback && (
+                                                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                                                    <span className="block text-[11px] font-semibold tracking-wide text-primary">Examiner feedback</span>
+                                                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{studentAns.feedback}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

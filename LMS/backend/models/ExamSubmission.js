@@ -28,11 +28,19 @@ const examSubmissionSchema = new mongoose.Schema({
         score: {
             type: Number,
             default: 0
+        },
+        feedback: {
+            type: String,
+            default: ''
         }
     }],
     totalScore: {
         type: Number,
         default: 0
+    },
+    overallFeedback: {
+        type: String,
+        default: ''
     },
     startedAt: {
         type: Date,
