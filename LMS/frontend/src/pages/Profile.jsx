@@ -429,12 +429,12 @@ const Profile = () => {
                             <div className="space-y-6 border-t border-border pt-8">
                                 <div className="flex items-center gap-2 opacity-40">
                                     <CreditCard className="w-4 h-4 text-muted-foreground" />
-                                    <h2 className="text-xs font-semibold text-muted-foreground tracking-[0.2em]">Payout Intelligence</h2>
+                                    <h2 className="text-xs font-semibold text-muted-foreground tracking-[0.2em]">Payout Details</h2>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Bank Establishment</label>
+                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Bank Name</label>
                                         <input
                                             type="text"
                                             name="bankName"
@@ -445,7 +445,7 @@ const Profile = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Core Identity Number</label>
+                                        <label className="block text-xs font-semibold text-muted-foreground tracking-wide mb-2 ml-1">Account Number</label>
                                         <input
                                             type="text"
                                             name="accountNumber"

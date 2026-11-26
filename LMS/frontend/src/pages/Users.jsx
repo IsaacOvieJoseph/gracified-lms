@@ -1085,7 +1085,7 @@ Bob Johnson,bob@example.com,student,`;
                         >
                           {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
                             <>
-                              <span>Verify Intelligence</span>
+                              <span>Validate &amp; Continue</span>
                               <ArrowRight className="w-5 h-5" />
                             </>
                           )}

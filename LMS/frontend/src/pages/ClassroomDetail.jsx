@@ -2863,7 +2863,7 @@ const ClassroomDetail = () => {
                                         );
                                       })
                                     ) : (
-                                      <p className="text-muted-foreground text-center py-4 font-semibold text-xs tracking-wide">No intellectual payloads delivered yet.</p>
+                                      <p className="text-muted-foreground text-center py-4 font-semibold text-xs tracking-wide">No submissions yet.</p>
                                     )}
                                   </div>
                                 )}

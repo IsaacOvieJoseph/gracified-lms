@@ -170,7 +170,7 @@ const PublicSchool = () => {
       <section className="max-w-7xl mx-auto px-6 py-32">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
           <div className="space-y-4">
-            <h2 className="text-4xl md:text-5xl font-semibold text-foreground tracking-tight italic">Operational <span className="text-primary not-italic">Sectors</span></h2>
+            <h2 className="text-4xl md:text-5xl font-semibold text-foreground tracking-tight italic">Explore <span className="text-primary not-italic">Courses</span></h2>
             <p className="text-lg text-muted-foreground font-semibold tracking-[0.1em] max-w-xl leading-relaxed opacity-60 italic">
               Discover and learn from verified educational courses. Each program is optimized for rapid skill acquisition.
             </p>
@@ -182,7 +182,7 @@ const PublicSchool = () => {
                 </div>
                 <div>
                    <p className="text-xs font-semibold text-muted-foreground/40 tracking-wider">Platform Secure</p>
-                   <p className="text-sm font-semibold text-foreground tracking-tight">Verified Intel</p>
+                   <p className="text-sm font-semibold text-foreground tracking-tight">Verified Courses</p>
                 </div>
              </div>
           </div>
@@ -197,7 +197,7 @@ const PublicSchool = () => {
                     <BookOpen className="w-8 h-8 text-muted-foreground/40 group-hover:text-primary" />
                   </div>
                   <div className={`px-4 py-1.5 rounded-xl text-xs font-semibold tracking-wide ${cls.isPaid ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'}`}>
-                    {cls.isPaid ? 'Premium Intel' : 'Public Access'}
+                    {cls.isPaid ? 'Premium Course' : 'Public Access'}
                   </div>
                 </div>
 

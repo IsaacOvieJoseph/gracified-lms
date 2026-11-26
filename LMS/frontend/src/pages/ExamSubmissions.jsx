@@ -393,7 +393,7 @@ const ExamSubmissions = () => {
                         <div className="text-3xl font-semibold text-foreground tracking-tight">{submissions.length}</div>
                     </div>
                     <div className="bg-card p-6 rounded-xl border border-border shadow-none hover:border-primary/20 transition-all group">
-                        <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-3 opacity-40">Average Intel Score</div>
+                        <div className="text-xs font-semibold text-muted-foreground tracking-wide mb-3 opacity-40">Average Score</div>
                         <div className="text-3xl font-semibold text-primary tracking-tight">{averageScore}</div>
                     </div>
                     <div className="bg-card p-6 rounded-xl border border-border shadow-none hover:border-emerald-500/20 transition-all group">

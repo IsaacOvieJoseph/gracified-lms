@@ -99,7 +99,7 @@ const ExamCenter = () => {
                 return;
             }
 
-            toast.error('You switched away from the exam a second time. Your attempt is being submitted.');
+            toast.error('You left the exam tab. Your attempt is being submitted automatically.');
             submitExam(true, 'tab-switch');
         };
 
@@ -248,7 +248,7 @@ const ExamCenter = () => {
                 window.localStorage.removeItem(STORAGE_KEY);
             }
             if (isAuto && autoSubmitReason === 'tab-switch') {
-                toast.error('Your exam was auto-submitted after switching away twice.');
+                toast.error('Your exam was automatically submitted because you left the exam tab.');
             } else if (isAuto) {
                 toast.error('Time expired! Your exam has been auto-submitted.');
             }
@@ -377,7 +377,7 @@ const ExamCenter = () => {
                                     </div>
                                     <div>
                                         <h4 className="text-xs md:text-sm font-semibold text-white mb-1 tracking-wide">Network Secure</h4>
-                                        <p className="text-xs md:text-xs text-muted-foreground/60 leading-relaxed font-medium">Ensure you have a reliable internet source before starting the session.</p>
+                                        <p className="text-xs md:text-xs text-white/75 leading-relaxed font-medium">Ensure you have a reliable internet source before starting the session.</p>
                                     </div>
                                 </div>
 
@@ -387,7 +387,7 @@ const ExamCenter = () => {
                                     </div>
                                     <div>
                                         <h4 className="text-xs md:text-sm font-semibold text-white mb-1 tracking-wide">Timed Session</h4>
-                                        <p className="text-xs md:text-xs text-muted-foreground/60 leading-relaxed font-medium">The timer starts immediately. It will auto-submit when the window closes.</p>
+                                        <p className="text-xs md:text-xs text-white/75 leading-relaxed font-medium">The timer starts immediately. It will auto-submit when the window closes.</p>
                                     </div>
                                 </div>
 
@@ -397,7 +397,7 @@ const ExamCenter = () => {
                                     </div>
                                     <div>
                                         <h4 className="text-xs md:text-sm font-semibold text-white mb-1 tracking-wide">Single Tab Mode</h4>
-                                        <p className="text-xs md:text-xs text-muted-foreground/60 leading-relaxed font-medium">Stay on this tab. Frequent tab switching may be flagged as suspicious activity.</p>
+                                        <p className="text-xs md:text-xs text-white/75 leading-relaxed font-medium">Stay on this tab. Leaving it may result in your exam being automatically submitted.</p>
                                     </div>
                                 </div>
                             </div>
@@ -414,7 +414,7 @@ const ExamCenter = () => {
                             </div>
                         </div>
 
-                        <div className="mt-4 lg:mt-8 md:mt-12 pt-4 lg:pt-6 md:pt-8 border-t border-white/5 flex items-center space-x-3 grayscale opacity-30 flex-shrink-0">
+                        <div className="mt-4 lg:mt-8 md:mt-12 pt-4 lg:pt-6 md:pt-8 border-t border-white/10 flex items-center space-x-3 grayscale opacity-70 flex-shrink-0">
                             <img src={gracifiedLogo} alt="Gracified" className="w-5 h-5 md:w-6 md:h-6 rounded-md object-cover flex-shrink-0" />
                             <div className="flex flex-col">
                                 <span className="text-[11px] md:text-xs font-semibold text-white tracking-[0.3em] leading-none mb-1">Gracified LMS</span>
@@ -441,7 +441,7 @@ const ExamCenter = () => {
                                         {exam?.classroomName || 'Portal'}
                                     </div>
                                 </div>
-                                <div className="flex items-center space-x-1 text-muted-foreground/30">
+                                <div className="flex items-center space-x-1 text-muted-foreground/70">
                                     <Zap className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                     <span className="text-[11px] md:text-xs font-semibold tracking-wider">Live</span>
                                 </div>
@@ -449,23 +449,23 @@ const ExamCenter = () => {
                             <h1 className="text-2xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-3 md:mb-4 tracking-tight leading-tight">
                                 {exam?.title}
                             </h1>
-                            <p className="text-xs md:text-sm text-muted-foreground/60 font-medium leading-relaxed border-l-4 border-primary/20 pl-3 md:pl-4 py-0.5">
+                            <p className="text-xs md:text-sm text-muted-foreground font-medium leading-relaxed border-l-4 border-primary/30 pl-3 md:pl-4 py-0.5">
                                 {exam?.description}
                             </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-10">
                             <div className="p-4 md:p-5 bg-muted rounded-xl md:rounded-xl border border-border">
-                                <div className="flex items-center text-muted-foreground/40 mb-1 md:mb-2">
+                                <div className="flex items-center text-muted-foreground/70 mb-1 md:mb-2">
                                     <Timer className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
                                     <span className="text-[11px] md:text-xs font-semibold tracking-wide">Limit</span>
                                 </div>
                                 <div className="text-lg md:text-2xl font-semibold text-foreground leading-none">
-                                    {exam?.duration} <span className="text-xs md:text-sm font-semibold text-muted-foreground/40">MINS</span>
+                                    {exam?.duration} <span className="text-xs md:text-sm font-semibold text-muted-foreground/70">MINS</span>
                                 </div>
                             </div>
                             <div className="p-4 md:p-5 bg-muted rounded-xl md:rounded-xl border border-border">
-                                <div className="flex items-center text-muted-foreground/40 mb-1 md:mb-2">
+                                <div className="flex items-center text-muted-foreground/70 mb-1 md:mb-2">
                                     <ShieldCheck className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
                                     <span className="text-[11px] md:text-xs font-semibold tracking-wide">Protocol</span>
                                 </div>
@@ -476,23 +476,23 @@ const ExamCenter = () => {
                         {exam?.accessMode === 'open' ? (
                             <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
                                 <div className="relative group">
-                                    <User className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-muted-foreground/40 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-primary transition-colors" />
+                                    <User className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-primary transition-colors" />
                                     <input
                                         type="text"
                                         placeholder="Full Name"
                                         value={candidateInfo.name}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, name: e.target.value })}
-                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-muted border-2 border-transparent focus:border-primary focus:bg-card rounded-xl md:rounded-xl transition-all outline-none font-semibold text-sm md:text-base text-foreground placeholder:text-muted-foreground/20"
+                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-muted border-2 border-transparent focus:border-primary focus:bg-card rounded-xl md:rounded-xl transition-all outline-none font-semibold text-sm md:text-base text-foreground placeholder:text-muted-foreground/60"
                                     />
                                 </div>
                                 <div className="relative group">
-                                    <Mail className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-muted-foreground/40 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-primary transition-colors" />
+                                    <Mail className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-primary transition-colors" />
                                     <input
                                         type="email"
                                         placeholder="Email Address (Optional)"
                                         value={candidateInfo.email}
                                         onChange={(e) => setCandidateInfo({ ...candidateInfo, email: e.target.value })}
-                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-muted border-2 border-transparent focus:border-primary focus:bg-card rounded-xl md:rounded-xl transition-all outline-none font-semibold text-sm md:text-base text-foreground placeholder:text-muted-foreground/20"
+                                        className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 bg-muted border-2 border-transparent focus:border-primary focus:bg-card rounded-xl md:rounded-xl transition-all outline-none font-semibold text-sm md:text-base text-foreground placeholder:text-muted-foreground/60"
                                     />
                                 </div>
                             </div>
@@ -540,7 +540,7 @@ const ExamCenter = () => {
                             </button>
                         )}
 
-                        <p className="text-center text-[11px] md:text-xs font-semibold text-muted-foreground/30 mt-4 md:mt-6 tracking-[0.4em]">
+                        <p className="text-center text-[11px] md:text-xs font-semibold text-muted-foreground/70 mt-4 md:mt-6 tracking-[0.2em]">
                             Session Encrypted & Secure
                         </p>
                     </div>
@@ -859,8 +859,8 @@ const ExamCenter = () => {
                             Please stay on the exam
                         </h2>
                         <p id="tab-switch-warning-description" className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                            You switched away from the exam tab. Switching away again will automatically submit your attempt.
-                            Acknowledge this warning to continue.
+                            Leaving the exam tab may result in your attempt being automatically submitted.
+                            Return to this tab and acknowledge this warning to continue.
                         </p>
                         <button
                             type="button"

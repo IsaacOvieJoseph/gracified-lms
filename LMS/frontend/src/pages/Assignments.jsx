@@ -543,13 +543,13 @@ const Assignments = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-primary opacity-40" />
-                          <span className="opacity-40">Operational Max:</span>
+                          <span className="opacity-40">Maximum Score:</span>
                           <span className="text-foreground">{assignment.maxScore} Pts</span>
                         </div>
                         {assignment.assignmentType === 'mcq' && assignment.publishResultsAt && (
                           <div className="flex items-center gap-2">
                             <Book className="w-4 h-4 text-primary opacity-40" />
-                            <span className="opacity-40">Results Intel:</span>
+                            <span className="opacity-40">Results Available:</span>
                             <span className="text-foreground">{formatDisplayDate(assignment.publishResultsAt)}</span>
                             {/* Only show "Pending" if results not published AND student hasn't submitted yet */}
                             {new Date() < new Date(assignment.publishResultsAt) && !isSubmitted && (
@@ -566,14 +566,14 @@ const Assignments = () => {
                           <div className="flex items-center space-x-3 mb-4">
                             <CheckCircle className="w-5 h-5 text-emerald-500" />
                             <span className="text-sm font-semibold text-foreground tracking-wide italic">
-                              Resolved Intel: {Math.round(((submission.score || 0) / (assignment.maxScore || 100)) * 100)}%
+                              Your Score: {Math.round(((submission.score || 0) / (assignment.maxScore || 100)) * 100)}%
                             </span>
                           </div>
                           {submission.feedback && (
                             <p className="text-[11px] font-semibold text-muted-foreground tracking-wider mb-6 pb-6 border-b border-border/10 italic opacity-80">Evaluator Note: <span className="text-foreground">{submission.feedback}</span></p>
                           )}
                           <div className="space-y-6">
-                            <h5 className="text-xs font-semibold text-muted-foreground tracking-wide opacity-40">Operational Payload Details:</h5>
+                            <h5 className="text-xs font-semibold text-muted-foreground tracking-wide opacity-40">Your Responses and Feedback:</h5>
                             {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
                               <div className="space-y-4">
                                 {assignment.questions?.map((q, qIndex) => {
@@ -590,7 +590,7 @@ const Assignments = () => {
                                           <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-xl border border-emerald-500/20">
                                             Score: {questionGrade.score}/{q.maxScore}
                                           </span>
-                                          {questionGrade.feedback && <span className="text-muted-foreground italic opacity-60">Intel Note: {questionGrade.feedback}</span>}
+                                          {questionGrade.feedback && <span className="text-muted-foreground italic opacity-60">Feedback: {questionGrade.feedback}</span>}
                                         </div>
                                       )}
                                     </div>
@@ -629,7 +629,7 @@ const Assignments = () => {
                             }
                           </p>
                           <div className="mt-4 border-t border-border/10 pt-4">
-                            <h5 className="text-xs font-semibold text-muted-foreground tracking-wide mb-4">Your Intel Payload:</h5>
+                            <h5 className="text-xs font-semibold text-muted-foreground tracking-wide mb-4">Your Submission:</h5>
                             <div className="space-y-4">
                               {assignment.assignmentType === 'theory' && submission.answers && Array.isArray(submission.answers) && (
                                 <div className="space-y-4">
@@ -755,7 +755,7 @@ const Assignments = () => {
                                           <ChevronDown className="w-4 h-4 text-muted-foreground/30" />
                                         )}
                                         <div className="flex-1">
-                                          <p className="font-semibold text-foreground">{sub.studentId?.name || 'Unknown Intel'}</p>
+                                          <p className="font-semibold text-foreground">{sub.studentId?.name || 'Unknown student'}</p>
                                           <div className="flex items-center gap-3 mt-1">
                                             <span className="text-xs font-semibold text-muted-foreground tracking-wide opacity-40">Status: {sub.status}</span>
                                             {sub.status === 'graded' && (
@@ -797,7 +797,7 @@ const Assignments = () => {
                                         {/* Display answers based on type */}
                                         {assignment.assignmentType === 'theory' && sub.answers && (
                                           <div className="mt-4">
-                                            <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-2 opacity-40">Intel Payload:</p>
+                                            <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-2 opacity-40">Student Response:</p>
                                             <div className="p-4 bg-card rounded-xl border border-border shadow-none">
                                               <p className="text-sm text-foreground/70 italic whitespace-pre-wrap leading-relaxed">{Array.isArray(sub.answers) ? sub.answers.join('\n\n') : sub.answers}</p>
                                             </div>
@@ -846,8 +846,8 @@ const Assignments = () => {
                </div>
               <p className="text-muted-foreground/30 font-semibold text-xs tracking-wide italic">
                 {searchQuery.trim() !== ''
-                  ? 'No intel found matching search protocol'
-                  : 'Objective registry is currently empty'}
+                  ? 'No assignments match your search'
+                  : 'No assignments available yet'}
               </p>
             </div>
           )}
